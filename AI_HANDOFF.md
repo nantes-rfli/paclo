@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: fbfec9f
-- generated: 2025-08-22 17:01:00 UTC
+- commit: 836e0d8
+- generated: 2025-08-22 17:11:24 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -1224,18 +1224,27 @@ echo "Wrote $out"
 (defn summarize
   "要点だけサマリ出力（println）。戻り値は pkt そのもの（スレッディングしやすく）。"
   [pkt]
-  (let [{:keys [type l3]} pkt
+  (let [{:keys [type l3 vlan-tags]} pkt
         l3t (:type l3)
         proto (or (:protocol l3) (:next-header l3))
         l4 (:l4 l3)]
     (println "L2:" type)
     (when (= :ethernet type)
-      (println "  src/dst:" (:src pkt) "->" (:dst pkt) "eth" (format "0x%04X" (:eth pkt))))
+      (print "  src/dst:" (:src pkt) "->" (:dst pkt) "eth" (format "0x%04X" (:eth pkt)))
+      (when (seq vlan-tags)
+        (print "  VLAN:")
+        (doseq [t vlan-tags]
+          (print (format " [TPID=0x%04X VID=%d PCP=%d DEI=%s]"
+                         (:tpid t) (:vid t) (:pcp t) (boolean (:dei t))))))
+      (println))
     (println "L3:" l3t)
     (case l3t
       :ipv4 (println "  proto" proto "src" (:src l3) "dst" (:dst l3))
-      :ipv6 (println "  nh" proto "src" (:src l3) "dst" (:dst l3)
-                     (when (:frag? l3) (str "frag@" (:frag-offset l3))))
+      :ipv6 (do
+              (println "  nh" proto
+                       "src" (or (:src-compact l3) (:src l3))
+                       "dst" (or (:dst-compact l3) (:dst l3))
+                       (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
     (println "L4:" (:type l4)
