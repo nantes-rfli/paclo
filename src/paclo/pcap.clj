@@ -3,8 +3,8 @@
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref PointerByReference IntByReference]
    [paclo.jnr PcapLibrary PcapHeader]
-   ;; ★ 追加
-   [java.util.concurrent LinkedBlockingQueue TimeUnit]))
+   [java.util.concurrent LinkedBlockingQueue]))
+
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib

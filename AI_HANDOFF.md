@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 6d78335
-- generated: 2025-08-22 13:23:53 UTC
+- commit: 3ff1768
+- generated: 2025-08-22 13:24:43 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -453,8 +453,8 @@ echo "Wrote $out"
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref PointerByReference IntByReference]
    [paclo.jnr PcapLibrary PcapHeader]
-   ;; ★ 追加
-   [java.util.concurrent LinkedBlockingQueue TimeUnit]))
+   [java.util.concurrent LinkedBlockingQueue]))
+
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib
