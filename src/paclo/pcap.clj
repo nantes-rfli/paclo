@@ -510,24 +510,34 @@
   "パケットを lazy-seq で返す高レベルAPI。
    opts:
    - ライブ:  {:device \"en1\" :filter \"tcp\" :snaplen 65536 :promiscuous? true :timeout-ms 10}
-   - オフライン: {:path \"sample.pcap\" :filter \"...\"}  ; filterはオフラインでも使用可
+   - オフライン: {:path \"sample.pcap\" :filter \"...\"}
    - 共有停止条件（指定なければ安全な既定値で自動手仕舞い）:
        :max <int>               ; 取得最大件数（default 100）
        :max-time-ms <int>       ; 経過時間上限（default 10000）
        :idle-max-ms <int>       ; 無通信連続上限（default 3000）
    - 内部キュー:
        :queue-cap <int>         ; バックグラウンド→呼び出し側のバッファ（default 1024）
+   - エラー処理（★新規★）:
+       :on-error (fn [throwable])   ; 背景スレッドで例外発生時に呼ばれる。失敗しても握りつぶす
+       :error-mode :throw|:pass     ; 既定 :throw（lazy-seq 生成側に例外を再スロー）/ :pass はスキップ継続
 
    返り値: lazy-seq of packet-maps （loop! ハンドラで渡している {:ts-sec … :bytes …}）"
   [{:keys [device path filter snaplen promiscuous? timeout-ms
-           max max-time-ms idle-max-ms queue-cap]
-    :or   {snaplen 65536 promiscuous? true timeout-ms 10}}]
-  (let [max         (or max default-max)
+           max max-time-ms idle-max-ms queue-cap on-error error-mode]
+    :or   {snaplen 65536 promiscuous? true timeout-ms 10
+           error-mode :throw}}]
+  (let [default-max 100
+        default-max-time-ms 10000
+        default-idle-max-ms 3000
+        default-queue-cap 1024
+        max         (or max default-max)
         max-time-ms (or max-time-ms default-max-time-ms)
         idle-max-ms (or idle-max-ms default-idle-max-ms)
         cap         (int (or queue-cap default-queue-cap))
         q           (LinkedBlockingQueue. cap)
         sentinel    ::end-of-capture
+        ;; ★ 背景エラーを明示化するためのアイテム（通常パケットとは区別できる形）
+        make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
         ;; open
         h (if device
             (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})
@@ -542,9 +552,14 @@
         ;; 取得条件の組合せ：:max と :max-time-ms を併用し、無通信でも終わる
         (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms}
           (fn [pkt]
-            ;; キュー満杯なら待つ（キャンセル時は take されないと詰まる想定だが
-            ;; デフォルト上限と既定の停止条件でリスクは低い）
+            ;; キュー満杯なら待つ
             (.put q pkt)))
+        (catch Throwable ex
+          ;; ★ 例外を通知（ハンドラは失敗しても握りつぶす）
+          (when on-error
+            (try (on-error ex) (catch Throwable _)))
+          ;; ★ エラーアイテムをキューに入れて、lazy 側に伝える
+          (.put q (make-error-item ex)))
         (finally
           ;; キャプチャ終了通知とクローズ
           (.put q sentinel)
@@ -553,11 +568,25 @@
     (letfn [(drain []
               (lazy-seq
                 (let [x (.take q)]
-                  (if (identical? x sentinel)
-                    ;; sentinelは消費。以降は空のseq
+                  (cond
+                    ;; 終了
+                    (identical? x sentinel)
                     '()
+
+                    ;; ★ エラーの再スロー or スキップ
+                    (and (map? x) (= (:type x) :paclo/capture-error))
+                    (if (= error-mode :pass)
+                      (drain)
+                      (throw (ex-info "capture->seq background error"
+                                      {:source :capture->seq}
+                                      (:ex x)))))
+
+                    ;; 通常パケット
+                    :else
                     (cons x (drain))))))]
       (drain))))
+
+
 
 ;; ------------------------------------------------------------
 ;; ライブ実行のサマリ版（後方互換のため新規追加）

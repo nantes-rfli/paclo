@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: f9dd54e
-- generated: 2025-08-22 13:23:24 UTC
+- commit: 6d78335
+- generated: 2025-08-22 13:23:53 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
