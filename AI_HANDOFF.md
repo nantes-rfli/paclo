@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 1545ddc
-- generated: 2025-08-22 13:46:02 UTC
+- commit: 9a74ade
+- generated: 2025-08-22 13:54:12 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -89,6 +89,56 @@ echo "Wrote $out"
   (format "%x:%x:%x:%x:%x:%x:%x:%x"
           (u16 b) (u16 b) (u16 b) (u16 b)
           (u16 b) (u16 b) (u16 b) (u16 b)))
+
+;; IPv6: 8ワード読み取り（u16×8）
+(defn- ipv6-addr-words ^clojure.lang.IPersistentVector [^ByteBuffer b]
+  (vector (u16 b) (u16 b) (u16 b) (u16 b)
+          (u16 b) (u16 b) (u16 b) (u16 b)))
+
+(defn- ipv6-full-str [ws]                   ;; 非圧縮（既存の ipv6-addr と同等の見た目）
+  (clojure.string/join ":" (map #(format "%x" %) ws)))
+
+(defn- ipv6-compress-str
+  "RFC5952に準拠した簡易圧縮: 0の最長連続（長さ>=2）を :: に。
+   先頭/末尾/全ゼロ も自然に処理。"
+  [ws]
+  (let [n (count ws)
+        ;; 最長0連続を探索（>=2のみ）
+        [best-i best-len]
+        (loop [i 0 cur-i nil cur-len 0 best-i nil best-len 0]
+          (if (= i n)
+            ;; ループ終了時、直前の連続が最長なら更新
+            (let [[best-i best-len]
+                  (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                    [cur-i cur-len] [best-i best-len])]
+              [best-i best-len])
+            (let [z? (zero? (nth ws i))]
+              (cond
+                z?
+                (recur (inc i)
+                       (or cur-i i)
+                       (inc cur-len)
+                       best-i best-len)
+
+                ;; 連続0が途切れた
+                :else
+                (let [[best-i best-len]
+                      (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                        [cur-i cur-len] [best-i best-len])]
+                  (recur (inc i) nil 0 best-i best-len))))))]
+    (if (>= best-len 2)
+      (let [before (subvec ws 0 best-i)
+            after  (subvec ws (+ best-i best-len) n)
+            hexs   (fn [v] (map #(Integer/toHexString (int %)) v))
+            s-before (clojure.string/join ":" (hexs before))
+            s-after  (clojure.string/join ":" (hexs after))]
+        (cond
+          (and (empty? before) (empty? after)) "::"
+          (empty? before)      (str "::" s-after)
+          (empty? after)       (str s-before "::")
+          :else                (str s-before "::" s-after)))
+      ;; 圧縮対象ナシ
+      (clojure.string/join ":" (map #(Integer/toHexString (int %)) ws)))))
 
 ;; 安全ヘルパ: 現在位置から len バイト分だけ読める ByteBuffer を作る
 (defn- limited-slice ^ByteBuffer [^ByteBuffer b ^long len]
@@ -305,21 +355,26 @@ echo "Wrote $out"
         payload-len (u16 b)
         next-hdr (u8 b)
         hop-limit (u8 b)
-        src (ipv6-addr b)
-        dst (ipv6-addr b)
+        ;; ここで8ワードを読み取り → 非圧縮/圧縮の両方を作る
+        src-w (ipv6-addr-words b)
+        dst-w (ipv6-addr-words b)
+        src   (ipv6-full-str src-w)          ;; 既存互換（非圧縮）
+        dst   (ipv6-full-str dst-w)
+        srcC  (ipv6-compress-str src-w)      ;; 新規（圧縮）
+        dstC  (ipv6-compress-str dst-w)
         l4buf (or (limited-slice b payload-len) (.duplicate b))
         {:keys [final-nh buf frag? frag-offset]}
         (parse-ipv6-ext-chain! l4buf next-hdr)
         l4 (if (and frag? (pos? frag-offset))
              {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
              (l4-parse final-nh buf))
-        ;; IPv6 でも flow-key を常に付与（非先頭フラグメントは src/dst + proto のみ）
         flow-key (when final-nh
                    (make-flow-key {:src src :dst dst :next-header final-nh} l4))]
     {:type :ipv6
      :version version :traffic-class tclass :flow-label flabel
      :payload-length payload-len :next-header final-nh :hop-limit hop-limit
      :src src :dst dst
+     :src-compact srcC :dst-compact dstC         ;; ★ 追加
      :frag? frag? :frag-offset (when frag? frag-offset)
      :l4 l4
      :flow-key flow-key}))
@@ -1454,6 +1509,35 @@ public interface PcapLibrary {
     ;; ポートは無い（nil）ことを確認
     (is (nil? (:src-port fk)))
     (is (nil? (:dst-port fk)))))
+
+;; IPv6 圧縮表記（ゼロ連続を :: に）
+(deftest ipv6-addr-compact-basic-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 0C 11 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               12 34 56 78 00 0C 00 00
+               DE AD BE EF")
+        m (parse/packet->clj pkt)]
+    ;; 既存の非圧縮は維持
+    (is (= "2001:db8:0:0:0:0:0:1" (get-in m [:l3 :src])))
+    (is (= "2001:db8:0:0:0:0:0:2" (get-in m [:l3 :dst])))
+    ;; 新フィールドは圧縮
+    (is (= "2001:db8::1" (get-in m [:l3 :src-compact])))
+    (is (= "2001:db8::2" (get-in m [:l3 :dst-compact])))))
+
+;; 全ゼロは :: になる
+(deftest ipv6-addr-compact-all-zero-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 11 40
+               00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               12 34 56 78 00 08 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= "::" (get-in m [:l3 :src-compact])))
+    (is (= "::" (get-in m [:l3 :dst-compact])))))
 ```
 
 ### test/paclo/test_util.clj

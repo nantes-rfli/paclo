@@ -232,3 +232,32 @@
     ;; ポートは無い（nil）ことを確認
     (is (nil? (:src-port fk)))
     (is (nil? (:dst-port fk)))))
+
+;; IPv6 圧縮表記（ゼロ連続を :: に）
+(deftest ipv6-addr-compact-basic-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 0C 11 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               12 34 56 78 00 0C 00 00
+               DE AD BE EF")
+        m (parse/packet->clj pkt)]
+    ;; 既存の非圧縮は維持
+    (is (= "2001:db8:0:0:0:0:0:1" (get-in m [:l3 :src])))
+    (is (= "2001:db8:0:0:0:0:0:2" (get-in m [:l3 :dst])))
+    ;; 新フィールドは圧縮
+    (is (= "2001:db8::1" (get-in m [:l3 :src-compact])))
+    (is (= "2001:db8::2" (get-in m [:l3 :dst-compact])))))
+
+;; 全ゼロは :: になる
+(deftest ipv6-addr-compact-all-zero-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 11 40
+               00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               12 34 56 78 00 08 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= "::" (get-in m [:l3 :src-compact])))
+    (is (= "::" (get-in m [:l3 :dst-compact])))))

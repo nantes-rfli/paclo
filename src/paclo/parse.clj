@@ -26,6 +26,56 @@
           (u16 b) (u16 b) (u16 b) (u16 b)
           (u16 b) (u16 b) (u16 b) (u16 b)))
 
+;; IPv6: 8ワード読み取り（u16×8）
+(defn- ipv6-addr-words ^clojure.lang.IPersistentVector [^ByteBuffer b]
+  (vector (u16 b) (u16 b) (u16 b) (u16 b)
+          (u16 b) (u16 b) (u16 b) (u16 b)))
+
+(defn- ipv6-full-str [ws]                   ;; 非圧縮（既存の ipv6-addr と同等の見た目）
+  (clojure.string/join ":" (map #(format "%x" %) ws)))
+
+(defn- ipv6-compress-str
+  "RFC5952に準拠した簡易圧縮: 0の最長連続（長さ>=2）を :: に。
+   先頭/末尾/全ゼロ も自然に処理。"
+  [ws]
+  (let [n (count ws)
+        ;; 最長0連続を探索（>=2のみ）
+        [best-i best-len]
+        (loop [i 0 cur-i nil cur-len 0 best-i nil best-len 0]
+          (if (= i n)
+            ;; ループ終了時、直前の連続が最長なら更新
+            (let [[best-i best-len]
+                  (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                    [cur-i cur-len] [best-i best-len])]
+              [best-i best-len])
+            (let [z? (zero? (nth ws i))]
+              (cond
+                z?
+                (recur (inc i)
+                       (or cur-i i)
+                       (inc cur-len)
+                       best-i best-len)
+
+                ;; 連続0が途切れた
+                :else
+                (let [[best-i best-len]
+                      (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                        [cur-i cur-len] [best-i best-len])]
+                  (recur (inc i) nil 0 best-i best-len))))))]
+    (if (>= best-len 2)
+      (let [before (subvec ws 0 best-i)
+            after  (subvec ws (+ best-i best-len) n)
+            hexs   (fn [v] (map #(Integer/toHexString (int %)) v))
+            s-before (clojure.string/join ":" (hexs before))
+            s-after  (clojure.string/join ":" (hexs after))]
+        (cond
+          (and (empty? before) (empty? after)) "::"
+          (empty? before)      (str "::" s-after)
+          (empty? after)       (str s-before "::")
+          :else                (str s-before "::" s-after)))
+      ;; 圧縮対象ナシ
+      (clojure.string/join ":" (map #(Integer/toHexString (int %)) ws)))))
+
 ;; 安全ヘルパ: 現在位置から len バイト分だけ読める ByteBuffer を作る
 (defn- limited-slice ^ByteBuffer [^ByteBuffer b ^long len]
   (when (and (<= 0 len) (<= len (.remaining b)))
@@ -241,21 +291,26 @@
         payload-len (u16 b)
         next-hdr (u8 b)
         hop-limit (u8 b)
-        src (ipv6-addr b)
-        dst (ipv6-addr b)
+        ;; ここで8ワードを読み取り → 非圧縮/圧縮の両方を作る
+        src-w (ipv6-addr-words b)
+        dst-w (ipv6-addr-words b)
+        src   (ipv6-full-str src-w)          ;; 既存互換（非圧縮）
+        dst   (ipv6-full-str dst-w)
+        srcC  (ipv6-compress-str src-w)      ;; 新規（圧縮）
+        dstC  (ipv6-compress-str dst-w)
         l4buf (or (limited-slice b payload-len) (.duplicate b))
         {:keys [final-nh buf frag? frag-offset]}
         (parse-ipv6-ext-chain! l4buf next-hdr)
         l4 (if (and frag? (pos? frag-offset))
              {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
              (l4-parse final-nh buf))
-        ;; IPv6 でも flow-key を常に付与（非先頭フラグメントは src/dst + proto のみ）
         flow-key (when final-nh
                    (make-flow-key {:src src :dst dst :next-header final-nh} l4))]
     {:type :ipv6
      :version version :traffic-class tclass :flow-label flabel
      :payload-length payload-len :next-header final-nh :hop-limit hop-limit
      :src src :dst dst
+     :src-compact srcC :dst-compact dstC         ;; ★ 追加
      :frag? frag? :frag-offset (when frag? frag-offset)
      :l4 l4
      :flow-key flow-key}))
