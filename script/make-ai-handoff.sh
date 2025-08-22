@@ -21,11 +21,19 @@ emit () {
   echo "## How to run"
   echo "\\\`clj -M:test\\\` / \\\`clj -T:build jar\\\`"
   echo
+  echo "## Notes"
+  echo "- IPv6 HBH / Destination Options の HdrExtLen は **(n+1)\*8 バイト（総ヘッダ長）**。"
+  echo "  テストベクタ作成時は NextHdr/HdrExtLen の 2 バイトを除いた *オプション領域長* が (総長-2) に厳密一致するように Pad1/PadN で調整すること。"
+  echo
   echo "## Files"
+  echo "### script/make-ai-handoff.sh"
+  emit bash script/make-ai-handoff.sh
   echo "### src/paclo/parse.clj"
   emit clojure src/paclo/parse.clj
   echo "### src/paclo/pcap.clj"
   emit clojure src/paclo/pcap.clj
+  echo "### src/paclo/dev.clj"
+  emit clojure src/paclo/dev.clj
   echo "### src-java/paclo/jnr/PcapLibrary.java"
   emit java src-java/paclo/jnr/PcapLibrary.java
   echo "### test/paclo/parse_test.clj"
