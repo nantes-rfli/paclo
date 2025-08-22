@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 7218ec1
-- generated: 2025-08-22 13:07:33 UTC
+- commit: 39b8cc3
+- generated: 2025-08-22 13:13:46 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -480,7 +480,7 @@ echo "Wrote $out"
         promisc (if promiscuous? 1 0)
         pcap (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
-      (throw (ex-info "pcap_open_live failed" {:err (.getString err 0)})))
+      (throw (ex-info "pcap_open_live failed" {:device device :err (.getString err 0)})))
     pcap))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
@@ -1008,6 +1008,41 @@ echo "Wrote $out"
                     '()
                     (cons x (drain))))))]
       (drain))))
+
+;; ------------------------------------------------------------
+;; ライブ実行のサマリ版（後方互換のため新規追加）
+;; - run-live-n-summary!     => {:count n :duration-ms X :stopped :n | :idle-or-eof}
+;; - run-live-for-ms-summary!=> {:count n :duration-ms X :stopped :time | :idle-or-eof}
+;;   ※ :idle-or-eof は「件数未達で停止（アイドル or EOF/ERR）」の総称
+;; ------------------------------------------------------------
+
+(defn run-live-n-summary!
+  "run-live-n! と同等の処理を行い、サマリを返す。
+   例: (run-live-n-summary! {:device \"en0\" :filter \"udp\" :timeout-ms 50} 100 (fn [_]) {:idle-max-ms 3000})"
+  ([opts ^long n handler]
+   (run-live-n-summary! opts n handler {}))
+  ([opts ^long n handler loop-opts]
+   (let [cnt (atom 0)
+         t0  (System/currentTimeMillis)
+         wrapped (fn [pkt] (swap! cnt inc) (handler pkt))]
+     (run-live-n! opts n wrapped loop-opts)
+     (let [elapsed (- (System/currentTimeMillis) t0)
+           stopped (if (>= @cnt n) :n :idle-or-eof)]
+       {:count @cnt :duration-ms elapsed :stopped stopped}))))
+
+(defn run-live-for-ms-summary!
+  "run-live-for-ms! と同等の処理を行い、サマリを返す。
+   例: (run-live-for-ms-summary! {:device \"en0\" :filter \"tcp\" :timeout-ms 50} 3000 (fn [_]) {:idle-max-ms 1000})"
+  ([opts ^long duration-ms handler]
+   (run-live-for-ms-summary! opts duration-ms handler {}))
+  ([opts ^long duration-ms handler loop-opts]
+   (let [cnt (atom 0)
+         t0  (System/currentTimeMillis)
+         wrapped (fn [pkt] (swap! cnt inc) (handler pkt))]
+     (run-live-for-ms! opts duration-ms wrapped loop-opts)
+     (let [elapsed (- (System/currentTimeMillis) t0)
+           stopped (if (>= elapsed (long duration-ms)) :time :idle-or-eof)]
+       {:count @cnt :duration-ms elapsed :stopped stopped}))))
 ```
 
 ### src/paclo/dev.clj
