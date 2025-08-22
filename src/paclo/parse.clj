@@ -243,23 +243,23 @@
         hop-limit (u8 b)
         src (ipv6-addr b)
         dst (ipv6-addr b)
-        l4buf (or (limited-slice b payload-len) (.duplicate b))]
-    (let [l4buf (or (limited-slice b payload-len) (.duplicate b))
-          {:keys [final-nh buf frag? frag-offset]}
-          (parse-ipv6-ext-chain! l4buf next-hdr)
-          l4 (if (and frag? (pos? frag-offset))
-               {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
-               (l4-parse final-nh buf))
-          ;; ★ 追加：IPv6 でも flow-key を常に付与（非先頭フラグメントは src/dst + proto のみ）
-          flow-key (when final-nh
-                     (make-flow-key {:src src :dst dst :next-header final-nh} l4))]
-      {:type :ipv6
-       :version version :traffic-class tclass :flow-label flabel
-       :payload-length payload-len :next-header final-nh :hop-limit hop-limit
-       :src src :dst dst
-       :frag? frag? :frag-offset (when frag? frag-offset)
-       :l4 l4
-       :flow-key flow-key})))   ;; ★ 追加（末尾に1行）
+        l4buf (or (limited-slice b payload-len) (.duplicate b))
+        {:keys [final-nh buf frag? frag-offset]}
+        (parse-ipv6-ext-chain! l4buf next-hdr)
+        l4 (if (and frag? (pos? frag-offset))
+             {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
+             (l4-parse final-nh buf))
+        ;; IPv6 でも flow-key を常に付与（非先頭フラグメントは src/dst + proto のみ）
+        flow-key (when final-nh
+                   (make-flow-key {:src src :dst dst :next-header final-nh} l4))]
+    {:type :ipv6
+     :version version :traffic-class tclass :flow-label flabel
+     :payload-length payload-len :next-header final-nh :hop-limit hop-limit
+     :src src :dst dst
+     :frag? frag? :frag-offset (when frag? frag-offset)
+     :l4 l4
+     :flow-key flow-key}))
+
 
 
 (defn- tcp-header [^ByteBuffer b]
