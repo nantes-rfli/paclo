@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 4adf500
-- generated: 2025-08-22 13:31:56 UTC
+- commit: 1545ddc
+- generated: 2025-08-22 13:46:02 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -967,13 +967,15 @@ echo "Wrote $out"
        :idle-max-ms <int>       ; 無通信連続上限（default 3000）
    - 内部キュー:
        :queue-cap <int>         ; バックグラウンド→呼び出し側のバッファ（default 1024）
-   - エラー処理（★新規★）:
-       :on-error (fn [throwable])   ; 背景スレッドで例外発生時に呼ばれる。失敗しても握りつぶす
-       :error-mode :throw|:pass     ; 既定 :throw（lazy-seq 生成側に例外を再スロー）/ :pass はスキップ継続
+   - エラー処理:
+       :on-error (fn [throwable])   ; 背景スレッドで例外発生時に呼ばれる（任意）
+       :error-mode :throw|:pass     ; 既定 :throw（lazy側に再スロー）/:pass はスキップ
+   - ★停止条件フック（新規）:
+       :stop? (fn [pkt] boolean)    ; 受信pktを見て true なら即 stop（breakloop!）
 
    返り値: lazy-seq of packet-maps （loop! ハンドラで渡している {:ts-sec … :bytes …}）"
   [{:keys [device path filter snaplen promiscuous? timeout-ms
-           max max-time-ms idle-max-ms queue-cap on-error error-mode]
+           max max-time-ms idle-max-ms queue-cap on-error error-mode stop?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10
            error-mode :throw}}]
   (let [default-max 100
@@ -986,7 +988,6 @@ echo "Wrote $out"
         cap         (int (or queue-cap default-queue-cap))
         q           (LinkedBlockingQueue. cap)
         sentinel    ::end-of-capture
-        ;; ★ 背景エラーを明示化するためのアイテム（通常パケットとは区別できる形）
         make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
         ;; open
         h (if device
@@ -999,40 +1000,32 @@ echo "Wrote $out"
           (if device
             (set-bpf-on-device! h device filter)
             (set-bpf! h filter)))
-        ;; 取得条件の組合せ：:max と :max-time-ms を併用し、無通信でも終わる
         (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms}
-          (fn [pkt]
-            ;; キュー満杯なら待つ
-            (.put q pkt)))
+                       (fn [pkt]
+                         ;; キュー満杯なら待つ
+                         (.put q pkt)
+                         ;; ★ 任意条件で即停止
+                         (when (and stop? (stop? pkt))
+                           (breakloop! h))))
         (catch Throwable ex
-          ;; ★ 例外を通知（ハンドラは失敗しても握りつぶす）
-          (when on-error
-            (try (on-error ex) (catch Throwable _)))
-          ;; ★ エラーアイテムをキューに入れて、lazy 側に伝える
+          (when on-error (try (on-error ex) (catch Throwable _)))
           (.put q (make-error-item ex)))
         (finally
-          ;; キャプチャ終了通知とクローズ
           (.put q sentinel)
           (close! h))))
     ;; lazy-seq を返す
     (letfn [(drain []
               (lazy-seq
-                (let [x (.take q)]
-                  (cond
-                    ;; 終了
-                    (identical? x sentinel) '()
-
-                    ;; ★ エラーの再スロー or スキップ
-                    (and (map? x) (= (:type x) :paclo/capture-error))
-                    (if (= error-mode :pass)
-                      (drain)
-                      (throw (ex-info "capture->seq background error"
-                                      {:source :capture->seq}
-                                      (:ex x))))
-
-                    ;; 通常パケット
-                    :else
-                    (cons x (drain))))))]
+               (let [x (.take q)]
+                 (cond
+                   (identical? x sentinel) '()
+                   (and (map? x) (= (:type x) :paclo/capture-error))
+                   (if (= error-mode :pass)
+                     (drain)
+                     (throw (ex-info "capture->seq background error"
+                                     {:source :capture->seq}
+                                     (:ex x))))
+                   :else (cons x (drain))))))]
       (drain))))
 
 
