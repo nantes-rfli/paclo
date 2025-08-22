@@ -35,13 +35,10 @@
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
 
-;; -----------------------------------------------------------------------------
-;; ★ 追加: pcap_lookupnet のラッパ
-;; -----------------------------------------------------------------------------
 (defn lookupnet
   "デバイス名 dev のネットワークアドレス/マスクを取得。
    成功: {:net int :mask int}
-   失敗: ex-info（:err に libpcap のメッセージ）"
+   失敗: ex-info（:phase :lookupnet を含む）"
   [dev]
   (let [net-ref  (IntByReference.)
         mask-ref (IntByReference.)
@@ -51,7 +48,8 @@
       {:net  (.getValue net-ref)
        :mask (.getValue mask-ref)}
       (throw (ex-info "pcap_lookupnet failed"
-                      {:device dev
+                      {:phase  :lookupnet
+                       :device dev
                        :rc     rc
                        :err    (.getString err 0)})))))
 
@@ -62,51 +60,62 @@
       (let [rc-compile (.pcap_compile lib pcap (.addr prog) expr 1 0)]
         (when (neg? rc-compile)
           (throw (ex-info "pcap_compile failed"
-                          {:expr expr
-                           :rc rc-compile
-                           :err (.pcap_geterr lib pcap)}))))
+                          {:phase :compile
+                           :expr  expr
+                           :rc    rc-compile
+                           :err   (.pcap_geterr lib pcap)}))))
       (let [rc-set (.pcap_setfilter lib pcap (.addr prog))]
         (when (neg? rc-set)
           (throw (ex-info "pcap_setfilter failed"
-                          {:expr expr
-                           :rc rc-set
-                           :err (.pcap_geterr lib pcap)}))))
+                          {:phase :setfilter
+                           :expr  expr
+                           :rc    rc-set
+                           :err   (.pcap_geterr lib pcap)}))))
+      true
       (finally
-        ;; 成否に関わらず bf_insn を解放
         (.pcap_freecode lib (.addr prog))))))
 
-;; -----------------------------------------------------------------------------
-;; ★ 追加: 明示 netmask を使って BPF を設定する安全版（既存を壊さない）
-;; -----------------------------------------------------------------------------
 (defn set-bpf-with-netmask!
-  "pcap ハンドルに BPF を適用。optimize=1、netmask を明示指定。
-   戻り値: true（例外がなければ成功）"
+  "pcap ハンドルに BPF を適用。optimize=1、netmask を明示指定。成功で true。"
   [^Pointer pcap expr netmask]
   (let [prog (paclo.jnr.BpfProgram. rt)]
     (try
       (let [rc-compile (.pcap_compile lib pcap (.addr prog) expr 1 (int netmask))]
         (when (neg? rc-compile)
           (throw (ex-info "pcap_compile failed"
-                          {:expr expr
+                          {:phase   :compile
+                           :expr    expr
                            :netmask netmask
-                           :rc rc-compile
-                           :err (.pcap_geterr lib pcap)}))))
+                           :rc      rc-compile
+                           :err     (.pcap_geterr lib pcap)}))))
       (let [rc-set (.pcap_setfilter lib pcap (.addr prog))]
         (when (neg? rc-set)
           (throw (ex-info "pcap_setfilter failed"
-                          {:expr expr
+                          {:phase   :setfilter
+                           :expr    expr
                            :netmask netmask
-                           :rc rc-set
-                           :err (.pcap_geterr lib pcap)}))))
+                           :rc      rc-set
+                           :err     (.pcap_geterr lib pcap)}))))
       true
       (finally
         (.pcap_freecode lib (.addr prog))))))
 
 (defn set-bpf-on-device!
-  "デバイス dev の netmask を lookup して BPF を適用するショートカット。"
+  "デバイス dev の netmask を lookup して BPF を適用するショートカット。
+   下位で起きた例外に :device と :expr を付加して再スローする。"
   [^Pointer pcap dev expr]
-  (let [{:keys [mask]} (lookupnet dev)]
-    (set-bpf-with-netmask! pcap expr mask)))
+  (try
+    (let [{:keys [mask]} (lookupnet dev)]
+      (set-bpf-with-netmask! pcap expr mask))
+    (catch clojure.lang.ExceptionInfo e
+      (throw (ex-info "set-bpf-on-device! failed"
+                      (merge {:device dev :expr expr}
+                             (ex-data e))
+                      e)))
+    (catch Throwable t
+      (throw (ex-info "set-bpf-on-device! unexpected failure"
+                      {:device dev :expr expr}
+                      t)))))
 
 (defn loop!
   "pcap_next_ex をポーリング。handlerは (fn {:ts-sec :ts-usec :caplen :len :bytes}) を受け取る。
