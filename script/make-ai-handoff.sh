@@ -48,6 +48,25 @@ emit () {
   echo "(take 5 s2)"
   echo "\`\`\`"
   echo
+  echo "\`\`\`clojure"
+  echo ";; ICMPv6 Time Exceeded（hex→parse→要約）。:type-name/:code-name/:summary が付与されます。"
+  echo "(require '[paclo.dev :as d])"
+  echo "(-> \"00 11 22 33 44 55 66 77 88 99 AA BB 86 DD"
+  echo "     60 00 00 00 00 08 3A 40"
+  echo "     20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01"
+  echo "     20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02"
+  echo "     03 00 00 00 00 00 00 00\""
+  echo "    d/parse-hex d/summarize)"
+  echo
+  echo ";; VLAN (802.1Q, VID=100) の例。:vlan-tags に [ {:tpid 0x8100 :pcp 0 :dei false :vid 100} ] が入ります。"
+  echo "(-> \"FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00"
+  echo "     45 00 00 30 00 02 00 00 40 11 00 00"
+  echo "     C0 A8 01 64 08 08 08 08"
+  echo "     13 88 00 35 00 18 00 00"
+  echo "     00 3B 01 00 00 01 00 00 00 00 00 00 00 00 00 00\""
+  echo "    d/parse-hex d/summarize)"
+  echo "\`\`\`"
+  echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
   emit bash script/make-ai-handoff.sh
