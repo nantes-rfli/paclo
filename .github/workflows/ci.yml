@@ -36,8 +36,8 @@ jobs:
             cljdeps-${{ runner.os }}-
 
       - name: Run unit tests
-        run: clj -M:test
+        run: clojure -M:test
 
       # 任意：ビルドが通るかもチェック（tools.build）
       - name: Build JAR (optional)
-        run: clj -T:build jar
+        run: clojure -T:build jar
