@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 836e0d8
-- generated: 2025-08-22 17:11:24 UTC
+- commit: 8d2c5f0
+- generated: 2025-08-22 17:13:10 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -9,6 +9,29 @@
 ## Notes
 - IPv6 HBH / Destination Options の HdrExtLen は **(n+1)\*8 バイト（総ヘッダ長）**。
   テストベクタ作成時は NextHdr/HdrExtLen の 2 バイトを除いた *オプション領域長* が (総長-2) に厳密一致するように Pad1/PadN で調整すること。
+- Ethernet VLAN (802.1Q/802.1ad) を自動ではぎ、最終 Ethertype で L3 を解釈します。
+  VLAN 情報はトップレベルの `:vlan-tags` ベクタ（`{:tpid :pcp :dei :vid}`）に入ります。
+- capture->seq は **:stop?**（任意条件で即停止）と **:error-mode**（:throw|:pass）のオプションがあります。
+
+## Samples
+```clojure
+;; 任意条件で停止（UDP/53 のパケットを見つけたら止める）
+(require '[paclo.pcap :as p] '[paclo.parse :as parse])
+(def s (p/capture->seq {:device "en0" :filter "udp port 53"
+                        :timeout-ms 50 :idle-max-ms 10000 :max-time-ms 15000
+                        :stop? (fn [pkt]
+                                 (let [m (parse/packet->clj (:bytes pkt))
+                                       l4 (:l4 (:l3 m))]
+                                   (and (= :udp (:type l4))
+                                        (or (= 53 (:src-port l4)) (= 53 (:dst-port l4))))))})))
+(take 1 s)
+
+;; 背景例外をスキップして継続（ログは :on-error で通知）
+(def s2 (p/capture->seq {:device "en0" :filter "udp and and"  ; わざと不正
+                         :timeout-ms 50 :error-mode :pass
+                         :on-error (fn [ex] (println "BG error:" (.getMessage ex)))}))
+(take 5 s2)
+```
 
 ## Files
 ### script/make-ai-handoff.sh
@@ -37,8 +60,31 @@ emit () {
   echo "\\\`clj -M:test\\\` / \\\`clj -T:build jar\\\`"
   echo
   echo "## Notes"
-  echo "- IPv6 HBH / Destination Options の HdrExtLen は **(n+1)\*8 バイト（総ヘッダ長）**。"
+  echo "- IPv6 HBH / Destination Options の HdrExtLen は **(n+1)\\*8 バイト（総ヘッダ長）**。"
   echo "  テストベクタ作成時は NextHdr/HdrExtLen の 2 バイトを除いた *オプション領域長* が (総長-2) に厳密一致するように Pad1/PadN で調整すること。"
+  echo "- Ethernet VLAN (802.1Q/802.1ad) を自動ではぎ、最終 Ethertype で L3 を解釈します。"
+  echo "  VLAN 情報はトップレベルの \`:vlan-tags\` ベクタ（\`{:tpid :pcp :dei :vid}\`）に入ります。"
+  echo "- capture->seq は **:stop?**（任意条件で即停止）と **:error-mode**（:throw|:pass）のオプションがあります。"
+  echo
+  echo "## Samples"
+  echo "\`\`\`clojure"
+  echo ";; 任意条件で停止（UDP/53 のパケットを見つけたら止める）"
+  echo "(require '[paclo.pcap :as p] '[paclo.parse :as parse])"
+  echo "(def s (p/capture->seq {:device \"en0\" :filter \"udp port 53\""
+  echo "                        :timeout-ms 50 :idle-max-ms 10000 :max-time-ms 15000"
+  echo "                        :stop? (fn [pkt]"
+  echo "                                 (let [m (parse/packet->clj (:bytes pkt))"
+  echo "                                       l4 (:l4 (:l3 m))]"
+  echo "                                   (and (= :udp (:type l4))"
+  echo "                                        (or (= 53 (:src-port l4)) (= 53 (:dst-port l4))))))})))"
+  echo "(take 1 s)"
+  echo
+  echo ";; 背景例外をスキップして継続（ログは :on-error で通知）"
+  echo "(def s2 (p/capture->seq {:device \"en0\" :filter \"udp and and\"  ; わざと不正"
+  echo "                         :timeout-ms 50 :error-mode :pass"
+  echo "                         :on-error (fn [ex] (println \"BG error:\" (.getMessage ex)))}))"
+  echo "(take 5 s2)"
+  echo "\`\`\`"
   echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
