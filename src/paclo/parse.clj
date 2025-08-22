@@ -319,14 +319,30 @@
 (defn- dns-min [^bytes payload]
   (when (<= 12 (alength payload))
     (let [bb (-> (ByteBuffer/wrap payload) (.order ByteOrder/BIG_ENDIAN))
-          id (.getShort bb)  ;; u16
-          flags (.getShort bb)
+          id (.getShort bb)      ;; u16
+          flags (.getShort bb)   ;; u16
           qd (.getShort bb)
           an (.getShort bb)
           ns (.getShort bb)
-          ar (.getShort bb)]
-      {:type :dns :id (bit-and id 0xFFFF) :qdcount (bit-and qd 0xFFFF)
-       :ancount (bit-and an 0xFFFF) :nscount (bit-and ns 0xFFFF) :arcount (bit-and ar 0xFFFF)})))
+          ar (.getShort bb)
+          f  (bit-and flags 0xFFFF)
+          qr (pos? (bit-and f 0x8000))
+          opcode (bit-and (bit-shift-right f 11) 0x0F)
+          aa (pos? (bit-and f 0x0400))
+          tc (pos? (bit-and f 0x0200))
+          rd (pos? (bit-and f 0x0100))
+          ra (pos? (bit-and f 0x0080))
+          ad (pos? (bit-and f 0x0020))
+          cd (pos? (bit-and f 0x0010))
+          rcode (bit-and f 0x000F)]
+      {:type    :dns
+       :id      (bit-and id 0xFFFF)
+       :qdcount (bit-and qd 0xFFFF)
+       :ancount (bit-and an 0xFFFF)
+       :nscount (bit-and ns 0xFFFF)
+       :arcount (bit-and ar 0xFFFF)
+       :flags   {:qr qr :opcode opcode :aa aa :tc tc :rd rd :ra ra :ad ad :cd cd :rcode rcode}})))
+
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))
