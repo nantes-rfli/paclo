@@ -86,4 +86,29 @@
     (is (= true  (get-in m [:l3 :frag?])))
     (is (= :ipv6-fragment (get-in m [:l3 :l4 :type])))))
 
+;; HBH: PadN(12B)でオプション領域14Bを“ちょうど”埋めてUDPに到達
+(deftest ipv6-hbh-udp-padn-exact-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 18 00 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               11 01 01 0C
+               00 00 00 00 00 00 00 00 00 00 00 00
+               12 34 56 78 00 08 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :udp (get-in m [:l3 :l4 :type])))))
+
+;; HBH: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
+(deftest ipv6-hbh-bad-tlv-overrun-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 18 00 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               11 01 01 0D
+               00 00 00 00 00 00 00 00 00 00 00 00
+               12 34 56 78 00 08 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
 
