@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Clojure (tools.deps)
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: 'latest'   # clojure CLI
+
+      - name: Cache ~/.m2 and ~/.gitlibs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: cljdeps-${{ runner.os }}-${{ hashFiles('deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-
+
+      - name: Run unit tests
+        run: clj -M:test
+
+      # 任意：ビルドが通るかもチェック（tools.build）
+      - name: Build JAR (optional)
+        run: clj -T:build jar
