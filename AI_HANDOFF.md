@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: f059f95
-- generated: 2025-08-22 12:50:50 UTC
+- commit: 9bdb4a9
+- generated: 2025-08-22 12:56:32 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -1282,6 +1282,33 @@ public interface PcapLibrary {
                00 00 00 00 00 00 00 00 00 00 00 00
                12 34 56 78 00 08 00 00")
         m (parse/packet->clj pkt)]
+    (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
+
+;; 先頭フラグメント(offset=0, M=1) + UDP(8B) → L4は正しくUDPに到達しつつ fragフラグは立つ
+(deftest ipv6-frag-first-udp-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 10 2C 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               11 00 00 01 12 34 56 78       ; Fragment: NH=UDP(17), res=0, offfl=(offset=0,M=1)->0x0001
+               12 34 56 78 00 08 00 00")     ; UDP: src=0x1234, dst=0x5678, len=8, csum=0
+        m (parse/packet->clj pkt)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= 0     (get-in m [:l3 :frag-offset])))
+    (is (= :udp  (get-in m [:l3 :l4 :type])))))
+
+;; フラグメントヘッダが8B未満で途切れ → 上位に進まず :unknown-l4
+(deftest ipv6-frag-header-truncated-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 07 2C 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               11 00 00 00 00 00 00")          ; ← Fragmentヘッダを7Bで途切らせる
+        m (parse/packet->clj pkt)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
 ```
 
