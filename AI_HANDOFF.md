@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 0744ccf
-- generated: 2025-08-22 14:08:44 UTC
+- commit: fbfec9f
+- generated: 2025-08-22 17:01:00 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -80,6 +80,12 @@ echo "Wrote $out"
 (def ETH-IPv4 0x0800)
 (def ETH-IPv6 0x86DD)
 (def ETH-ARP  0x0806)
+
+(def ETH-VLAN-8100 0x8100)  ;; 802.1Q
+(def ETH-VLAN-88A8 0x88A8)  ;; 802.1ad (QinQ outer)
+(def ETH-VLAN-9100 0x9100)  ;; 追加TPID（環境による）
+(def ETH-VLAN-9200 0x9200)
+(def ^:private VLAN-TPIDs #{ETH-VLAN-8100 ETH-VLAN-88A8 ETH-VLAN-9100 ETH-VLAN-9200})
 
 (defn- ipv4-addr [^ByteBuffer b]
   (format "%d.%d.%d.%d" (u8 b) (u8 b) (u8 b) (u8 b)))
@@ -486,19 +492,53 @@ echo "Wrote $out"
 
 (defn packet->clj
   "bytes -> Clojure map
-   - Ethernet → IPv4/IPv6/ARP を識別
+   - Ethernet → VLAN タグ（0〜複数）をはぎ、最終 Ethertype で L3 を解釈
    - L4は TCP/UDP/ICMPv4/ICMPv6 を簡易解析（payload付与）
-   - UDP:53 は最小DNS要約を :app に付与"
+   - UDP:53 は最小DNS要約を :app に付与
+   返り値トップには :vlan-tags（あれば）を付与。"
   [^bytes bytes]
   (let [b (-> (ByteBuffer/wrap bytes) (.order ByteOrder/BIG_ENDIAN))
-        dst (mac b) src (mac b) eth (u16 b)]
-    (cond
-      (= eth ETH-IPv4) {:type :ethernet :src src :dst dst :eth eth :l3 (ipv4 b)}
-      (= eth ETH-IPv6) {:type :ethernet :src src :dst dst :eth eth :l3 (ipv6 b)}
-      (= eth ETH-ARP)  {:type :ethernet :src src :dst dst :eth eth :l3 (or (arp b) {:type :arp})}
-      :else            {:type :ethernet :src src :dst dst :eth eth :l3 {:type :unknown-l3 :eth eth}})))
+        dst (mac b) src (mac b)
+        first-eth (u16 b)]
+    ;; VLAN タグをすべてはぐ（QinQ 対応）
+    (loop [eth first-eth
+           tags (transient [])]
+      (if (VLAN-TPIDs eth)
+        (if (< (.remaining b) 4)
+          ;; VLAN ヘッダ不足（TCI+次Ethertype で 4B必要）→ 安全に unknown を返却
+          {:type :ethernet :src src :dst dst :eth eth
+           :vlan-tags (persistent! tags)
+           :l3 {:type :unknown-l3 :eth eth}}
+          (let [tci (u16 b)
+                next-eth (u16 b)
+                tag {:tpid eth
+                     :pcp  (bit-and (bit-shift-right tci 13) 0x7)    ;; 3bit
+                     :dei  (pos? (bit-and tci 0x1000))               ;; 1bit
+                     :vid  (bit-and tci 0x0FFF)}]                    ;; 12bit
+            (recur next-eth (conj! tags tag))))
+        ;; VLAN ではない → 最終 Ethertype が確定
+        (let [final-eth eth
+              vlan-tags (persistent! tags)]
+          (cond
+            (= final-eth ETH-IPv4)
+            (let [l3 (ipv4 b)]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
 
+            (= final-eth ETH-IPv6)
+            (let [l3 (ipv6 b)]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
 
+            (= final-eth ETH-ARP)
+            (let [l3 (or (arp b) {:type :arp})]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
+
+            :else
+            (cond-> {:type :ethernet :src src :dst dst :eth final-eth
+                     :l3 {:type :unknown-l3 :eth final-eth}}
+              (seq vlan-tags) (assoc :vlan-tags vlan-tags))))))))
 ```
 
 ### src/paclo/pcap.clj
@@ -1547,6 +1587,43 @@ public interface PcapLibrary {
         m (parse/packet->clj pkt)]
     (is (= "::" (get-in m [:l3 :src-compact])))
     (is (= "::" (get-in m [:l3 :dst-compact])))))
+
+;; 802.1Q (0x8100) 単一タグ → IPv4 に到達し、:vlan-tags を付与
+(deftest ipv4-udp-vlan-single-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
+               45 00 00 30 00 02 00 00 40 11 00 00
+               C0 A8 01 64 08 08 08 08
+               13 88 00 35 00 18 00 00
+               00 3B 01 00 00 01 00 00 00 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        tag (first (:vlan-tags m))]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= 0x8100 (:tpid tag)))
+    (is (= 100   (:vid tag)))
+    (is (= 0     (:pcp tag)))
+    (is (= false (:dei tag)))
+    (is (= :dns  (get-in m [:l3 :l4 :app :type])))))
+
+;; QinQ: 802.1ad(0x88A8, VID=200) の下に 802.1Q(0x8100, VID=100) → IPv6/UDP 到達
+(deftest ipv6-udp-vlan-qinq-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
+               60 00 00 00 00 0C 11 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               12 34 56 78 00 0C 00 00
+               DE AD BE EF")
+        m (parse/packet->clj pkt)
+        tags (:vlan-tags m)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
+    (is (= 2 (count tags)))
+    (is (= 0x88A8 (:tpid (first tags))))
+    (is (= 200   (:vid  (first tags))))
+    (is (= 0x8100 (:tpid (second tags))))
+    (is (= 100    (:vid  (second tags))))
+    (is (= :udp (get-in m [:l3 :l4 :type])))
+    (is (= 4     (get-in m [:l3 :l4 :data-len])))))
 ```
 
 ### test/paclo/test_util.clj

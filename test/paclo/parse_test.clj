@@ -261,3 +261,40 @@
         m (parse/packet->clj pkt)]
     (is (= "::" (get-in m [:l3 :src-compact])))
     (is (= "::" (get-in m [:l3 :dst-compact])))))
+
+;; 802.1Q (0x8100) 単一タグ → IPv4 に到達し、:vlan-tags を付与
+(deftest ipv4-udp-vlan-single-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
+               45 00 00 30 00 02 00 00 40 11 00 00
+               C0 A8 01 64 08 08 08 08
+               13 88 00 35 00 18 00 00
+               00 3B 01 00 00 01 00 00 00 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        tag (first (:vlan-tags m))]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= 0x8100 (:tpid tag)))
+    (is (= 100   (:vid tag)))
+    (is (= 0     (:pcp tag)))
+    (is (= false (:dei tag)))
+    (is (= :dns  (get-in m [:l3 :l4 :app :type])))))
+
+;; QinQ: 802.1ad(0x88A8, VID=200) の下に 802.1Q(0x8100, VID=100) → IPv6/UDP 到達
+(deftest ipv6-udp-vlan-qinq-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
+               60 00 00 00 00 0C 11 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               12 34 56 78 00 0C 00 00
+               DE AD BE EF")
+        m (parse/packet->clj pkt)
+        tags (:vlan-tags m)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
+    (is (= 2 (count tags)))
+    (is (= 0x88A8 (:tpid (first tags))))
+    (is (= 200   (:vid  (first tags))))
+    (is (= 0x8100 (:tpid (second tags))))
+    (is (= 100    (:vid  (second tags))))
+    (is (= :udp (get-in m [:l3 :l4 :type])))
+    (is (= 4     (get-in m [:l3 :l4 :data-len])))))

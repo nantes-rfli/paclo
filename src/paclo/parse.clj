@@ -17,6 +17,12 @@
 (def ETH-IPv6 0x86DD)
 (def ETH-ARP  0x0806)
 
+(def ETH-VLAN-8100 0x8100)  ;; 802.1Q
+(def ETH-VLAN-88A8 0x88A8)  ;; 802.1ad (QinQ outer)
+(def ETH-VLAN-9100 0x9100)  ;; 追加TPID（環境による）
+(def ETH-VLAN-9200 0x9200)
+(def ^:private VLAN-TPIDs #{ETH-VLAN-8100 ETH-VLAN-88A8 ETH-VLAN-9100 ETH-VLAN-9200})
+
 (defn- ipv4-addr [^ByteBuffer b]
   (format "%d.%d.%d.%d" (u8 b) (u8 b) (u8 b) (u8 b)))
 
@@ -422,16 +428,50 @@
 
 (defn packet->clj
   "bytes -> Clojure map
-   - Ethernet → IPv4/IPv6/ARP を識別
+   - Ethernet → VLAN タグ（0〜複数）をはぎ、最終 Ethertype で L3 を解釈
    - L4は TCP/UDP/ICMPv4/ICMPv6 を簡易解析（payload付与）
-   - UDP:53 は最小DNS要約を :app に付与"
+   - UDP:53 は最小DNS要約を :app に付与
+   返り値トップには :vlan-tags（あれば）を付与。"
   [^bytes bytes]
   (let [b (-> (ByteBuffer/wrap bytes) (.order ByteOrder/BIG_ENDIAN))
-        dst (mac b) src (mac b) eth (u16 b)]
-    (cond
-      (= eth ETH-IPv4) {:type :ethernet :src src :dst dst :eth eth :l3 (ipv4 b)}
-      (= eth ETH-IPv6) {:type :ethernet :src src :dst dst :eth eth :l3 (ipv6 b)}
-      (= eth ETH-ARP)  {:type :ethernet :src src :dst dst :eth eth :l3 (or (arp b) {:type :arp})}
-      :else            {:type :ethernet :src src :dst dst :eth eth :l3 {:type :unknown-l3 :eth eth}})))
+        dst (mac b) src (mac b)
+        first-eth (u16 b)]
+    ;; VLAN タグをすべてはぐ（QinQ 対応）
+    (loop [eth first-eth
+           tags (transient [])]
+      (if (VLAN-TPIDs eth)
+        (if (< (.remaining b) 4)
+          ;; VLAN ヘッダ不足（TCI+次Ethertype で 4B必要）→ 安全に unknown を返却
+          {:type :ethernet :src src :dst dst :eth eth
+           :vlan-tags (persistent! tags)
+           :l3 {:type :unknown-l3 :eth eth}}
+          (let [tci (u16 b)
+                next-eth (u16 b)
+                tag {:tpid eth
+                     :pcp  (bit-and (bit-shift-right tci 13) 0x7)    ;; 3bit
+                     :dei  (pos? (bit-and tci 0x1000))               ;; 1bit
+                     :vid  (bit-and tci 0x0FFF)}]                    ;; 12bit
+            (recur next-eth (conj! tags tag))))
+        ;; VLAN ではない → 最終 Ethertype が確定
+        (let [final-eth eth
+              vlan-tags (persistent! tags)]
+          (cond
+            (= final-eth ETH-IPv4)
+            (let [l3 (ipv4 b)]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
 
+            (= final-eth ETH-IPv6)
+            (let [l3 (ipv6 b)]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
 
+            (= final-eth ETH-ARP)
+            (let [l3 (or (arp b) {:type :arp})]
+              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
+                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
+
+            :else
+            (cond-> {:type :ethernet :src src :dst dst :eth final-eth
+                     :l3 {:type :unknown-l3 :eth final-eth}}
+              (seq vlan-tags) (assoc :vlan-tags vlan-tags))))))))
