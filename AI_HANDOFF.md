@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: f2340d2
-- generated: 2025-08-22 10:02:54 UTC
+- commit: 6095902
+- generated: 2025-08-22 11:29:31 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -65,6 +65,31 @@
       1  {:proto :icmp :src-ip src :dst-ip dst}
       58 {:proto :icmp6 :src-ip src :dst-ip dst}
       {:proto proto :src-ip src :dst-ip dst})))
+
+;; ------------------------------------------------------------
+;; IPv6 Options (HBH / Destination Options) の TLV 検証
+;; - 呼び出し時点で NextHdr/HdrExtLen の 2B は既に読み終えている前提
+;; - len バイト分のオプション領域を、Pad1/PadN/任意TLV として走査
+;; - 過走/途切れが無ければ true を返す
+;; ------------------------------------------------------------
+(defn- valid-ipv6-options-tlv?
+  [^ByteBuffer b ^long len]
+  (if-let [opt (limited-slice b len)]
+    (loop []
+      (if (zero? (.remaining opt))
+        true
+        (let [t (u8 opt)]
+          (if (= t 0) ;; Pad1 (1 byte)
+            (recur)
+            (if (zero? (.remaining opt)) ;; 長さフィールドが読めない
+              false
+              (let [l (u8 opt)]
+                (if (> l (.remaining opt)) ;; value が足りない（過走）
+                  false
+                  (do
+                    (.position opt (+ (.position opt) l)) ;; value を飛ばす
+                    (recur)))))))))
+    false))
 
 
 (defn- arp [^ByteBuffer b]
@@ -181,19 +206,39 @@
         (= nh 50) ;; ESP はここで終端扱い（中は解さない）
         {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}
 
-        (ipv6-ext? nh) ;; Hop-by-Hop(0), Routing(43), DestOpt(60)
+        (ipv6-ext? nh)
         (if (< (.remaining dup) 2)
           {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
-          (let [next (bit-and 0xFF (.get dup))
-                hlen (bit-and 0xFF (.get dup))
-                total (* (+ hlen 1) 8)
-                skip  (max 0 (- total 2))             ; 既に2B読了
-                adv   (min skip (.remaining dup))]
-            (.position dup (+ (.position dup) adv))
-            (if (< adv skip)
-              ;; 足りない → 打ち切り
+          (let [next (bit-and 0xFF (.get dup))    ;; NextHdr
+                hlen (bit-and 0xFF (.get dup))    ;; HdrExtLen
+                total (* (+ hlen 1) 8)            ;; 総ヘッダ長
+                ;; 既に 2B 読了済み（NextHdr/HdrExtLen）なので、残オプション領域:
+                opt-len (max 0 (- total 2))]
+            (cond
+              ;; 明確に足りない場合は打ち切り
+              (> opt-len (.remaining dup))
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
-              (recur next frag? frag-off))))
+        
+              ;; HBH / Dest は TLV を検証してから進める
+              (or (= nh 0) (= nh 60))
+              (if (valid-ipv6-options-tlv? dup opt-len)
+                (do
+                  ;; TLV 検証は limited-slice の中で消費しているだけなので、
+                  ;; 実体 dup の position を opt-len だけ前に送る
+                  (.position dup (+ (.position dup) opt-len))
+                  (recur next frag? frag-off))
+                ;; TLV が壊れている（途切れ/過走）
+                {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
+        
+              ;; Routing(43) は TLV ではないので長さスキップのみ
+              (= nh 43)
+              (do
+                (.position dup (+ (.position dup) opt-len))
+                (recur next frag? frag-off))
+        
+              ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
+              :else
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
 
         :else
         ;; L4 に到達
