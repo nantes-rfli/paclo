@@ -164,3 +164,37 @@
         m (parse/packet->clj pkt)]
     (is (= :ipv6 (get-in m [:l3 :type])))
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
+
+;; DNS flags: Query (QR=0, RD=1)
+(deftest ipv4-udp-dns-flags-query-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+               45 00 00 30 00 02 00 00 40 11 00 00
+               C0 A8 01 64 08 08 08 08
+               13 88 00 35 00 18 00 00
+               00 3B 01 00 00 01 00 00 00 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        flags (get-in m [:l3 :l4 :app :flags])]
+    (is (= :dns  (get-in m [:l3 :l4 :app :type])))
+    (is (= false (:qr flags)))
+    (is (= 0     (:opcode flags)))
+    (is (= true  (:rd flags)))
+    (is (= false (:ra flags)))
+    (is (= 0     (:rcode flags)))))
+
+;; DNS flags: Response NXDOMAIN (QR=1, RD=1, RA=1, RCODE=3)
+(deftest ipv4-udp-dns-flags-response-nxdomain-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+               45 00 00 30 00 02 00 00 40 11 00 00
+               C0 A8 01 64 08 08 08 08
+               13 88 00 35 00 18 00 00
+               00 2A 81 83 00 01 00 00 00 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        flags (get-in m [:l3 :l4 :app :flags])]
+    (is (= :dns  (get-in m [:l3 :l4 :app :type])))
+    (is (= true  (:qr flags)))
+    (is (= 0     (:opcode flags)))
+    (is (= true  (:rd flags)))
+    (is (= true  (:ra flags)))
+    (is (= 3     (:rcode flags)))))
