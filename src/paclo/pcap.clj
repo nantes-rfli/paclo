@@ -570,8 +570,7 @@
                 (let [x (.take q)]
                   (cond
                     ;; 終了
-                    (identical? x sentinel)
-                    '()
+                    (identical? x sentinel) '()
 
                     ;; ★ エラーの再スロー or スキップ
                     (and (map? x) (= (:type x) :paclo/capture-error))
@@ -579,13 +578,12 @@
                       (drain)
                       (throw (ex-info "capture->seq background error"
                                       {:source :capture->seq}
-                                      (:ex x)))))
+                                      (:ex x))))
 
                     ;; 通常パケット
                     :else
                     (cons x (drain))))))]
       (drain))))
-
 
 
 ;; ------------------------------------------------------------

@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 3ff1768
-- generated: 2025-08-22 13:24:43 UTC
+- commit: 4adf500
+- generated: 2025-08-22 13:31:56 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -1020,8 +1020,7 @@ echo "Wrote $out"
                 (let [x (.take q)]
                   (cond
                     ;; 終了
-                    (identical? x sentinel)
-                    '()
+                    (identical? x sentinel) '()
 
                     ;; ★ エラーの再スロー or スキップ
                     (and (map? x) (= (:type x) :paclo/capture-error))
@@ -1029,13 +1028,12 @@ echo "Wrote $out"
                       (drain)
                       (throw (ex-info "capture->seq background error"
                                       {:source :capture->seq}
-                                      (:ex x)))))
+                                      (:ex x))))
 
                     ;; 通常パケット
                     :else
                     (cons x (drain))))))]
       (drain))))
-
 
 
 ;; ------------------------------------------------------------
