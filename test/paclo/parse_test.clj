@@ -320,3 +320,31 @@
         m (parse/packet->clj pkt)]
     (is (= :tcp (get-in m [:l3 :l4 :type])))
     (is (= "S" (get-in m [:l3 :l4 :flags-str])))))
+
+;; ICMPv4 Echo Request → type-name/summary を確認
+(deftest ipv4-icmp-echo-request-flags-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
+               45 00 00 1C 00 01 00 00 40 01 00 00
+               0A 00 00 01 0A 00 00 02
+               08 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        l4 (get-in m [:l3 :l4])]
+    (is (= :icmpv4 (:type l4)))
+    (is (= "echo-request" (:type-name l4)))
+    (is (= "echo-request" (:summary l4)))))
+
+;; ICMPv6 Time Exceeded (code=0=hop-limit-exceeded) → type/code-name/summary を確認
+(deftest ipv6-icmp6-time-exceeded-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 3A 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               03 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        l4 (get-in m [:l3 :l4])]
+    (is (= :icmpv6 (:type l4)))
+    (is (= "time-exceeded" (:type-name l4)))
+    (is (= "hop-limit-exceeded" (:code-name l4)))
+    (is (= "time-exceeded/hop-limit-exceeded" (:summary l4)))))

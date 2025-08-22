@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 524ab70
-- generated: 2025-08-22 17:20:06 UTC
+- commit: 526d760
+- generated: 2025-08-22 17:26:44 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -482,18 +482,105 @@ echo "Wrote $out"
        :data-len (remaining-len paybuf)
        :payload (remaining-bytes paybuf)})))
 
+;; --- ICMP name helpers -------------------------------------------------------
 
+(defn- icmpv4-type-name [t]
+  (case t
+    0  "echo-reply"
+    3  "dest-unreachable"
+    4  "source-quench"
+    5  "redirect"
+    8  "echo-request"
+    9  "router-advertisement"
+    10 "router-solicitation"
+    11 "time-exceeded"
+    12 "parameter-problem"
+    13 "timestamp"
+    14 "timestamp-reply"
+    17 "address-mask-request"
+    18 "address-mask-reply"
+    (str "type-" t)))
+
+(defn- icmpv4-code-name [t c]
+  (case t
+    3  (case c
+         0 "net-unreachable"
+         1 "host-unreachable"
+         2 "proto-unreachable"
+         3 "port-unreachable"
+         4 "frag-needed"
+         5 "src-route-failed"
+         9 "net-admin-prohibited"
+         10 "host-admin-prohibited"
+         13 "comm-admin-prohibited"
+         (str "code-" c))
+    5  (case c
+         0 "redirect-net" 1 "redirect-host"
+         2 "redirect-tos-net" 3 "redirect-tos-host"
+         (str "code-" c))
+    11 (case c
+         0 "ttl-exceeded"
+         1 "frag-reassembly-time-exceeded"
+         (str "code-" c))
+    12 (case c
+         0 "pointer-indicates-error"
+         1 "missing-required-option"
+         2 "bad-length"
+         (str "code-" c))
+    (when (not= c 0) (str "code-" c))))
+
+(defn- icmpv6-type-name [t]
+  (case t
+    1   "dest-unreachable"
+    2   "packet-too-big"
+    3   "time-exceeded"
+    4   "parameter-problem"
+    128 "echo-request"
+    129 "echo-reply"
+    133 "router-solicitation"
+    134 "router-advertisement"
+    135 "neighbor-solicitation"
+    136 "neighbor-advertisement"
+    137 "redirect"
+    (str "type-" t)))
+
+(defn- icmpv6-code-name [t c]
+  (case t
+    1 (case c
+        0 "no-route"
+        1 "admin-prohibited"
+        3 "addr-unreachable"
+        4 "port-unreachable"
+        (str "code-" c))
+    3 (case c
+        0 "hop-limit-exceeded"
+        1 "frag-reassembly-time-exceeded"
+        (str "code-" c))
+    4 (case c
+        0 "erroneous-header-field"
+        1 "unknown-next-header"
+        2 "unrecognized-ipv6-option"
+        (str "code-" c))
+    (when (not= c 0) (str "code-" c))))
 
 (defn- icmpv4-header [^ByteBuffer b]
-  (let [t (u8 b) code (u8 b) csum (u16 b)]
+  (let [t (u8 b) code (u8 b) csum (u16 b)
+        tname (icmpv4-type-name t)
+        cname (icmpv4-code-name t code)
+        summary (if cname (str tname "/" cname) tname)]
     {:type :icmpv4 :icmp-type t :code code :checksum csum
-     :data-len (remaining-len b)           ;; ★ 追加
+     :type-name tname :code-name cname :summary summary
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 (defn- icmpv6-header [^ByteBuffer b]
-  (let [t (u8 b) code (u8 b) csum (u16 b)]
+  (let [t (u8 b) code (u8 b) csum (u16 b)
+        tname (icmpv6-type-name t)
+        cname (icmpv6-code-name t code)
+        summary (if cname (str tname "/" cname) tname)]
     {:type :icmpv6 :icmp-type t :code code :checksum csum
-     :data-len (remaining-len b)           ;; ★ 追加
+     :type-name tname :code-name cname :summary summary
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 
@@ -1299,12 +1386,17 @@ echo "Wrote $out"
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
       (println "L4:" (:type l4)
-             (cond
-               (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
-               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
-                                        " " (or (:flags-str l4) "")
-                                        " len=" (:data-len l4))
-               :else ""))
+           (cond
+             (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
+             (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
+                                      " " (or (:flags-str l4) "")
+                                      " len=" (:data-len l4))
+             (= :icmpv4 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                         " len=" (:data-len l4))
+             (= :icmpv6 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                         " len=" (:data-len l4))
+             :else ""))
+
     (when-let [app (:app l4)]
       (println "App:" (:type app) app))
     pkt))
@@ -1708,6 +1800,34 @@ public interface PcapLibrary {
         m (parse/packet->clj pkt)]
     (is (= :tcp (get-in m [:l3 :l4 :type])))
     (is (= "S" (get-in m [:l3 :l4 :flags-str])))))
+
+;; ICMPv4 Echo Request → type-name/summary を確認
+(deftest ipv4-icmp-echo-request-flags-test
+  (let [pkt (tu/hex->bytes
+              "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
+               45 00 00 1C 00 01 00 00 40 01 00 00
+               0A 00 00 01 0A 00 00 02
+               08 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        l4 (get-in m [:l3 :l4])]
+    (is (= :icmpv4 (:type l4)))
+    (is (= "echo-request" (:type-name l4)))
+    (is (= "echo-request" (:summary l4)))))
+
+;; ICMPv6 Time Exceeded (code=0=hop-limit-exceeded) → type/code-name/summary を確認
+(deftest ipv6-icmp6-time-exceeded-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 3A 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               03 00 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        l4 (get-in m [:l3 :l4])]
+    (is (= :icmpv6 (:type l4)))
+    (is (= "time-exceeded" (:type-name l4)))
+    (is (= "hop-limit-exceeded" (:code-name l4)))
+    (is (= "time-exceeded/hop-limit-exceeded" (:summary l4)))))
 ```
 
 ### test/paclo/test_util.clj

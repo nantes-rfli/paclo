@@ -372,18 +372,105 @@
        :data-len (remaining-len paybuf)
        :payload (remaining-bytes paybuf)})))
 
+;; --- ICMP name helpers -------------------------------------------------------
 
+(defn- icmpv4-type-name [t]
+  (case t
+    0  "echo-reply"
+    3  "dest-unreachable"
+    4  "source-quench"
+    5  "redirect"
+    8  "echo-request"
+    9  "router-advertisement"
+    10 "router-solicitation"
+    11 "time-exceeded"
+    12 "parameter-problem"
+    13 "timestamp"
+    14 "timestamp-reply"
+    17 "address-mask-request"
+    18 "address-mask-reply"
+    (str "type-" t)))
+
+(defn- icmpv4-code-name [t c]
+  (case t
+    3  (case c
+         0 "net-unreachable"
+         1 "host-unreachable"
+         2 "proto-unreachable"
+         3 "port-unreachable"
+         4 "frag-needed"
+         5 "src-route-failed"
+         9 "net-admin-prohibited"
+         10 "host-admin-prohibited"
+         13 "comm-admin-prohibited"
+         (str "code-" c))
+    5  (case c
+         0 "redirect-net" 1 "redirect-host"
+         2 "redirect-tos-net" 3 "redirect-tos-host"
+         (str "code-" c))
+    11 (case c
+         0 "ttl-exceeded"
+         1 "frag-reassembly-time-exceeded"
+         (str "code-" c))
+    12 (case c
+         0 "pointer-indicates-error"
+         1 "missing-required-option"
+         2 "bad-length"
+         (str "code-" c))
+    (when (not= c 0) (str "code-" c))))
+
+(defn- icmpv6-type-name [t]
+  (case t
+    1   "dest-unreachable"
+    2   "packet-too-big"
+    3   "time-exceeded"
+    4   "parameter-problem"
+    128 "echo-request"
+    129 "echo-reply"
+    133 "router-solicitation"
+    134 "router-advertisement"
+    135 "neighbor-solicitation"
+    136 "neighbor-advertisement"
+    137 "redirect"
+    (str "type-" t)))
+
+(defn- icmpv6-code-name [t c]
+  (case t
+    1 (case c
+        0 "no-route"
+        1 "admin-prohibited"
+        3 "addr-unreachable"
+        4 "port-unreachable"
+        (str "code-" c))
+    3 (case c
+        0 "hop-limit-exceeded"
+        1 "frag-reassembly-time-exceeded"
+        (str "code-" c))
+    4 (case c
+        0 "erroneous-header-field"
+        1 "unknown-next-header"
+        2 "unrecognized-ipv6-option"
+        (str "code-" c))
+    (when (not= c 0) (str "code-" c))))
 
 (defn- icmpv4-header [^ByteBuffer b]
-  (let [t (u8 b) code (u8 b) csum (u16 b)]
+  (let [t (u8 b) code (u8 b) csum (u16 b)
+        tname (icmpv4-type-name t)
+        cname (icmpv4-code-name t code)
+        summary (if cname (str tname "/" cname) tname)]
     {:type :icmpv4 :icmp-type t :code code :checksum csum
-     :data-len (remaining-len b)           ;; ★ 追加
+     :type-name tname :code-name cname :summary summary
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 (defn- icmpv6-header [^ByteBuffer b]
-  (let [t (u8 b) code (u8 b) csum (u16 b)]
+  (let [t (u8 b) code (u8 b) csum (u16 b)
+        tname (icmpv6-type-name t)
+        cname (icmpv6-code-name t code)
+        summary (if cname (str tname "/" cname) tname)]
     {:type :icmpv6 :icmp-type t :code code :checksum csum
-     :data-len (remaining-len b)           ;; ★ 追加
+     :type-name tname :code-name cname :summary summary
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 
