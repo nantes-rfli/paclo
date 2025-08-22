@@ -198,3 +198,37 @@
     (is (= true  (:rd flags)))
     (is (= true  (:ra flags)))
     (is (= 3     (:rcode flags)))))
+
+;; IPv6/UDP で flow-key が :udp とポートを含む
+(deftest ipv6-udp-flow-key-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 0C 11 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               12 34 56 78 00 0C 00 00
+               DE AD BE EF")
+        m (parse/packet->clj pkt)
+        fk (get-in m [:l3 :flow-key])]
+    (is (= :udp (:proto fk)))
+    (is (= "2001:db8:0:0:0:0:0:1" (:src-ip fk)))
+    (is (= "2001:db8:0:0:0:0:0:2" (:dst-ip fk)))
+    (is (= 4660 (:src-port fk)))
+    (is (= 22136 (:dst-port fk)))))
+
+;; 非先頭フラグメント（L4ヘッダ無し）でも proto は載る（ここでは TCP）
+(deftest ipv6-frag-nonfirst-flow-key-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 2C 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               06 00 00 08 12 34 56 78")
+        m (parse/packet->clj pkt)
+        fk (get-in m [:l3 :flow-key])]
+    (is (= :tcp (:proto fk)))
+    (is (= "2001:db8:0:0:0:0:0:1" (:src-ip fk)))
+    (is (= "2001:db8:0:0:0:0:0:2" (:dst-ip fk)))
+    ;; ポートは無い（nil）ことを確認
+    (is (nil? (:src-port fk)))
+    (is (nil? (:dst-port fk)))))
