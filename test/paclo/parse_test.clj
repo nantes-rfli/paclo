@@ -59,3 +59,31 @@
     (is (= :ipv6 (get-in m [:l3 :type])))
     (is (= :udp  (get-in m [:l3 :l4 :type])))
     (is (= 4     (get-in m [:l3 :l4 :data-len])))))
+
+;; 5) IPv6 Hop-by-Hop → UDP へ到達できるか（PL=24, HBH=16, UDP=8）
+(deftest ipv6-hbh-udp-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 18 00 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               11 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               12 34 56 78 00 08 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
+    (is (= :udp  (get-in m [:l3 :l4 :type])))))
+
+;; 6) IPv6 Fragment (offset>0) は L4を解さず :ipv6-fragment で返す
+(deftest ipv6-frag-nonfirst-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+               60 00 00 00 00 08 2C 40
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+               20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+               06 00 00 08 12 34 56 78")
+        m (parse/packet->clj pkt)]
+    (is (= :ipv6 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= :ipv6-fragment (get-in m [:l3 :l4 :type])))))
+
+

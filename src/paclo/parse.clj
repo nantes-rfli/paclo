@@ -55,6 +55,31 @@
       58 {:proto :icmp6 :src-ip src :dst-ip dst}
       {:proto proto :src-ip src :dst-ip dst})))
 
+;; ------------------------------------------------------------
+;; IPv6 Options (HBH / Destination Options) の TLV 検証
+;; - 呼び出し時点で NextHdr/HdrExtLen の 2B は既に読み終えている前提
+;; - len バイト分のオプション領域を、Pad1/PadN/任意TLV として走査
+;; - 過走/途切れが無ければ true を返す
+;; ------------------------------------------------------------
+(defn- valid-ipv6-options-tlv?
+  [^ByteBuffer b ^long len]
+  (if-let [opt (limited-slice b len)]
+    (loop []
+      (if (zero? (.remaining opt))
+        true
+        (let [t (u8 opt)]
+          (if (= t 0) ;; Pad1 (1 byte)
+            (recur)
+            (if (zero? (.remaining opt)) ;; 長さフィールドが読めない
+              false
+              (let [l (u8 opt)]
+                (if (> l (.remaining opt)) ;; value が足りない（過走）
+                  false
+                  (do
+                    (.position opt (+ (.position opt) l)) ;; value を飛ばす
+                    (recur)))))))))
+    false))
+
 
 (defn- arp [^ByteBuffer b]
   (when (<= 8 (.remaining b))                             ;; 最低限の固定部
@@ -102,45 +127,111 @@
         dst (ipv4-addr b)]
     (when (> ihl 20)
       (.position b (+ (.position b) (- ihl 20))))
-        (let [payload-len (max 0 (- total-len ihl))
-           l4buf (or (limited-slice b payload-len) (.duplicate b))
-           l4 (l4-parse proto l4buf)]
-       {:type :ipv4 :version version :ihl ihl
-        :tos tos :total-length total-len
-        :id id :flags-frag flags-frag
-        :ttl ttl :protocol proto :header-checksum hdr-csum
-        :src src :dst dst
-        :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4) ;; ★ 追加
-        :l4 l4})))
+    (let [payload-len (max 0 (- total-len ihl))
+          l4buf (or (limited-slice b payload-len) (.duplicate b))
+          l4 (l4-parse proto l4buf)]
+      {:type :ipv4 :version version :ihl ihl
+       :tos tos :total-length total-len
+       :id id :flags-frag flags-frag
+       :ttl ttl :protocol proto :header-checksum hdr-csum
+       :src src :dst dst
+       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4) ;; ★ 追加
+       :l4 l4})))
 
-;; IPv6 拡張ヘッダをスキップして L4 へ（軽量）
 (def ^:private ipv6-ext?
-  #{0    ;; Hop-by-Hop Options
-    43   ;; Routing
-    44   ;; Fragment
-    60   ;; Destination Options
-    51}) ;; AH（ESP(50)は長さ取得が厄介なのでここでは止めるのが無難）
+  #{0   ;; Hop-by-Hop Options
+    43  ;; Routing
+    44  ;; Fragment
+    60  ;; Destination Options
+    50  ;; ESP（長さ扱いが特殊だがここでは終端扱い）
+    51}) ;; AH
 
-(defn- skip-ipv6-ext! [^ByteBuffer b nh]
-  ;; 戻り値: [next-header buffer]  ＊bのpositionを進める
-  (loop [next nh]
-    (if (and next (ipv6-ext? next) (<= 2 (.remaining b)))
-      (let [hdr-ext-len (u8 b)
-            ;; 拡張ヘッダ長: (hdr-ext-len + 1) * 8 バイト（NHは直前で読み取る想定）
-            ;; ここでは「NHを先に読み、次に Hdr Ext Len」を読むため、
-            ;; position 調整のため最初に次ヘッダを読む処理を併せて持ちます。
-            ;; 呼び出し側で `next-hdr` を先に read 済なので、ここでは
-            ;;   b: [Hdr Ext Len][...] の位置にある前提にしておく。
-            len-bytes (* (+ hdr-ext-len 1) 8)]
-        ;; 既に Hdr Ext Len を読んだ前提のため、len-bytes-1 だけ進める（NH分は別で読まれている想定）
-        ;; 実装簡略化のため、dupで安全に飛ばす
-        (let [skip (- len-bytes 1)]
-          (when (<= skip (.remaining b))
-            (.position b (+ (.position b) skip))))
-        ;; 次の Next Header を読む（拡張ヘッダ末尾先頭にある想定）
-        (when (<= 1 (.remaining b))
-          (recur (u8 b))))
-      [next b])))
+(defn- parse-ipv6-ext-chain!
+  "buf の position は IPv6 基本ヘッダ直後（= 最初の拡張 or L4 先頭）。
+   initial-nh は IPv6 基本ヘッダの Next Header。
+   返り値: {:final-nh nh, :buf dup, :frag? bool, :frag-offset int}
+   非フラグメント: extをすべてスキップして L4 先頭に position を合わせる
+   フラグメント:
+     - offset=0（先頭フラグメント）は Fragment ヘッダを読み飛ばし、次のNHへ進む
+     - offset>0（後続フラグメント）は L4 が欠けている可能性が高いので、:ipv6-fragment で返す"
+  [^java.nio.ByteBuffer buf initial-nh]
+  (let [dup (.duplicate buf)]
+    (loop [nh initial-nh
+           frag? false
+           frag-off 0]
+      (cond
+        (nil? nh)
+        {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+
+        (= nh 44) ;; Fragment
+        (if (< (.remaining dup) 8)
+          ;; 拡張ヘッダが読み切れない → 打ち切り
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          (let [next (bit-and 0xFF (.get dup)) ; Next Header
+                _    (.get dup)                ; Reserved
+                offfl (bit-and 0xFFFF (.getShort dup))
+                _ident (.getInt dup)
+                offset (bit-shift-right (bit-and offfl 0xFFF8) 3)]
+            (if (zero? offset)
+              ;; 先頭フラグメント：続行
+              (recur next true 0)
+              ;; 後続フラグメント：ここで終了（L4は解かず）
+              {:final-nh next :buf dup :frag? true :frag-offset offset})))
+
+        (= nh 51) ;; AH = NextHdr(1) + PayloadLen(1) + data((plen+2)*4 - 2)
+        (if (< (.remaining dup) 2)
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          (let [next (bit-and 0xFF (.get dup))
+                plen (bit-and 0xFF (.get dup))
+                total (* (+ plen 2) 4)
+                skip (max 0 (- total 2))              ; 既に2B読了
+                adv  (min skip (.remaining dup))]
+            (.position dup (+ (.position dup) adv))
+            (if (< adv skip)
+              ;; 足りない → 打ち切り
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+              (recur next frag? frag-off))))
+
+        (= nh 50) ;; ESP はここで終端扱い（中は解さない）
+        {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}
+
+        (ipv6-ext? nh)
+        (if (< (.remaining dup) 2)
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          (let [next (bit-and 0xFF (.get dup))    ;; NextHdr
+                hlen (bit-and 0xFF (.get dup))    ;; HdrExtLen
+                total (* (+ hlen 1) 8)            ;; 総ヘッダ長
+                ;; 既に 2B 読了済み（NextHdr/HdrExtLen）なので、残オプション領域:
+                opt-len (max 0 (- total 2))]
+            (cond
+              ;; 明確に足りない場合は打ち切り
+              (> opt-len (.remaining dup))
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+              
+              ;; HBH / Dest は TLV を検証してから進める
+              (or (= nh 0) (= nh 60))
+              (if (valid-ipv6-options-tlv? dup opt-len)
+                (do
+                  ;; TLV 検証は limited-slice の中で消費しているだけなので、
+                  ;; 実体 dup の position を opt-len だけ前に送る
+                  (.position dup (+ (.position dup) opt-len))
+                  (recur next frag? frag-off))
+                ;; TLV が壊れている（途切れ/過走）
+                {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
+              
+              ;; Routing(43) は TLV ではないので長さスキップのみ
+              (= nh 43)
+              (do
+                (.position dup (+ (.position dup) opt-len))
+                (recur next frag? frag-off))
+              
+              ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
+              :else
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
+
+        :else
+        ;; L4 に到達 
+        {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}))))
 
 (defn- ipv6 [^ByteBuffer b]
   (let [vtcfl (u32 b)
@@ -153,15 +244,18 @@
         src (ipv6-addr b)
         dst (ipv6-addr b)
         l4buf (or (limited-slice b payload-len) (.duplicate b))]
-    ;; 拡張ヘッダを軽量スキップ（完全厳密ではなく、実用優先）
-        (let [dup (.duplicate l4buf)
-           [final-nh _] (skip-ipv6-ext! dup next-hdr)
-           l4 (l4-parse final-nh dup)]
-       {:type :ipv6 :version version :traffic-class tclass :flow-label flabel
-        :payload-length payload-len :next-header final-nh :hop-limit hop-limit
-        :src src :dst dst
-        :flow-key (make-flow-key {:src src :dst dst :next-header final-nh} l4) ;; ★ 追加
-        :l4 l4})))
+    (let [l4buf (or (limited-slice b payload-len) (.duplicate b))
+          {:keys [final-nh buf frag? frag-offset]}
+          (parse-ipv6-ext-chain! l4buf next-hdr)
+          l4 (if (and frag? (pos? frag-offset))
+               {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
+               (l4-parse final-nh buf))]
+      {:type :ipv6
+       :version version :traffic-class tclass :flow-label flabel
+       :payload-length payload-len :next-header final-nh :hop-limit hop-limit
+       :src src :dst dst
+       :frag? frag? :frag-offset (when frag? frag-offset)
+       :l4 l4})))
 
 (defn- tcp-header [^ByteBuffer b]
   (let [src (u16 b)
@@ -193,16 +287,20 @@
 
 
 (defn- udp-header [^ByteBuffer b]
-  (let [src (u16 b)
-        dst (u16 b)
-        len (u16 b)
-        csum (u16 b)
-        paylen (max 0 (- len 8))
-        paybuf (or (limited-slice b paylen) (.duplicate b))]
-    {:type :udp :src-port src :dst-port dst
-     :length len :checksum csum
-     :data-len (remaining-len paybuf)      ;; ★ 追加：UDPペイロード長
-     :payload (remaining-bytes paybuf)}))
+  ;; ★ 追加: 残量ガード（8B未満なら安全に諦める）
+  (if (< (.remaining b) 8)
+    {:type :unknown-l4 :reason :truncated-udp :data-len 0 :payload []}
+    (let [src (u16 b)
+          dst (u16 b)
+          len (u16 b)
+          csum (u16 b)
+          paylen (max 0 (- len 8))
+          paybuf (or (limited-slice b paylen) (.duplicate b))]
+      {:type :udp :src-port src :dst-port dst
+       :length len :checksum csum
+       :data-len (remaining-len paybuf)
+       :payload (remaining-bytes paybuf)})))
+
 
 
 (defn- icmpv4-header [^ByteBuffer b]

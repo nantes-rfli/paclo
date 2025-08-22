@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 6095902
-- generated: 2025-08-22 11:29:31 UTC
+- commit: fa883ee
+- generated: 2025-08-22 11:51:02 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -218,7 +218,7 @@
               ;; 明確に足りない場合は打ち切り
               (> opt-len (.remaining dup))
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
-        
+              
               ;; HBH / Dest は TLV を検証してから進める
               (or (= nh 0) (= nh 60))
               (if (valid-ipv6-options-tlv? dup opt-len)
@@ -229,19 +229,19 @@
                   (recur next frag? frag-off))
                 ;; TLV が壊れている（途切れ/過走）
                 {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
-        
+              
               ;; Routing(43) は TLV ではないので長さスキップのみ
               (= nh 43)
               (do
                 (.position dup (+ (.position dup) opt-len))
                 (recur next frag? frag-off))
-        
+              
               ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
               :else
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
 
         :else
-        ;; L4 に到達
+        ;; L4 に到達 
         {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}))))
 
 (defn- ipv6 [^ByteBuffer b]
@@ -1058,7 +1058,7 @@ public interface PcapLibrary {
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
-               11 01 00 00 00 00 00 00 00 00 00 00 00 00
+               11 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
                12 34 56 78 00 08 00 00")
         m (parse/packet->clj pkt)]
     (is (= :ipv6 (get-in m [:l3 :type])))
