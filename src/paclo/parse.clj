@@ -330,25 +330,30 @@
         ack (u32 b)
         off-flags (u16 b)
         data-off (* 4 (bit-shift-right off-flags 12))
-        flags (bit-and off-flags 0x3F)
+        flags-bits (bit-and off-flags 0x3F)
+        urg  (pos? (bit-and flags-bits 32))
+        ackf (pos? (bit-and flags-bits 16))
+        psh  (pos? (bit-and flags-bits 8))
+        rst  (pos? (bit-and flags-bits 4))
+        syn  (pos? (bit-and flags-bits 2))
+        fin  (pos? (bit-and flags-bits 1))
         win  (u16 b)
         csum (u16 b)
         urgp (u16 b)
-        hdr-len data-off]
+        hdr-len data-off
+        ;; 短縮フラグ（順序: U A P R S F）
+        flags-str (apply str (keep (fn [[present ch]] (when present ch))
+                                   [[urg \U] [ackf \A] [psh \P] [rst \R] [syn \S] [fin \F]]))]
     (when (> hdr-len 20)
       (.position b (+ (.position b) (- hdr-len 20))))
     {:type :tcp
      :src-port src :dst-port dst
      :seq seq :ack ack
-     :flags {:urg (pos? (bit-and flags 32))
-             :ack (pos? (bit-and flags 16))
-             :psh (pos? (bit-and flags 8))
-             :rst (pos? (bit-and flags 4))
-             :syn (pos? (bit-and flags 2))
-             :fin (pos? (bit-and flags 1))}
+     :flags {:urg urg :ack ackf :psh psh :rst rst :syn syn :fin fin}
+     :flags-str flags-str
      :window win :checksum csum :urgent-pointer urgp
      :header-len hdr-len
-     :data-len (remaining-len b)           ;; ★ 追加：TCPペイロード長
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 

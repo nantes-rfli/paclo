@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 8d2c5f0
-- generated: 2025-08-22 17:13:10 UTC
+- commit: 524ab70
+- generated: 2025-08-22 17:20:06 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -440,25 +440,30 @@ echo "Wrote $out"
         ack (u32 b)
         off-flags (u16 b)
         data-off (* 4 (bit-shift-right off-flags 12))
-        flags (bit-and off-flags 0x3F)
+        flags-bits (bit-and off-flags 0x3F)
+        urg  (pos? (bit-and flags-bits 32))
+        ackf (pos? (bit-and flags-bits 16))
+        psh  (pos? (bit-and flags-bits 8))
+        rst  (pos? (bit-and flags-bits 4))
+        syn  (pos? (bit-and flags-bits 2))
+        fin  (pos? (bit-and flags-bits 1))
         win  (u16 b)
         csum (u16 b)
         urgp (u16 b)
-        hdr-len data-off]
+        hdr-len data-off
+        ;; 短縮フラグ（順序: U A P R S F）
+        flags-str (apply str (keep (fn [[present ch]] (when present ch))
+                                   [[urg \U] [ackf \A] [psh \P] [rst \R] [syn \S] [fin \F]]))]
     (when (> hdr-len 20)
       (.position b (+ (.position b) (- hdr-len 20))))
     {:type :tcp
      :src-port src :dst-port dst
      :seq seq :ack ack
-     :flags {:urg (pos? (bit-and flags 32))
-             :ack (pos? (bit-and flags 16))
-             :psh (pos? (bit-and flags 8))
-             :rst (pos? (bit-and flags 4))
-             :syn (pos? (bit-and flags 2))
-             :fin (pos? (bit-and flags 1))}
+     :flags {:urg urg :ack ackf :psh psh :rst rst :syn syn :fin fin}
+     :flags-str flags-str
      :window win :checksum csum :urgent-pointer urgp
      :header-len hdr-len
-     :data-len (remaining-len b)           ;; ★ 追加：TCPペイロード長
+     :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
 
@@ -1293,10 +1298,12 @@ echo "Wrote $out"
                        (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
-    (println "L4:" (:type l4)
+      (println "L4:" (:type l4)
              (cond
                (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
-               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
+               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
+                                        " " (or (:flags-str l4) "")
+                                        " len=" (:data-len l4))
                :else ""))
     (when-let [app (:app l4)]
       (println "App:" (:type app) app))
@@ -1679,6 +1686,28 @@ public interface PcapLibrary {
     (is (= 100    (:vid  (second tags))))
     (is (= :udp (get-in m [:l3 :l4 :type])))
     (is (= 4     (get-in m [:l3 :l4 :data-len])))))
+
+;; TCP flags の短縮表記: 既存のIPv4/TCP最小テストは ACK+PSH（0x18） → "AP"
+(deftest ipv4-tcp-flags-ap-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 28 00 01 40 00 40 06 00 00
+               0A 00 00 01 0A 00 00 02
+               30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :tcp (get-in m [:l3 :l4 :type])))
+    (is (= "AP" (get-in m [:l3 :l4 :flags-str])))))
+
+;; TCP flags: SYNのみ（0x02）→ "S"
+(deftest ipv4-tcp-flags-syn-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 28 00 01 40 00 40 06 00 00
+               0A 00 00 01 0A 00 00 02
+               30 39 00 50 00 00 00 00 00 00 00 00 50 02 00 20 00 00 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :tcp (get-in m [:l3 :l4 :type])))
+    (is (= "S" (get-in m [:l3 :l4 :flags-str])))))
 ```
 
 ### test/paclo/test_util.clj

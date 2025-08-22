@@ -74,10 +74,12 @@
                        (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
-    (println "L4:" (:type l4)
+      (println "L4:" (:type l4)
              (cond
                (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
-               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
+               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
+                                        " " (or (:flags-str l4) "")
+                                        " len=" (:data-len l4))
                :else ""))
     (when-let [app (:app l4)]
       (println "App:" (:type app) app))

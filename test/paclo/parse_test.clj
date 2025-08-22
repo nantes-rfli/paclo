@@ -298,3 +298,25 @@
     (is (= 100    (:vid  (second tags))))
     (is (= :udp (get-in m [:l3 :l4 :type])))
     (is (= 4     (get-in m [:l3 :l4 :data-len])))))
+
+;; TCP flags の短縮表記: 既存のIPv4/TCP最小テストは ACK+PSH（0x18） → "AP"
+(deftest ipv4-tcp-flags-ap-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 28 00 01 40 00 40 06 00 00
+               0A 00 00 01 0A 00 00 02
+               30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :tcp (get-in m [:l3 :l4 :type])))
+    (is (= "AP" (get-in m [:l3 :l4 :flags-str])))))
+
+;; TCP flags: SYNのみ（0x02）→ "S"
+(deftest ipv4-tcp-flags-syn-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 28 00 01 40 00 40 06 00 00
+               0A 00 00 01 0A 00 00 02
+               30 39 00 50 00 00 00 00 00 00 00 00 50 02 00 20 00 00 00 00")
+        m (parse/packet->clj pkt)]
+    (is (= :tcp (get-in m [:l3 :l4 :type])))
+    (is (= "S" (get-in m [:l3 :l4 :flags-str])))))
