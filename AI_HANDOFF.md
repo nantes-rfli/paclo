@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 7926369
-- generated: 2025-08-23 13:01:48 UTC
+- commit: d758fb4
+- generated: 2025-08-23 13:47:37 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -124,6 +124,33 @@ emit () {
   echo "    d/parse-hex d/summarize)"
   echo "\`\`\`"
   echo
+
+cat <<'EOF' >> AI_HANDOFF.md
+
+### paclo.core quick samples
+```clojure
+(require '[paclo.core :as core])
+
+;; Offline decode (safe: adds :decode-error instead of throwing)
+(->> (core/packets {:path "out-test.pcap" :decode? true})
+     (map #(select-keys % [:caplen :decode-error]))
+     (take 2)
+     doall)
+
+;; Live with DSL
+(->> (core/packets {:device "en0"
+                    :filter (core/bpf [:and [:udp] [:port 53]])
+                    :timeout-ms 50})
+     (take 10)
+     doall)
+
+;; Write PCAP from bytes (for tests/repro)
+(core/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                   {:bytes (byte-array (repeat 60 (byte -1)))
+                    :sec 1700000000 :usec 123456}]
+                  "out-sample.pcap")
+EOF
+
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
   echo '````bash'
@@ -133,14 +160,20 @@ emit () {
   emit clojure src/paclo/parse.clj
   echo "### src/paclo/pcap.clj"
   emit clojure src/paclo/pcap.clj
+  echo "### src/paclo/core.clj"
+  emit clojure src/paclo/core.clj
   echo "### src/paclo/dev.clj"
   emit clojure src/paclo/dev.clj
   echo "### src-java/paclo/jnr/PcapLibrary.java"
   emit java src-java/paclo/jnr/PcapLibrary.java
   echo "### test/paclo/parse_test.clj"
   emit clojure test/paclo/parse_test.clj
+  echo "### test/paclo/core_test.clj"
+  emit clojure test/paclo/core_test.clj
   echo "### test/paclo/test_util.clj"
   emit clojure test/paclo/test_util.clj
+  echo "### .clj-kondo/config.edn"
+  emit edn .clj-kondo/config.edn
 } > "$out"
 
 cat <<'EOF' >> AI_HANDOFF.md
@@ -1593,6 +1626,111 @@ echo "Wrote $out"
        {:count @cnt :duration-ms elapsed :stopped stopped}))))
 ```
 
+### src/paclo/core.clj
+```clojure
+(ns paclo.core
+  "Clojure らしい薄いファサード。
+   - packets: ライブ/オフラインどちらも lazy seq を返す（:decode? でparse付与）
+   - bpf:      簡易DSL → BPF文字列
+   - write-pcap!: bytesシーケンスを書き出す（テスト/再現用）"
+  (:require
+   [clojure.string :as str]
+   [paclo.parse :as parse]
+   [paclo.pcap  :as pcap]))
+
+;; ---------------------------
+;; BPF DSL -> string
+;; ---------------------------
+(defn ^:private paren [s] (str "(" s ")"))
+
+(defn bpf
+  "BPFフィルタを表す簡易DSLを文字列へ。
+   例:
+     (bpf [:and [:udp] [:port 53]])       ;;=> \"(udp) and (port 53)\"
+     (bpf [:or [:tcp] [:udp]])            ;;=> \"(tcp) or (udp)\"
+     (bpf [:not [:host \"8.8.8.8\"]])     ;;=> \"not (host 8.8.8.8)\"
+     (bpf [:and [:tcp] [:dst-port 80]])   ;;=> \"(tcp) and (dst port 80)\"
+     (bpf \"udp and port 53\")            ;;=> そのまま"
+  [form]
+  (cond
+    (nil? form) nil
+    (string? form) form
+    (keyword? form)
+    (case form
+      :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
+      (throw (ex-info "unknown keyword in bpf" {:form form})))
+
+    (vector? form)
+    (let [[op & args] form]
+      (case op
+        :and (->> args (map bpf) (map paren) (str/join " and "))
+        :or  (->> args (map bpf) (map paren) (str/join " or "))
+        :not (str "not " (paren (bpf (first args))))
+        :port      (str "port "      (int (first args)))
+        :src-port  (str "src port "  (int (first args)))
+        :dst-port  (str "dst port "  (int (first args)))
+        :host      (str "host "      (first args))
+        :src-host  (str "src host "  (first args))
+        :dst-host  (str "dst host "  (first args))
+        :net       (str "net "       (first args))
+        :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
+        (throw (ex-info "unknown op in bpf" {:form form}))))
+    :else
+    (throw (ex-info "unsupported bpf form" {:form form}))))
+
+;; ---------------------------
+;; Stream API
+;; ---------------------------
+;; 追加: Ethernet最小ヘッダ長
+(def ^:private ETH_MIN_HDR 14)
+
+;; 追加: デコードの結果を {:ok true :value v} or {:ok false :error msg} で返す
+(defn ^:private decode-result [^bytes ba]
+  (try
+    {:ok true :value (parse/packet->clj ba)}
+    (catch Throwable e
+      {:ok false :error (or (.getMessage e) (str e))})))
+
+;; 置き換え: packets（安全デコード版）
+(defn packets
+  "パケットを lazy seq で返す高レベルAPI。
+   opts:
+   - ライブ:  {:device \"en0\" :filter <string|DSL> :timeout-ms 10 ...}
+   - オフライン: {:path \"trace.pcap\" :filter <string|DSL>}
+   - 共通:
+       :decode? true|false  ; true なら各要素に :decoded を付与。失敗時は :decode-error を付与。"
+  [{:keys [filter decode?] :as opts}]
+  (let [filter* (cond
+                  (string? filter) filter
+                  (or (keyword? filter) (vector? filter)) (bpf filter)
+                  (nil? filter) nil
+                  :else (throw (ex-info "invalid :filter" {:filter filter})))
+        opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
+        base    (pcap/capture->seq opts*)]
+    (if decode?
+      (map (fn [m]
+             (let [ba ^bytes (:bytes m)]
+               (if (and ba (>= (alength ba) ETH_MIN_HDR))
+                 (let [{:keys [ok value error]} (decode-result ba)]
+                   (cond-> m
+                     ok      (assoc :decoded value)
+                     (not ok) (assoc :decode-error error)))
+                 ;; 短すぎるフレームはデコードせずにエラーだけ付与
+                 (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
+           base)
+      base)))
+
+;; ---------------------------
+;; Writer
+;; ---------------------------
+(defn write-pcap!
+  "bytes のシーケンスを PCAP ファイルへ書き出す（テスト/再現用）。
+   エントリは (byte-array ..) か {:bytes <ba> :sec <long> :usec <long>}。
+   例: (write-pcap! [ba1 {:bytes ba2 :sec 1700000000 :usec 12345}] \"out.pcap\")"
+  [packets out]
+  (pcap/bytes-seq->pcap! packets {:out out}))
+```
+
 ### src/paclo/dev.clj
 ```clojure
 (ns paclo.dev
@@ -2216,6 +2354,40 @@ public interface PcapLibrary {
     (is (= true (:ra? app)))))
 ```
 
+### test/paclo/core_test.clj
+```clojure
+(ns paclo.core-test
+  (:require
+   [clojure.test :refer :all]
+   [paclo.core :as sut])
+  (:import
+   [java.io File]))
+
+(deftest pcap-roundtrip
+  (let [f    (File/createTempFile "paclo" ".pcap")
+        path (.getAbsolutePath f)
+        ;; 60Bのダミーフレーム（Ethernet最小相当）
+        ba1  (byte-array (repeat 60 (byte 0)))
+        ba2  (byte-array (repeat 60 (byte -1)))]
+    (sut/write-pcap! [ba1 {:bytes ba2 :sec 1700000000 :usec 123456}] path)
+    ;; デコードなし: 2件読めること
+    (let [xs (vec (sut/packets {:path path}))]
+      (is (= 2 (count xs)))
+      (is (every? #(contains? % :bytes) xs)))
+    ;; デコードあり: 例外を出さず、:decoded か :decode-error のどちらかが付くこと
+    (let [xs (vec (sut/packets {:path path :decode? true}))]
+      (is (= 2 (count xs)))
+      (is (every? #(or (contains? % :decoded)
+                       (contains? % :decode-error)) xs)))))
+
+(deftest bpf-dsl
+  (is (= "(udp) and (port 53)"
+         (sut/bpf [:and [:udp] [:port 53]])))
+  (is (= "not (host 8.8.8.8)"
+         (sut/bpf [:not [:host "8.8.8.8"]])))
+  (is (= "tcp" (sut/bpf :tcp))))
+```
+
 ### test/paclo/test_util.clj
 ```clojure
 (ns paclo.test-util
@@ -2234,6 +2406,15 @@ public interface PcapLibrary {
      (map (fn [[a b]]
             (unchecked-byte (Integer/parseInt (str a b) 16)))
           (partition 2 cleaned)))))
+```
+
+### .clj-kondo/config.edn
+```edn
+{:lint-as
+ {paclo.pcap/with-pcap     clojure.core/let
+  paclo.pcap/with-dumper   clojure.core/let
+  paclo.pcap/with-live     clojure.core/let
+  paclo.pcap/with-offline  clojure.core/let}}
 ```
 
 
@@ -2295,10 +2476,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 13:01:49 UTC)
+## Environment snapshot (2025-08-23 13:47:37 UTC)
 
 ```
-git commit: 79263690f343
+git commit: d758fb45c87d
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

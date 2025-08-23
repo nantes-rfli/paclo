@@ -67,6 +67,33 @@ emit () {
   echo "    d/parse-hex d/summarize)"
   echo "\`\`\`"
   echo
+
+cat <<'EOF' >> AI_HANDOFF.md
+
+### paclo.core quick samples
+```clojure
+(require '[paclo.core :as core])
+
+;; Offline decode (safe: adds :decode-error instead of throwing)
+(->> (core/packets {:path "out-test.pcap" :decode? true})
+     (map #(select-keys % [:caplen :decode-error]))
+     (take 2)
+     doall)
+
+;; Live with DSL
+(->> (core/packets {:device "en0"
+                    :filter (core/bpf [:and [:udp] [:port 53]])
+                    :timeout-ms 50})
+     (take 10)
+     doall)
+
+;; Write PCAP from bytes (for tests/repro)
+(core/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                   {:bytes (byte-array (repeat 60 (byte -1)))
+                    :sec 1700000000 :usec 123456}]
+                  "out-sample.pcap")
+EOF
+
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
   echo '````bash'
@@ -76,14 +103,20 @@ emit () {
   emit clojure src/paclo/parse.clj
   echo "### src/paclo/pcap.clj"
   emit clojure src/paclo/pcap.clj
+  echo "### src/paclo/core.clj"
+  emit clojure src/paclo/core.clj
   echo "### src/paclo/dev.clj"
   emit clojure src/paclo/dev.clj
   echo "### src-java/paclo/jnr/PcapLibrary.java"
   emit java src-java/paclo/jnr/PcapLibrary.java
   echo "### test/paclo/parse_test.clj"
   emit clojure test/paclo/parse_test.clj
+  echo "### test/paclo/core_test.clj"
+  emit clojure test/paclo/core_test.clj
   echo "### test/paclo/test_util.clj"
   emit clojure test/paclo/test_util.clj
+  echo "### .clj-kondo/config.edn"
+  emit edn .clj-kondo/config.edn
 } > "$out"
 
 cat <<'EOF' >> AI_HANDOFF.md
