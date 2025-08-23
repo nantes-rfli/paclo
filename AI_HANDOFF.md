@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 87ae1e5
-- generated: 2025-08-23 14:03:55 UTC
+- commit: 852e427
+- generated: 2025-08-23 14:58:21 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -2503,10 +2503,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 14:03:55 UTC)
+## Environment snapshot (2025-08-23 14:58:21 UTC)
 
 ```
-git commit: 87ae1e50d4ec
+git commit: 852e42728a73
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
