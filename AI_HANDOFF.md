@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 9185704
-- generated: 2025-08-23 05:23:10 UTC
+- commit: 7d490dd
+- generated: 2025-08-23 05:35:56 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -157,7 +157,41 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 将来保存時整形を復活させたい場合は、Calva整形ではなく  
 **VS Code → clojure-lsp (LSP フォーマット)** への切替を推奨。
 
+### 現行設定ファイル
+
+#### .vscode/settings.json
+\`\`\`json
 EOF
+if [ -f ".vscode/settings.json" ]; then
+  cat .vscode/settings.json >> AI_HANDOFF.md
+else
+  echo "// (not found: .vscode/settings.json)" >> AI_HANDOFF.md
+fi
+echo "\`\`\`" >> AI_HANDOFF.md
+
+cat <<'EOF' >> AI_HANDOFF.md
+
+#### .lsp/config.edn
+\`\`\`edn
+EOF
+if [ -f ".lsp/config.edn" ]; then
+  cat .lsp/config.edn >> AI_HANDOFF.md
+else
+  echo ";; (not found: .lsp/config.edn)" >> AI_HANDOFF.md
+fi
+echo "\`\`\`" >> AI_HANDOFF.md
+
+cat <<'EOF' >> AI_HANDOFF.md
+
+#### .editorconfig
+\`\`\`
+EOF
+if [ -f ".editorconfig" ]; then
+  cat .editorconfig >> AI_HANDOFF.md
+else
+  echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
+fi
+echo "\`\`\`" >> AI_HANDOFF.md
 
 echo "Wrote $out"
 ```
@@ -2051,3 +2085,46 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 将来保存時整形を復活させたい場合は、Calva整形ではなく  
 **VS Code → clojure-lsp (LSP フォーマット)** への切替を推奨。
 
+### 現行設定ファイル
+
+#### .vscode/settings.json
+\`\`\`json
+{
+"editor.formatOnSave": false,
+"editor.formatOnSaveMode": "modificationsIfAvailable",
+"[clojure]": {
+    "editor.defaultFormatter": "betterthantomorrow.calva"
+},
+"calva.formatOnSave": false,
+"calva.fmt.configPath": "CLOJURE-LSP",
+"editor.formatOnType": false
+}
+```
+
+#### .lsp/config.edn
+\`\`\`edn
+{:project-specs
+ [{:project-path "deps.edn"
+   :classpath-cmd ["clojure" "-Spath" "-M:test"]}]
+
+ :cljfmt
+ {:remove-trailing-whitespace? true
+  :remove-consecutive-blank-lines? true
+  :insert-missing-whitespace? true
+  :remove-multiple-non-indenting-spaces? false
+  :extra-indents {deftest [[:block 1]]
+                  testing [[:block 1]]
+                  is      [[:block 1]]}}}
+```
+
+#### .editorconfig
+\`\`\`
+root = true
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+```
