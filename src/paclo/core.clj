@@ -149,3 +149,9 @@
    例: (write-pcap! [ba1 {:bytes ba2 :sec 1700000000 :usec 12345}] \"out.pcap\")"
   [packets out]
   (pcap/bytes-seq->pcap! packets {:out out}))
+
+(defn list-devices
+  "利用可能デバイスの簡易一覧（pcap/list-devices のファサード）。
+   返り値: [{:name \"en0\" :desc \"Wi-Fi\"} ...]"
+  []
+  (pcap/list-devices))

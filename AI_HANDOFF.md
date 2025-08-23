@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 34ad198
-- generated: 2025-08-23 15:42:58 UTC
+- commit: 3965c7a
+- generated: 2025-08-23 15:56:26 UTC
 
 ## Primary docs（必読）
 
@@ -1895,6 +1895,12 @@ echo "Wrote ${out}"
    例: (write-pcap! [ba1 {:bytes ba2 :sec 1700000000 :usec 12345}] \"out.pcap\")"
   [packets out]
   (pcap/bytes-seq->pcap! packets {:out out}))
+
+(defn list-devices
+  "利用可能デバイスの簡易一覧（pcap/list-devices のファサード）。
+   返り値: [{:name \"en0\" :desc \"Wi-Fi\"} ...]"
+  []
+  (pcap/list-devices))
 ```
 
 ### src/paclo/dev.clj
@@ -2590,6 +2596,21 @@ public interface PcapLibrary {
   ;; not と組み合わせ（ユーザ要望例）
   (is (= "(net 10.0.0.0/8) and (not (port 22))"
          (sut/bpf [:and [:net "10.0.0.0/8"] [:not [:port 22]]]))))
+
+(deftest packets-xform-filters-and-maps
+  (let [pcap (-> (java.io.File/createTempFile "paclo-xf" ".pcap")
+                 .getAbsolutePath)]
+    ;; 3パケット: 60B / 42B / 60B
+    (sut/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                      (byte-array (repeat 42 (byte 0)))
+                      (byte-array (repeat 60 (byte 0)))]
+                     pcap)
+    (let [xs (sut/packets {:path pcap
+                           :decode? false
+                           :xform (comp
+                                   (filter #(>= (:caplen %) 60))
+                                   (map :caplen))})]
+      (is (= [60 60] (into [] xs))))))
 ```
 
 ### test/paclo/test_util.clj
@@ -2680,7 +2701,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 34ad19828646
+git commit: 3965c7ab3651
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
