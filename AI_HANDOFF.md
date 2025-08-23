@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 7d490dd
-- generated: 2025-08-23 05:35:56 UTC
+- commit: 2d5d76c
+- generated: 2025-08-23 05:39:45 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -192,6 +192,21 @@ else
   echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
 fi
 echo "\`\`\`" >> AI_HANDOFF.md
+
+{
+  echo
+  echo "## Environment snapshot ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+  echo
+  echo '```'
+  echo "git commit: $(git rev-parse --short=12 HEAD 2>/dev/null || echo N/A)"
+  echo "branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo N/A)"
+  echo "java: $(java -version 2>&1 | head -n1)"
+  echo "clojure: $(clojure -M -e '(println (clojure-version))' 2>/dev/null || echo N/A)"
+  echo "clojure-lsp: $(clojure-lsp --version 2>/dev/null || echo N/A)"
+  echo "clj-kondo: $(clj-kondo --version 2>/dev/null || echo N/A)"
+  echo "os: $(uname -a)"
+  echo '```'
+} >> AI_HANDOFF.md
 
 echo "Wrote $out"
 ```
@@ -2127,4 +2142,17 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
+```
+
+## Environment snapshot (2025-08-23 05:39:45 UTC)
+
+```
+git commit: 2d5d76c84b20
+branch: main
+java: openjdk version "21.0.8" 2025-07-15 LTS
+clojure: 1.12.1
+clojure-lsp: clojure-lsp 2025.08.15-17.11.38
+clj-kondo 2025.07.28
+clj-kondo: clj-kondo v2025.07.28
+os: Darwin Nantos-Mac-mini.local 24.4.0 Darwin Kernel Version 24.4.0: Fri Apr 11 18:28:23 PDT 2025; root:xnu-11417.101.15~117/RELEASE_X86_64 x86_64
 ```
