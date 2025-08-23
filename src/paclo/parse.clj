@@ -1,6 +1,8 @@
 (ns paclo.parse
-  (:import [java.nio ByteBuffer ByteOrder])
-  (:require [clojure.string :as str]))
+  (:require
+   [clojure.string :as str])
+  (:import
+   [java.nio ByteBuffer ByteOrder]))
 
 (declare l4-parse)
 (declare maybe-attach-dns)
@@ -135,7 +137,6 @@
                     (.position opt (+ (.position opt) l)) ;; value を飛ばす
                     (recur)))))))))
     false))
-
 
 (defn- arp [^ByteBuffer b]
   (when (<= 8 (.remaining b))                             ;; 最低限の固定部
@@ -272,7 +273,7 @@
               ;; 明確に足りない場合は打ち切り
               (> opt-len (.remaining dup))
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
-              
+
               ;; HBH / Dest は TLV を検証してから進める
               (or (= nh 0) (= nh 60))
               (if (valid-ipv6-options-tlv? dup opt-len)
@@ -283,13 +284,13 @@
                   (recur next frag? frag-off))
                 ;; TLV が壊れている（途切れ/過走）
                 {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
-              
+
               ;; Routing(43) は TLV ではないので長さスキップのみ
               (= nh 43)
               (do
                 (.position dup (+ (.position dup) opt-len))
                 (recur next frag? frag-off))
-              
+
               ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
               :else
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
@@ -330,8 +331,6 @@
      :l4 l4
      :flow-key flow-key}))
 
-
-
 (defn- tcp-header [^ByteBuffer b]
   (let [src (u16 b)
         dst (u16 b)
@@ -364,7 +363,6 @@
      :header-len hdr-len
      :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
-
 
 (defn- udp-header [^ByteBuffer b]
   ;; ★ 追加: 残量ガード（8B未満なら安全に諦める）
@@ -482,7 +480,6 @@
      :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
-
 (defn- dns-min [^bytes payload]
   (when (<= 12 (alength payload))
     (let [bb (-> (ByteBuffer/wrap payload) (.order ByteOrder/BIG_ENDIAN))
@@ -509,7 +506,6 @@
        :nscount (bit-and ns 0xFFFF)
        :arcount (bit-and ar 0xFFFF)
        :flags   {:qr qr :opcode opcode :aa aa :tc tc :rd rd :ra ra :ad ad :cd cd :rcode rcode}})))
-
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))

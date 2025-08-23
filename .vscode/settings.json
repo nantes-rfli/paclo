@@ -1,0 +1,9 @@
+{
+    "editor.formatOnSave": true,
+    "[clojure]": {
+        "editor.defaultFormatter": "betterthantomorrow.calva"
+    },
+    "calva.fmtConfigPath": ".cljfmt.edn",
+    "calva.formatOnSave": true,
+    "calva.fmtIndent": 2
+}

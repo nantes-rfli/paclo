@@ -1,12 +1,11 @@
 (ns paclo.pcap
-  (:import
-   [jnr.ffi LibraryLoader Memory Pointer]
-   [jnr.ffi.byref PointerByReference IntByReference]
-   [paclo.jnr PcapLibrary PcapHeader]
-   [java.util.concurrent LinkedBlockingQueue])
   (:require
-   [clojure.string :as str]))
-
+   [clojure.string :as str])
+  (:import
+   [java.util.concurrent LinkedBlockingQueue]
+   [jnr.ffi LibraryLoader Memory Pointer]
+   [jnr.ffi.byref IntByReference PointerByReference]
+   [paclo.jnr PcapHeader PcapLibrary]))
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib
@@ -238,7 +237,7 @@
               m
               (cond
                 (.startsWith line "Hardware Port: ")
-                (recur m (str/trim (subs line 14)) (.readLine rdr)) 
+                (recur m (str/trim (subs line 14)) (.readLine rdr))
 
                 (.startsWith line "Device: ")
                 (let [dev (subs line 8)]
@@ -303,7 +302,6 @@
         (catch clojure.lang.ArityException _
           (handler))))))                  ;; 0引数で呼ぶ
 
-
 ;; -----------------------------------------
 ;; REPL用：小回りヘルパ（件数/時間/idleで停止）
 ;; -----------------------------------------
@@ -317,102 +315,100 @@
    オプション: {:idle-max-ms <ms> :timeout-ms <ms>}
    例: (loop-n! h 10 handler) ; 従来どおり
        (loop-n! h 10 handler {:idle-max-ms 3000 :timeout-ms 100})"
-    ([^Pointer pcap ^long n handler]
-    (assert (pos? n) "n must be positive")
-    (let [c (atom 0)
-          handle (->pkt-handler handler)]
-      (loop! pcap (fn [pkt]
-                    (handle pkt)
-                    (when (>= (swap! c inc) n)
-                      (breakloop! pcap))))))
-   ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
-    (if (nil? idle-max-ms)
-      (loop-n! pcap n handler)
-      (do
-        (assert (pos? n) "n must be positive")
-        (let [hdr-ref (PointerByReference.)
-              dat-ref (PointerByReference.)
-              idle-ms-target (long idle-max-ms)
-              tick (long (or timeout-ms 100))
-              handle (->pkt-handler handler)]
-          (loop [count 0 idle 0]
-            (when (< count n)
-              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
-                (cond
-                  (= rc 1)
-                  (let [hdr (.getValue hdr-ref)
-                        dat (.getValue dat-ref)
-                        ts-sec (PcapHeader/tv_sec hdr)
-                        ts-usec (PcapHeader/tv_usec hdr)
-                        caplen (PcapHeader/caplen hdr)
-                        len    (PcapHeader/len hdr)
-                        arr    (byte-array (int caplen))]
-                    (.get dat 0 arr 0 (alength arr))
-                    (handle {:ts-sec ts-sec :ts-usec ts-usec
-                             :caplen caplen :len len :bytes arr})
-                    (recur (inc count) 0))
-  
-                  (= rc 0)
-                  (let [idle' (+ idle tick)]
-                    (if (>= idle' idle-ms-target)
-                      (breakloop! pcap)
-                      (recur count idle')))
-  
-                  :else
-                  (breakloop! pcap))))))))))
+  ([^Pointer pcap ^long n handler]
+   (assert (pos? n) "n must be positive")
+   (let [c (atom 0)
+         handle (->pkt-handler handler)]
+     (loop! pcap (fn [pkt]
+                   (handle pkt)
+                   (when (>= (swap! c inc) n)
+                     (breakloop! pcap))))))
+  ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
+   (if (nil? idle-max-ms)
+     (loop-n! pcap n handler)
+     (do
+       (assert (pos? n) "n must be positive")
+       (let [hdr-ref (PointerByReference.)
+             dat-ref (PointerByReference.)
+             idle-ms-target (long idle-max-ms)
+             tick (long (or timeout-ms 100))
+             handle (->pkt-handler handler)]
+         (loop [count 0 idle 0]
+           (when (< count n)
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+               (cond
+                 (= rc 1)
+                 (let [hdr (.getValue hdr-ref)
+                       dat (.getValue dat-ref)
+                       ts-sec (PcapHeader/tv_sec hdr)
+                       ts-usec (PcapHeader/tv_usec hdr)
+                       caplen (PcapHeader/caplen hdr)
+                       len    (PcapHeader/len hdr)
+                       arr    (byte-array (int caplen))]
+                   (.get dat 0 arr 0 (alength arr))
+                   (handle {:ts-sec ts-sec :ts-usec ts-usec
+                            :caplen caplen :len len :bytes arr})
+                   (recur (inc count) 0))
 
+                 (= rc 0)
+                 (let [idle' (+ idle tick)]
+                   (if (>= idle' idle-ms-target)
+                     (breakloop! pcap)
+                     (recur count idle')))
+
+                 :else
+                 (breakloop! pcap))))))))))
 
 (defn loop-for-ms!
   "開始から duration-ms 経過したら停止（壁時計基準）。
    オプション: {:idle-max-ms <ms> :timeout-ms <ms>}
    例: (loop-for-ms! h 3000 handler)
        (loop-for-ms! h 3000 handler {:idle-max-ms 1000 :timeout-ms 50})"
-    ([^Pointer pcap ^long duration-ms handler]
-    (assert (pos? duration-ms) "duration-ms must be positive")
-    (let [t0 (System/currentTimeMillis)
-          handle (->pkt-handler handler)]
-      (loop! pcap (fn [pkt]
-                    (handle pkt)
-                    (when (>= (- (System/currentTimeMillis) t0) duration-ms)
-                      (breakloop! pcap))))))
-   ([^Pointer pcap ^long duration-ms handler {:keys [idle-max-ms timeout-ms]}]
-    (if (nil? idle-max-ms)
-      (loop-for-ms! pcap duration-ms handler)
-      (do
-        (assert (pos? duration-ms) "duration-ms must be positive")
-        (let [hdr-ref (PointerByReference.)
-              dat-ref (PointerByReference.)
-              t0 (System/currentTimeMillis)
-              deadline (+ t0 (long duration-ms))
-              idle-ms-target (long idle-max-ms)
-              tick (long (or timeout-ms 100))
-              handle (->pkt-handler handler)]
-          (loop [idle 0]
-            (when (< (System/currentTimeMillis) deadline)
-              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
-                (cond
-                  (= rc 1)
-                  (let [hdr (.getValue hdr-ref)
-                        dat (.getValue dat-ref)
-                        ts-sec (PcapHeader/tv_sec hdr)
-                        ts-usec (PcapHeader/tv_usec hdr)
-                        caplen (PcapHeader/caplen hdr)
-                        len    (PcapHeader/len hdr)
-                        arr    (byte-array (int caplen))]
-                    (.get dat 0 arr 0 (alength arr))
-                    (handle {:ts-sec ts-sec :ts-usec ts-usec
-                             :caplen caplen :len len :bytes arr})
-                    (recur 0))
-  
-                  (= rc 0)
-                  (let [idle' (+ idle tick)]
-                    (if (>= idle' idle-ms-target)
-                      (breakloop! pcap)
-                      (recur idle')))
-  
-                  :else
-                  (breakloop! pcap))))))))))
+  ([^Pointer pcap ^long duration-ms handler]
+   (assert (pos? duration-ms) "duration-ms must be positive")
+   (let [t0 (System/currentTimeMillis)
+         handle (->pkt-handler handler)]
+     (loop! pcap (fn [pkt]
+                   (handle pkt)
+                   (when (>= (- (System/currentTimeMillis) t0) duration-ms)
+                     (breakloop! pcap))))))
+  ([^Pointer pcap ^long duration-ms handler {:keys [idle-max-ms timeout-ms]}]
+   (if (nil? idle-max-ms)
+     (loop-for-ms! pcap duration-ms handler)
+     (do
+       (assert (pos? duration-ms) "duration-ms must be positive")
+       (let [hdr-ref (PointerByReference.)
+             dat-ref (PointerByReference.)
+             t0 (System/currentTimeMillis)
+             deadline (+ t0 (long duration-ms))
+             idle-ms-target (long idle-max-ms)
+             tick (long (or timeout-ms 100))
+             handle (->pkt-handler handler)]
+         (loop [idle 0]
+           (when (< (System/currentTimeMillis) deadline)
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+               (cond
+                 (= rc 1)
+                 (let [hdr (.getValue hdr-ref)
+                       dat (.getValue dat-ref)
+                       ts-sec (PcapHeader/tv_sec hdr)
+                       ts-usec (PcapHeader/tv_usec hdr)
+                       caplen (PcapHeader/caplen hdr)
+                       len    (PcapHeader/len hdr)
+                       arr    (byte-array (int caplen))]
+                   (.get dat 0 arr 0 (alength arr))
+                   (handle {:ts-sec ts-sec :ts-usec ts-usec
+                            :caplen caplen :len len :bytes arr})
+                   (recur 0))
 
+                 (= rc 0)
+                 (let [idle' (+ idle tick)]
+                   (if (>= idle' idle-ms-target)
+                     (breakloop! pcap)
+                     (recur idle')))
+
+                 :else
+                 (breakloop! pcap))))))))))
 
 (defn loop-n-or-ms!
   "n件到達 or duration-ms 経過の早い方で停止。
@@ -471,8 +467,6 @@
                 :else
                 (breakloop! pcap)))))))))
 
-
-
 ;; -----------------------------------------
 ;; REPL用：ワンショット実験（open→filter→loop→close）
 ;; -----------------------------------------
@@ -495,7 +489,7 @@
      (try
        (when filter
          (if device (set-bpf-on-device! h device filter)
-                    (set-bpf! h filter)))
+             (set-bpf! h filter)))
        (if idle-max-ms
          (loop-n! h n handler {:idle-max-ms idle-max-ms :timeout-ms timeout-ms})
          (loop-n! h n handler))
@@ -519,12 +513,11 @@
      (try
        (when filter
          (if device (set-bpf-on-device! h device filter)
-                    (set-bpf! h filter)))
+             (set-bpf! h filter)))
        (if idle-max-ms
          (loop-for-ms! h duration-ms handler {:idle-max-ms idle-max-ms :timeout-ms timeout-ms})
          (loop-for-ms! h duration-ms handler))
        (finally (close! h))))))
-
 
 ;; -----------------------------------------
 ;; 高レベルAPI：capture->seq
@@ -596,19 +589,18 @@
           (close! h))))
     ;; lazy-seq を返す
     (letfn [(drain []
-              (lazy-seq
-               (let [x (.take q)]
-                 (cond
-                   (identical? x sentinel) '()
-                   (and (map? x) (= (:type x) :paclo/capture-error))
-                   (if (= error-mode :pass)
-                     (drain)
-                     (throw (ex-info "capture->seq background error"
-                                     {:source :capture->seq}
-                                     (:ex x))))
-                   :else (cons x (drain))))))]
+                   (lazy-seq
+                    (let [x (.take q)]
+                      (cond
+                        (identical? x sentinel) '()
+                        (and (map? x) (= (:type x) :paclo/capture-error))
+                        (if (= error-mode :pass)
+                          (drain)
+                          (throw (ex-info "capture->seq background error"
+                                          {:source :capture->seq}
+                                          (:ex x))))
+                        :else (cons x (drain))))))]
       (drain))))
-
 
 ;; ------------------------------------------------------------
 ;; ライブ実行のサマリ版（後方互換のため新規追加）

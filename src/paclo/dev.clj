@@ -7,9 +7,11 @@
    例:
    (-> HBH-OK parse-hex summarize)
    (-> HBH-BAD parse-hex summarize)"
-  (:require [clojure.string :as str]
-            [paclo.parse :as parse])
-  (:import [java.util Formatter]))
+  (:require
+   [clojure.string :as str]
+   [paclo.parse :as parse])
+  (:import
+   [java.util Formatter]))
 
 ;; テストユーティリティに依存しない最小 hex→bytes
 (defn hex->bytes ^bytes [^String s]
@@ -66,7 +68,7 @@
       (println))
     (println "L3:" l3t)
     (case l3t
-            :ipv4 (println "  proto" proto
+      :ipv4 (println "  proto" proto
                      "src" (:src l3) "dst" (:dst l3)
                      (when (:frag? l3) (str " frag@" (:frag-offset l3))))
       :ipv6 (do
@@ -76,17 +78,17 @@
                        (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
-      (println "L4:" (:type l4)
-           (cond
-             (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
-             (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
-                                      " " (or (:flags-str l4) "")
-                                      " len=" (:data-len l4))
-             (= :icmpv4 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
-                                         " len=" (:data-len l4))
-             (= :icmpv6 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
-                                         " len=" (:data-len l4))
-             :else ""))
+    (println "L4:" (:type l4)
+             (cond
+               (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
+               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
+                                        " " (or (:flags-str l4) "")
+                                        " len=" (:data-len l4))
+               (= :icmpv4 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                           " len=" (:data-len l4))
+               (= :icmpv6 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                           " len=" (:data-len l4))
+               :else ""))
 
     (when-let [app (:app l4)]
       (println "App:" (:type app) app))

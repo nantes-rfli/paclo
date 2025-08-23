@@ -1,5 +1,6 @@
 (ns paclo.test-util
-  (:require [clojure.string :as str]))
+  (:require
+   [clojure.string :as str]))
 
 (defn hex->bytes ^bytes [^String s]
   (let [no-line-comments (str/replace s #"(?m);.*$" "")     ;; 行内 ;コメントを削除

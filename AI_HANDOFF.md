@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 100617c
-- generated: 2025-08-23 02:16:40 UTC
+- commit: 3987253
+- generated: 2025-08-23 02:40:49 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -147,8 +147,10 @@ echo "Wrote $out"
 ### src/paclo/parse.clj
 ```clojure
 (ns paclo.parse
-  (:import [java.nio ByteBuffer ByteOrder])
-  (:require [clojure.string :as str]))
+  (:require
+   [clojure.string :as str])
+  (:import
+   [java.nio ByteBuffer ByteOrder]))
 
 (declare l4-parse)
 (declare maybe-attach-dns)
@@ -283,7 +285,6 @@ echo "Wrote $out"
                     (.position opt (+ (.position opt) l)) ;; value を飛ばす
                     (recur)))))))))
     false))
-
 
 (defn- arp [^ByteBuffer b]
   (when (<= 8 (.remaining b))                             ;; 最低限の固定部
@@ -420,7 +421,7 @@ echo "Wrote $out"
               ;; 明確に足りない場合は打ち切り
               (> opt-len (.remaining dup))
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
-              
+
               ;; HBH / Dest は TLV を検証してから進める
               (or (= nh 0) (= nh 60))
               (if (valid-ipv6-options-tlv? dup opt-len)
@@ -431,13 +432,13 @@ echo "Wrote $out"
                   (recur next frag? frag-off))
                 ;; TLV が壊れている（途切れ/過走）
                 {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
-              
+
               ;; Routing(43) は TLV ではないので長さスキップのみ
               (= nh 43)
               (do
                 (.position dup (+ (.position dup) opt-len))
                 (recur next frag? frag-off))
-              
+
               ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
               :else
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
@@ -478,8 +479,6 @@ echo "Wrote $out"
      :l4 l4
      :flow-key flow-key}))
 
-
-
 (defn- tcp-header [^ByteBuffer b]
   (let [src (u16 b)
         dst (u16 b)
@@ -512,7 +511,6 @@ echo "Wrote $out"
      :header-len hdr-len
      :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
-
 
 (defn- udp-header [^ByteBuffer b]
   ;; ★ 追加: 残量ガード（8B未満なら安全に諦める）
@@ -630,7 +628,6 @@ echo "Wrote $out"
      :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
-
 (defn- dns-min [^bytes payload]
   (when (<= 12 (alength payload))
     (let [bb (-> (ByteBuffer/wrap payload) (.order ByteOrder/BIG_ENDIAN))
@@ -657,7 +654,6 @@ echo "Wrote $out"
        :nscount (bit-and ns 0xFFFF)
        :arcount (bit-and ar 0xFFFF)
        :flags   {:qr qr :opcode opcode :aa aa :tc tc :rd rd :ra ra :ad ad :cd cd :rcode rcode}})))
-
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))
@@ -729,14 +725,13 @@ echo "Wrote $out"
 ### src/paclo/pcap.clj
 ```clojure
 (ns paclo.pcap
-  (:import
-   [jnr.ffi LibraryLoader Memory Pointer]
-   [jnr.ffi.byref PointerByReference IntByReference]
-   [paclo.jnr PcapLibrary PcapHeader]
-   [java.util.concurrent LinkedBlockingQueue])
   (:require
-   [clojure.string :as str]))
-
+   [clojure.string :as str])
+  (:import
+   [java.util.concurrent LinkedBlockingQueue]
+   [jnr.ffi LibraryLoader Memory Pointer]
+   [jnr.ffi.byref IntByReference PointerByReference]
+   [paclo.jnr PcapHeader PcapLibrary]))
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib
@@ -968,7 +963,7 @@ echo "Wrote $out"
               m
               (cond
                 (.startsWith line "Hardware Port: ")
-                (recur m (str/trim (subs line 14)) (.readLine rdr)) 
+                (recur m (str/trim (subs line 14)) (.readLine rdr))
 
                 (.startsWith line "Device: ")
                 (let [dev (subs line 8)]
@@ -1033,7 +1028,6 @@ echo "Wrote $out"
         (catch clojure.lang.ArityException _
           (handler))))))                  ;; 0引数で呼ぶ
 
-
 ;; -----------------------------------------
 ;; REPL用：小回りヘルパ（件数/時間/idleで停止）
 ;; -----------------------------------------
@@ -1047,102 +1041,100 @@ echo "Wrote $out"
    オプション: {:idle-max-ms <ms> :timeout-ms <ms>}
    例: (loop-n! h 10 handler) ; 従来どおり
        (loop-n! h 10 handler {:idle-max-ms 3000 :timeout-ms 100})"
-    ([^Pointer pcap ^long n handler]
-    (assert (pos? n) "n must be positive")
-    (let [c (atom 0)
-          handle (->pkt-handler handler)]
-      (loop! pcap (fn [pkt]
-                    (handle pkt)
-                    (when (>= (swap! c inc) n)
-                      (breakloop! pcap))))))
-   ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
-    (if (nil? idle-max-ms)
-      (loop-n! pcap n handler)
-      (do
-        (assert (pos? n) "n must be positive")
-        (let [hdr-ref (PointerByReference.)
-              dat-ref (PointerByReference.)
-              idle-ms-target (long idle-max-ms)
-              tick (long (or timeout-ms 100))
-              handle (->pkt-handler handler)]
-          (loop [count 0 idle 0]
-            (when (< count n)
-              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
-                (cond
-                  (= rc 1)
-                  (let [hdr (.getValue hdr-ref)
-                        dat (.getValue dat-ref)
-                        ts-sec (PcapHeader/tv_sec hdr)
-                        ts-usec (PcapHeader/tv_usec hdr)
-                        caplen (PcapHeader/caplen hdr)
-                        len    (PcapHeader/len hdr)
-                        arr    (byte-array (int caplen))]
-                    (.get dat 0 arr 0 (alength arr))
-                    (handle {:ts-sec ts-sec :ts-usec ts-usec
-                             :caplen caplen :len len :bytes arr})
-                    (recur (inc count) 0))
-  
-                  (= rc 0)
-                  (let [idle' (+ idle tick)]
-                    (if (>= idle' idle-ms-target)
-                      (breakloop! pcap)
-                      (recur count idle')))
-  
-                  :else
-                  (breakloop! pcap))))))))))
+  ([^Pointer pcap ^long n handler]
+   (assert (pos? n) "n must be positive")
+   (let [c (atom 0)
+         handle (->pkt-handler handler)]
+     (loop! pcap (fn [pkt]
+                   (handle pkt)
+                   (when (>= (swap! c inc) n)
+                     (breakloop! pcap))))))
+  ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
+   (if (nil? idle-max-ms)
+     (loop-n! pcap n handler)
+     (do
+       (assert (pos? n) "n must be positive")
+       (let [hdr-ref (PointerByReference.)
+             dat-ref (PointerByReference.)
+             idle-ms-target (long idle-max-ms)
+             tick (long (or timeout-ms 100))
+             handle (->pkt-handler handler)]
+         (loop [count 0 idle 0]
+           (when (< count n)
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+               (cond
+                 (= rc 1)
+                 (let [hdr (.getValue hdr-ref)
+                       dat (.getValue dat-ref)
+                       ts-sec (PcapHeader/tv_sec hdr)
+                       ts-usec (PcapHeader/tv_usec hdr)
+                       caplen (PcapHeader/caplen hdr)
+                       len    (PcapHeader/len hdr)
+                       arr    (byte-array (int caplen))]
+                   (.get dat 0 arr 0 (alength arr))
+                   (handle {:ts-sec ts-sec :ts-usec ts-usec
+                            :caplen caplen :len len :bytes arr})
+                   (recur (inc count) 0))
 
+                 (= rc 0)
+                 (let [idle' (+ idle tick)]
+                   (if (>= idle' idle-ms-target)
+                     (breakloop! pcap)
+                     (recur count idle')))
+
+                 :else
+                 (breakloop! pcap))))))))))
 
 (defn loop-for-ms!
   "開始から duration-ms 経過したら停止（壁時計基準）。
    オプション: {:idle-max-ms <ms> :timeout-ms <ms>}
    例: (loop-for-ms! h 3000 handler)
        (loop-for-ms! h 3000 handler {:idle-max-ms 1000 :timeout-ms 50})"
-    ([^Pointer pcap ^long duration-ms handler]
-    (assert (pos? duration-ms) "duration-ms must be positive")
-    (let [t0 (System/currentTimeMillis)
-          handle (->pkt-handler handler)]
-      (loop! pcap (fn [pkt]
-                    (handle pkt)
-                    (when (>= (- (System/currentTimeMillis) t0) duration-ms)
-                      (breakloop! pcap))))))
-   ([^Pointer pcap ^long duration-ms handler {:keys [idle-max-ms timeout-ms]}]
-    (if (nil? idle-max-ms)
-      (loop-for-ms! pcap duration-ms handler)
-      (do
-        (assert (pos? duration-ms) "duration-ms must be positive")
-        (let [hdr-ref (PointerByReference.)
-              dat-ref (PointerByReference.)
-              t0 (System/currentTimeMillis)
-              deadline (+ t0 (long duration-ms))
-              idle-ms-target (long idle-max-ms)
-              tick (long (or timeout-ms 100))
-              handle (->pkt-handler handler)]
-          (loop [idle 0]
-            (when (< (System/currentTimeMillis) deadline)
-              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
-                (cond
-                  (= rc 1)
-                  (let [hdr (.getValue hdr-ref)
-                        dat (.getValue dat-ref)
-                        ts-sec (PcapHeader/tv_sec hdr)
-                        ts-usec (PcapHeader/tv_usec hdr)
-                        caplen (PcapHeader/caplen hdr)
-                        len    (PcapHeader/len hdr)
-                        arr    (byte-array (int caplen))]
-                    (.get dat 0 arr 0 (alength arr))
-                    (handle {:ts-sec ts-sec :ts-usec ts-usec
-                             :caplen caplen :len len :bytes arr})
-                    (recur 0))
-  
-                  (= rc 0)
-                  (let [idle' (+ idle tick)]
-                    (if (>= idle' idle-ms-target)
-                      (breakloop! pcap)
-                      (recur idle')))
-  
-                  :else
-                  (breakloop! pcap))))))))))
+  ([^Pointer pcap ^long duration-ms handler]
+   (assert (pos? duration-ms) "duration-ms must be positive")
+   (let [t0 (System/currentTimeMillis)
+         handle (->pkt-handler handler)]
+     (loop! pcap (fn [pkt]
+                   (handle pkt)
+                   (when (>= (- (System/currentTimeMillis) t0) duration-ms)
+                     (breakloop! pcap))))))
+  ([^Pointer pcap ^long duration-ms handler {:keys [idle-max-ms timeout-ms]}]
+   (if (nil? idle-max-ms)
+     (loop-for-ms! pcap duration-ms handler)
+     (do
+       (assert (pos? duration-ms) "duration-ms must be positive")
+       (let [hdr-ref (PointerByReference.)
+             dat-ref (PointerByReference.)
+             t0 (System/currentTimeMillis)
+             deadline (+ t0 (long duration-ms))
+             idle-ms-target (long idle-max-ms)
+             tick (long (or timeout-ms 100))
+             handle (->pkt-handler handler)]
+         (loop [idle 0]
+           (when (< (System/currentTimeMillis) deadline)
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+               (cond
+                 (= rc 1)
+                 (let [hdr (.getValue hdr-ref)
+                       dat (.getValue dat-ref)
+                       ts-sec (PcapHeader/tv_sec hdr)
+                       ts-usec (PcapHeader/tv_usec hdr)
+                       caplen (PcapHeader/caplen hdr)
+                       len    (PcapHeader/len hdr)
+                       arr    (byte-array (int caplen))]
+                   (.get dat 0 arr 0 (alength arr))
+                   (handle {:ts-sec ts-sec :ts-usec ts-usec
+                            :caplen caplen :len len :bytes arr})
+                   (recur 0))
 
+                 (= rc 0)
+                 (let [idle' (+ idle tick)]
+                   (if (>= idle' idle-ms-target)
+                     (breakloop! pcap)
+                     (recur idle')))
+
+                 :else
+                 (breakloop! pcap))))))))))
 
 (defn loop-n-or-ms!
   "n件到達 or duration-ms 経過の早い方で停止。
@@ -1201,8 +1193,6 @@ echo "Wrote $out"
                 :else
                 (breakloop! pcap)))))))))
 
-
-
 ;; -----------------------------------------
 ;; REPL用：ワンショット実験（open→filter→loop→close）
 ;; -----------------------------------------
@@ -1225,7 +1215,7 @@ echo "Wrote $out"
      (try
        (when filter
          (if device (set-bpf-on-device! h device filter)
-                    (set-bpf! h filter)))
+             (set-bpf! h filter)))
        (if idle-max-ms
          (loop-n! h n handler {:idle-max-ms idle-max-ms :timeout-ms timeout-ms})
          (loop-n! h n handler))
@@ -1249,12 +1239,11 @@ echo "Wrote $out"
      (try
        (when filter
          (if device (set-bpf-on-device! h device filter)
-                    (set-bpf! h filter)))
+             (set-bpf! h filter)))
        (if idle-max-ms
          (loop-for-ms! h duration-ms handler {:idle-max-ms idle-max-ms :timeout-ms timeout-ms})
          (loop-for-ms! h duration-ms handler))
        (finally (close! h))))))
-
 
 ;; -----------------------------------------
 ;; 高レベルAPI：capture->seq
@@ -1326,19 +1315,18 @@ echo "Wrote $out"
           (close! h))))
     ;; lazy-seq を返す
     (letfn [(drain []
-              (lazy-seq
-               (let [x (.take q)]
-                 (cond
-                   (identical? x sentinel) '()
-                   (and (map? x) (= (:type x) :paclo/capture-error))
-                   (if (= error-mode :pass)
-                     (drain)
-                     (throw (ex-info "capture->seq background error"
-                                     {:source :capture->seq}
-                                     (:ex x))))
-                   :else (cons x (drain))))))]
+                   (lazy-seq
+                    (let [x (.take q)]
+                      (cond
+                        (identical? x sentinel) '()
+                        (and (map? x) (= (:type x) :paclo/capture-error))
+                        (if (= error-mode :pass)
+                          (drain)
+                          (throw (ex-info "capture->seq background error"
+                                          {:source :capture->seq}
+                                          (:ex x))))
+                        :else (cons x (drain))))))]
       (drain))))
-
 
 ;; ------------------------------------------------------------
 ;; ライブ実行のサマリ版（後方互換のため新規追加）
@@ -1387,9 +1375,11 @@ echo "Wrote $out"
    例:
    (-> HBH-OK parse-hex summarize)
    (-> HBH-BAD parse-hex summarize)"
-  (:require [clojure.string :as str]
-            [paclo.parse :as parse])
-  (:import [java.util Formatter]))
+  (:require
+   [clojure.string :as str]
+   [paclo.parse :as parse])
+  (:import
+   [java.util Formatter]))
 
 ;; テストユーティリティに依存しない最小 hex→bytes
 (defn hex->bytes ^bytes [^String s]
@@ -1446,7 +1436,7 @@ echo "Wrote $out"
       (println))
     (println "L3:" l3t)
     (case l3t
-            :ipv4 (println "  proto" proto
+      :ipv4 (println "  proto" proto
                      "src" (:src l3) "dst" (:dst l3)
                      (when (:frag? l3) (str " frag@" (:frag-offset l3))))
       :ipv6 (do
@@ -1456,17 +1446,17 @@ echo "Wrote $out"
                        (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
-      (println "L4:" (:type l4)
-           (cond
-             (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
-             (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
-                                      " " (or (:flags-str l4) "")
-                                      " len=" (:data-len l4))
-             (= :icmpv4 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
-                                         " len=" (:data-len l4))
-             (= :icmpv6 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
-                                         " len=" (:data-len l4))
-             :else ""))
+    (println "L4:" (:type l4)
+             (cond
+               (= :udp (:type l4)) (str (:src-port l4) "->" (:dst-port l4) " len=" (:data-len l4))
+               (= :tcp (:type l4)) (str (:src-port l4) "->" (:dst-port l4)
+                                        " " (or (:flags-str l4) "")
+                                        " len=" (:data-len l4))
+               (= :icmpv4 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                           " len=" (:data-len l4))
+               (= :icmpv6 (:type l4)) (str (or (:summary l4) (str "type=" (:icmp-type l4) " code=" (:code l4)))
+                                           " len=" (:data-len l4))
+               :else ""))
 
     (when-let [app (:app l4)]
       (println "App:" (:type app) app))
@@ -1550,14 +1540,15 @@ public interface PcapLibrary {
 ### test/paclo/parse_test.clj
 ```clojure
 (ns paclo.parse-test
-  (:require [clojure.test :refer :all]
-            [paclo.parse :as parse]
-            [paclo.test-util :as tu]))
+  (:require
+   [clojure.test :refer :all]
+   [paclo.parse :as parse]
+   [paclo.test-util :as tu]))
 
 ;; 1) IPv4/TCP（payload="hello"）
 (deftest ipv4-tcp-min-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 2D 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00
@@ -1572,7 +1563,7 @@ public interface PcapLibrary {
 ;; 2) IPv4/UDP + 最小DNSヘッダ（16B）
 (deftest ipv4-udp-dns-min-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -1587,7 +1578,7 @@ public interface PcapLibrary {
 ;; 3) ARP request（IPv4）
 (deftest arp-request-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 11 22 33 44 55 08 06
+             "FF FF FF FF FF FF 00 11 22 33 44 55 08 06
                00 01 08 00 06 04 00 01
                00 11 22 33 44 55 C0 A8 01 64
                66 77 88 99 AA BB C0 A8 01 01")
@@ -1600,7 +1591,7 @@ public interface PcapLibrary {
 ;; 4) IPv6/UDP（payload=4B）
 (deftest ipv6-udp-min-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1614,7 +1605,7 @@ public interface PcapLibrary {
 ;; 5) IPv6 Hop-by-Hop → UDP へ到達できるか（PL=24, HBH=16, UDP=8）
 (deftest ipv6-hbh-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1627,7 +1618,7 @@ public interface PcapLibrary {
 ;; 6) IPv6 Fragment (offset>0) は L4を解さず :ipv6-fragment で返す
 (deftest ipv6-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1640,7 +1631,7 @@ public interface PcapLibrary {
 ;; HBH: PadN(12B)でオプション領域14Bを“ちょうど”埋めてUDPに到達
 (deftest ipv6-hbh-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1653,7 +1644,7 @@ public interface PcapLibrary {
 ;; HBH: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
 (deftest ipv6-hbh-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1666,7 +1657,7 @@ public interface PcapLibrary {
 ;; DestOpt: PadN(12B)でオプション領域14Bを“ちょうど”埋め、UDPに到達
 (deftest ipv6-destopt-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 3C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1679,7 +1670,7 @@ public interface PcapLibrary {
 ;; DestOpt: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
 (deftest ipv6-destopt-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 3C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1692,7 +1683,7 @@ public interface PcapLibrary {
 ;; 先頭フラグメント(offset=0, M=1) + UDP(8B) → L4は正しくUDPに到達しつつ fragフラグは立つ
 (deftest ipv6-frag-first-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 10 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1707,7 +1698,7 @@ public interface PcapLibrary {
 ;; フラグメントヘッダが8B未満で途切れ → 上位に進まず :unknown-l4
 (deftest ipv6-frag-header-truncated-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 07 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1719,7 +1710,7 @@ public interface PcapLibrary {
 ;; DNS flags: Query (QR=0, RD=1)
 (deftest ipv4-udp-dns-flags-query-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -1736,7 +1727,7 @@ public interface PcapLibrary {
 ;; DNS flags: Response NXDOMAIN (QR=1, RD=1, RA=1, RCODE=3)
 (deftest ipv4-udp-dns-flags-response-nxdomain-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -1753,7 +1744,7 @@ public interface PcapLibrary {
 ;; IPv6/UDP で flow-key が :udp とポートを含む
 (deftest ipv6-udp-flow-key-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1770,7 +1761,7 @@ public interface PcapLibrary {
 ;; 非先頭フラグメント（L4ヘッダ無し）でも proto は載る（ここでは TCP）
 (deftest ipv6-frag-nonfirst-flow-key-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1787,7 +1778,7 @@ public interface PcapLibrary {
 ;; IPv6 圧縮表記（ゼロ連続を :: に）
 (deftest ipv6-addr-compact-basic-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1804,7 +1795,7 @@ public interface PcapLibrary {
 ;; 全ゼロは :: になる
 (deftest ipv6-addr-compact-all-zero-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 11 40
                00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
                00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -1816,7 +1807,7 @@ public interface PcapLibrary {
 ;; 802.1Q (0x8100) 単一タグ → IPv4 に到達し、:vlan-tags を付与
 (deftest ipv4-udp-vlan-single-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -1833,7 +1824,7 @@ public interface PcapLibrary {
 ;; QinQ: 802.1ad(0x88A8, VID=200) の下に 802.1Q(0x8100, VID=100) → IPv6/UDP 到達
 (deftest ipv6-udp-vlan-qinq-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1853,7 +1844,7 @@ public interface PcapLibrary {
 ;; TCP flags の短縮表記: 既存のIPv4/TCP最小テストは ACK+PSH（0x18） → "AP"
 (deftest ipv4-tcp-flags-ap-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 28 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00")
@@ -1864,7 +1855,7 @@ public interface PcapLibrary {
 ;; TCP flags: SYNのみ（0x02）→ "S"
 (deftest ipv4-tcp-flags-syn-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 28 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 02 00 20 00 00 00 00")
@@ -1875,7 +1866,7 @@ public interface PcapLibrary {
 ;; ICMPv4 Echo Request → type-name/summary を確認
 (deftest ipv4-icmp-echo-request-flags-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
+             "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
                45 00 00 1C 00 01 00 00 40 01 00 00
                0A 00 00 01 0A 00 00 02
                08 00 00 00 00 00 00 00")
@@ -1888,7 +1879,7 @@ public interface PcapLibrary {
 ;; ICMPv6 Time Exceeded (code=0=hop-limit-exceeded) → type/code-name/summary を確認
 (deftest ipv6-icmp6-time-exceeded-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 3A 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -1903,7 +1894,7 @@ public interface PcapLibrary {
 ;; IPv4 先頭フラグメント（offset=0, MF=1）でも L4(UDP) に到達できる
 (deftest ipv4-frag-first-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 1C 00 01 20 00 40 11 00 00        ; ver/ihl, tos, total=28, id=1, flags+frag=0x2000(MF=1), ttl=64, proto=17(UDP)
                0A 00 00 01 0A 00 00 02                    ; src=10.0.0.1 dst=10.0.0.2
                12 34 00 35 00 08 00 00")                  ; UDP: 0x1234 -> 53, len=8, csum=0
@@ -1916,7 +1907,7 @@ public interface PcapLibrary {
 ;; IPv4 非先頭フラグメント（offset>0）は L4を解かず :ipv4-fragment で返す
 (deftest ipv4-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 18 00 02 00 01 40 11 00 00        ; total=24, id=2, flags+frag=0x0001(offset=1*8B), proto=UDP
                0A 00 00 01 0A 00 00 02
                DE AD BE EF")                               ; 4Bだけ適当に
@@ -1930,7 +1921,8 @@ public interface PcapLibrary {
 ### test/paclo/test_util.clj
 ```clojure
 (ns paclo.test-util
-  (:require [clojure.string :as str]))
+  (:require
+   [clojure.string :as str]))
 
 (defn hex->bytes ^bytes [^String s]
   (let [no-line-comments (str/replace s #"(?m);.*$" "")     ;; 行内 ;コメントを削除

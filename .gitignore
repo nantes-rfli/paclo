@@ -9,6 +9,4 @@ target/classes/# Tooling caches / REPL
 .nrepl-port
 
 # Clojure build caches (念のため)
-.cpcache/
-target/
 classes/

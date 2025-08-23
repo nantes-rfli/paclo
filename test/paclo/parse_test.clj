@@ -1,12 +1,13 @@
 (ns paclo.parse-test
-  (:require [clojure.test :refer :all]
-            [paclo.parse :as parse]
-            [paclo.test-util :as tu]))
+  (:require
+   [clojure.test :refer :all]
+   [paclo.parse :as parse]
+   [paclo.test-util :as tu]))
 
 ;; 1) IPv4/TCP（payload="hello"）
 (deftest ipv4-tcp-min-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 2D 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00
@@ -21,7 +22,7 @@
 ;; 2) IPv4/UDP + 最小DNSヘッダ（16B）
 (deftest ipv4-udp-dns-min-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -36,7 +37,7 @@
 ;; 3) ARP request（IPv4）
 (deftest arp-request-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 11 22 33 44 55 08 06
+             "FF FF FF FF FF FF 00 11 22 33 44 55 08 06
                00 01 08 00 06 04 00 01
                00 11 22 33 44 55 C0 A8 01 64
                66 77 88 99 AA BB C0 A8 01 01")
@@ -49,7 +50,7 @@
 ;; 4) IPv6/UDP（payload=4B）
 (deftest ipv6-udp-min-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -63,7 +64,7 @@
 ;; 5) IPv6 Hop-by-Hop → UDP へ到達できるか（PL=24, HBH=16, UDP=8）
 (deftest ipv6-hbh-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -76,7 +77,7 @@
 ;; 6) IPv6 Fragment (offset>0) は L4を解さず :ipv6-fragment で返す
 (deftest ipv6-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -89,7 +90,7 @@
 ;; HBH: PadN(12B)でオプション領域14Bを“ちょうど”埋めてUDPに到達
 (deftest ipv6-hbh-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -102,7 +103,7 @@
 ;; HBH: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
 (deftest ipv6-hbh-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 00 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -115,7 +116,7 @@
 ;; DestOpt: PadN(12B)でオプション領域14Bを“ちょうど”埋め、UDPに到達
 (deftest ipv6-destopt-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 3C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -128,7 +129,7 @@
 ;; DestOpt: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
 (deftest ipv6-destopt-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 18 3C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -141,7 +142,7 @@
 ;; 先頭フラグメント(offset=0, M=1) + UDP(8B) → L4は正しくUDPに到達しつつ fragフラグは立つ
 (deftest ipv6-frag-first-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 10 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -156,7 +157,7 @@
 ;; フラグメントヘッダが8B未満で途切れ → 上位に進まず :unknown-l4
 (deftest ipv6-frag-header-truncated-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 07 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -168,7 +169,7 @@
 ;; DNS flags: Query (QR=0, RD=1)
 (deftest ipv4-udp-dns-flags-query-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -185,7 +186,7 @@
 ;; DNS flags: Response NXDOMAIN (QR=1, RD=1, RA=1, RCODE=3)
 (deftest ipv4-udp-dns-flags-response-nxdomain-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -202,7 +203,7 @@
 ;; IPv6/UDP で flow-key が :udp とポートを含む
 (deftest ipv6-udp-flow-key-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -219,7 +220,7 @@
 ;; 非先頭フラグメント（L4ヘッダ無し）でも proto は載る（ここでは TCP）
 (deftest ipv6-frag-nonfirst-flow-key-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -236,7 +237,7 @@
 ;; IPv6 圧縮表記（ゼロ連続を :: に）
 (deftest ipv6-addr-compact-basic-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -253,7 +254,7 @@
 ;; 全ゼロは :: になる
 (deftest ipv6-addr-compact-all-zero-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 11 40
                00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
                00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -265,7 +266,7 @@
 ;; 802.1Q (0x8100) 単一タグ → IPv4 に到達し、:vlan-tags を付与
 (deftest ipv4-udp-vlan-single-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
+             "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
                C0 A8 01 64 08 08 08 08
                13 88 00 35 00 18 00 00
@@ -282,7 +283,7 @@
 ;; QinQ: 802.1ad(0x88A8, VID=200) の下に 802.1Q(0x8100, VID=100) → IPv6/UDP 到達
 (deftest ipv6-udp-vlan-qinq-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
                60 00 00 00 00 0C 11 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -302,7 +303,7 @@
 ;; TCP flags の短縮表記: 既存のIPv4/TCP最小テストは ACK+PSH（0x18） → "AP"
 (deftest ipv4-tcp-flags-ap-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 28 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 18 00 20 00 00 00 00")
@@ -313,7 +314,7 @@
 ;; TCP flags: SYNのみ（0x02）→ "S"
 (deftest ipv4-tcp-flags-syn-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 28 00 01 40 00 40 06 00 00
                0A 00 00 01 0A 00 00 02
                30 39 00 50 00 00 00 00 00 00 00 00 50 02 00 20 00 00 00 00")
@@ -324,7 +325,7 @@
 ;; ICMPv4 Echo Request → type-name/summary を確認
 (deftest ipv4-icmp-echo-request-flags-test
   (let [pkt (tu/hex->bytes
-              "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
+             "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
                45 00 00 1C 00 01 00 00 40 01 00 00
                0A 00 00 01 0A 00 00 02
                08 00 00 00 00 00 00 00")
@@ -337,7 +338,7 @@
 ;; ICMPv6 Time Exceeded (code=0=hop-limit-exceeded) → type/code-name/summary を確認
 (deftest ipv6-icmp6-time-exceeded-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+             "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 08 3A 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
@@ -352,7 +353,7 @@
 ;; IPv4 先頭フラグメント（offset=0, MF=1）でも L4(UDP) に到達できる
 (deftest ipv4-frag-first-udp-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 1C 00 01 20 00 40 11 00 00        ; ver/ihl, tos, total=28, id=1, flags+frag=0x2000(MF=1), ttl=64, proto=17(UDP)
                0A 00 00 01 0A 00 00 02                    ; src=10.0.0.1 dst=10.0.0.2
                12 34 00 35 00 08 00 00")                  ; UDP: 0x1234 -> 53, len=8, csum=0
@@ -365,7 +366,7 @@
 ;; IPv4 非先頭フラグメント（offset>0）は L4を解かず :ipv4-fragment で返す
 (deftest ipv4-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
-              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+             "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 18 00 02 00 01 40 11 00 00        ; total=24, id=2, flags+frag=0x0001(offset=1*8B), proto=UDP
                0A 00 00 01 0A 00 00 02
                DE AD BE EF")                               ; 4Bだけ適当に
