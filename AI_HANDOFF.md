@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: d872e72
-- generated: 2025-08-23 14:01:22 UTC
+- commit: 87ae1e5
+- generated: 2025-08-23 14:03:55 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -75,6 +75,8 @@
                    {:bytes (byte-array (repeat 60 (byte -1)))
                     :sec 1700000000 :usec 123456}]
                   "out-sample.pcap")
+```
+
 ## Files
 ### script/make-ai-handoff.sh
 ````bash
@@ -172,8 +174,10 @@ cat <<'EOF'
                    {:bytes (byte-array (repeat 60 (byte -1)))
                     :sec 1700000000 :usec 123456}]
                   "out-sample.pcap")
+```
 EOF
 
+  echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
   echo '````bash'
@@ -2499,10 +2503,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 14:01:22 UTC)
+## Environment snapshot (2025-08-23 14:03:55 UTC)
 
 ```
-git commit: d872e72d8110
+git commit: 87ae1e50d4ec
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

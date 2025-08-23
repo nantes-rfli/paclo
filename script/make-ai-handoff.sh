@@ -92,8 +92,10 @@ cat <<'EOF'
                    {:bytes (byte-array (repeat 60 (byte -1)))
                     :sec 1700000000 :usec 123456}]
                   "out-sample.pcap")
+```
 EOF
 
+  echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
   echo '````bash'
