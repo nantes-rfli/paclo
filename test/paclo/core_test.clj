@@ -28,3 +28,17 @@
   (is (= "not (host 8.8.8.8)"
          (sut/bpf [:not [:host "8.8.8.8"]])))
   (is (= "tcp" (sut/bpf :tcp))))
+
+(deftest packets-xform-filters-and-maps
+  (let [pcap "target/xform-test.pcap"]
+    ;; 3パケット: 60B / 42B / 60B
+    (sut/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                      (byte-array (repeat 42 (byte 0)))
+                      (byte-array (repeat 60 (byte 0)))]
+                     pcap)
+    (let [xs (sut/packets {:path pcap
+                           :decode? false
+                           :xform (comp
+                                   (filter #(>= (:caplen %) 60))
+                                   (map :caplen))})]
+      (is (= [60 60] (into [] xs))))))

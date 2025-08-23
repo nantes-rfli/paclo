@@ -1,6 +1,6 @@
 (ns paclo.core
   "Clojure らしい薄いファサード。
-   - packets: ライブ/オフラインどちらも lazy seq を返す（:decode? でparse付与）
+   - packets: ライブ/オフラインどちらも lazy seq を返す（:decode? でparse付与、:xform で後段変換）
    - bpf:      簡易DSL → BPF文字列
    - write-pcap!: bytesシーケンスを書き出す（テスト/再現用）"
   (:require
@@ -51,44 +51,55 @@
 ;; ---------------------------
 ;; Stream API
 ;; ---------------------------
-;; 追加: Ethernet最小ヘッダ長
 (def ^:private ETH_MIN_HDR 14)
 
-;; 追加: デコードの結果を {:ok true :value v} or {:ok false :error msg} で返す
-(defn ^:private decode-result [^bytes ba]
+(defn ^:private decode-result
+  "parse/packet->clj を安全に呼び、結果 or エラーメッセージを返す。"
+  [^bytes ba]
   (try
     {:ok true :value (parse/packet->clj ba)}
     (catch Throwable e
       {:ok false :error (or (.getMessage e) (str e))})))
 
-;; 置き換え: packets（安全デコード版）
+(defn ^:private apply-xform
+  "xf が nil なら s をそのまま返し、非nil なら (sequence xf s) を返す。
+   sequence を使う事で laziness と chunkless の両立を維持。"
+  [s xf]
+  (if (some? xf) (sequence xf s) s))
+
 (defn packets
   "パケットを lazy seq で返す高レベルAPI。
    opts:
    - ライブ:  {:device \"en0\" :filter <string|DSL> :timeout-ms 10 ...}
    - オフライン: {:path \"trace.pcap\" :filter <string|DSL>}
    - 共通:
-       :decode? true|false  ; true なら各要素に :decoded を付与。失敗時は :decode-error を付与。"
-  [{:keys [filter decode?] :as opts}]
+       :decode? true|false
+         true なら各要素に :decoded を付与。失敗時は :decode-error を付与。
+       :xform <transducer>
+         出力ストリームに適用する transducer。
+         例: (comp (filter pred) (map f))
+   返り値は遅延シーケンス。take/into などで消費してください。"
+  [{:keys [filter decode? xform] :as opts}]
   (let [filter* (cond
                   (string? filter) filter
                   (or (keyword? filter) (vector? filter)) (bpf filter)
                   (nil? filter) nil
                   :else (throw (ex-info "invalid :filter" {:filter filter})))
         opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
-        base    (pcap/capture->seq opts*)]
-    (if decode?
-      (map (fn [m]
-             (let [ba ^bytes (:bytes m)]
-               (if (and ba (>= (alength ba) ETH_MIN_HDR))
-                 (let [{:keys [ok value error]} (decode-result ba)]
-                   (cond-> m
-                     ok      (assoc :decoded value)
-                     (not ok) (assoc :decode-error error)))
-                 ;; 短すぎるフレームはデコードせずにエラーだけ付与
-                 (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
-           base)
-      base)))
+        base    (pcap/capture->seq opts*)
+        stream  (if decode?
+                  ;; デコード安全版（例外は投げず :decode-error を付与）
+                  (map (fn [m]
+                         (let [ba ^bytes (:bytes m)]
+                           (if (and ba (>= (alength ba) ETH_MIN_HDR))
+                             (let [{:keys [ok value error]} (decode-result ba)]
+                               (cond-> m
+                                 ok       (assoc :decoded value)
+                                 (not ok) (assoc :decode-error error)))
+                             (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
+                       base)
+                  base)]
+    (apply-xform stream xform)))
 
 ;; ---------------------------
 ;; Writer

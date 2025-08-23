@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: ca4000f
-- generated: 2025-08-23 15:20:39 UTC
+- commit: f705e60
+- generated: 2025-08-23 15:36:12 UTC
 
 ## Primary docs（必読）
 
@@ -1746,7 +1746,7 @@ echo "Wrote ${out}"
 ```clojure
 (ns paclo.core
   "Clojure らしい薄いファサード。
-   - packets: ライブ/オフラインどちらも lazy seq を返す（:decode? でparse付与）
+   - packets: ライブ/オフラインどちらも lazy seq を返す（:decode? でparse付与、:xform で後段変換）
    - bpf:      簡易DSL → BPF文字列
    - write-pcap!: bytesシーケンスを書き出す（テスト/再現用）"
   (:require
@@ -1797,44 +1797,55 @@ echo "Wrote ${out}"
 ;; ---------------------------
 ;; Stream API
 ;; ---------------------------
-;; 追加: Ethernet最小ヘッダ長
 (def ^:private ETH_MIN_HDR 14)
 
-;; 追加: デコードの結果を {:ok true :value v} or {:ok false :error msg} で返す
-(defn ^:private decode-result [^bytes ba]
+(defn ^:private decode-result
+  "parse/packet->clj を安全に呼び、結果 or エラーメッセージを返す。"
+  [^bytes ba]
   (try
     {:ok true :value (parse/packet->clj ba)}
     (catch Throwable e
       {:ok false :error (or (.getMessage e) (str e))})))
 
-;; 置き換え: packets（安全デコード版）
+(defn ^:private apply-xform
+  "xf が nil なら s をそのまま返し、非nil なら (sequence xf s) を返す。
+   sequence を使う事で laziness と chunkless の両立を維持。"
+  [s xf]
+  (if (some? xf) (sequence xf s) s))
+
 (defn packets
   "パケットを lazy seq で返す高レベルAPI。
    opts:
    - ライブ:  {:device \"en0\" :filter <string|DSL> :timeout-ms 10 ...}
    - オフライン: {:path \"trace.pcap\" :filter <string|DSL>}
    - 共通:
-       :decode? true|false  ; true なら各要素に :decoded を付与。失敗時は :decode-error を付与。"
-  [{:keys [filter decode?] :as opts}]
+       :decode? true|false
+         true なら各要素に :decoded を付与。失敗時は :decode-error を付与。
+       :xform <transducer>
+         出力ストリームに適用する transducer。
+         例: (comp (filter pred) (map f))
+   返り値は遅延シーケンス。take/into などで消費してください。"
+  [{:keys [filter decode? xform] :as opts}]
   (let [filter* (cond
                   (string? filter) filter
                   (or (keyword? filter) (vector? filter)) (bpf filter)
                   (nil? filter) nil
                   :else (throw (ex-info "invalid :filter" {:filter filter})))
         opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
-        base    (pcap/capture->seq opts*)]
-    (if decode?
-      (map (fn [m]
-             (let [ba ^bytes (:bytes m)]
-               (if (and ba (>= (alength ba) ETH_MIN_HDR))
-                 (let [{:keys [ok value error]} (decode-result ba)]
-                   (cond-> m
-                     ok      (assoc :decoded value)
-                     (not ok) (assoc :decode-error error)))
-                 ;; 短すぎるフレームはデコードせずにエラーだけ付与
-                 (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
-           base)
-      base)))
+        base    (pcap/capture->seq opts*)
+        stream  (if decode?
+                  ;; デコード安全版（例外は投げず :decode-error を付与）
+                  (map (fn [m]
+                         (let [ba ^bytes (:bytes m)]
+                           (if (and ba (>= (alength ba) ETH_MIN_HDR))
+                             (let [{:keys [ok value error]} (decode-result ba)]
+                               (cond-> m
+                                 ok       (assoc :decoded value)
+                                 (not ok) (assoc :decode-error error)))
+                             (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
+                       base)
+                  base)]
+    (apply-xform stream xform)))
 
 ;; ---------------------------
 ;; Writer
@@ -2502,6 +2513,20 @@ public interface PcapLibrary {
   (is (= "not (host 8.8.8.8)"
          (sut/bpf [:not [:host "8.8.8.8"]])))
   (is (= "tcp" (sut/bpf :tcp))))
+
+(deftest packets-xform-filters-and-maps
+  (let [pcap "target/xform-test.pcap"]
+    ;; 3パケット: 60B / 42B / 60B
+    (sut/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                      (byte-array (repeat 42 (byte 0)))
+                      (byte-array (repeat 60 (byte 0)))]
+                     pcap)
+    (let [xs (sut/packets {:path pcap
+                           :decode? false
+                           :xform (comp
+                                   (filter #(>= (:caplen %) 60))
+                                   (map :caplen))})]
+      (is (= [60 60] (into [] xs))))))
 ```
 
 ### test/paclo/test_util.clj
@@ -2592,7 +2617,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: ca4000f65991
+git commit: f705e601564a
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
