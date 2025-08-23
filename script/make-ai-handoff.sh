@@ -68,7 +68,7 @@ emit () {
   echo "\`\`\`"
   echo
 
-cat <<'EOF' >> AI_HANDOFF.md
+cat <<'EOF'
 
 ### paclo.core quick samples
 ```clojure

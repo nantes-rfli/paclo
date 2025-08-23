@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: d758fb4
-- generated: 2025-08-23 13:47:37 UTC
+- commit: d872e72
+- generated: 2025-08-23 14:01:22 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -52,6 +52,29 @@
     d/parse-hex d/summarize)
 ```
 
+
+### paclo.core quick samples
+```clojure
+(require '[paclo.core :as core])
+
+;; Offline decode (safe: adds :decode-error instead of throwing)
+(->> (core/packets {:path "out-test.pcap" :decode? true})
+     (map #(select-keys % [:caplen :decode-error]))
+     (take 2)
+     doall)
+
+;; Live with DSL
+(->> (core/packets {:device "en0"
+                    :filter (core/bpf [:and [:udp] [:port 53]])
+                    :timeout-ms 50})
+     (take 10)
+     doall)
+
+;; Write PCAP from bytes (for tests/repro)
+(core/write-pcap! [(byte-array (repeat 60 (byte 0)))
+                   {:bytes (byte-array (repeat 60 (byte -1)))
+                    :sec 1700000000 :usec 123456}]
+                  "out-sample.pcap")
 ## Files
 ### script/make-ai-handoff.sh
 ````bash
@@ -125,7 +148,7 @@ emit () {
   echo "\`\`\`"
   echo
 
-cat <<'EOF' >> AI_HANDOFF.md
+cat <<'EOF'
 
 ### paclo.core quick samples
 ```clojure
@@ -2476,10 +2499,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 13:47:37 UTC)
+## Environment snapshot (2025-08-23 14:01:22 UTC)
 
 ```
-git commit: d758fb45c87d
+git commit: d872e72d8110
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

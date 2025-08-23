@@ -35,6 +35,11 @@ jobs:
           restore-keys: |
             cljdeps-${{ runner.os }}-
 
+      - name: Compile Java (jnr-ffi bindings)
+        run: |
+          clj -T:build jar || \
+          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
       - name: Run unit tests
         run: clojure -M:test
 
