@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: f705e60
-- generated: 2025-08-23 15:36:12 UTC
+- commit: 34ad198
+- generated: 2025-08-23 15:42:58 UTC
 
 ## Primary docs（必読）
 
@@ -1761,38 +1761,77 @@ echo "Wrote ${out}"
 
 (defn bpf
   "BPFフィルタを表す簡易DSLを文字列へ。
-   例:
-     (bpf [:and [:udp] [:port 53]])       ;;=> \"(udp) and (port 53)\"
-     (bpf [:or [:tcp] [:udp]])            ;;=> \"(tcp) or (udp)\"
-     (bpf [:not [:host \"8.8.8.8\"]])     ;;=> \"not (host 8.8.8.8)\"
-     (bpf [:and [:tcp] [:dst-port 80]])   ;;=> \"(tcp) and (dst port 80)\"
-     (bpf \"udp and port 53\")            ;;=> そのまま"
-  [form]
-  (cond
-    (nil? form) nil
-    (string? form) form
-    (keyword? form)
-    (case form
-      :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
-      (throw (ex-info "unknown keyword in bpf" {:form form})))
 
-    (vector? form)
-    (let [[op & args] form]
-      (case op
-        :and (->> args (map bpf) (map paren) (str/join " and "))
-        :or  (->> args (map bpf) (map paren) (str/join " or "))
-        :not (str "not " (paren (bpf (first args))))
-        :port      (str "port "      (int (first args)))
-        :src-port  (str "src port "  (int (first args)))
-        :dst-port  (str "dst port "  (int (first args)))
-        :host      (str "host "      (first args))
-        :src-host  (str "src host "  (first args))
-        :dst-host  (str "dst host "  (first args))
-        :net       (str "net "       (first args))
-        :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
-        (throw (ex-info "unknown op in bpf" {:form form}))))
-    :else
-    (throw (ex-info "unsupported bpf form" {:form form}))))
+  サポート（追加含む）:
+  - 論理: :and / :or / :not
+  - プロトコル: :udp :tcp :icmp :icmp6 :arp に加え、:ip / :ipv4 / :ip6 / :ipv6
+    例) (bpf :ipv6)        ;;=> \"ip6\"
+        (bpf [:proto :ip]) ;;=> \"ip\"
+  - アドレス系: :host / :src-host / :dst-host / :net / :src-net / :dst-net
+    例) (bpf [:src-net \"10.0.0.0/8\"]) ;;=> \"src net 10.0.0.0/8\"
+  - ポート系: :port / :src-port / :dst-port
+    追加: :port-range / :src-port-range / :dst-port-range
+    例) (bpf [:port-range 1000 2000])     ;;=> \"portrange 1000-2000\"
+        (bpf [:src-port-range 53 60])     ;;=> \"src portrange 53-60\"
+
+  文字列が渡された場合はそのまま返す。"
+  [form]
+  (letfn [(kw-proto [k]
+            (case k
+              :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
+              :ip "ip" :ipv4 "ip" :ip4 "ip"
+              :ip6 "ip6" :ipv6 "ip6"
+              (throw (ex-info "unknown proto keyword" {:proto k}))))
+          (as-int [x]
+            (if (number? x)
+              (int x)
+              (Integer/parseInt (str x))))]
+    (cond
+      (nil? form) nil
+      (string? form) form
+
+      (keyword? form)
+      (kw-proto form)
+
+      (vector? form)
+      (let [[op & args] form]
+        (case op
+          ;; 論理
+          :and (->> args (map bpf) (map paren) (clojure.string/join " and "))
+          :or  (->> args (map bpf) (map paren) (clojure.string/join " or "))
+          :not (str "not " (paren (bpf (first args))))
+
+          ;; プロトコル指定（拡張）
+          :proto (kw-proto (first args))
+
+          ;; ホスト/ネット
+          :host     (str "host "     (first args))
+          :src-host (str "src host " (first args))
+          :dst-host (str "dst host " (first args))
+          :net      (str "net "      (first args))
+          :src-net  (str "src net "  (first args))
+          :dst-net  (str "dst net "  (first args))
+
+          ;; ポート（単体）
+          :port     (str "port "     (as-int (first args)))
+          :src-port (str "src port " (as-int (first args)))
+          :dst-port (str "dst port " (as-int (first args)))
+
+          ;; ポート範囲（追加）
+          :port-range
+          (let [[a b] args] (str "portrange " (as-int a) "-" (as-int b)))
+          :src-port-range
+          (let [[a b] args] (str "src portrange " (as-int a) "-" (as-int b)))
+          :dst-port-range
+          (let [[a b] args] (str "dst portrange " (as-int a) "-" (as-int b)))
+
+          ;; 既存トップレベルのキーワードも許容（[:udp] など）
+          :udp "udp" :tcp "tcp" :icmp "icmp" :icmp6 "icmp6" :arp "arp"
+          :ip "ip" :ipv4 "ip" :ip4 "ip" :ip6 "ip6" :ipv6 "ip6"
+
+          (throw (ex-info "unknown op in bpf" {:form form :op op}))))
+      :else
+      (throw (ex-info "unsupported bpf form" {:form form})))))
 
 ;; ---------------------------
 ;; Stream API
@@ -2527,6 +2566,30 @@ public interface PcapLibrary {
                                    (filter #(>= (:caplen %) 60))
                                    (map :caplen))})]
       (is (= [60 60] (into [] xs))))))
+
+(deftest bpf-dsl-extended
+  ;; :proto + :ipv6 / :ip
+  (is (= "ip6" (sut/bpf [:proto :ipv6])))
+  (is (= "ip"  (sut/bpf [:proto :ip])))
+  (is (= "ip6" (sut/bpf :ip6)))
+  (is (= "ip"  (sut/bpf :ipv4)))
+
+  ;; src/dst net
+  (is (= "src net 10.0.0.0/8" (sut/bpf [:src-net "10.0.0.0/8"])))
+  (is (= "dst net 192.168.0.0/16" (sut/bpf [:dst-net "192.168.0.0/16"])))
+
+  ;; portrange
+  (is (= "portrange 1000-2000" (sut/bpf [:port-range 1000 2000])))
+  (is (= "src portrange 53-60" (sut/bpf [:src-port-range 53 60])))
+  (is (= "dst portrange 8080-8088" (sut/bpf [:dst-port-range 8080 8088])))
+
+  ;; 論理と併用
+  (is (= "(ip6) and (udp) and (dst portrange 8000-9000)"
+         (sut/bpf [:and [:ipv6] [:udp] [:dst-port-range 8000 9000]])))
+
+  ;; not と組み合わせ（ユーザ要望例）
+  (is (= "(net 10.0.0.0/8) and (not (port 22))"
+         (sut/bpf [:and [:net "10.0.0.0/8"] [:not [:port 22]]]))))
 ```
 
 ### test/paclo/test_util.clj
@@ -2617,7 +2680,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: f705e601564a
+git commit: 34ad19828646
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

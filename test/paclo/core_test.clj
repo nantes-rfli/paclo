@@ -42,3 +42,27 @@
                                    (filter #(>= (:caplen %) 60))
                                    (map :caplen))})]
       (is (= [60 60] (into [] xs))))))
+
+(deftest bpf-dsl-extended
+  ;; :proto + :ipv6 / :ip
+  (is (= "ip6" (sut/bpf [:proto :ipv6])))
+  (is (= "ip"  (sut/bpf [:proto :ip])))
+  (is (= "ip6" (sut/bpf :ip6)))
+  (is (= "ip"  (sut/bpf :ipv4)))
+
+  ;; src/dst net
+  (is (= "src net 10.0.0.0/8" (sut/bpf [:src-net "10.0.0.0/8"])))
+  (is (= "dst net 192.168.0.0/16" (sut/bpf [:dst-net "192.168.0.0/16"])))
+
+  ;; portrange
+  (is (= "portrange 1000-2000" (sut/bpf [:port-range 1000 2000])))
+  (is (= "src portrange 53-60" (sut/bpf [:src-port-range 53 60])))
+  (is (= "dst portrange 8080-8088" (sut/bpf [:dst-port-range 8080 8088])))
+
+  ;; 論理と併用
+  (is (= "(ip6) and (udp) and (dst portrange 8000-9000)"
+         (sut/bpf [:and [:ipv6] [:udp] [:dst-port-range 8000 9000]])))
+
+  ;; not と組み合わせ（ユーザ要望例）
+  (is (= "(net 10.0.0.0/8) and (not (port 22))"
+         (sut/bpf [:and [:net "10.0.0.0/8"] [:not [:port 22]]]))))
