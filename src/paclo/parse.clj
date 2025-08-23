@@ -183,15 +183,24 @@
         dst (ipv4-addr b)]
     (when (> ihl 20)
       (.position b (+ (.position b) (- ihl 20))))
-    (let [payload-len (max 0 (- total-len ihl))
+    ;; ★ 追加: フラグメント解釈（DF=0x4000, MF=0x2000, offset=下位13bit）
+    (let [df? (pos? (bit-and flags-frag 0x4000))
+          mf? (pos? (bit-and flags-frag 0x2000))
+          frag-off (bit-and flags-frag 0x1FFF)         ;; 8オクテット単位
+          frag? (or mf? (pos? frag-off))
+          payload-len (max 0 (- total-len ihl))
           l4buf (or (limited-slice b payload-len) (.duplicate b))
-          l4 (l4-parse proto l4buf)]
+          ;; 非先頭フラグメントは L4 は解かない（安全）
+          l4 (if (pos? frag-off)
+               {:type :ipv4-fragment :offset frag-off :payload (remaining-bytes l4buf)}
+               (l4-parse proto l4buf))]
       {:type :ipv4 :version version :ihl ihl
        :tos tos :total-length total-len
        :id id :flags-frag flags-frag
        :ttl ttl :protocol proto :header-checksum hdr-csum
        :src src :dst dst
-       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4) ;; ★ 追加
+       :frag? frag? :frag-offset (when frag? frag-off)       ;; ★ 追加
+       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4)
        :l4 l4})))
 
 (def ^:private ipv6-ext?

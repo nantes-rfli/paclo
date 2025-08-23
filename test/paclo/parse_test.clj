@@ -348,3 +348,29 @@
     (is (= "time-exceeded" (:type-name l4)))
     (is (= "hop-limit-exceeded" (:code-name l4)))
     (is (= "time-exceeded/hop-limit-exceeded" (:summary l4)))))
+
+;; IPv4 先頭フラグメント（offset=0, MF=1）でも L4(UDP) に到達できる
+(deftest ipv4-frag-first-udp-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 1C 00 01 20 00 40 11 00 00        ; ver/ihl, tos, total=28, id=1, flags+frag=0x2000(MF=1), ttl=64, proto=17(UDP)
+               0A 00 00 01 0A 00 00 02                    ; src=10.0.0.1 dst=10.0.0.2
+               12 34 00 35 00 08 00 00")                  ; UDP: 0x1234 -> 53, len=8, csum=0
+        m (parse/packet->clj pkt)]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= 0     (get-in m [:l3 :frag-offset])))
+    (is (= :udp  (get-in m [:l3 :l4 :type])))))
+
+;; IPv4 非先頭フラグメント（offset>0）は L4を解かず :ipv4-fragment で返す
+(deftest ipv4-frag-nonfirst-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 18 00 02 00 01 40 11 00 00        ; total=24, id=2, flags+frag=0x0001(offset=1*8B), proto=UDP
+               0A 00 00 01 0A 00 00 02
+               DE AD BE EF")                               ; 4Bだけ適当に
+        m (parse/packet->clj pkt)]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= 1     (get-in m [:l3 :frag-offset])))
+    (is (= :ipv4-fragment (get-in m [:l3 :l4 :type])))))

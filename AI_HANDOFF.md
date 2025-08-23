@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 2157e89
-- generated: 2025-08-23 01:52:46 UTC
+- commit: 100617c
+- generated: 2025-08-23 02:16:40 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -331,15 +331,24 @@ echo "Wrote $out"
         dst (ipv4-addr b)]
     (when (> ihl 20)
       (.position b (+ (.position b) (- ihl 20))))
-    (let [payload-len (max 0 (- total-len ihl))
+    ;; ★ 追加: フラグメント解釈（DF=0x4000, MF=0x2000, offset=下位13bit）
+    (let [df? (pos? (bit-and flags-frag 0x4000))
+          mf? (pos? (bit-and flags-frag 0x2000))
+          frag-off (bit-and flags-frag 0x1FFF)         ;; 8オクテット単位
+          frag? (or mf? (pos? frag-off))
+          payload-len (max 0 (- total-len ihl))
           l4buf (or (limited-slice b payload-len) (.duplicate b))
-          l4 (l4-parse proto l4buf)]
+          ;; 非先頭フラグメントは L4 は解かない（安全）
+          l4 (if (pos? frag-off)
+               {:type :ipv4-fragment :offset frag-off :payload (remaining-bytes l4buf)}
+               (l4-parse proto l4buf))]
       {:type :ipv4 :version version :ihl ihl
        :tos tos :total-length total-len
        :id id :flags-frag flags-frag
        :ttl ttl :protocol proto :header-checksum hdr-csum
        :src src :dst dst
-       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4) ;; ★ 追加
+       :frag? frag? :frag-offset (when frag? frag-off)       ;; ★ 追加
+       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4)
        :l4 l4})))
 
 (def ^:private ipv6-ext?
@@ -1437,7 +1446,9 @@ echo "Wrote $out"
       (println))
     (println "L3:" l3t)
     (case l3t
-      :ipv4 (println "  proto" proto "src" (:src l3) "dst" (:dst l3))
+            :ipv4 (println "  proto" proto
+                     "src" (:src l3) "dst" (:dst l3)
+                     (when (:frag? l3) (str " frag@" (:frag-offset l3))))
       :ipv6 (do
               (println "  nh" proto
                        "src" (or (:src-compact l3) (:src l3))
@@ -1888,6 +1899,32 @@ public interface PcapLibrary {
     (is (= "time-exceeded" (:type-name l4)))
     (is (= "hop-limit-exceeded" (:code-name l4)))
     (is (= "time-exceeded/hop-limit-exceeded" (:summary l4)))))
+
+;; IPv4 先頭フラグメント（offset=0, MF=1）でも L4(UDP) に到達できる
+(deftest ipv4-frag-first-udp-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 1C 00 01 20 00 40 11 00 00        ; ver/ihl, tos, total=28, id=1, flags+frag=0x2000(MF=1), ttl=64, proto=17(UDP)
+               0A 00 00 01 0A 00 00 02                    ; src=10.0.0.1 dst=10.0.0.2
+               12 34 00 35 00 08 00 00")                  ; UDP: 0x1234 -> 53, len=8, csum=0
+        m (parse/packet->clj pkt)]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= 0     (get-in m [:l3 :frag-offset])))
+    (is (= :udp  (get-in m [:l3 :l4 :type])))))
+
+;; IPv4 非先頭フラグメント（offset>0）は L4を解かず :ipv4-fragment で返す
+(deftest ipv4-frag-nonfirst-test
+  (let [pkt (tu/hex->bytes
+              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
+               45 00 00 18 00 02 00 01 40 11 00 00        ; total=24, id=2, flags+frag=0x0001(offset=1*8B), proto=UDP
+               0A 00 00 01 0A 00 00 02
+               DE AD BE EF")                               ; 4Bだけ適当に
+        m (parse/packet->clj pkt)]
+    (is (= :ipv4 (get-in m [:l3 :type])))
+    (is (= true  (get-in m [:l3 :frag?])))
+    (is (= 1     (get-in m [:l3 :frag-offset])))
+    (is (= :ipv4-fragment (get-in m [:l3 :l4 :type])))))
 ```
 
 ### test/paclo/test_util.clj

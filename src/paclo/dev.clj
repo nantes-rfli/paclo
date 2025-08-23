@@ -66,7 +66,9 @@
       (println))
     (println "L3:" l3t)
     (case l3t
-      :ipv4 (println "  proto" proto "src" (:src l3) "dst" (:dst l3))
+            :ipv4 (println "  proto" proto
+                     "src" (:src l3) "dst" (:dst l3)
+                     (when (:frag? l3) (str " frag@" (:frag-offset l3))))
       :ipv6 (do
               (println "  nh" proto
                        "src" (or (:src-compact l3) (:src l3))
