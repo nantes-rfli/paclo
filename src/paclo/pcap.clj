@@ -13,6 +13,9 @@
         loader  (LibraryLoader/create PcapLibrary)]
     (.load loader libname)))
 
+(defn- blank-str? [^String s]
+  (or (nil? s) (re-find #"^\s*$" s)))
+
 (def PCAP_ERRBUF_SIZE 256)
 (def ^:private BPF_PROG_BYTES 16)
 
@@ -242,7 +245,9 @@
             (.waitFor proc)))))))
 
 (defn list-devices
-  "利用可能デバイスの簡易一覧。macOSでは networksetup で desc を補完する。"
+  "利用可能デバイスの簡易一覧。macOSでは networksetup で desc を補完する。
+   - name が空/空白のエントリはスキップ
+   - desc が空/空白なら fallback を適用"
   []
   (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
         pp  (PointerByReference.)]
@@ -253,18 +258,25 @@
       (try
         (loop [p head, acc (transient [])]
           (if (or (nil? p) (= 0 (.address p)))
+            ;; 完了
             (persistent! acc)
             (let [ifc (paclo.jnr.PcapLibrary$PcapIf. rt)]
               (.useMemory ifc p)
               (let [name-ptr (.get (.-name ifc))
                     desc-ptr (.get (.-desc ifc))
                     next-ptr (.get (.-next ifc))
+                    ;; name の空/空白はスキップ
                     name     (when (and name-ptr (not= 0 (.address name-ptr)))
-                               (.getString name-ptr 0))
-                    desc     (or (when (and desc-ptr (not= 0 (.address desc-ptr)))
-                                   (.getString desc-ptr 0))
-                                 (get fallback name))]
-                (recur next-ptr (conj! acc {:name name :desc desc}))))))
+                               (let [s (.getString name-ptr 0)]
+                                 (when-not (blank-str? s) s)))
+                    ;; desc が空/空白なら fallback に置換
+                    desc0    (when (and desc-ptr (not= 0 (.address desc-ptr)))
+                               (let [s (.getString desc-ptr 0)]
+                                 (when-not (blank-str? s) s)))
+                    desc     (or desc0 (when name (get fallback name)))]
+                (if name
+                  (recur next-ptr (conj! acc {:name name :desc desc}))
+                  (recur next-ptr acc))))))
         (finally
           (.pcap_freealldevs lib head))))))
 
