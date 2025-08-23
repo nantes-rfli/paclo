@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 2d5d76c
-- generated: 2025-08-23 05:39:45 UTC
+- commit: f378cee
+- generated: 2025-08-23 05:50:36 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -160,38 +160,38 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ### 現行設定ファイル
 
 #### .vscode/settings.json
-\`\`\`json
+```json
 EOF
 if [ -f ".vscode/settings.json" ]; then
   cat .vscode/settings.json >> AI_HANDOFF.md
 else
   echo "// (not found: .vscode/settings.json)" >> AI_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 cat <<'EOF' >> AI_HANDOFF.md
 
 #### .lsp/config.edn
-\`\`\`edn
+```edn
 EOF
 if [ -f ".lsp/config.edn" ]; then
   cat .lsp/config.edn >> AI_HANDOFF.md
 else
   echo ";; (not found: .lsp/config.edn)" >> AI_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 cat <<'EOF' >> AI_HANDOFF.md
 
 #### .editorconfig
-\`\`\`
+```
 EOF
-if [ -f ".editorconfig" ]; then
-  cat .editorconfig >> AI_HANDOFF.md
+if \[ -f ".editorconfig" ]; then
+cat .editorconfig >> AI\_HANDOFF.md
 else
-  echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
+echo "# (not found: .editorconfig)" >> AI\_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 {
   echo
@@ -2103,7 +2103,7 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ### 現行設定ファイル
 
 #### .vscode/settings.json
-\`\`\`json
+```json
 {
 "editor.formatOnSave": false,
 "editor.formatOnSaveMode": "modificationsIfAvailable",
@@ -2117,7 +2117,7 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ```
 
 #### .lsp/config.edn
-\`\`\`edn
+```edn
 {:project-specs
  [{:project-path "deps.edn"
    :classpath-cmd ["clojure" "-Spath" "-M:test"]}]
@@ -2133,7 +2133,7 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ```
 
 #### .editorconfig
-\`\`\`
+```
 root = true
 [*]
 charset = utf-8
@@ -2144,10 +2144,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 05:39:45 UTC)
+## Environment snapshot (2025-08-23 05:50:36 UTC)
 
 ```
-git commit: 2d5d76c84b20
+git commit: f378ceecb7ab
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

@@ -103,38 +103,38 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ### 現行設定ファイル
 
 #### .vscode/settings.json
-\`\`\`json
+```json
 EOF
 if [ -f ".vscode/settings.json" ]; then
   cat .vscode/settings.json >> AI_HANDOFF.md
 else
   echo "// (not found: .vscode/settings.json)" >> AI_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 cat <<'EOF' >> AI_HANDOFF.md
 
 #### .lsp/config.edn
-\`\`\`edn
+```edn
 EOF
 if [ -f ".lsp/config.edn" ]; then
   cat .lsp/config.edn >> AI_HANDOFF.md
 else
   echo ";; (not found: .lsp/config.edn)" >> AI_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 cat <<'EOF' >> AI_HANDOFF.md
 
 #### .editorconfig
-\`\`\`
+```
 EOF
-if [ -f ".editorconfig" ]; then
-  cat .editorconfig >> AI_HANDOFF.md
+if \[ -f ".editorconfig" ]; then
+cat .editorconfig >> AI\_HANDOFF.md
 else
-  echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
+echo "# (not found: .editorconfig)" >> AI\_HANDOFF.md
 fi
-echo "\`\`\`" >> AI_HANDOFF.md
+echo '```' >> AI_HANDOFF.md
 
 {
   echo
