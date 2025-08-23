@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: dad6fcb
-- generated: 2025-08-23 07:33:46 UTC
+- commit: 0a2293d
+- generated: 2025-08-23 11:36:07 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -933,6 +933,50 @@ echo "Wrote $out"
       (apply-filter! pcap opts*))))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
+
+;; ------------------------------------------------------------
+;; 安全ラッパ（必ず close/flush する）
+;; with-pcap / with-dumper / with-live / with-offline
+;; ------------------------------------------------------------
+
+(defmacro with-pcap
+  "例: (with-pcap [h (open-live {:device \"en0\"})]
+         (loop-n! h 10 prn))"
+  [[sym open-expr] & body]
+  `(let [~sym ~open-expr]
+     (try
+       ~@body
+       (finally
+         (close! ~sym)))))
+
+(defmacro with-dumper
+  "例: (with-dumper [d h \"out.pcap\"]
+         (dump! d hdr data))"
+  [[sym pcap-expr path] & body]
+  `(let [pcap# ~pcap-expr
+         ~sym  (open-dumper pcap# ~path)]
+     (try
+       ~@body
+       (finally
+         (flush-dumper! ~sym)
+         (close-dumper! ~sym)))))
+
+(defmacro with-live
+  "例: (with-live [h {:device \"en0\" :filter \"tcp\"}]
+         (loop-n! h 10 prn))"
+  [[sym opts] & body]
+  `(with-pcap [~sym (open-live ~opts)]
+     ~@body))
+
+(defmacro with-offline
+  "例:
+     (with-offline [h \"sample.pcap\"]
+       (loop-for-ms! h 2000 prn))
+     (with-offline [h \"sample.pcap\" {:filter \"udp\"}]
+       (loop-n! h 50 prn))"
+  [[sym path & [opts]] & body]
+  `(with-pcap [~sym (open-offline ~path ~(or opts {}))]
+     ~@body))
 
 (defn lookupnet
   "デバイス名 dev のネットワークアドレス/マスクを取得。
@@ -2228,10 +2272,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 07:33:46 UTC)
+## Environment snapshot (2025-08-23 11:36:07 UTC)
 
 ```
-git commit: dad6fcb46782
+git commit: 0a2293d259e5
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
