@@ -3,7 +3,9 @@
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref PointerByReference IntByReference]
    [paclo.jnr PcapLibrary PcapHeader]
-   [java.util.concurrent LinkedBlockingQueue]))
+   [java.util.concurrent LinkedBlockingQueue])
+  (:require
+   [clojure.string :as str]))
 
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
@@ -15,6 +17,10 @@
 
 (defn- blank-str? [^String s]
   (or (nil? s) (re-find #"^\s*$" s)))
+
+(defn- normalize-desc [^String s]
+  (let [t (when s (str/trim s))]
+    (when (and t (not (blank-str? t))) t)))
 
 (def PCAP_ERRBUF_SIZE 256)
 (def ^:private BPF_PROG_BYTES 16)
@@ -232,7 +238,7 @@
               m
               (cond
                 (.startsWith line "Hardware Port: ")
-                (recur m (subs line 14) (.readLine rdr))
+                (recur m (str/trim (subs line 14)) (.readLine rdr)) 
 
                 (.startsWith line "Device: ")
                 (let [dev (subs line 8)]
@@ -271,9 +277,8 @@
                                  (when-not (blank-str? s) s)))
                     ;; desc が空/空白なら fallback に置換
                     desc0    (when (and desc-ptr (not= 0 (.address desc-ptr)))
-                               (let [s (.getString desc-ptr 0)]
-                                 (when-not (blank-str? s) s)))
-                    desc     (or desc0 (when name (get fallback name)))]
+                               (normalize-desc (.getString desc-ptr 0)))
+                    desc     (or desc0 (when name (normalize-desc (get fallback name))))]
                 (if name
                   (recur next-ptr (conj! acc {:name name :desc desc}))
                   (recur next-ptr acc))))))
