@@ -204,69 +204,25 @@
                        :rc     rc
                        :err    (.getString err 0)})))))
 
-(defn set-bpf! [^Pointer pcap expr]
-  (let [prog (paclo.jnr.BpfProgram. rt)]
-    (try
-      ;; optimize=1, netmask=0（未知のときは 0 が無難）
-      (let [rc-compile (.pcap_compile lib pcap (.addr prog) expr 1 0)]
-        (when (neg? rc-compile)
-          (throw (ex-info "pcap_compile failed"
-                          {:phase :compile
-                           :expr  expr
-                           :rc    rc-compile
-                           :err   (.pcap_geterr lib pcap)}))))
-      (let [rc-set (.pcap_setfilter lib pcap (.addr prog))]
-        (when (neg? rc-set)
-          (throw (ex-info "pcap_setfilter failed"
-                          {:phase :setfilter
-                           :expr  expr
-                           :rc    rc-set
-                           :err   (.pcap_geterr lib pcap)}))))
-      true
-      (finally
-        (.pcap_freecode lib (.addr prog))))))
+(defn set-bpf!
+  "pcap に BPF を適用。optimize=1、netmask=0（未知時）で apply-filter! に委譲。成功で true。"
+  [^Pointer pcap expr]
+  (apply-filter! pcap {:filter expr :optimize? true :netmask 0})
+  true)
 
 (defn set-bpf-with-netmask!
-  "pcap ハンドルに BPF を適用。optimize=1、netmask を明示指定。成功で true。"
+  "pcap に BPF を適用。optimize=1、netmask 明示で apply-filter! に委譲。成功で true。"
   [^Pointer pcap expr netmask]
-  (let [prog (paclo.jnr.BpfProgram. rt)]
-    (try
-      (let [rc-compile (.pcap_compile lib pcap (.addr prog) expr 1 (int netmask))]
-        (when (neg? rc-compile)
-          (throw (ex-info "pcap_compile failed"
-                          {:phase   :compile
-                           :expr    expr
-                           :netmask netmask
-                           :rc      rc-compile
-                           :err     (.pcap_geterr lib pcap)}))))
-      (let [rc-set (.pcap_setfilter lib pcap (.addr prog))]
-        (when (neg? rc-set)
-          (throw (ex-info "pcap_setfilter failed"
-                          {:phase   :setfilter
-                           :expr    expr
-                           :netmask netmask
-                           :rc      rc-set
-                           :err     (.pcap_geterr lib pcap)}))))
-      true
-      (finally
-        (.pcap_freecode lib (.addr prog))))))
+  (apply-filter! pcap {:filter expr :optimize? true :netmask (int netmask)})
+  true)
 
 (defn set-bpf-on-device!
-  "デバイス dev の netmask を lookup して BPF を適用するショートカット。
-   下位で起きた例外に :device と :expr を付加して再スローする。"
+  "デバイス dev の netmask を lookup して BPF を適用（内部で set-bpf-with-netmask!）。成功で true。"
   [^Pointer pcap dev expr]
-  (try
-    (let [{:keys [mask]} (lookupnet dev)]
-      (set-bpf-with-netmask! pcap expr mask))
-    (catch clojure.lang.ExceptionInfo e
-      (throw (ex-info "set-bpf-on-device! failed"
-                      (merge {:device dev :expr expr}
-                             (ex-data e))
-                      e)))
-    (catch Throwable t
-      (throw (ex-info "set-bpf-on-device! unexpected failure"
-                      {:device dev :expr expr}
-                      t)))))
+  (let [mask (try
+               (:mask (lookupnet dev)) ; 既存の詳細版lookupを再利用（失敗時に例外）
+               (catch Throwable _ 0))] ; 念のためフォールバック
+    (set-bpf-with-netmask! pcap expr mask)))
 
 (defn loop!
   "pcap_next_ex をポーリング。handlerは (fn {:ts-sec :ts-usec :caplen :len :bytes}) を受け取る。
