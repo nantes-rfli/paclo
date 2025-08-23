@@ -84,4 +84,22 @@ emit () {
   emit clojure test/paclo/test_util.clj
 } > "$out"
 
+cat <<'EOF' >> AI_HANDOFF.md
+
+## 整形運用ポリシー（2025-08 更新）
+
+**現在の方針: 保存時整形 OFF + CLI 一本化**
+
+- VS Code 保存時整形: 無効化  
+- 整形は必ずコミット前に CLI (`script/fmt.sh`) で実施  
+- CI (`clojure-lsp format --dry`) と完全一致  
+
+理由: Calva 保存時整形で `dns-min` などが崩れるため。  
+CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。  
+
+将来保存時整形を復活させたい場合は、Calva整形ではなく  
+**VS Code → clojure-lsp (LSP フォーマット)** への切替を推奨。
+
+EOF
+
 echo "Wrote $out"
