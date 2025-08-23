@@ -18,6 +18,9 @@ public interface PcapLibrary {
   Pointer pcap_open_live(String device, int snaplen, int promisc, int to_ms, Pointer errbuf);
   void    pcap_close(Pointer pcap);
 
+  /** dead pcap_t を作る（生成PCAP用） */
+  Pointer pcap_open_dead(int linktype, int snaplen);
+
   // poll (no callback)
   int     pcap_next_ex(Pointer pcap, PointerByReference headerRef, PointerByReference dataRef);
 

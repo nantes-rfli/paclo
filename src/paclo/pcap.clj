@@ -18,9 +18,9 @@
 (def ^:const PCAP_ERRBUF_SIZE 256)
 (def ^:private ^:const BPF_PROG_BYTES 16)
 
-(defn ^:private lookup-netmask
+(defn ^:private ^Integer lookup-netmask
   "デバイス名から netmask を取得。失敗時は 0 を返す。"
-  ^Integer [^String device]
+  [^String device]
   (let [err   (Memory/allocate rt PCAP_ERRBUF_SIZE)
         netp  (IntByReference.)
         maskp (IntByReference.)
@@ -83,6 +83,9 @@
 ;; with-pcap / with-dumper / with-live / with-offline
 ;; ------------------------------------------------------------
 
+;; Macros below reference these fns; declare them so macro expansion can resolve.
+(declare open-dumper dump! flush-dumper! close-dumper!)
+
 (defmacro with-pcap
   "例: (with-pcap [h (open-live {:device \"en0\"})]
          (loop-n! h 10 prn))"
@@ -94,11 +97,10 @@
          (close! ~sym)))))
 
 (defmacro with-dumper
-  "例: (with-dumper [d h \"out.pcap\"]
+  "例: (with-dumper [d (open-dumper h \"out.pcap\")]
          (dump! d hdr data))"
-  [[sym pcap-expr path] & body]
-  `(let [pcap# ~pcap-expr
-         ~sym  (open-dumper pcap# ~path)]
+  [[sym open-expr] & body]
+  `(let [~sym ~open-expr]
      (try
        ~@body
        (finally
@@ -114,13 +116,75 @@
 
 (defmacro with-offline
   "例:
-     (with-offline [h \"sample.pcap\"]
+     (with-offline [h (open-offline \"sample.pcap\")]
        (loop-for-ms! h 2000 prn))
-     (with-offline [h \"sample.pcap\" {:filter \"udp\"}]
+     (with-offline [h (open-offline \"sample.pcap\" {:filter \"udp\"})]
        (loop-n! h 50 prn))"
-  [[sym path & [opts]] & body]
-  `(with-pcap [~sym (open-offline ~path ~(or opts {}))]
+  [[sym open-expr] & body]
+  `(with-pcap [~sym ~open-expr]
      ~@body))
+
+;; ------------------------------------------------------------
+;; 生成系ユーティリティ（pcap_open_dead で PCAP を生成）
+;; マクロ（with-pcap/with-dumper）より下に置く
+;; ------------------------------------------------------------
+
+(def ^:const PCAP_PKTHDR_BYTES 24)
+(def ^:const DLT_EN10MB 1) ; Ethernet
+
+(defn ^:private now-sec-usec []
+  (let [ms (System/currentTimeMillis)
+        sec (long (quot ms 1000))
+        usec (long (* 1000 (mod ms 1000)))]
+    [sec usec]))
+
+(defn ^Pointer open-dead
+  "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
+  (^Pointer []
+   (open-dead DLT_EN10MB 65536))
+  (^Pointer [linktype snaplen]
+   (.pcap_open_dead lib (int linktype) (int snaplen))))
+
+(defn ^:private ^Pointer bytes->ptr [^bytes ba]
+  (let [m (Memory/allocate rt (alength ba))]
+    (.put m 0 ba 0 (alength ba))
+    m))
+
+(defn ^:private ^Pointer mk-hdr
+  "pcap_pkthdr を作る。sec/usec は long（エポック秒/マイクロ秒）。len は int。"
+  [^long sec ^long usec ^long len]
+  (let [hdr (Memory/allocate rt PCAP_PKTHDR_BYTES)]
+    (.putLong hdr 0 sec)
+    (.putLong hdr 8 usec)
+    (.putInt  hdr 16 (int len))
+    (.putInt  hdr 20 (int len))
+    hdr))
+
+(defn bytes-seq->pcap!
+  "バイト列のシーケンスを PCAP に書き出す。
+   packets: シーケンス。要素は `byte-array` または
+            `{:bytes <ba> :sec <long> :usec <long>}`
+   opts: {:out \"out.pcap\" :linktype DLT_* :snaplen 65536}"
+  [packets {:keys [out linktype snaplen]
+            :or   {linktype DLT_EN10MB snaplen 65536}}]
+  (when (str/blank? out)
+    (throw (ex-info "bytes-seq->pcap!: :out is required" {})))
+  (with-pcap [pcap (open-dead linktype snaplen)]
+    (with-dumper [d (open-dumper pcap out)]
+      (doseq [p packets]
+        (let [[ba sec usec]
+              (if (map? p)
+                (let [{:keys [bytes sec usec]} p
+                      ba' ^bytes (or bytes (byte-array 0))]
+                  (when (nil? bytes) (throw (ex-info "missing :bytes" {:item p})))
+                  (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
+                    [ba' (long s) (long u)]))
+                ;; plain byte-array
+                (let [[s u] (now-sec-usec)]
+                  [^bytes p (long s) (long u)]))
+              hdr (mk-hdr sec usec (alength ^bytes ba))
+              dat (bytes->ptr ^bytes ba)]
+          (dump! d hdr dat))))))
 
 (defn lookupnet
   "デバイス名 dev のネットワークアドレス/マスクを取得。
