@@ -399,22 +399,25 @@
 
 (defn loop-n-or-ms!
   "n件到達 or duration-ms 経過の早い方で停止。
-   conf: {:n <long> :ms <long> :idle-max-ms <ms-optional> :timeout-ms <ms-optional>}"
-  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms] :as conf} handler]
+   conf: {:n <long> :ms <long> :idle-max-ms <ms-optional> :timeout-ms <ms-optional> :stop? <fn-optional>}"
+  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?] :as conf} handler]
   (when (nil? n) (throw (ex-info "missing :n" {})))
   (when (nil? ms) (throw (ex-info "missing :ms" {})))
   (assert (pos? n) "n must be positive")
   (assert (pos? ms) "ms must be positive")
   (let [handle (->pkt-handler handler)]
     (if (nil? idle-max-ms)
+      ;; --- idle監視なし: loop! を使うパス（handler内で停止条件を見る）
       (let [c  (atom 0)
             t0 (System/currentTimeMillis)]
         (loop! pcap (fn [pkt]
                       (handle pkt)
                       (let [stop-n? (>= (swap! c inc) n)
-                            stop-t? (>= (- (System/currentTimeMillis) t0) ms)]
-                        (when (or stop-n? stop-t?)
+                            stop-t? (>= (- (System/currentTimeMillis) t0) ms)
+                            stop-custom? (and stop? (stop? pkt))]
+                        (when (or stop-n? stop-t? stop-custom?)
                           (breakloop! pcap))))))
+      ;; --- idle監視あり: pcap_next_ex を自前で回すパス（pkt毎に stop? を判定）
       (let [hdr-ref (PointerByReference.)
             dat-ref (PointerByReference.)
             t0 (System/currentTimeMillis)
@@ -433,11 +436,14 @@
                       ts-usec (PcapHeader/tv_usec hdr)
                       caplen (PcapHeader/caplen hdr)
                       len    (PcapHeader/len hdr)
-                      arr    (byte-array (int caplen))]
-                  (.get dat 0 arr 0 (alength arr))
-                  (handle {:ts-sec ts-sec :ts-usec ts-usec
-                           :caplen caplen :len len :bytes arr})
-                  (recur (inc count) 0))
+                      arr    (byte-array (int caplen))
+                      _      (.get dat 0 arr 0 (alength arr))
+                      pkt    {:ts-sec ts-sec :ts-usec ts-usec
+                              :caplen caplen :len len :bytes arr}]
+                  (handle pkt)
+                  (if (and stop? (stop? pkt))
+                    (breakloop! pcap)            ;; ★ ヒット即停止（オフラインでも即効）
+                    (recur (inc count) 0)))
 
                 (= rc 0)
                 (let [idle' (+ idle tick)]
@@ -559,9 +565,8 @@
           (if device
             (set-bpf-on-device! h device filter)
             (set-bpf! h filter)))
-        (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms}
+        (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
                        (fn [pkt]
-                         ;; キュー満杯なら待つ
                          (.put q pkt)
                          ;; ★ 任意条件で即停止
                          (when (and stop? (stop? pkt))
