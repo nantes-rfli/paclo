@@ -1,5 +1,6 @@
 {
     "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modificationsIfAvailable",
     "[clojure]": {
         "editor.defaultFormatter": "betterthantomorrow.calva"
     },

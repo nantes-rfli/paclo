@@ -375,3 +375,35 @@
     (is (= true  (get-in m [:l3 :frag?])))
     (is (= 1     (get-in m [:l3 :frag-offset])))
     (is (= :ipv4-fragment (get-in m [:l3 :l4 :type])))))
+
+;; DNS フラグ（クエリ）: QR=0, RD=1（0x0100）
+(deftest ipv4-udp-dns-flags-query-test
+  (let [pkt (tu/hex->bytes
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+               45 00 00 28 00 02 00 00 40 11 00 00
+               C0 A8 01 64 08 08 08 08
+               13 88 00 35 00 14 00 00
+               00 3B 01 00 00 01 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        app (get-in m [:l3 :l4 :app])]
+    (is (= :dns (:type app)))
+    (is (= false (:qr? app)))
+    (is (= "query" (:opcode-name app)))
+    (is (= true (:rd? app)))
+    (is (= false (:ra? app)))))
+
+;; DNS フラグ（レスポンス）: QR=1, RA=1, RD=1（0x8180）
+(deftest ipv4-udp-dns-flags-response-test
+  (let [pkt (tu/hex->bytes
+             "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+               45 00 00 28 00 03 00 00 40 11 00 00
+               08 08 08 08 C0 A8 01 64
+               00 35 13 88 00 14 00 00
+               00 3B 81 80 00 01 00 00 00 00 00 00")
+        m (parse/packet->clj pkt)
+        app (get-in m [:l3 :l4 :app])]
+    (is (= :dns (:type app)))
+    (is (= true (:qr? app)))
+    (is (= "query" (:opcode-name app)))
+    (is (= "noerror" (:rcode-name app)))
+    (is (= true (:ra? app)))))

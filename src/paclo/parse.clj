@@ -480,32 +480,73 @@
      :data-len (remaining-len b)
      :payload (remaining-bytes b)}))
 
+;; --- DNS header helpers ------------------------------------------------------
+
+(defn- dns-opcode-name [op]
+  (case op
+    0 "query"    ; standard query
+    1 "iquery"   ; inverse query (obsolete)
+    2 "status"
+    4 "notify"
+    5 "update"
+    (str "opcode-" op)))
+
+(defn- dns-rcode-name [rc]
+  (case rc
+    0  "noerror"
+    1  "formerr"
+    2  "servfail"
+    3  "nxdomain"
+    4  "notimp"
+    5  "refused"
+    6  "yxdomain"
+    7  "yxrrset"
+    8  "nxrrset"
+    9  "notauth"
+    10 "notzone"
+    16 "badvers"
+    22 "badcookie"
+    (str "rcode-" rc)))
+
 (defn- dns-min [^bytes payload]
   (when (<= 12 (alength payload))
     (let [bb (-> (ByteBuffer/wrap payload) (.order ByteOrder/BIG_ENDIAN))
-          id (.getShort bb)      ;; u16
-          flags (.getShort bb)   ;; u16
+          id (.getShort bb)                ;; u16
+          flags (.getShort bb)
           qd (.getShort bb)
           an (.getShort bb)
           ns (.getShort bb)
           ar (.getShort bb)
-          f  (bit-and flags 0xFFFF)
-          qr (pos? (bit-and f 0x8000))
-          opcode (bit-and (bit-shift-right f 11) 0x0F)
-          aa (pos? (bit-and f 0x0400))
-          tc (pos? (bit-and f 0x0200))
-          rd (pos? (bit-and f 0x0100))
-          ra (pos? (bit-and f 0x0080))
-          ad (pos? (bit-and f 0x0020))
-          cd (pos? (bit-and f 0x0010))
-          rcode (bit-and f 0x000F)]
-      {:type    :dns
-       :id      (bit-and id 0xFFFF)
+          f (bit-and flags 0xFFFF)
+          qr?     (pos? (bit-and f 0x8000))
+          opcode  (bit-and (bit-shift-right f 11) 0x0F)
+          aa?     (pos? (bit-and f 0x0400))
+          tc?     (pos? (bit-and f 0x0200))
+          rd?     (pos? (bit-and f 0x0100))
+          ra?     (pos? (bit-and f 0x0080))
+          rcode   (bit-and f 0x000F)
+          oname   (dns-opcode-name opcode)
+          rname   (dns-rcode-name rcode)]
+      {:type :dns
+       :id (bit-and id 0xFFFF)
        :qdcount (bit-and qd 0xFFFF)
        :ancount (bit-and an 0xFFFF)
        :nscount (bit-and ns 0xFFFF)
        :arcount (bit-and ar 0xFFFF)
-       :flags   {:qr qr :opcode opcode :aa aa :tc tc :rd rd :ra ra :ad ad :cd cd :rcode rcode}})))
+       ;; 新規: フラグ要約
+       :flags f
+       :qr? qr?
+       :opcode opcode
+       :opcode-name oname
+       :aa? aa?
+       :tc? tc?
+       :rd? rd?
+       :ra? ra?
+       :rcode rcode
+       :rcode-name rname
+       :summary (str (if qr? "response" "query")
+                     "/" oname
+                     (when qr? (str "/" rname)))})))
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))
