@@ -1,10 +1,10 @@
 {
-    "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "modificationsIfAvailable",
-    "[clojure]": {
-        "editor.defaultFormatter": "betterthantomorrow.calva"
-    },
-    "calva.fmtConfigPath": ".cljfmt.edn",
-    "calva.formatOnSave": true,
-    "calva.fmtIndent": 2
+"editor.formatOnSave": false,
+"editor.formatOnSaveMode": "modificationsIfAvailable",
+"[clojure]": {
+    "editor.defaultFormatter": "betterthantomorrow.calva"
+},
+"calva.formatOnSave": false,
+"calva.fmt.configPath": "CLOJURE-LSP",
+"editor.formatOnType": false
 }

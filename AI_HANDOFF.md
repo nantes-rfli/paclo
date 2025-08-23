@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: d1a2bab
-- generated: 2025-08-23 03:28:49 UTC
+- commit: 8b3b23c
+- generated: 2025-08-23 05:12:32 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -665,37 +665,43 @@ echo "Wrote $out"
           an (.getShort bb)
           ns (.getShort bb)
           ar (.getShort bb)
-          f (bit-and flags 0xFFFF)
-          ;; bit fields
-          qr?     (pos? (bit-and f 0x8000))
-          opcode  (bit-and (bit-shift-right f 11) 0x0F)
-          aa?     (pos? (bit-and f 0x0400))
-          tc?     (pos? (bit-and f 0x0200))
-          rd?     (pos? (bit-and f 0x0100))
-          ra?     (pos? (bit-and f 0x0080))
-          rcode   (bit-and f 0x000F)
-          oname   (dns-opcode-name opcode)
-          rname   (dns-rcode-name rcode)]
-      {:type :dns
-       :id (bit-and id 0xFFFF)
-       :qdcount (bit-and qd 0xFFFF)
-       :ancount (bit-and an 0xFFFF)
-       :nscount (bit-and ns 0xFFFF)
-       :arcount (bit-and ar 0xFFFF)
-       ;; 互換: 以前のトップレベル拡張（残す）
-       :flags-raw f
-       :qr? qr?
-       :opcode opcode
-       :opcode-name oname
-       :aa? aa?
-       :tc? tc?
-       :rd? rd?
-       :ra? ra?
-       :rcode rcode
-       :rcode-name rname
-       :summary (str (if qr? "response" "query") "/" oname (when qr? (str "/" rname)))
-       ;; 新規: テストが期待する :flags マップ（生値 + フィールド）
-       :flags {:raw f :qr qr? :opcode opcode :aa aa? :tc tc? :rd rd? :ra ra? :rcode rcode}})))
+          f (bit-and flags 0xFFFF)]
+      (let [qr? (pos? (bit-and f 0x8000))
+            opcode (bit-and (bit-shift-right f 11) 0x0F)
+            aa? (pos? (bit-and f 0x0400))
+            tc? (pos? (bit-and f 0x0200))
+            rd? (pos? (bit-and f 0x0100))
+            ra? (pos? (bit-and f 0x0080))
+            rcode (bit-and f 0x000F)
+            oname (dns-opcode-name opcode)
+            rname (dns-rcode-name rcode)]
+        {:type :dns
+         :id (bit-and id 0xFFFF)
+         :qdcount (bit-and qd 0xFFFF)
+         :ancount (bit-and an 0xFFFF)
+         :nscount (bit-and ns 0xFFFF)
+         :arcount (bit-and ar 0xFFFF)
+         :flags-raw f
+         :qr? qr?
+         :opcode opcode
+         :opcode-name oname
+         :aa? aa?
+         :tc? tc?
+         :rd? rd?
+         :ra? ra?
+         :rcode rcode
+         :rcode-name rname
+         :summary (str (if qr? "response" "query")
+                       "/" oname
+                       (when qr? (str "/" rname)))
+         :flags {:raw f
+                 :qr qr?
+                 :opcode opcode
+                 :aa aa?
+                 :tc tc?
+                 :rd rd?
+                 :ra ra?
+                 :rcode rcode}}))))
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))
@@ -1357,17 +1363,17 @@ echo "Wrote $out"
           (close! h))))
     ;; lazy-seq を返す
     (letfn [(drain []
-                   (lazy-seq
-                    (let [x (.take q)]
-                      (cond
-                        (identical? x sentinel) '()
-                        (and (map? x) (= (:type x) :paclo/capture-error))
-                        (if (= error-mode :pass)
-                          (drain)
-                          (throw (ex-info "capture->seq background error"
-                                          {:source :capture->seq}
-                                          (:ex x))))
-                        :else (cons x (drain))))))]
+              (lazy-seq
+               (let [x (.take q)]
+                 (cond
+                   (identical? x sentinel) '()
+                   (and (map? x) (= (:type x) :paclo/capture-error))
+                   (if (= error-mode :pass)
+                     (drain)
+                     (throw (ex-info "capture->seq background error"
+                                     {:source :capture->seq}
+                                     (:ex x))))
+                   :else (cons x (drain))))))]
       (drain))))
 
 ;; ------------------------------------------------------------

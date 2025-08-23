@@ -589,17 +589,17 @@
           (close! h))))
     ;; lazy-seq を返す
     (letfn [(drain []
-                   (lazy-seq
-                    (let [x (.take q)]
-                      (cond
-                        (identical? x sentinel) '()
-                        (and (map? x) (= (:type x) :paclo/capture-error))
-                        (if (= error-mode :pass)
-                          (drain)
-                          (throw (ex-info "capture->seq background error"
-                                          {:source :capture->seq}
-                                          (:ex x))))
-                        :else (cons x (drain))))))]
+              (lazy-seq
+               (let [x (.take q)]
+                 (cond
+                   (identical? x sentinel) '()
+                   (and (map? x) (= (:type x) :paclo/capture-error))
+                   (if (= error-mode :pass)
+                     (drain)
+                     (throw (ex-info "capture->seq background error"
+                                     {:source :capture->seq}
+                                     (:ex x))))
+                   :else (cons x (drain))))))]
       (drain))))
 
 ;; ------------------------------------------------------------
