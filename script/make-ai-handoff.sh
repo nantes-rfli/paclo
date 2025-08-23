@@ -69,7 +69,9 @@ emit () {
   echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
-  emit bash script/make-ai-handoff.sh
+  echo '````bash'
+  cat script/make-ai-handoff.sh
+  echo '````'
   echo "### src/paclo/parse.clj"
   emit clojure src/paclo/parse.clj
   echo "### src/paclo/pcap.clj"
@@ -133,10 +135,10 @@ cat <<'EOF' >> AI_HANDOFF.md
 #### .editorconfig
 ```
 EOF
-if \[ -f ".editorconfig" ]; then
-cat .editorconfig >> AI\_HANDOFF.md
+if [ -f ".editorconfig" ]; then
+  cat .editorconfig >> AI_HANDOFF.md
 else
-echo "# (not found: .editorconfig)" >> AI\_HANDOFF.md
+  echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
 fi
 echo '```' >> AI_HANDOFF.md
 

@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: ec48f07
-- generated: 2025-08-23 07:18:11 UTC
+- commit: dad6fcb
+- generated: 2025-08-23 07:33:46 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -54,7 +54,7 @@
 
 ## Files
 ### script/make-ai-handoff.sh
-```bash
+````bash
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -126,7 +126,9 @@ emit () {
   echo
   echo "## Files"
   echo "### script/make-ai-handoff.sh"
-  emit bash script/make-ai-handoff.sh
+  echo '````bash'
+  cat script/make-ai-handoff.sh
+  echo '````'
   echo "### src/paclo/parse.clj"
   emit clojure src/paclo/parse.clj
   echo "### src/paclo/pcap.clj"
@@ -190,10 +192,10 @@ cat <<'EOF' >> AI_HANDOFF.md
 #### .editorconfig
 ```
 EOF
-if \[ -f ".editorconfig" ]; then
-cat .editorconfig >> AI\_HANDOFF.md
+if [ -f ".editorconfig" ]; then
+  cat .editorconfig >> AI_HANDOFF.md
 else
-echo "# (not found: .editorconfig)" >> AI\_HANDOFF.md
+  echo "# (not found: .editorconfig)" >> AI_HANDOFF.md
 fi
 echo '```' >> AI_HANDOFF.md
 
@@ -223,8 +225,7 @@ git config core.hooksPath .githooks
 EOF
 
 echo "Wrote $out"
-```
-
+````
 ### src/paclo/parse.clj
 ```clojure
 (ns paclo.parse
@@ -2227,10 +2228,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 07:18:11 UTC)
+## Environment snapshot (2025-08-23 07:33:46 UTC)
 
 ```
-git commit: ec48f0727c36
+git commit: dad6fcb46782
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
