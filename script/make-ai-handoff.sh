@@ -106,7 +106,11 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ```json
 EOF
 if [ -f ".vscode/settings.json" ]; then
-  cat .vscode/settings.json >> AI_HANDOFF.md
+  if command -v jq >/dev/null 2>&1; then
+    jq -S . .vscode/settings.json >> AI_HANDOFF.md
+  else
+    cat .vscode/settings.json >> AI_HANDOFF.md
+  fi
 else
   echo "// (not found: .vscode/settings.json)" >> AI_HANDOFF.md
 fi

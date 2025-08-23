@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: f378cee
-- generated: 2025-08-23 05:50:36 UTC
+- commit: 3d57ad6
+- generated: 2025-08-23 05:56:45 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -163,7 +163,11 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ```json
 EOF
 if [ -f ".vscode/settings.json" ]; then
-  cat .vscode/settings.json >> AI_HANDOFF.md
+  if command -v jq >/dev/null 2>&1; then
+    jq -S . .vscode/settings.json >> AI_HANDOFF.md
+  else
+    cat .vscode/settings.json >> AI_HANDOFF.md
+  fi
 else
   echo "// (not found: .vscode/settings.json)" >> AI_HANDOFF.md
 fi
@@ -2105,14 +2109,14 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 #### .vscode/settings.json
 ```json
 {
-"editor.formatOnSave": false,
-"editor.formatOnSaveMode": "modificationsIfAvailable",
-"[clojure]": {
+  "[clojure]": {
     "editor.defaultFormatter": "betterthantomorrow.calva"
-},
-"calva.formatOnSave": false,
-"calva.fmt.configPath": "CLOJURE-LSP",
-"editor.formatOnType": false
+  },
+  "calva.fmt.configPath": "CLOJURE-LSP",
+  "calva.formatOnSave": false,
+  "editor.formatOnSave": false,
+  "editor.formatOnSaveMode": "modificationsIfAvailable",
+  "editor.formatOnType": false
 }
 ```
 
@@ -2144,10 +2148,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 05:50:36 UTC)
+## Environment snapshot (2025-08-23 05:56:45 UTC)
 
 ```
-git commit: f378ceecb7ab
+git commit: 3d57ad6cdf27
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
