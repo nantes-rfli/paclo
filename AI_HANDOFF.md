@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 3d57ad6
-- generated: 2025-08-23 05:56:45 UTC
+- commit: 5e8b110
+- generated: 2025-08-23 06:12:40 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -211,6 +211,16 @@ echo '```' >> AI_HANDOFF.md
   echo "os: $(uname -a)"
   echo '```'
 } >> AI_HANDOFF.md
+
+cat <<'EOF' >> AI_HANDOFF.md
+
+## Developer bootstrap (git hooks)
+このリポジトリでは共有フックを使用します。クローンしたら一度だけ以下を実行してください。
+
+```bash
+git config core.hooksPath .githooks
+```
+EOF
 
 echo "Wrote $out"
 ```
@@ -2148,10 +2158,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 05:56:45 UTC)
+## Environment snapshot (2025-08-23 06:12:40 UTC)
 
 ```
-git commit: 3d57ad6cdf27
+git commit: 5e8b110b2e10
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
@@ -2159,4 +2169,11 @@ clojure-lsp: clojure-lsp 2025.08.15-17.11.38
 clj-kondo 2025.07.28
 clj-kondo: clj-kondo v2025.07.28
 os: Darwin Nantos-Mac-mini.local 24.4.0 Darwin Kernel Version 24.4.0: Fri Apr 11 18:28:23 PDT 2025; root:xnu-11417.101.15~117/RELEASE_X86_64 x86_64
+```
+
+## Developer bootstrap (git hooks)
+このリポジトリでは共有フックを使用します。クローンしたら一度だけ以下を実行してください。
+
+```bash
+git config core.hooksPath .githooks
 ```

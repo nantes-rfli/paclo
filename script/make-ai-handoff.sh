@@ -155,4 +155,14 @@ echo '```' >> AI_HANDOFF.md
   echo '```'
 } >> AI_HANDOFF.md
 
+cat <<'EOF' >> AI_HANDOFF.md
+
+## Developer bootstrap (git hooks)
+このリポジトリでは共有フックを使用します。クローンしたら一度だけ以下を実行してください。
+
+```bash
+git config core.hooksPath .githooks
+```
+EOF
+
 echo "Wrote $out"
