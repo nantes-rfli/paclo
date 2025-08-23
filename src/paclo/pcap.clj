@@ -14,6 +14,35 @@
         loader  (LibraryLoader/create PcapLibrary)]
     (.load loader libname)))
 
+;; --- constants (use before any functions) ---
+(def ^:const PCAP_ERRBUF_SIZE 256)
+(def ^:private ^:const BPF_PROG_BYTES 16)
+
+(defn ^:private lookup-netmask
+  "デバイス名から netmask を取得。失敗時は 0 を返す。"
+  ^Integer [^String device]
+  (let [err   (Memory/allocate rt PCAP_ERRBUF_SIZE)
+        netp  (IntByReference.)
+        maskp (IntByReference.)
+        rc    (.pcap_lookupnet lib device netp maskp err)]
+    (if (neg? rc)
+      0
+      (.getValue maskp))))
+
+(defn ^:private apply-filter!
+  "pcap ハンドルに BPF フィルタを適用。opts 例:
+   {:filter \"udp and port 53\" :optimize? true :netmask 0}"
+  [^Pointer pcap {:keys [filter optimize? netmask]}]
+  (when (and pcap (some? filter) (not (str/blank? filter)))
+    (let [opt?  (if (nil? optimize?) true optimize?)
+          mask  (int (or netmask 0))]         ;; ★ 既定は 0（不明）
+      (let [prog (PcapLibrary/compileFilter pcap filter opt? mask)]
+        (try
+          (PcapLibrary/setFilterOrThrow pcap prog)
+          (finally
+            (PcapLibrary/freeFilter prog))))))
+  pcap)
+
 (defn- blank-str? [^String s]
   (or (nil? s) (re-find #"^\s*$" s)))
 
@@ -21,25 +50,31 @@
   (let [t (when s (str/trim s))]
     (when (and t (not (blank-str? t))) t)))
 
-(def PCAP_ERRBUF_SIZE 256)
-(def ^:private BPF_PROG_BYTES 16)
+(defn open-offline
+  (^Pointer [path]
+   (open-offline path {}))
+  (^Pointer [path {:keys [filter optimize? netmask] :as opts}]
+   (let [err  (Memory/allocate rt PCAP_ERRBUF_SIZE)
+         pcap (.pcap_open_offline lib path err)]
+     (when (nil? pcap)
+       (throw (ex-info "pcap_open_offline failed"
+                       {:path path :err (.getString err 0)})))
+     (apply-filter! pcap opts))))
 
-(defn open-offline ^Pointer [path]
-  (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
-        pcap (.pcap_open_offline lib path err)]
-    (when (nil? pcap)
-      (throw (ex-info "pcap_open_offline failed"
-                      {:err (.getString err 0)})))
-    pcap))
-
-(defn open-live ^Pointer [{:keys [device snaplen promiscuous? timeout-ms]
-                           :or {snaplen 65536 promiscuous? true timeout-ms 10}}]
-  (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
+(defn open-live ^Pointer
+  [{:keys [device snaplen promiscuous? timeout-ms filter optimize? netmask]
+    :or   {snaplen 65536 promiscuous? true timeout-ms 10}
+    :as   opts}]
+  (let [err     (Memory/allocate rt PCAP_ERRBUF_SIZE)
         promisc (if promiscuous? 1 0)
-        pcap (.pcap_open_live lib device snaplen promisc timeout-ms err)]
+        pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
-      (throw (ex-info "pcap_open_live failed" {:device device :err (.getString err 0)})))
-    pcap))
+      (throw (ex-info "pcap_open_live failed"
+                      {:device device :err (.getString err 0)})))
+    ;; ★ netmask 未指定ならデバイスから解決（失敗時は 0 が返る）
+    (let [resolved-mask (or netmask (when device (lookup-netmask device)))
+          opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
+      (apply-filter! pcap opts*))))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
 

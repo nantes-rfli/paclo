@@ -1,10 +1,18 @@
 package paclo.jnr;
 
+import jnr.ffi.LibraryLoader;
+import jnr.ffi.Runtime;
 import jnr.ffi.Pointer;
+import jnr.ffi.Struct;
 import jnr.ffi.byref.PointerByReference;
 import jnr.ffi.byref.IntByReference;
+import paclo.jnr.BpfProgram;
 
 public interface PcapLibrary {
+
+  /** libpcap ローダ（Clojure側からも直接使えるようにしておく） */
+  PcapLibrary INSTANCE = LibraryLoader.create(PcapLibrary.class).load("pcap");
+
   // open/close
   Pointer pcap_open_offline(String fname, Pointer errbuf);
   Pointer pcap_open_live(String device, int snaplen, int promisc, int to_ms, Pointer errbuf);
@@ -44,4 +52,30 @@ public interface PcapLibrary {
   void    pcap_freealldevs(jnr.ffi.Pointer alldevs);
 
   int     pcap_lookupnet(String device, IntByReference netp, IntByReference maskp, Pointer errbuf);
+
+  // ===== BPF ヘルパー（利便性向上・例外で失敗がわかるように） =====
+  static BpfProgram compileFilter(Pointer pcap, String expr, boolean optimize, int netmask) {
+    Runtime rt = Runtime.getRuntime(INSTANCE);
+    BpfProgram prog = new BpfProgram(rt);
+    int rc = INSTANCE.pcap_compile(pcap, prog.addr(), expr, optimize ? 1 : 0, netmask);
+    if (rc != 0) {
+      String msg = "(no detail)";
+      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      throw new IllegalStateException("pcap_compile failed rc=" + rc + " expr=" + expr + " err=" + msg);
+    }
+    return prog;
+  }
+
+  static void setFilterOrThrow(Pointer pcap, BpfProgram prog) {
+    int rc = INSTANCE.pcap_setfilter(pcap, prog.addr());
+    if (rc != 0) {
+      String msg = "(no detail)";
+      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      throw new IllegalStateException("pcap_setfilter failed rc=" + rc + " err=" + msg);
+    }
+  }
+
+  static void freeFilter(BpfProgram prog) {
+    INSTANCE.pcap_freecode(prog.addr());
+  }
 }

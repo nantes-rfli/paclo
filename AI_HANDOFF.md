@@ -1,7 +1,7 @@
 # AI_HANDOFF (auto-generated)
 
-- commit: 5e8b110
-- generated: 2025-08-23 06:12:40 UTC
+- commit: ec48f07
+- generated: 2025-08-23 07:18:11 UTC
 
 ## How to run
 \`clj -M:test\` / \`clj -T:build jar\`
@@ -869,6 +869,35 @@ echo "Wrote $out"
         loader  (LibraryLoader/create PcapLibrary)]
     (.load loader libname)))
 
+;; --- constants (use before any functions) ---
+(def ^:const PCAP_ERRBUF_SIZE 256)
+(def ^:private ^:const BPF_PROG_BYTES 16)
+
+(defn ^:private lookup-netmask
+  "デバイス名から netmask を取得。失敗時は 0 を返す。"
+  ^Integer [^String device]
+  (let [err   (Memory/allocate rt PCAP_ERRBUF_SIZE)
+        netp  (IntByReference.)
+        maskp (IntByReference.)
+        rc    (.pcap_lookupnet lib device netp maskp err)]
+    (if (neg? rc)
+      0
+      (.getValue maskp))))
+
+(defn ^:private apply-filter!
+  "pcap ハンドルに BPF フィルタを適用。opts 例:
+   {:filter \"udp and port 53\" :optimize? true :netmask 0}"
+  [^Pointer pcap {:keys [filter optimize? netmask]}]
+  (when (and pcap (some? filter) (not (str/blank? filter)))
+    (let [opt?  (if (nil? optimize?) true optimize?)
+          mask  (int (or netmask 0))]         ;; ★ 既定は 0（不明）
+      (let [prog (PcapLibrary/compileFilter pcap filter opt? mask)]
+        (try
+          (PcapLibrary/setFilterOrThrow pcap prog)
+          (finally
+            (PcapLibrary/freeFilter prog))))))
+  pcap)
+
 (defn- blank-str? [^String s]
   (or (nil? s) (re-find #"^\s*$" s)))
 
@@ -876,25 +905,31 @@ echo "Wrote $out"
   (let [t (when s (str/trim s))]
     (when (and t (not (blank-str? t))) t)))
 
-(def PCAP_ERRBUF_SIZE 256)
-(def ^:private BPF_PROG_BYTES 16)
+(defn open-offline
+  (^Pointer [path]
+   (open-offline path {}))
+  (^Pointer [path {:keys [filter optimize? netmask] :as opts}]
+   (let [err  (Memory/allocate rt PCAP_ERRBUF_SIZE)
+         pcap (.pcap_open_offline lib path err)]
+     (when (nil? pcap)
+       (throw (ex-info "pcap_open_offline failed"
+                       {:path path :err (.getString err 0)})))
+     (apply-filter! pcap opts))))
 
-(defn open-offline ^Pointer [path]
-  (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
-        pcap (.pcap_open_offline lib path err)]
-    (when (nil? pcap)
-      (throw (ex-info "pcap_open_offline failed"
-                      {:err (.getString err 0)})))
-    pcap))
-
-(defn open-live ^Pointer [{:keys [device snaplen promiscuous? timeout-ms]
-                           :or {snaplen 65536 promiscuous? true timeout-ms 10}}]
-  (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
+(defn open-live ^Pointer
+  [{:keys [device snaplen promiscuous? timeout-ms filter optimize? netmask]
+    :or   {snaplen 65536 promiscuous? true timeout-ms 10}
+    :as   opts}]
+  (let [err     (Memory/allocate rt PCAP_ERRBUF_SIZE)
         promisc (if promiscuous? 1 0)
-        pcap (.pcap_open_live lib device snaplen promisc timeout-ms err)]
+        pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
-      (throw (ex-info "pcap_open_live failed" {:device device :err (.getString err 0)})))
-    pcap))
+      (throw (ex-info "pcap_open_live failed"
+                      {:device device :err (.getString err 0)})))
+    ;; ★ netmask 未指定ならデバイスから解決（失敗時は 0 が返る）
+    (let [resolved-mask (or netmask (when device (lookup-netmask device)))
+          opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
+      (apply-filter! pcap opts*))))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
 
@@ -1619,11 +1654,19 @@ echo "Wrote $out"
 ```java
 package paclo.jnr;
 
+import jnr.ffi.LibraryLoader;
+import jnr.ffi.Runtime;
 import jnr.ffi.Pointer;
+import jnr.ffi.Struct;
 import jnr.ffi.byref.PointerByReference;
 import jnr.ffi.byref.IntByReference;
+import paclo.jnr.BpfProgram;
 
 public interface PcapLibrary {
+
+  /** libpcap ローダ（Clojure側からも直接使えるようにしておく） */
+  PcapLibrary INSTANCE = LibraryLoader.create(PcapLibrary.class).load("pcap");
+
   // open/close
   Pointer pcap_open_offline(String fname, Pointer errbuf);
   Pointer pcap_open_live(String device, int snaplen, int promisc, int to_ms, Pointer errbuf);
@@ -1663,6 +1706,32 @@ public interface PcapLibrary {
   void    pcap_freealldevs(jnr.ffi.Pointer alldevs);
 
   int     pcap_lookupnet(String device, IntByReference netp, IntByReference maskp, Pointer errbuf);
+
+  // ===== BPF ヘルパー（利便性向上・例外で失敗がわかるように） =====
+  static BpfProgram compileFilter(Pointer pcap, String expr, boolean optimize, int netmask) {
+    Runtime rt = Runtime.getRuntime(INSTANCE);
+    BpfProgram prog = new BpfProgram(rt);
+    int rc = INSTANCE.pcap_compile(pcap, prog.addr(), expr, optimize ? 1 : 0, netmask);
+    if (rc != 0) {
+      String msg = "(no detail)";
+      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      throw new IllegalStateException("pcap_compile failed rc=" + rc + " expr=" + expr + " err=" + msg);
+    }
+    return prog;
+  }
+
+  static void setFilterOrThrow(Pointer pcap, BpfProgram prog) {
+    int rc = INSTANCE.pcap_setfilter(pcap, prog.addr());
+    if (rc != 0) {
+      String msg = "(no detail)";
+      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      throw new IllegalStateException("pcap_setfilter failed rc=" + rc + " err=" + msg);
+    }
+  }
+
+  static void freeFilter(BpfProgram prog) {
+    INSTANCE.pcap_freecode(prog.addr());
+  }
 }
 ```
 
@@ -2158,10 +2227,10 @@ indent_style = space
 indent_size = 2
 ```
 
-## Environment snapshot (2025-08-23 06:12:40 UTC)
+## Environment snapshot (2025-08-23 07:18:11 UTC)
 
 ```
-git commit: 5e8b110b2e10
+git commit: ec48f0727c36
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
