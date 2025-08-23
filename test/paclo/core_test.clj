@@ -81,3 +81,14 @@
                                    (filter #(>= (:caplen %) 60))
                                    (map :caplen))})]
       (is (= [60 60] (into [] xs))))))
+
+(deftest bpf-dsl-error-cases
+  ;; フォーム型が不正
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unsupported bpf form"
+                        (sut/bpf 123)))
+  ;; 未知のトップレベルキーワード（実装により "unknown keyword" or "unknown proto keyword"） 
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown (proto )?keyword"
+                        (sut/bpf :foo)))
+  ;; 未知の演算子
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown op"
+                        (sut/bpf [:huh 1 2 3]))))

@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 3965c7a
-- generated: 2025-08-23 15:56:26 UTC
+- commit: f76f6c6
+- generated: 2025-08-23 16:12:09 UTC
 
 ## Primary docs（必読）
 
@@ -2611,6 +2611,17 @@ public interface PcapLibrary {
                                    (filter #(>= (:caplen %) 60))
                                    (map :caplen))})]
       (is (= [60 60] (into [] xs))))))
+
+(deftest bpf-dsl-error-cases
+  ;; フォーム型が不正
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unsupported bpf form"
+                        (sut/bpf 123)))
+  ;; 未知のトップレベルキーワード（実装により "unknown keyword" or "unknown proto keyword"） 
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown (proto )?keyword"
+                        (sut/bpf :foo)))
+  ;; 未知の演算子
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown op"
+                        (sut/bpf [:huh 1 2 3]))))
 ```
 
 ### test/paclo/test_util.clj
@@ -2701,7 +2712,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 3965c7ab3651
+git commit: f76f6c602ebb
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

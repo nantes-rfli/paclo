@@ -20,13 +20,14 @@
 
 ### P0: 基盤を OSS-ready に（v0.2）
 **目的**: 最小価値の安定提供と外部利用の障壁ゼロ化  
-- [ ] `:xform` 実装（transducer対応）
-- [ ] BPF DSL `:proto/:net/:not` 拡張
+- [x] `:xform` 実装（transducer対応）
+- [x] BPF DSL `:proto/:net/:not` 拡張
 - [ ] L2/L3/L4 最小デコード（Ethernet/IPv4/IPv6/TCP/UDP/ICMP）
-- [ ] Golden PCAP & 往復テスト
+- [x] Golden PCAP & 往復テスト
 - [ ] README 整備（cljdoc バッジ, クイックスタート）
 - [ ] CHANGELOG 初版 / SemVer 宣言
 - [ ] CI ビルド安定化（Java クラス）
+- [x] `list-devices` のファサード + 最小テスト
 
 ---
 
