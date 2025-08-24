@@ -1,47 +1,77 @@
 (ns examples.pcap-filter
   (:require
+   [clojure.data.json :as json]
    [paclo.core :as core]))
 
-(defn -usage []
+(defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.pcap-filter <in.pcap> <out.pcap> [<bpf-string>] [<min-caplen>]")))
+    (println "  clojure -M:dev -m examples.pcap-filter <in.pcap> <out.pcap> [<bpf-string>] [<min-caplen>] [<format>]")
+    (println)
+    (println "Defaults:")
+    (println "  <bpf-string> = (none)")
+    (println "  <min-caplen> = (none)")
+    (println "  <format>     = edn | jsonl   (default: edn)")
+    (println)
+    (println "Examples:")
+    (println "  clojure -M:dev -m examples.pcap-filter dns-sample.pcap out.pcap")
+    (println "  clojure -M:dev -m examples.pcap-filter dns-sample.pcap out-dns.pcap 'udp and port 53'")
+    (println "  clojure -M:dev -m examples.pcap-filter dns-sample.pcap out-dns60.pcap 'udp and port 53' 60 jsonl")))
+
+;; clojure.core/parse-long と衝突しないようリネーム
+(defn- parse-long-opt [s]
+  (try (some-> s Long/parseLong) (catch Exception _ nil)))
 
 (defn -main
-  "Read a PCAP, (optionally) apply BPF and a caplen filter, and write out a new PCAP
-   while preserving timestamps. Prints how many packets were written.
-
-   Examples:
-     clojure -M:dev -m examples.pcap-filter in.pcap out.pcap
-     clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53'
-     clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60"
+  "PCAP を読み、任意の BPF と最小 caplen を適用して書き出す。
+   末尾の <format> が jsonl のとき、メタ情報を 1 行 JSON で出力する。"
   [& args]
-  (let [[in out bpf-str min-caplen-str] args]
+  (let [[in out bpf min-caplen-str fmt-str] args]
     (when (or (nil? in) (nil? out))
-      (-usage) (System/exit 1))
-    (let [min-caplen (when min-caplen-str (long (Long/parseLong min-caplen-str)))
-          wrote      (volatile! 0)
-          ;; ★ 修正点：filter を map より「前」に置く
-          make-out   (fn [m]
-                       (vswap! wrote inc)                     ; ← フィルタ通過後にカウント
-                       (let [ba (:bytes m)
-                             s  (:sec m)
-                             us (:usec m)]
-                         (cond-> {:bytes ba}
-                           s  (assoc :sec s)
-                           us (assoc :usec us))))
-          xf         (if min-caplen
-                       (comp
-                        (filter #(>= (:caplen %) min-caplen))
-                        (map make-out))
-                       (map make-out))]
+      (usage) (System/exit 1))
+    (let [min-caplen (parse-long-opt min-caplen-str)
+          fmt        (keyword (or fmt-str "edn"))]
       (println "reading:" in)
       (println "writing:" out)
-      (let [opts (cond-> {:path in
-                          :decode? false
-                          :xform xf
-                          :max Long/MAX_VALUE}
-                   bpf-str (assoc :filter bpf-str))
-            stream (core/packets opts)]
-        (core/write-pcap! stream out)
-        (println "done. wrote packets =" @wrote)))))
+      (let [{:keys [sel out-pkts out-bytes in-pkts in-bytes]}
+            (reduce
+             (fn [{:keys [sel out-pkts out-bytes in-pkts in-bytes] :as st} m]
+               (let [cap (long (or (:caplen m) 0))
+                     st' (-> st
+                             (assoc :in-pkts  (inc (long in-pkts)))
+                             (assoc :in-bytes (+ (long in-bytes) cap)))]
+                 (if (and (or (nil? min-caplen) (>= cap (long min-caplen))))
+                   (if-let [raw (:raw m)]                        ;; ← :raw が nil のものはスキップ
+                     (-> st'
+                         (update :sel conj raw)
+                         (assoc :out-pkts  (inc (long out-pkts)))
+                         (assoc :out-bytes (+ (long out-bytes) cap)))
+                     st')
+                   st')))
+             {:sel [] :out-pkts 0 :out-bytes 0 :in-pkts 0 :in-bytes 0}
+             (core/packets
+              (merge {:path in
+                      :max Long/MAX_VALUE
+                      :decode? false}         ;; ← 必ず raw が付くように明示
+                     (when bpf {:filter bpf}))))]
+
+        ;; 書き出し（nil は弾いているので NPE 不発）
+        (core/write-pcap! sel out)
+        (println "done. wrote packets =" out-pkts)
+
+        ;; メタ出力
+        (let [drop-pct (if (pos? in-pkts)
+                         (* 100.0 (- 1.0 (/ (double out-pkts) (double in-pkts))))
+                         0.0)
+              meta {:in in
+                    :out out
+                    :filter bpf
+                    :min-caplen min-caplen
+                    :in-packets in-pkts
+                    :out-packets out-pkts
+                    :drop-pct drop-pct
+                    :in-bytes in-bytes
+                    :out-bytes out-bytes}]
+          (case fmt
+            :jsonl (do (json/write meta *out*) (println))
+            (println (pr-str meta))))))))
