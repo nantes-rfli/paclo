@@ -4,8 +4,10 @@
 
 (defn- nanos->ms [n] (double (/ n 1e6)))
 
-(defn- gen-bytes [n ^byte fill]
-  (byte-array (repeat n (byte fill))))
+(defn- gen-bytes [n fill]
+  ;; ^byte 型ヒントは使わず、内部で byte キャストする
+  (let [b (byte fill)]
+    (byte-array (repeat n b))))
 
 (defn -main
   "Synthetic micro-bench:
@@ -20,8 +22,8 @@
   (let [n   (long (or (some-> args first Long/parseLong) 100000))
         tmp (-> (java.io.File/createTempFile "paclo-bench" ".pcap")
                 .getAbsolutePath)
-        pkt60 (gen-bytes 60 (byte 0))
-        pkt42 (gen-bytes 42 (byte 1))
+        pkt60 (gen-bytes 60 0)
+        pkt42 (gen-bytes 42 1)
         ;; ~50% pass / 50% drop for :xform filter
         data (take n (cycle [pkt60 pkt42]))]
     (println "Writing" n "packets to" tmp)
