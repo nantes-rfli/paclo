@@ -18,7 +18,7 @@
     (println "  clojure -M:dev -m examples.pcap-filter dns-sample.pcap out-dns.pcap 'udp and port 53'")
     (println "  clojure -M:dev -m examples.pcap-filter dns-sample.pcap out-dns60.pcap 'udp and port 53' 60 jsonl")))
 
-;; clojure.core/parse-long と衝突しないようリネーム
+;; clojure.core/parse-long と衝突しないように別名で
 (defn- parse-long-opt [s]
   (try (some-> s Long/parseLong) (catch Exception _ nil)))
 
@@ -36,14 +36,14 @@
       (let [{:keys [sel out-pkts out-bytes in-pkts in-bytes]}
             (reduce
              (fn [{:keys [sel out-pkts out-bytes in-pkts in-bytes] :as st} m]
-               (let [cap (long (or (:caplen m) 0))
-                     st' (-> st
-                             (assoc :in-pkts  (inc (long in-pkts)))
-                             (assoc :in-bytes (+ (long in-bytes) cap)))]
+               (let [cap  (long (or (:caplen m) 0))
+                     st'  (-> st
+                              (assoc :in-pkts  (inc (long in-pkts)))
+                              (assoc :in-bytes (+ (long in-bytes) cap)))]
                  (if (and (or (nil? min-caplen) (>= cap (long min-caplen))))
-                   (if-let [raw (:raw m)]                        ;; ← :raw が nil のものはスキップ
+                   (if-let [ba (:bytes m)]            ;; ← 生バイトは :bytes
                      (-> st'
-                         (update :sel conj raw)
+                         (update :sel conj ba)        ;; writer に byte-array を渡す
                          (assoc :out-pkts  (inc (long out-pkts)))
                          (assoc :out-bytes (+ (long out-bytes) cap)))
                      st')
@@ -52,10 +52,10 @@
              (core/packets
               (merge {:path in
                       :max Long/MAX_VALUE
-                      :decode? false}         ;; ← 必ず raw が付くように明示
+                      :decode? false}        ;; ← デコード不要（:bytes だけ使う）
                      (when bpf {:filter bpf}))))]
 
-        ;; 書き出し（nil は弾いているので NPE 不発）
+        ;; 書き出し
         (core/write-pcap! sel out)
         (println "done. wrote packets =" out-pkts)
 
