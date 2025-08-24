@@ -1,5 +1,6 @@
 (ns examples.dns-rtt
   (:require
+   [clojure.data.json :as json]
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
 
@@ -8,19 +9,20 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>]")
+    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>]")
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
     (println "  <topN>       = 50   (pairs/qstats の表示上限)")
     (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
-    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats の並び替え指標; default: pairs)")
+    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats の並び替え; default: pairs)")
+    (println "  <format>     = edn | jsonl (default: edn)")
     (println)
     (println "Examples:")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 10")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95")))
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats jsonl")
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl")))
 
 ;; -------- time & endpoint helpers --------
 
@@ -147,15 +149,17 @@
    - qname/qtype/rcode は best-effort（dns-ext を登録）
    - mode=pairs : :rtt-ms 昇順のペア（Top-N）
    - mode=stats : 全体のRTT統計とRCODE分布
-   - mode=qstats: qname別統計（Top-N、metric で並び替え）"
+   - mode=qstats: qname別統計（Top-N、metric で並び替え）
+   - format=edn | jsonl"
   [& args]
-  (let [[in bpf-str topn-str mode-str metric-str] args]
+  (let [[in bpf-str topn-str mode-str metric-str fmt-str] args]
     (when (nil? in)
       (usage) (System/exit 1))
     (let [bpf    (or bpf-str "udp and port 53")
           topN   (long (or (some-> topn-str Long/parseLong) 50))
           mode   (keyword (or mode-str "pairs"))
-          metric (keyword (or metric-str "pairs"))]
+          metric (keyword (or metric-str "pairs"))
+          fmt    (keyword (or fmt-str "edn"))]
       (dns-ext/register!)
       ;; まずはペア一覧（rows）を構築
       (let [rows (->> (core/packets {:path in
@@ -205,24 +209,35 @@
                      :with-rtt (:count rtt)
                      :rtt rtt
                      :rcode rc}]
-            (println (pr-str out))
+            (case fmt
+              :jsonl (do (json/write out *out*) (println))
+              ;; default edn
+              (println (pr-str out)))
             (binding [*out* *err*]
-              (println "mode=stats bpf=" (pr-str bpf))))
+              (println "mode=stats bpf=" (pr-str bpf) " format=" (name fmt))))
 
           :qstats
-          (let [qs   (summarize-qstats rows)
-                keyf (metric->keyfn metric)
+          (let [qs    (summarize-qstats rows)
+                keyf  (metric->keyfn metric)
                 ranked (->> qs (sort-by keyf >) (take topN) vec)]
-            (println (pr-str ranked))
+            (case fmt
+              :jsonl (doseq [row ranked] (json/write row *out*) (println))
+              (println (pr-str ranked)))
             (binding [*out* *err*]
               (println "mode=qstats metric=" (name metric)
                        " topN=" topN
                        " qnames=" (count qs)
-                       " bpf=" (pr-str bpf))))
+                       " bpf=" (pr-str bpf)
+                       " format=" (name fmt))))
 
           ;; default: pairs
           (let [sorted (->> rows (sort-by (fn [{x :rtt-ms}] (if (number? x) x Double/POSITIVE_INFINITY)))
                             (take topN) vec)]
-            (println (pr-str sorted))
+            (case fmt
+              :jsonl (doseq [row sorted] (json/write row *out*) (println))
+              (println (pr-str sorted)))
             (binding [*out* *err*]
-              (println "pairs=" (count rows) " topN=" topN " bpf=" (pr-str bpf)))))))))
+              (println "pairs=" (count rows)
+                       " topN=" topN
+                       " bpf=" (pr-str bpf)
+                       " format=" (name fmt)))))))))
