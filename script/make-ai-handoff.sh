@@ -176,6 +176,8 @@ for pair in \
   "java:src-java/paclo/jnr/PcapLibrary.java" \
   "clojure:test/paclo/parse_test.clj" \
   "clojure:test/paclo/core_test.clj" \
+  "clojure:test/paclo/list_devices_test.clj" \
+  "clojure:test/paclo/golden_test.clj" \
   "clojure:test/paclo/test_util.clj" \
   "edn:.clj-kondo/config.edn"
 do
@@ -186,6 +188,12 @@ do
     emit_file "${lang}" "${path}"
   fi
 done
+
+# Also embed the CI workflow so it is always carried in the handoff
+if [[ -f ".github/workflows/ci.yml" ]]; then
+  echo "### .github/workflows/ci.yml" >> "${out}"
+  emit_file "yaml" ".github/workflows/ci.yml"
+fi
 
 # -----------------------------------------------------------------------------
 # 整形運用ポリシー

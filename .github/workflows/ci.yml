@@ -6,8 +6,16 @@ on:
   pull_request:
     branches: [ main, master ]
 
+# 同じブランチでの重複ジョブはキャンセル（高速化）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,18 +28,22 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Clojure (tools.deps)
+      - name: Set up Clojure ecosystem
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: 'latest'   # clojure CLI
+          cli: '1.11.3.1453'
+          clj-kondo: 'latest'
+          cljfmt: 'latest'
+          clojure-lsp: 'latest'
 
-      - name: Cache ~/.m2 and ~/.gitlibs
+      - name: Cache Clojure deps
         uses: actions/cache@v4
         with:
           path: |
-            ~/.m2/repository
+            ~/.m2
             ~/.gitlibs
-          key: cljdeps-${{ runner.os }}-${{ hashFiles('deps.edn') }}
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
             cljdeps-${{ runner.os }}-
 
@@ -41,8 +53,7 @@ jobs:
           (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
 
       - name: Run unit tests
-        run: clojure -M:test
+        run: clj -M:test
 
-      # 任意：ビルドが通るかもチェック（tools.build）
-      - name: Build JAR (optional)
-        run: clojure -T:build jar
+      - name: Lint / Format (dry-run)
+        run: clojure-lsp format --dry

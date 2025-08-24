@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: ff20672
-- generated: 2025-08-23 16:29:02 UTC
+- commit: dc1a3c6
+- generated: 2025-08-24 00:37:18 UTC
 
 ## Primary docs（必読）
 
@@ -271,6 +271,8 @@ for pair in \
   "java:src-java/paclo/jnr/PcapLibrary.java" \
   "clojure:test/paclo/parse_test.clj" \
   "clojure:test/paclo/core_test.clj" \
+  "clojure:test/paclo/list_devices_test.clj" \
+  "clojure:test/paclo/golden_test.clj" \
   "clojure:test/paclo/test_util.clj" \
   "edn:.clj-kondo/config.edn"
 do
@@ -281,6 +283,12 @@ do
     emit_file "${lang}" "${path}"
   fi
 done
+
+# Also embed the CI workflow so it is always carried in the handoff
+if [[ -f ".github/workflows/ci.yml" ]]; then
+  echo "### .github/workflows/ci.yml" >> "${out}"
+  emit_file "yaml" ".github/workflows/ci.yml"
+fi
 
 # -----------------------------------------------------------------------------
 # 整形運用ポリシー
@@ -2624,6 +2632,85 @@ public interface PcapLibrary {
                         (sut/bpf [:huh 1 2 3]))))
 ```
 
+### test/paclo/list_devices_test.clj
+```clojure
+(ns paclo.list-devices-test
+  (:require
+   [clojure.test :refer :all]
+   [paclo.core :as sut]))
+
+(deftest list-devices-basic-shape
+  ;; 実環境に依存しない緩めの検証：
+  ;; - 例外を投げないこと
+  ;; - ベクタであること
+  ;; - 各要素は {:name string, :desc (string|nil)} の形
+  (let [xs (sut/list-devices)]
+    (is (vector? xs))
+    (doseq [m xs]
+      (is (map? m))
+      (is (contains? m :name))
+      (is (string? (:name m)))
+      (is (not (re-find #"^\s*$" (:name m))))
+      (is (contains? m :desc))
+      (when-let [d (:desc m)]
+        (is (string? d))))))
+```
+
+### test/paclo/golden_test.clj
+```clojure
+(ns paclo.golden-test
+  (:require
+   [clojure.test :refer :all]
+   [paclo.core :as core]
+   [paclo.test-util :as tu]))
+
+(deftest golden-roundtrip-and-decode
+  (let [tmp  (-> (java.io.File/createTempFile "paclo-gold" ".pcap")
+                 .getAbsolutePath)
+        ;; 1) 生のイーサ最小相当（60B）
+        ether60 (byte-array (repeat 60 (byte 0)))
+        ;; 2) IPv4/UDP/DNS(最小) サンプル（parse_test に合わせた最小ベクトル）
+        ipv4-udp-dns
+        (tu/hex->bytes
+         "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
+          45 00 00 30 00 02 00 00 40 11 00 00
+          C0 A8 01 64 08 08 08 08
+          13 88 00 35 00 18 00 00
+          00 3B 01 00 00 01 00 00 00 00 00 00 00 00 00 00")
+        ;; 3) IPv6/UDP(4B) 最小
+        ipv6-udp-min
+        (tu/hex->bytes
+         "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
+          60 00 00 00 00 0C 11 40
+          20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
+          20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
+          12 34 56 78 00 0C 00 00
+          DE AD BE EF")]
+    ;; 書く → 読む
+    (core/write-pcap! [ether60 ipv4-udp-dns ipv6-udp-min] tmp)
+
+    (testing "decode? false (素通し)"
+      (let [xs (vec (core/packets {:path tmp}))]
+        (is (= 3 (count xs)))
+        (is (every? #(contains? % :bytes) xs))))
+
+    (testing "decode? true（例外を投げず :decoded or :decode-error を付ける）"
+      (let [xs (vec (core/packets {:path tmp :decode? true}))]
+        (is (= 3 (count xs)))
+        (is (every? #(or (contains? % :decoded)
+                         (contains? % :decode-error)) xs))
+        ;; 2つ目: IPv4/UDP/DNS が取れていること
+        (let [m (nth xs 1)]
+          (is (= :ipv4 (get-in m [:decoded :l3 :type])))
+          (is (= :udp  (get-in m [:decoded :l3 :l4 :type])))
+          (is (= :dns  (get-in m [:decoded :l3 :l4 :app :type]))))
+        ;; 3つ目: IPv6/UDP 最小
+        (let [m (nth xs 2)]
+          (is (= :ipv6 (get-in m [:decoded :l3 :type])))
+          (is (= :udp  (get-in m [:decoded :l3 :l4 :type])))
+          (is (= 4     (get-in m [:decoded :l3 :l4 :data-len]))))))))
+```
+
 ### test/paclo/test_util.clj
 ```clojure
 (ns paclo.test-util
@@ -2652,6 +2739,68 @@ public interface PcapLibrary {
   paclo.pcap/with-live     clojure.core/let
   paclo.pcap/with-offline  clojure.core/let}}
 ```
+
+### .github/workflows/ci.yml
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+# 同じブランチでの重複ジョブはキャンセル（高速化）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Clojure ecosystem
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: '1.11.3.1453'
+          clj-kondo: 'latest'
+          cljfmt: 'latest'
+          clojure-lsp: 'latest'
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        run: |
+          clj -T:build jar || \
+          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
+      - name: Run unit tests
+        run: clj -M:test
+
+      - name: Lint / Format (dry-run)
+        run: clojure-lsp format --dry```
 
 ## 整形運用ポリシー（2025-08 更新）
 
@@ -2712,7 +2861,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: ff20672a25d6
+git commit: dc1a3c667a59
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
