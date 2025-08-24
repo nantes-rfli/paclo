@@ -9,7 +9,7 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>]")
+    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]")
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
@@ -17,12 +17,12 @@
     (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
     (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats の並び替え; default: pairs)")
     (println "  <format>     = edn | jsonl (default: edn)")
+    (println "  <alert%>     = しきい値（例: 5 → 5%）。未指定なら警告なし。")
     (println)
     (println "Examples:")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 10")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats jsonl")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl")))
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl 10")))
 
 ;; -------- time & endpoint helpers --------
 
@@ -140,6 +140,16 @@
     ;; default
     (fn [{:keys [pairs]}] (long (or pairs 0)))))
 
+(defn- overall-error-rate
+  "rows から NXDOMAIN/SERVFAIL の合計率（0.0..1.0）と counts を返す。"
+  [rows]
+  (let [pairs (max 1 (count rows))
+        cnts  (frequencies (map #(or (:rcode %) :unknown) rows))
+        ne    (long (get cnts :nxdomain 0))
+        sf    (long (get cnts :servfail 0))
+        rate  (/ (+ ne sf) (double pairs))]
+    {:rate rate :counts {:nxdomain ne :servfail sf :total pairs}}))
+
 ;; -------- main --------
 
 (defn -main
@@ -150,16 +160,18 @@
    - mode=pairs : :rtt-ms 昇順のペア（Top-N）
    - mode=stats : 全体のRTT統計とRCODE分布
    - mode=qstats: qname別統計（Top-N、metric で並び替え）
-   - format=edn | jsonl"
+   - format=edn | jsonl
+   - alert%: NXDOMAIN+SERVFAIL が超えたら WARNING"
   [& args]
-  (let [[in bpf-str topn-str mode-str metric-str fmt-str] args]
+  (let [[in bpf-str topn-str mode-str metric-str fmt-str alert-str] args]
     (when (nil? in)
       (usage) (System/exit 1))
     (let [bpf    (or bpf-str "udp and port 53")
           topN   (long (or (some-> topn-str Long/parseLong) 50))
           mode   (keyword (or mode-str "pairs"))
           metric (keyword (or metric-str "pairs"))
-          fmt    (keyword (or fmt-str "edn"))]
+          fmt    (keyword (or fmt-str "edn"))
+          alert% (some-> alert-str Double/parseDouble)]
       (dns-ext/register!)
       ;; まずはペア一覧（rows）を構築
       (let [rows (->> (core/packets {:path in
@@ -201,6 +213,17 @@
                              {:pending pending :out out})))
                        {:pending {} :out []})
                       :out)]
+        ;; しきい値アラート（mode に関係なく全体 rows を対象）
+        (when alert%
+          (let [{:keys [rate counts]} (overall-error-rate rows)
+                pct (* 100.0 rate)]
+            (when (>= pct alert%)
+              (binding [*out* *err*]
+                (println "WARNING: DNS error rate"
+                         (format "%.2f%%" pct)
+                         ">= threshold" (format "%.2f%%" alert%)
+                         "details" (pr-str counts))))))
+
         (case mode
           :stats
           (let [rtt (summarize-rtt rows)
@@ -211,7 +234,6 @@
                      :rcode rc}]
             (case fmt
               :jsonl (do (json/write out *out*) (println))
-              ;; default edn
               (println (pr-str out)))
             (binding [*out* *err*]
               (println "mode=stats bpf=" (pr-str bpf) " format=" (name fmt))))
