@@ -1,5 +1,10 @@
 # Paclo
 
+[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)
+
+> ※ Clojars 公開前は暫定表示です。公開後に自動で有効化されます。
+
 Paclo is a Clojure library for packet capture (pcap) input/output and filtering.  
 It provides a Clojure-friendly API for reading, writing, and filtering packets with BPF DSL support.
 
