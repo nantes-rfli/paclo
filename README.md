@@ -86,6 +86,18 @@ clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap
 clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out-dns.pcap 'udp and port 53' 0 jsonl
 ```
 
+### TLS SNI scan (EDN / JSONL)
+
+Extract Server Name Indication (SNI) from TLS ClientHello (best-effort; single-segment only).
+
+```bash
+# Top 50 SNI over port 443
+clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap
+
+# With BPF, topN=10, JSONL
+clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl
+```
+
 ### List devices (human-friendly on macOS)
 
 ```clojure
