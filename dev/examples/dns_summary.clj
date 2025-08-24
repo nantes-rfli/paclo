@@ -35,11 +35,15 @@
                   rcode   (some-> (:rcode-name app) keyword)
                   qd      (:qdcount app)
                   an      (:ancount app)
+                  qname   (:qname app)
+                  qtype   (:qtype-name app)
                   src     (str (get-in pkt [:decoded :l3 :src]) ":" (:src-port l4))
                   dst     (str (get-in pkt [:decoded :l3 :dst]) ":" (:dst-port l4))]
-              {:dir dir :id id :rcode rcode
-               :questions qd :answers an
-               :src src :dst dst}))]
+              (cond-> {:dir dir :id id :rcode rcode
+                       :questions qd :answers an
+                       :src src :dst dst}
+                qname (assoc :qname qname)
+                qtype (assoc :qtype qtype))))]
       (let [xf (comp
                 (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
                 (map summarize))
