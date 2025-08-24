@@ -1,12 +1,15 @@
 target/
 .cpcache/
-.lsp/
 .calva/
 .idea/
 .DS_Store
 target/classes/# Tooling caches / REPL
 .clj-kondo/
 .nrepl-port
+
+# Keep clojure-lsp cache ignored but track project config
+.lsp/*
+!.lsp/config.edn
 
 # Clojure build caches (念のため)
 classes/

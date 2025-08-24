@@ -1,0 +1,14 @@
+{:project-specs
+ [{:project-path "deps.edn"
+   :classpath-cmd ["clojure" "-Spath"]}]
+
+ :source-paths ["src" "src-java" "test" "dev"]
+ 
+ :cljfmt
+ {:remove-trailing-whitespace? true
+  :remove-consecutive-blank-lines? true
+  :insert-missing-whitespace? true
+  :remove-multiple-non-indenting-spaces? false
+  :extra-indents {deftest [[:block 1]]
+                  testing [[:block 1]]
+                  is      [[:block 1]]}}}

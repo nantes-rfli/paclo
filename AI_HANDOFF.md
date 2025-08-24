@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 80453f2
-- generated: 2025-08-24 05:50:13 UTC
+- commit: 1ef2e29
+- generated: 2025-08-24 06:01:59 UTC
 
 ## Primary docs（必読）
 
@@ -2878,8 +2878,10 @@ CLI 実行時は問題なし → 保存時整形を切り、CLI に統一。
 ```edn
 {:project-specs
  [{:project-path "deps.edn"
-   :classpath-cmd ["clojure" "-Spath" "-M:test"]}]
+   :classpath-cmd ["clojure" "-Spath"]}]
 
+ :source-paths ["src" "src-java" "test" "dev"]
+ 
  :cljfmt
  {:remove-trailing-whitespace? true
   :remove-consecutive-blank-lines? true
@@ -2905,7 +2907,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 80453f2c8f17
+git commit: 1ef2e294f083
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
