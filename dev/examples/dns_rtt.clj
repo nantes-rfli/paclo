@@ -1,6 +1,7 @@
 (ns examples.dns-rtt
   (:require
    [clojure.data.json :as json]
+   [clojure.string :as str]
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
 
@@ -9,20 +10,25 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]")
+    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap>"
+             " [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]"
+             " [--client <prefix>] [--server <prefix>]")
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
     (println "  <topN>       = 50   (pairs/qstats の表示上限)")
     (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
-    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats の並び替え; default: pairs)")
+    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats 並び替え; default: pairs)")
     (println "  <format>     = edn | jsonl (default: edn)")
-    (println "  <alert%>     = しきい値（例: 5 → 5%）。未指定なら警告なし。")
+    (println "  <alert%>     = NXDOMAIN+SERVFAIL 率の警告しきい値（例: 5 → 5%）")
+    (println "  --client/-c  <prefix>  例: 192.168.4.28  or  192.168.4.28:5")
+    (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
     (println)
     (println "Examples:")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap")
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 10")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl 10")))
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl --server 1.1.1.1:53")))
 
 ;; -------- time & endpoint helpers --------
 
@@ -150,6 +156,42 @@
         rate  (/ (+ ne sf) (double pairs))]
     {:rate rate :counts {:nxdomain ne :servfail sf :total pairs}}))
 
+;; -------- option parsing & endpoint filtering --------
+
+(defn- parse-filters
+  "末尾オプションから --client/-c / --server/-s を抽出。"
+  [opts]
+  (loop [m {:client nil :server nil}
+         xs (seq opts)]
+    (if (nil? xs)
+      m
+      (let [[a & more] xs]
+        (cond
+          (and (#{"--client" "-c"} a) (seq more))
+          (recur (assoc m :client (first more)) (next more))
+
+          (and (#{"--server" "-s"} a) (seq more))
+          (recur (assoc m :server (first more)) (next more))
+
+          :else
+          (recur m (next xs)))))))
+
+(defn- match-prefix? [^String prefix ^String s]
+  (or (nil? prefix)
+      (and (string? s) (str/starts-with? s prefix))))
+
+(defn- apply-endpoint-filters
+  "client/server の前方一致で rows をフィルタ。"
+  [{cf :client sf :server} rows]
+  (if (and (nil? cf) (nil? sf))
+    rows
+    (filterv (fn [row]
+               (let [c (:client row)
+                     s (:server row)]
+                 (and (match-prefix? cf c)
+                      (match-prefix? sf s))))
+             rows)))
+
 ;; -------- main --------
 
 (defn -main
@@ -161,59 +203,65 @@
    - mode=stats : 全体のRTT統計とRCODE分布
    - mode=qstats: qname別統計（Top-N、metric で並び替え）
    - format=edn | jsonl
-   - alert%: NXDOMAIN+SERVFAIL が超えたら WARNING"
+   - alert%: NXDOMAIN+SERVFAIL が超えたら WARNING
+   - --client/--server: 端点の前方一致フィルタ（IP あるいは IP:PORT）"
   [& args]
-  (let [[in bpf-str topn-str mode-str metric-str fmt-str alert-str] args]
+  (let [[in bpf-str topn-str mode-str metric-str fmt-str alert-str & tail-opts] args]
     (when (nil? in)
-      (usage) (System/exit 1))
+      (usage)
+      (System/exit 1))
     (let [bpf    (or bpf-str "udp and port 53")
           topN   (long (or (some-> topn-str Long/parseLong) 50))
           mode   (keyword (or mode-str "pairs"))
           metric (keyword (or metric-str "pairs"))
           fmt    (keyword (or fmt-str "edn"))
-          alert% (some-> alert-str Double/parseDouble)]
+          alert% (some-> alert-str Double/parseDouble)
+          fopts  (parse-filters tail-opts)]
       (dns-ext/register!)
-      ;; まずはペア一覧（rows）を構築
-      (let [rows (->> (core/packets {:path in
-                                     :filter bpf
-                                     :decode? true
-                                     :max Long/MAX_VALUE})
-                      (reduce
-                       (fn [{:keys [pending out]} m]
-                         (let [ba (get-in m [:decoded :l3 :l4 :payload])]
-                           (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
-                             (let [k (canon-key m id)]
-                               (if (not qr?) ; query
-                                 (if (contains? pending k)
-                                   {:pending pending :out out}
-                                   (let [app (get-in m [:decoded :l3 :l4 :app])
-                                         t   (micros m)
-                                         es  (classify-client-server m)]
-                                     {:pending (assoc pending k
-                                                      (merge es
-                                                             {:t t
-                                                              :id id
-                                                              :qname (:qname app)
-                                                              :qtype (:qtype-name app)}))
-                                      :out out}))
-                                  ;; response
-                                 (if-let [{qt :t :as q} (get pending k)]
-                                   (let [rt     (micros m)
-                                         app    (get-in m [:decoded :l3 :l4 :app])
-                                         rcode  (some-> (:rcode-name app) keyword)
-                                         rtt-ms (when (and (number? qt) (number? rt))
-                                                  (double (/ (- rt qt) 1000.0)))]
-                                     {:pending (dissoc pending k)
-                                      :out (conj out
-                                                 (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
-                                                             (assoc :rcode rcode))
-                                                   (and (number? rtt-ms) (not (neg? rtt-ms)))
-                                                   (assoc :rtt-ms rtt-ms)))})
-                                   {:pending pending :out out})))
-                             {:pending pending :out out})))
-                       {:pending {} :out []})
-                      :out)]
-        ;; しきい値アラート（mode に関係なく全体 rows を対象）
+      ;; rows-all を構築
+      (let [rows-all
+            (->> (core/packets {:path in
+                                :filter bpf
+                                :decode? true
+                                :max Long/MAX_VALUE})
+                 (reduce
+                  (fn [{:keys [pending out]} m]
+                    (let [ba (get-in m [:decoded :l3 :l4 :payload])]
+                      (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
+                        (let [k (canon-key m id)]
+                          (if (not qr?) ; query
+                            (if (contains? pending k)
+                              {:pending pending :out out}
+                              (let [app (get-in m [:decoded :l3 :l4 :app])
+                                    t   (micros m)
+                                    es  (classify-client-server m)]
+                                {:pending (assoc pending k
+                                                 (merge es
+                                                        {:t t
+                                                         :id id
+                                                         :qname (:qname app)
+                                                         :qtype (:qtype-name app)}))
+                                 :out out}))
+                             ;; response
+                            (if-let [{qt :t :as q} (get pending k)]
+                              (let [rt     (micros m)
+                                    app    (get-in m [:decoded :l3 :l4 :app])
+                                    rcode  (some-> (:rcode-name app) keyword)
+                                    rtt-ms (when (and (number? qt) (number? rt))
+                                             (double (/ (- rt qt) 1000.0)))]
+                                {:pending (dissoc pending k)
+                                 :out (conj out
+                                            (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
+                                                        (assoc :rcode rcode))
+                                              (and (number? rtt-ms) (not (neg? rtt-ms)))
+                                              (assoc :rtt-ms rtt-ms)))})
+                              {:pending pending :out out})))
+                        {:pending pending :out out})))
+                  {:pending {} :out []})
+                 :out)
+            rows (apply-endpoint-filters fopts rows-all)]
+
+        ;; アラート（フィルタ後 rows を対象）
         (when alert%
           (let [{:keys [rate counts]} (overall-error-rate rows)
                 pct (* 100.0 rate)]
@@ -236,7 +284,10 @@
               :jsonl (do (json/write out *out*) (println))
               (println (pr-str out)))
             (binding [*out* *err*]
-              (println "mode=stats bpf=" (pr-str bpf) " format=" (name fmt))))
+              (println "mode=stats bpf=" (pr-str bpf)
+                       " format=" (name fmt)
+                       " client=" (pr-str (:client fopts))
+                       " server=" (pr-str (:server fopts)))))
 
           :qstats
           (let [qs    (summarize-qstats rows)
@@ -250,10 +301,14 @@
                        " topN=" topN
                        " qnames=" (count qs)
                        " bpf=" (pr-str bpf)
-                       " format=" (name fmt))))
+                       " format=" (name fmt)
+                       " client=" (pr-str (:client fopts))
+                       " server=" (pr-str (:server fopts)))))
 
           ;; default: pairs
-          (let [sorted (->> rows (sort-by (fn [{x :rtt-ms}] (if (number? x) x Double/POSITIVE_INFINITY)))
+          (let [sorted (->> rows
+                            (sort-by (fn [{x :rtt-ms}]
+                                       (if (number? x) x Double/POSITIVE_INFINITY)))
                             (take topN) vec)]
             (case fmt
               :jsonl (doseq [row sorted] (json/write row *out*) (println))
@@ -262,4 +317,6 @@
               (println "pairs=" (count rows)
                        " topN=" topN
                        " bpf=" (pr-str bpf)
-                       " format=" (name fmt)))))))))
+                       " format=" (name fmt)
+                       " client=" (pr-str (:client fopts))
+                       " server=" (pr-str (:server fopts))))))))))
