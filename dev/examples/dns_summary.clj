@@ -1,9 +1,9 @@
 (ns examples.dns-summary
   (:require
-   [clojure.string :as str]
    [clojure.java.io :as io]
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
+
 
 (defn -main
   "Usage:
