@@ -37,6 +37,55 @@ clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 qstats p95
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run examples via `load-file`. See **AI\_HANDOFF.md** for the workaround. Newer setups should prefer `-M:dev -m`.
 
+### DNS RTT with endpoint filters
+
+Compute DNS transaction RTTs and summarize by pairs/stats/qstats.  
+You can filter by endpoint prefix (`--client` / `--server`), where the prefix is `IP` or `IP:PORT`.
+
+```bash
+# Pairs (default), all servers
+clojure -Srepro -M:dev -m examples.dns-rtt in.pcap
+
+# Pairs, only server 1.1.1.1:53
+clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 pairs _ edn _ --server 1.1.1.1:53
+
+# Qname stats, JSONL output, only client 192.168.4.28, sort by p95
+clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
+```
+
+**Notes**
+
+* `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
+* `alert%`（例: `2.5`）を与えると、NXDOMAIN+SERVFAIL がその割合を超えた時に `stderr` に `WARNING` を出力
+* RTT は PCAP にタイムスタンプが無い場合は計算されません（`with-rtt: 0`）
+
+### pcap-stats (EDN / JSONL)
+
+```bash
+# Basic stats (EDN)
+clojure -Srepro -M:dev -m examples.pcap-stats in.pcap
+
+# With BPF, topN=10, JSONL output
+clojure -Srepro -M:dev -m examples.pcap-stats in.pcap 'udp and port 53' 10 jsonl
+```
+
+### flow-topn (EDN / JSONL)
+
+```bash
+# Top flows (bidir, sort by bytes), JSONL output
+clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 bidir bytes jsonl
+```
+
+### pcap-filter (EDN / JSONL meta)
+
+```bash
+# Filter + write out (EDN meta printed to stdout)
+clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap
+
+# With BPF and JSONL meta
+clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out-dns.pcap 'udp and port 53' 0 jsonl
+```
+
 ### List devices (human-friendly on macOS)
 
 ```clojure
