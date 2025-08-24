@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: c1b19e1
-- generated: 2025-08-24 01:29:23 UTC
+- commit: 771e327
+- generated: 2025-08-24 01:36:10 UTC
 
 ## Primary docs（必読）
 
@@ -2792,6 +2792,14 @@ jobs:
           restore-keys: |
             cljdeps-${{ runner.os }}-
 
+      # --- Install clj-kondo & cljfmt binaries with auth to avoid 403 ---
+      - name: Set up Clojure tooling (clj-kondo, cljfmt)
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          clj-kondo: '2024.05.24'
+          cljfmt: '0.13.0'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
         run: |
@@ -2803,9 +2811,16 @@ jobs:
       - name: Run unit tests
         run: clojure -M:test
 
-      # --- Format check without external binaries (avoid 403) ---
-      - name: Lint / Format (cljfmt via deps)
-        run: clojure -Sdeps '{:deps {cljfmt/cljfmt {:mvn/version "0.13.0"}}}' -M -m cljfmt.main check
+      # --- Format check with cljfmt binary; fallback to no-op if missing ---
+      - name: Lint / Format (cljfmt)
+        shell: bash
+        run: |
+          set -e
+          if command -v cljfmt >/dev/null 2>&1; then
+            cljfmt check
+          else
+            echo "cljfmt not found; skipping format check (will be enforced locally & in pre-commit)"
+          fi
 ```
 
 ## 整形運用ポリシー（2025-08 更新）
@@ -2867,7 +2882,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: c1b19e108aa9
+git commit: 771e32703312
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
