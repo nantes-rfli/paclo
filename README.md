@@ -85,3 +85,16 @@ It provides a Clojure-friendly API for reading, writing, and filtering packets w
 
 * cljdoc: `[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)`
 * Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)`
+
+---
+
+## FAQ
+
+**Q. ライブキャプチャが Permission denied になります**  
+A. Linux/macOS では root 権限や特権付与が必要です。`sudo` または libpcap の権限設定をご確認ください。
+
+**Q. パフォーマンスはどの程度ですか？**  
+A. 数十万パケット程度であれば REPL 内で問題なく処理できます。大規模処理は `:xform` で早期フィルタ/マップを推奨します。
+
+**Q. `:decode? true` の挙動は？**  
+A. デコードに失敗しても例外は投げず、各要素に `:decode-error` が付与されます。
