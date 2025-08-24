@@ -20,7 +20,7 @@
     (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
     (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats 並び替え; default: pairs)")
     (println "  <format>     = edn | jsonl (default: edn)")
-    (println "  <alert%>     = NXDOMAIN+SERVFAIL 率の警告しきい値（例: 5 → 5%）")
+    (println "  <alert%>     = NXDOMAIN+SERVFAIL 率（例: 5 → 5%）")
     (println "  --client/-c  <prefix>  例: 192.168.4.28  or  192.168.4.28:5")
     (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
     (println)
@@ -30,7 +30,7 @@
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl --server 1.1.1.1:53")))
 
-;; -------- time & endpoint helpers --------
+;; -------- tiny helpers --------
 
 (defn- micros [{:keys [sec usec]}]
   (when (and (number? sec) (number? usec))
@@ -40,6 +40,15 @@
   (let [ip (get-in m [:decoded :l3 (case side :src :src :dst :dst)])
         p  (get-in m [:decoded :l3 :l4 (case side :src :src-port :dst :dst-port)])]
     (str ip (when p (str ":" p)))))
+
+(defn- blank? [s] (or (nil? s) (= "" s) (= "_" s)))
+(defn- starts-opt? [s] (and (string? s) (str/starts-with? s "-")))
+
+(defn- parse-long* [s]
+  (try (when (and (string? s) (not (blank? s))) (Long/parseLong s)) (catch Exception _ nil)))
+
+(defn- parse-double* [s]
+  (try (when (and (string? s) (not (blank? s))) (Double/parseDouble s)) (catch Exception _ nil)))
 
 ;; -------- DNS header parse --------
 
@@ -156,7 +165,7 @@
         rate  (/ (+ ne sf) (double pairs))]
     {:rate rate :counts {:nxdomain ne :servfail sf :total pairs}}))
 
-;; -------- option parsing & endpoint filtering --------
+;; -------- option parsing --------
 
 (defn- parse-filters
   "末尾オプションから --client/-c / --server/-s を抽出。"
@@ -175,6 +184,26 @@
 
           :else
           (recur m (next xs)))))))
+
+(defn- parse-positionals
+  "位置引数を左から [:bpf :topn :mode :metric :fmt :alert] に詰める。
+   '_' は未指定扱い。途中で '--' 始まりを見つけたら以降は :tail へ。"
+  [xs]
+  (loop [order [:bpf :topn :mode :metric :fmt :alert]
+         acc   {:bpf nil :topn nil :mode nil :metric nil :fmt nil :alert nil :tail []}
+         more  xs]
+    (if (empty? more)
+      acc
+      (let [t (first more)]
+        (if (starts-opt? t)
+          (assoc acc :tail more)
+          (if (empty? order)
+            (assoc acc :tail more)
+            (recur (rest order)
+                   (assoc acc (first order) (when-not (blank? t) t))
+                   (rest more))))))))
+
+;; -------- endpoint filter --------
 
 (defn- match-prefix? [^String prefix ^String s]
   (or (nil? prefix)
@@ -206,17 +235,16 @@
    - alert%: NXDOMAIN+SERVFAIL が超えたら WARNING
    - --client/--server: 端点の前方一致フィルタ（IP あるいは IP:PORT）"
   [& args]
-  (let [[in bpf-str topn-str mode-str metric-str fmt-str alert-str & tail-opts] args]
-    (when (nil? in)
-      (usage)
-      (System/exit 1))
-    (let [bpf    (or bpf-str "udp and port 53")
-          topN   (long (or (some-> topn-str Long/parseLong) 50))
-          mode   (keyword (or mode-str "pairs"))
-          metric (keyword (or metric-str "pairs"))
-          fmt    (keyword (or fmt-str "edn"))
-          alert% (some-> alert-str Double/parseDouble)
-          fopts  (parse-filters tail-opts)]
+  (let [[in & rest-args] args]
+    (when (nil? in) (usage) (System/exit 1))
+    (let [{:keys [bpf topn mode metric fmt alert tail]} (parse-positionals rest-args)
+          bpf    (or bpf "udp and port 53")
+          topN   (or (parse-long* topn) 50)
+          mode   (keyword (or mode "pairs"))
+          metric (keyword (or metric "pairs"))
+          fmt    (keyword (or fmt "edn"))
+          alert% (parse-double* alert)
+          fopts  (parse-filters tail)]
       (dns-ext/register!)
       ;; rows-all を構築
       (let [rows-all
