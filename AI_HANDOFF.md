@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 4f95558
-- generated: 2025-08-24 01:21:35 UTC
+- commit: c1b19e1
+- generated: 2025-08-24 01:29:23 UTC
 
 ## Primary docs（必読）
 
@@ -2771,15 +2771,15 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Clojure CLI + linters (clojure-lsp はここでは入れない)
-      - name: Set up Clojure ecosystem
-        uses: DeLaGuardo/setup-clojure@13.0
-        with:
-          # Clojure CLI (tools.deps)
-          cli: '1.11.3.1453'
-          # pin to avoid 403 on "latest"
-          clj-kondo: '2024.05.24'
-          cljfmt: '0.13.0'
+      # --- Install Clojure CLI via official script (robust) ---
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+          clojure -Sdescribe
 
       - name: Cache Clojure deps
         uses: actions/cache@v4
@@ -2803,16 +2803,9 @@ jobs:
       - name: Run unit tests
         run: clojure -M:test
 
-      - name: Lint / Format (prefer clojure-lsp, fallback to cljfmt)
-        shell: bash
-        run: |
-          set -e
-          if command -v clojure-lsp >/dev/null 2>&1; then
-            clojure-lsp format --dry
-          else
-            echo "clojure-lsp not found; falling back to cljfmt check"
-            cljfmt check
-          fi
+      # --- Format check without external binaries (avoid 403) ---
+      - name: Lint / Format (cljfmt via deps)
+        run: clojure -Sdeps '{:deps {cljfmt/cljfmt {:mvn/version "0.13.0"}}}' -M -m cljfmt.main check
 ```
 
 ## 整形運用ポリシー（2025-08 更新）
@@ -2874,7 +2867,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 4f95558fc2ac
+git commit: c1b19e108aa9
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
