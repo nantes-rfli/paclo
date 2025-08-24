@@ -2,12 +2,12 @@
    (:require
     [paclo.core :as core]))
 
- (defn- nanos->ms [n] (double (/ n 1e6)))
+(defn- nanos->ms [n] (double (/ n 1e6)))
 
- (defn- gen-bytes [^long n ^byte fill]
-   (byte-array (repeat n fill)))
+(defn- gen-bytes [^long n fill]
+  (byte-array (repeat n (byte fill))))
 
- (defn -main
+(defn -main
    "Synthetic micro-bench:
    - writes N packets (default: 100000) into a temp PCAP
    - reads them twice:
@@ -37,4 +37,4 @@
            t0 (System/nanoTime)
            c2 (count (core/packets {:path tmp :xform xf}))
            t1 (- (System/nanoTime) t0)]
-       (println "xform  count =" c2 "elapsed(ms)=" (format "%.1f" (nanos->ms t1)))))))
+       (println "xform  count =" c2 "elapsed(ms)=" (format "%.1f" (nanos->ms t1))))))

@@ -1,5 +1,6 @@
 (ns paclo.pcap
   (:require
+   [clojure.java.io :as io]
    [clojure.string :as str])
   (:import
    [java.util.concurrent LinkedBlockingQueue]
@@ -54,12 +55,30 @@
   (^Pointer [path]
    (open-offline path {}))
   (^Pointer [path {:keys [filter optimize? netmask] :as opts}]
-   (let [err  (Memory/allocate rt PCAP_ERRBUF_SIZE)
-         pcap (.pcap_open_offline lib path err)]
-     (when (nil? pcap)
-       (throw (ex-info "pcap_open_offline failed"
-                       {:path path :err (.getString err 0)})))
-     (apply-filter! pcap opts))))
+   ;; 1) まずファイルの存在・サイズを明示チェック（原因を特定しやすく）
+   (let [f   (io/file path)
+         abs (.getAbsolutePath ^java.io.File f)]
+     (when-not (.exists ^java.io.File f)
+       (throw (ex-info (str "pcap file not found: " abs)
+                       {:path abs :reason :not-found})))
+     (when (zero? (.length ^java.io.File f))
+       (throw (ex-info (str "pcap file is empty: " abs)
+                       {:path abs :reason :empty})))
+     ;; 2) 実際に pcap_open_offline（errbufも拾う）
+     (let [err  (Memory/allocate rt PCAP_ERRBUF_SIZE)
+           pcap (.pcap_open_offline lib abs err)]
+       (when (nil? pcap)
+         (let [raw (try (.getString err 0) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
+               msg (let [t (str/trim (or raw ""))]
+                     (if (seq t)
+                       (str "pcap_open_offline failed: " t)
+                       "pcap_open_offline failed"))]
+           (throw (ex-info msg
+                           {:path abs :reason :pcap-open-failed :err raw}))))
+       ;; 3) BPFフィルタが来ていれば適用（core側でDSL→文字列化されていればそのまま渡る）
+       (apply-filter! pcap opts)
+       ;; 4) ハンドルを返す
+       pcap))))
 
 (defn open-live ^Pointer
   [{:keys [device snaplen promiscuous? timeout-ms filter optimize? netmask]
