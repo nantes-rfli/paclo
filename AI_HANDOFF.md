@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 1e5d04d
-- generated: 2025-08-24 01:58:22 UTC
+- commit: 6b355d9
+- generated: 2025-08-24 02:30:42 UTC
 
 ## Primary docs（必読）
 
@@ -1759,6 +1759,7 @@ echo "Wrote ${out}"
    - write-pcap!: bytesシーケンスを書き出す（テスト/再現用）"
   (:require
    [clojure.string :as str]
+   [paclo.decode-ext :as decode-ext]
    [paclo.parse :as parse]
    [paclo.pcap  :as pcap]))
 
@@ -1881,14 +1882,17 @@ echo "Wrote ${out}"
         opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
         base    (pcap/capture->seq opts*)
         stream  (if decode?
-                  ;; デコード安全版（例外は投げず :decode-error を付与）
                   (map (fn [m]
                          (let [ba ^bytes (:bytes m)]
                            (if (and ba (>= (alength ba) ETH_MIN_HDR))
-                             (let [{:keys [ok value error]} (decode-result ba)]
-                               (cond-> m
-                                 ok       (assoc :decoded value)
-                                 (not ok) (assoc :decode-error error)))
+                             (let [{:keys [ok value error]} (decode-result ba)
+                                   m' (cond-> m
+                                        ok       (assoc :decoded value)
+                                        (not ok) (assoc :decode-error error))]
+                               ;; ★ ここを追加：decoded があれば拡張フックを適用
+                               (if (contains? m' :decoded)
+                                 (decode-ext/apply! m')
+                                 m'))
                              (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
                        base)
                   base)]
@@ -2882,7 +2886,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 1e5d04d78112
+git commit: 6b355d92f337
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

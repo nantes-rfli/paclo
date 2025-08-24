@@ -5,6 +5,7 @@
    - write-pcap!: bytesシーケンスを書き出す（テスト/再現用）"
   (:require
    [clojure.string :as str]
+   [paclo.decode-ext :as decode-ext]
    [paclo.parse :as parse]
    [paclo.pcap  :as pcap]))
 
@@ -127,14 +128,17 @@
         opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
         base    (pcap/capture->seq opts*)
         stream  (if decode?
-                  ;; デコード安全版（例外は投げず :decode-error を付与）
                   (map (fn [m]
                          (let [ba ^bytes (:bytes m)]
                            (if (and ba (>= (alength ba) ETH_MIN_HDR))
-                             (let [{:keys [ok value error]} (decode-result ba)]
-                               (cond-> m
-                                 ok       (assoc :decoded value)
-                                 (not ok) (assoc :decode-error error)))
+                             (let [{:keys [ok value error]} (decode-result ba)
+                                   m' (cond-> m
+                                        ok       (assoc :decoded value)
+                                        (not ok) (assoc :decode-error error))]
+                               ;; ★ ここを追加：decoded があれば拡張フックを適用
+                               (if (contains? m' :decoded)
+                                 (decode-ext/apply! m')
+                                 m'))
                              (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
                        base)
                   base)]
