@@ -31,6 +31,7 @@ clojure -M:dev -m examples.ping
 clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60
 clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10
 clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20
+clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats
 ```
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run examples via `load-file`. See **AI\_HANDOFF.md** for the workaround. Newer setups should prefer `-M:dev -m`.

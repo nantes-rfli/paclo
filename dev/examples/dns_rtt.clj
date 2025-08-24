@@ -3,22 +3,26 @@
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
 
-;; -------- helpers --------
+;; -------- usage/help --------
 
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>]")
+    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap> [<bpf-string>] [<topN>] [<mode>] [<metric>]")
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
-    (println "  <topN>       = 50   (pairsモードの表示上限)")
-    (println "  <mode>       = pairs | stats   (default: pairs)")
+    (println "  <topN>       = 50   (pairs/qstats の表示上限)")
+    (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
+    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats の並び替え指標; default: pairs)")
     (println)
     (println "Examples:")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap")
     (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 10")
-    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats")))
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 50 stats")
+    (println "  clojure -M:dev -m examples.dns-rtt dns-sample.pcap 'udp and port 53' 20 qstats p95")))
+
+;; -------- time & endpoint helpers --------
 
 (defn- micros [{:keys [sec usec]}]
   (when (and (number? sec) (number? usec))
@@ -28,6 +32,8 @@
   (let [ip (get-in m [:decoded :l3 (case side :src :src :dst :dst)])
         p  (get-in m [:decoded :l3 :l4 (case side :src :src-port :dst :dst-port)])]
     (str ip (when p (str ":" p)))))
+
+;; -------- DNS header parse --------
 
 (defn- u8  ^long [^bytes ba ^long i]
   (when (and ba (<= 0 i) (< i (alength ba)))
@@ -46,6 +52,8 @@
           flags (u16 ba 2)]
       (when (and id flags)
         {:id id :qr? (pos? (bit-and flags 0x8000))}))))
+
+;; -------- pairing key & pretty endpoints --------
 
 (defn- canon-key
   "方向非依存キー：[id lo-end hi-end]。end は \"ip:port\" の文字列。"
@@ -69,7 +77,7 @@
                     {:client a :server b}
                     {:client b :server a})))))
 
-;; ---- stats helpers ----
+;; -------- stats helpers --------
 
 (defn- nearest-rank
   "Nearest-rank percentile（pは0.0..100.0）"
@@ -100,6 +108,36 @@
     {:counts cnts
      :ratio  ratio}))
 
+(defn- summarize-qstats
+  "qnameごとの統計。返り値はベクタ：
+   [{:qname \"example.com\", :pairs 123, :with-rtt 100,
+     :rtt {...}, :rcode {...}} ...]"
+  [rows]
+  (->> (group-by #(or (:qname %) :unknown) rows)
+       (map (fn [[q xs]]
+              (let [rtt (summarize-rtt xs)
+                    rc  (summarize-rcode xs)]
+                {:qname (if (= :unknown q) nil q)
+                 :pairs (count xs)
+                 :with-rtt (:count rtt)
+                 :rtt rtt
+                 :rcode rc})))
+       vec))
+
+(defn- metric->keyfn
+  "qstats の並び替えキー生成。未知/欠損は -∞ 的に扱って下位へ。"
+  [metric]
+  (case metric
+    :pairs     (fn [{:keys [pairs]}]     (long (or pairs 0)))
+    :with-rtt  (fn [{:keys [with-rtt]}]  (long (or with-rtt 0)))
+    :p50       (fn [{:keys [rtt]}]       (double (or (:p50 rtt) Double/NEGATIVE_INFINITY)))
+    :p95       (fn [{:keys [rtt]}]       (double (or (:p95 rtt) Double/NEGATIVE_INFINITY)))
+    :p99       (fn [{:keys [rtt]}]       (double (or (:p99 rtt) Double/NEGATIVE_INFINITY)))
+    :avg       (fn [{:keys [rtt]}]       (double (or (:avg rtt) Double/NEGATIVE_INFINITY)))
+    :max       (fn [{:keys [rtt]}]       (double (or (:max rtt) Double/NEGATIVE_INFINITY)))
+    ;; default
+    (fn [{:keys [pairs]}] (long (or pairs 0)))))
+
 ;; -------- main --------
 
 (defn -main
@@ -107,16 +145,19 @@
    - 既定BPF: 'udp and port 53'
    - ペアリング: ID + (src,dst) を辞書順で正規化したキー
    - qname/qtype/rcode は best-effort（dns-ext を登録）
-   - mode=pairs: :rtt-ms 昇順のペア（Top-N）
-   - mode=stats: RTT統計とRCODE分布を出力"
+   - mode=pairs : :rtt-ms 昇順のペア（Top-N）
+   - mode=stats : 全体のRTT統計とRCODE分布
+   - mode=qstats: qname別統計（Top-N、metric で並び替え）"
   [& args]
-  (let [[in bpf-str topn-str mode-str] args]
+  (let [[in bpf-str topn-str mode-str metric-str] args]
     (when (nil? in)
       (usage) (System/exit 1))
-    (let [bpf   (or bpf-str "udp and port 53")
-          topN  (long (or (some-> topn-str Long/parseLong) 50))
-          mode  (keyword (or mode-str "pairs"))]
+    (let [bpf    (or bpf-str "udp and port 53")
+          topN   (long (or (some-> topn-str Long/parseLong) 50))
+          mode   (keyword (or mode-str "pairs"))
+          metric (keyword (or metric-str "pairs"))]
       (dns-ext/register!)
+      ;; まずはペア一覧（rows）を構築
       (let [rows (->> (core/packets {:path in
                                      :filter bpf
                                      :decode? true
@@ -157,15 +198,28 @@
                        {:pending {} :out []})
                       :out)]
         (case mode
-          :stats (let [rtt (summarize-rtt rows)
-                       rc  (summarize-rcode rows)
-                       out {:pairs (count rows)
-                            :with-rtt (:count rtt)
-                            :rtt rtt
-                            :rcode rc}]
-                   (println (pr-str out))
-                   (binding [*out* *err*]
-                     (println "mode=stats bpf=" (pr-str bpf))))
+          :stats
+          (let [rtt (summarize-rtt rows)
+                rc  (summarize-rcode rows)
+                out {:pairs (count rows)
+                     :with-rtt (:count rtt)
+                     :rtt rtt
+                     :rcode rc}]
+            (println (pr-str out))
+            (binding [*out* *err*]
+              (println "mode=stats bpf=" (pr-str bpf))))
+
+          :qstats
+          (let [qs   (summarize-qstats rows)
+                keyf (metric->keyfn metric)
+                ranked (->> qs (sort-by keyf >) (take topN) vec)]
+            (println (pr-str ranked))
+            (binding [*out* *err*]
+              (println "mode=qstats metric=" (name metric)
+                       " topN=" topN
+                       " qnames=" (count qs)
+                       " bpf=" (pr-str bpf))))
+
           ;; default: pairs
           (let [sorted (->> rows (sort-by (fn [{x :rtt-ms}] (if (number? x) x Double/POSITIVE_INFINITY)))
                             (take topN) vec)]
