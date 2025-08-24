@@ -28,6 +28,7 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 clojure -M:dev -m examples.bench
 clojure -M:dev -m examples.dns-summary path/to/trace.pcap
 clojure -M:dev -m examples.ping
+clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60
 ```
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run examples via `load-file`. See **AI\_HANDOFF.md** for the workaround. Newer setups should prefer `-M:dev -m`.
