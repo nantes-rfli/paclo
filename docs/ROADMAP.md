@@ -90,3 +90,20 @@
 - v0.2 = CORE + :xform + BPF拡張 + L2/3/4最小 + Docs  
 - v0.3 = decode拡張点 + proto-dns + examples + (任意) core.async  
 - v1.0 = スコープ固定・破壊変更収束・安定宣言
+
+## Improvement Track toward v0.3.0 (Done 定義)
+
+**目的**: 例（examples）を小さく強くし、機械可読な出力と扱いやすいエラーを標準化する。
+
+**完了条件**:
+- [ ] examples: `pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt` が **EDN/JSONL 両対応**（※既に対応済みのものはチェック）
+- [ ] `decode_ext` API を**安定化**（破壊的変更なし明記）。DNS 以外の**最小拡張を1件**追加
+- [ ] CLI 体験: Usage とエラー表示の**統一**（README と実際の挙動が一致）
+- [ ] テスト: examples **スモーク** + decode 拡張の**最小ゴールデン/プロパティ**いずれか1本
+- [ ] Docs: README の “Run the examples” **一覧性向上**、EXTENSIONS に**安定化注記**、CHANGELOG に **0.3.0**
+
+**段階**:
+- **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats`/`flow-topn` の README 追記  
+- **Phase B**: decode 拡張をもう1本（候補: TCP 概要 or TLS SNI）  
+- **Phase C**: examples スモークテスト + エラー整形の統一  
+- **Phase D**: ドキュメント仕上げ & `v0.3.0` タグ
