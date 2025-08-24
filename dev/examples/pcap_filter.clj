@@ -21,17 +21,20 @@
       (-usage) (System/exit 1))
     (let [min-caplen (when min-caplen-str (long (Long/parseLong min-caplen-str)))
           wrote      (volatile! 0)
-          ;; 後段トランスデューサ（必要なら caplen フィルタを噛ませ、bytes+ts だけに整形しつつカウント）
-          xf         (cond-> (comp
-                              (map (fn [m]
-                                     (vswap! wrote inc)
-                                     (let [ba (:bytes m)
-                                           s  (:sec m)
-                                           us (:usec m)]
-                                       (cond-> {:bytes ba}
-                                         s  (assoc :sec s)
-                                         us (assoc :usec us))))))
-                       min-caplen (comp (filter #(>= (:caplen %) min-caplen))))]
+          ;; ★ 修正点：filter を map より「前」に置く
+          make-out   (fn [m]
+                       (vswap! wrote inc)                     ; ← フィルタ通過後にカウント
+                       (let [ba (:bytes m)
+                             s  (:sec m)
+                             us (:usec m)]
+                         (cond-> {:bytes ba}
+                           s  (assoc :sec s)
+                           us (assoc :usec us))))
+          xf         (if min-caplen
+                       (comp
+                        (filter #(>= (:caplen %) min-caplen))
+                        (map make-out))
+                       (map make-out))]
       (println "reading:" in)
       (println "writing:" out)
       (let [opts (cond-> {:path in
@@ -40,6 +43,5 @@
                           :max Long/MAX_VALUE}
                    bpf-str (assoc :filter bpf-str))
             stream (core/packets opts)]
-        ;; 遅延シーケンスのまま書く（副作用で件数カウント）
         (core/write-pcap! stream out)
         (println "done. wrote packets =" @wrote)))))
