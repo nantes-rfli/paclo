@@ -28,14 +28,14 @@
         data (take n (cycle [pkt60 pkt42]))]
     (println "Writing" n "packets to" tmp)
     (core/write-pcap! data tmp)
-    ;; (a) plain
+    ;; (a) plain  — ※ 既定 :max=100 を上書き
     (let [t0 (System/nanoTime)
-          c1 (count (core/packets {:path tmp}))
+          c1 (count (core/packets {:path tmp :max n}))
           t1 (- (System/nanoTime) t0)]
       (println "plain count =" c1 "elapsed(ms)=" (format "%.1f" (nanos->ms t1))))
-    ;; (b) with :xform
+    ;; (b) with :xform — 同様に :max を指定
     (let [xf (filter #(>= (:caplen %) 60))
           t0 (System/nanoTime)
-          c2 (count (core/packets {:path tmp :xform xf}))
+          c2 (count (core/packets {:path tmp :xform xf :max n}))
           t1 (- (System/nanoTime) t0)]
       (println "xform  count =" c2 "elapsed(ms)=" (format "%.1f" (nanos->ms t1))))))
