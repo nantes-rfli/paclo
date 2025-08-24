@@ -4,7 +4,6 @@
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
 
-
 (defn -main
   "Usage:
     clojure -M:dev -m examples.dns-summary <pcap-path>
@@ -22,7 +21,6 @@
     (let [xf (comp
               (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
               (map #(select-keys % [:caplen :decoded])))
-          ;; ここは BPF 文字列で絞る（core はDSLもOKだが混乱防止で文字列に）
           xs (into [] (core/packets {:path abs
                                      :filter "udp and port 53"
                                      :decode? true
