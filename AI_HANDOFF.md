@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 85e3d67
-- generated: 2025-08-24 00:48:24 UTC
+- commit: 4f95558
+- generated: 2025-08-24 01:21:35 UTC
 
 ## Primary docs（必読）
 
@@ -2750,7 +2750,6 @@ on:
   pull_request:
     branches: [ main, master ]
 
-# 同じブランチでの重複ジョブはキャンセル（高速化）
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -2772,13 +2771,15 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # Clojure CLI + linters (clojure-lsp はここでは入れない)
       - name: Set up Clojure ecosystem
         uses: DeLaGuardo/setup-clojure@13.0
         with:
+          # Clojure CLI (tools.deps)
           cli: '1.11.3.1453'
-          clj-kondo: 'latest'
-          cljfmt: 'latest'
-          clojure-lsp: 'latest'
+          # pin to avoid 403 on "latest"
+          clj-kondo: '2024.05.24'
+          cljfmt: '0.13.0'
 
       - name: Cache Clojure deps
         uses: actions/cache@v4
@@ -2792,15 +2793,26 @@ jobs:
             cljdeps-${{ runner.os }}-
 
       - name: Compile Java (jnr-ffi bindings)
+        shell: bash
         run: |
-          clj -T:build jar || \
+          set -e
+          # Prefer tools.build; fallback to direct javac with deps classpath
+          clojure -T:build jar || \
           (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
 
       - name: Run unit tests
-        run: clj -M:test
+        run: clojure -M:test
 
-      - name: Lint / Format (dry-run)
-        run: clojure-lsp format --dry
+      - name: Lint / Format (prefer clojure-lsp, fallback to cljfmt)
+        shell: bash
+        run: |
+          set -e
+          if command -v clojure-lsp >/dev/null 2>&1; then
+            clojure-lsp format --dry
+          else
+            echo "clojure-lsp not found; falling back to cljfmt check"
+            cljfmt check
+          fi
 ```
 
 ## 整形運用ポリシー（2025-08 更新）
@@ -2862,7 +2874,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 85e3d678875e
+git commit: 4f95558fc2ac
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
