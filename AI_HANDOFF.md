@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: a7d0b6d
-- generated: 2025-08-24 00:40:15 UTC
+- commit: 85e3d67
+- generated: 2025-08-24 00:48:24 UTC
 
 ## Primary docs（必読）
 
@@ -2800,7 +2800,8 @@ jobs:
         run: clj -M:test
 
       - name: Lint / Format (dry-run)
-        run: clojure-lsp format --dry```
+        run: clojure-lsp format --dry
+```
 
 ## 整形運用ポリシー（2025-08 更新）
 
@@ -2861,7 +2862,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: a7d0b6d64d8b
+git commit: 85e3d678875e
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
