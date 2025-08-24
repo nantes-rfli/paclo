@@ -8,7 +8,15 @@
   "Usage:
     clojure -M:dev -m examples.dns-summary <pcap-path>
 
-  Prints a tiny vector of DNS packets with :summary added by the decode extension."
+  Prints compact DNS summaries as EDN vector.
+  Example element:
+    {:dir :query|:response
+     :id  26905
+     :rcode :noerror
+     :questions 1
+     :answers   6
+     :src \"192.168.4.28:58555\"
+     :dst \"1.1.1.1:53\"}"
   [& args]
   (when (empty? args)
     (binding [*out* *err*]
@@ -18,11 +26,26 @@
         abs  (.getAbsolutePath (io/file pcap))]
     (println "reading:" abs)
     (dns-ext/register!)
-    (let [xf (comp
-              (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
-              (map #(select-keys % [:caplen :decoded])))
-          xs (into [] (core/packets {:path abs
-                                     :filter "udp and port 53"
-                                     :decode? true
-                                     :xform xf}))]
-      (println (pr-str xs)))))
+    (let [summarize
+          (fn [pkt]
+            (let [app     (get-in pkt [:decoded :l3 :l4 :app])
+                  l4      (get-in pkt [:decoded :l3 :l4])
+                  dir     (if (:qr? app) :response :query)
+                  id      (:id app)
+                  rcode   (some-> (:rcode-name app) keyword)
+                  qd      (:qdcount app)
+                  an      (:ancount app)
+                  src     (str (get-in pkt [:decoded :l3 :src]) ":" (:src-port l4))
+                  dst     (str (get-in pkt [:decoded :l3 :dst]) ":" (:dst-port l4))]
+              {:dir dir :id id :rcode rcode
+               :questions qd :answers an
+               :src src :dst dst}))]
+      (let [xf (comp
+                (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
+                (map summarize))
+            xs (into [] (core/packets {:path abs
+                                       :filter "udp and port 53"
+                                       :decode? true
+                                       :xform xf}))]
+        (println (pr-str xs))))))
+
