@@ -15,6 +15,13 @@ It provides a Clojure-friendly API for reading, writing, and filtering packets w
      (take 10) doall)
 ```
 
+### Run the examples
+
+```bash
+clojure -M -m examples.dns-summary path/to/trace.pcap
+clojure -M -m examples.bench 100000
+```
+
 ### List devices (human-friendly on macOS)
 
 ```clojure
