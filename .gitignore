@@ -13,3 +13,6 @@ target/classes/# Tooling caches / REPL
 
 # Clojure build caches (念のため)
 classes/
+
+# local scratch capture
+dns-sample.pcap
