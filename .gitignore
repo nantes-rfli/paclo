@@ -16,3 +16,6 @@ classes/
 
 # local scratch capture
 dns-sample.pcap
+
+# allow test fixtures
+!resources/*.pcap
