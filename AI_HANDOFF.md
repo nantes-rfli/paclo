@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 6433e1e
-- generated: 2025-08-25 12:18:59 UTC
+- commit: 3d4444e
+- generated: 2025-08-25 12:34:45 UTC
 
 ## Primary docs（必読）
 
@@ -2907,7 +2907,7 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 6433e1e75be8
+git commit: 3d4444e9a1fc
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1

@@ -26,3 +26,12 @@
           :jar-file jar-file
           :lib lib
           :version version}))
+
+(defn javac
+  "Compile Java sources under src-java into target/classes."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn"})]
+    (b/javac {:src-dirs   ["src-java"]
+              :class-dir  class-dir
+              :basis      basis
+              :javac-opts ["-Xlint:deprecation"]})))

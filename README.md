@@ -181,3 +181,7 @@ A. 数十万パケット程度であれば REPL 内で問題なく処理でき�
 
 **Q. `:decode? true` の挙動は？**  
 A. デコードに失敗しても例外は投げず、各要素に `:decode-error` が付与されます。
+
+# fresh clone の場合は最初に Java をコンパイル
+
+clojure -T:build javac
