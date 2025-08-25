@@ -38,3 +38,44 @@
 * フック名（キー）は **名前空間付きキーワード**にする（例: `:my.ns/hook`）
 * REPL 作業では **重複登録に注意**（同一キーなら上書きされます）
 * 失敗しやすい処理は `try` を内部で持つ（ただし本ライブラリ側でも全体を保護）
+
+## サンプル: TLS ClientHello の SNI 注釈
+
+TLS ClientHello から SNI を **ベストエフォート**で抽出し、`:decoded` に注釈します。  
+単一 TLS レコード／単一 TCP セグメント前提（ストリーム再構成は行いません）。
+
+```clojure
+(require '[paclo.proto.tls-ext :as tls-ext])
+
+(tls-ext/register!)
+;; 以降、ClientHello が単一レコードで読めた場合に
+;; [:decoded :l3 :l4 :app] に以下が付与されます:
+;;   :type   => :tls
+;;   :sni    => "example.com"
+;;   :summary=> "TLS ClientHello SNI=example.com"
+
+;; 最小利用例（SNIだけ拾う）
+(into []
+  (comp
+    (filter #(= :tls (get-in % [:decoded :l3 :l4 :app :type])))
+    (map #(select-keys (get-in % [:decoded :l3 :l4 :app]) [:sni :summary])))
+  (paclo.core/packets {:path "tls-sample.pcap"
+                       :filter "tcp and port 443"
+                       :decode? true}))
+```
+
+CLI 例（トップNの SNI を集計）:
+
+```bash
+# Top 50 SNI over port 443 (EDN)
+clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap
+
+# With BPF, topN=10, JSONL
+clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap 'tcp and port 443' 10 jsonl
+```
+
+**注意**
+
+* 断片化・再送・複数レコードにまたがる ClientHello は対象外です（best-effort）。
+* SNI が無いハンドシェイクでは何も付与されません。
+* フックは安全設計（例外は内部で握りつぶし、`map?` の返り値のみ反映）です。
