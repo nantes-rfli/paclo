@@ -245,7 +245,8 @@
           metric (keyword (or metric "pairs"))
           fmt    (keyword (or fmt "edn"))
           alert% (parse-double* alert)
-          fopts  (parse-filters tail)]
+          fopts  (parse-filters tail)
+          _      (dns-ext/register!)]
       (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
       (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
       (dns-ext/register!)

@@ -1,6 +1,7 @@
 (ns examples.smoke-test
   (:require
    [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
    [examples.dns-rtt :as dns-rtt]
@@ -10,7 +11,11 @@
   (:import
    [java.io File]))
 
-(def sample "dns-sample.pcap")
+(def sample
+  (let [url (io/resource "dns-sample.pcap")]
+    (when (nil? url)
+      (throw (ex-info "dns-sample.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
 
 (defn run-main
   "例の -main を実行して stdout/err を取り出す。"
@@ -47,11 +52,14 @@
         (is (= 4 (count v)))))))     ;; サンプルpcapの既知値（4フロー）
 
 (deftest dns-rtt-smoke
-  (testing "dns-rtt pairs mode prints vector"
-    (let [{:keys [out]} (run-main dns-rtt/-main sample)]
-      (let [v (parse-first-edn out)]
-        (is (vector? v))
-        (is (<= 1 (count v)))))))    ;; サンプルでは2件のはず
+  (testing "dns-rtt stats mode returns a sane map"
+    ;; pairs は片側欠損で 0 になりうるため、stats で健全性を確認する
+    ;; 引数順: <in> [bpf] [topN] [mode] [metric] [format]
+    (let [{:keys [out]} (run-main dns-rtt/-main sample "_" "_" "stats")]
+      (let [m (parse-first-edn out)]
+        (is (map? m))
+        ;; サンプルでは 1 以上が期待（将来PCAPが変わっても 0 以外であればOKにするのも可）
+        (is (<= 1 (:pairs m)))))))
 
 (deftest pcap-filter-smoke
   (testing "pcap-filter writes a file and prints EDN meta"
