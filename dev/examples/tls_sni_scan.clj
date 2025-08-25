@@ -1,6 +1,6 @@
 (ns examples.tls-sni-scan
   (:require
-   [clojure.data.json :as json]
+   [examples.common :as ex]
    [paclo.core :as core]
    [paclo.proto.tls-ext :as tls-ext]))
 
@@ -15,9 +15,11 @@
 (defn -main [& args]
   (let [[in bpf-str topn-str fmt-str] args]
     (when (nil? in) (usage) (System/exit 1))
-    (let [bpf (or bpf-str "tcp and port 443")
-          n   (long (or (some-> topn-str Long/parseLong) 50))
+    (let [in* (ex/require-file! in)
+          bpf (or bpf-str "tcp and port 443")
+          n   (or (ex/parse-long* topn-str) 50)
           fmt (keyword (or fmt-str "edn"))]
+      (ex/ensure-one-of! "format" fmt #{:edn :jsonl})
       (tls-ext/register!)
       (let [cnts (reduce
                   (fn [m p]
@@ -25,10 +27,9 @@
                       (update m sni (fnil inc 0))
                       m))
                   {}
-                  (core/packets {:path in :filter bpf :decode? true :max Long/MAX_VALUE}))
-            out  (topN cnts n)]
-        (case fmt
-          :jsonl (doseq [row out] (json/write row *out*) (println))
-          (println (pr-str out)))
+                  (core/packets {:path in* :filter bpf :decode? true :max Long/MAX_VALUE}))
+            rows (->> cnts (sort-by val >) (take n)
+                      (map (fn [[k v]] {:sni k :count v})) vec)]
+        (ex/emit fmt rows)
         (binding [*out* *err*]
           (println "sni-unique=" (count cnts) " topN=" n " bpf=" (pr-str bpf) " format=" (name fmt)))))))

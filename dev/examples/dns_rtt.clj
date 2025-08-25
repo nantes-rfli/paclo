@@ -2,6 +2,7 @@
   (:require
    [clojure.data.json :as json]
    [clojure.string :as str]
+   [examples.common :as ex]
    [paclo.core :as core]
    [paclo.proto.dns-ext :as dns-ext]))
 
@@ -245,6 +246,8 @@
           fmt    (keyword (or fmt "edn"))
           alert% (parse-double* alert)
           fopts  (parse-filters tail)]
+      (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
+      (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
       (dns-ext/register!)
       ;; rows-all を構築
       (let [rows-all
