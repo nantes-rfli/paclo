@@ -1,0 +1,66 @@
+name: Dependency Audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday 03:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nvd-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+
+      - name: Cache Clojure deps and NVD DB
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+            ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            nvd-${{ runner.os }}-
+
+      - name: Run nvd-clojure (CVE scan)
+        shell: bash
+        env:
+          NVD_CVE_CHECK_VALID_FOR_HOURS: 168
+          NVD_API_TOKEN: ${{ secrets.NVD_API_TOKEN }}
+        run: |
+          set -e
+          clojure -M:nvd "dev/nvd-clojure.edn" "$(clojure -Spath)"
+
+      - name: Upload NVD reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: nvd-reports
+          path: |
+            target/nvd/*.html
+            target/nvd/*.json
+            target/nvd/*.xml
+          if-no-files-found: warn

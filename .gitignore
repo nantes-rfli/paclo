@@ -16,3 +16,7 @@ classes/
 
 # local scratch capture
 out-dns*.pcap
+
+# local secrets / env
+.env
+.envrc

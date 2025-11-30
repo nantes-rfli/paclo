@@ -1,0 +1,2 @@
+{:nvd {:fail-threshold 7.0           ;; fail CI if highest CVSS >= 7.0 (High)
+       :output-format [:html :json :xml]}}
