@@ -67,7 +67,7 @@
      (let [^Memory err  (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
            pcap (.pcap_open_offline lib abs err)]
        (when (nil? pcap)
-         (let [raw (try (.getString err 0) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
+         (let [raw (try (.getString ^Memory err 0) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
                msg (let [t (str/trim (or raw ""))]
                      (if (seq t)
                        (str "pcap_open_offline failed: " t)
@@ -83,12 +83,12 @@
   [{:keys [device snaplen promiscuous? timeout-ms netmask]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10}
     :as   opts}]
-  (let [err     (Memory/allocate rt PCAP_ERRBUF_SIZE)
+  (let [^Memory err     (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         promisc (if promiscuous? 1 0)
         pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
       (throw (ex-info "pcap_open_live failed"
-                      {:device device :err (.getString err 0)})))
+                      {:device device :err (.getString ^Memory err 0)})))
     ;; ★ netmask 未指定ならデバイスから解決（失敗時は 0 が返る）
     (let [resolved-mask (or netmask (when device (lookup-netmask device)))
           opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
@@ -279,8 +279,8 @@
 
 (defn breakloop! [^Pointer pcap] (.pcap_breakloop lib pcap))
 
-(defn open-dumper ^Pointer [^Pointer pcap path]
-  (let [d (.pcap_dump_open lib pcap path)]
+(defn open-dumper ^Pointer [^Pointer pcap ^String path]
+  (let [^Pointer d (.pcap_dump_open lib pcap path)]
     (when (nil? d)
       (throw (ex-info "pcap_dump_open failed" {:path path})))
     d))
@@ -311,8 +311,8 @@
    out]
   (let [pcap   (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})
         dumper (open-dumper pcap out)
-        hdr-ref (PointerByReference.)
-        dat-ref (PointerByReference.)
+        ^PointerByReference hdr-ref (PointerByReference.)
+        ^PointerByReference dat-ref (PointerByReference.)
         t0 (System/currentTimeMillis)]
     (try
       ;; ★ 変更点：device+filter が両方ある場合は netmask を自動適用
@@ -380,22 +380,22 @@
    - name が空/空白のエントリはスキップ
    - desc が空/空白なら fallback を適用"
   []
-  (let [err (Memory/allocate rt PCAP_ERRBUF_SIZE)
-        pp  (PointerByReference.)]
+  (let [^Memory err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+        ^PointerByReference pp  (PointerByReference.)]
     (when (neg? (.pcap_findalldevs lib pp err))
-      (throw (ex-info "pcap_findalldevs failed" {:err (.getString err 0)})))
-    (let [head (.getValue pp)
+      (throw (ex-info "pcap_findalldevs failed" {:err (.getString ^Memory err 0)})))
+    (let [^Pointer head (.getValue pp)
           fallback (macos-device->desc)]
       (try
         (loop [p head, acc (transient [])]
           (if (or (nil? p) (= 0 (.address p)))
             ;; 完了
             (persistent! acc)
-            (let [ifc (paclo.jnr.PcapLibrary$PcapIf. rt)]
+            (let [^paclo.jnr.PcapLibrary$PcapIf ifc (paclo.jnr.PcapLibrary$PcapIf. rt)]
               (.useMemory ifc p)
-              (let [name-ptr (.get (.-name ifc))
-                    desc-ptr (.get (.-desc ifc))
-                    next-ptr (.get (.-next ifc))
+              (let [^Pointer name-ptr (.get (.-name ifc))
+                    ^Pointer desc-ptr (.get (.-desc ifc))
+                    ^Pointer next-ptr (.get (.-next ifc))
                     ;; name の空/空白はスキップ
                     name     (when (and name-ptr (not= 0 (.address name-ptr)))
                                (let [s (.getString name-ptr 0)]

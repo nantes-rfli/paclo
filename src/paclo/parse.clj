@@ -98,7 +98,7 @@
   "L3の src/dst と L4の src/dst port から5タプルマップを作る。
    TCP/UDP以外はポートが無いので proto/ipだけの簡易キーにする。"
   [{:keys [src dst protocol next-header]} l4]
-  (let [proto (or protocol next-header)]   ;; IPv4は :protocol, IPv6は :next-header
+  (let [proto (long (or protocol next-header -1))]   ;; IPv4は :protocol, IPv6は :next-header
     (case proto
       6  {:proto :tcp  :src-ip src :src-port (:src-port l4) :dst-ip dst :dst-port (:dst-port l4)}
       17 {:proto :udp  :src-ip src :src-port (:src-port l4) :dst-ip dst :dst-port (:dst-port l4)}
@@ -373,7 +373,7 @@
 
 ;; --- ICMP name helpers -------------------------------------------------------
 
-(defn- icmpv4-type-name [t]
+(defn- icmpv4-type-name [^long t]
   (case t
     0  "echo-reply"
     3  "dest-unreachable"
@@ -390,7 +390,7 @@
     18 "address-mask-reply"
     (str "type-" t)))
 
-(defn- icmpv4-code-name [t c]
+(defn- icmpv4-code-name [^long t ^long c]
   (case t
     3  (case c
          0 "net-unreachable"
@@ -418,7 +418,7 @@
          (str "code-" c))
     (when (not= c 0) (str "code-" c))))
 
-(defn- icmpv6-type-name [t]
+(defn- icmpv6-type-name [^long t]
   (case t
     1   "dest-unreachable"
     2   "packet-too-big"
@@ -433,7 +433,7 @@
     137 "redirect"
     (str "type-" t)))
 
-(defn- icmpv6-code-name [t c]
+(defn- icmpv6-code-name [^long t ^long c]
   (case t
     1 (case c
         0 "no-route"
@@ -474,7 +474,7 @@
 
 ;; --- DNS header helpers ------------------------------------------------------
 
-(defn- dns-opcode-name [op]
+(defn- dns-opcode-name [^long op]
   (case op
     0 "query"    ; standard query
     1 "iquery"   ; inverse query (obsolete)
@@ -483,7 +483,7 @@
     5 "update"
     (str "opcode-" op)))
 
-(defn- dns-rcode-name [rc]
+(defn- dns-rcode-name [^long rc]
   (case rc
     0  "noerror"
     1  "formerr"
