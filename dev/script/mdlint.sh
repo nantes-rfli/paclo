@@ -2,8 +2,14 @@
 set -euo pipefail
 
 # Run markdownlint-cli2 via npx (no local deps). Requires network on first run.
-# Usage: script/mdlint.sh [paths...]
-# If no args, lint README.md and docs/*.md
+# Usage: dev/script/mdlint.sh [--fix] [paths...]
+# If no paths, lint README.md and docs/*.md
+
+fix_flag=""
+if [ "${1:-}" = "--fix" ]; then
+  fix_flag="--fix"
+  shift
+fi
 
 paths=("$@")
 if [ ${#paths[@]} -eq 0 ]; then
@@ -21,5 +27,5 @@ if [ ${#paths[@]} -eq 0 ]; then
 fi
 
 echo "[mdlint] Linting: ${paths[*]}"
-# --config can be added later if we need custom rules
-npx markdownlint-cli2 "${paths[@]}"
+# --config is auto-detected (.markdownlint.jsonc)
+npx markdownlint-cli2 $fix_flag "${paths[@]}"

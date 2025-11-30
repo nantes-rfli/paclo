@@ -27,7 +27,7 @@ fi
 # 3) Markdown lint
 if [ "$SKIP_MD_LINT" -ne 1 ]; then
   echo "[pre-commit] Markdown lint (markdownlint-cli2 via npx)..."
-  if ! dev/script/mdlint.sh; then
+  if ! dev/script/mdlint.sh --fix; then
     echo "[pre-commit] markdownlint failed" >&2
     exit 1
   fi

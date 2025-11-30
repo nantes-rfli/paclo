@@ -73,3 +73,9 @@ jobs:
           set -e
           clojure-lsp clean-ns --dry
           clojure-lsp format --dry
+
+      - name: Markdown lint (check only)
+        shell: bash
+        run: |
+          set -e
+          dev/script/mdlint.sh
