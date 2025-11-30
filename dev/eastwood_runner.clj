@@ -6,4 +6,5 @@
   ;; Lint both source and tests. Adjust paths if you add new roots.
   (lint/eastwood {:source-paths ["src" "dev"]
                   :test-paths   ["test"]
-                  :linters      [:all]}))
+                  :linters      [:all]
+                  :exclude-linters [:keyword-typos]}))

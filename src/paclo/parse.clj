@@ -7,9 +7,9 @@
 (declare l4-parse)
 (declare maybe-attach-dns)
 
-(defn- u8  [^ByteBuffer b] (bit-and (.get b) 0xFF))
-(defn- u16 [^ByteBuffer b] (bit-and (.getShort b) 0xFFFF))
-(defn- u32 [^ByteBuffer b] (bit-and (.getInt b) 0xFFFFFFFF))
+(defn- u8  ^long [^ByteBuffer b] (bit-and (.get b) 0xFF))
+(defn- u16 ^long [^ByteBuffer b] (bit-and (.getShort b) 0xFFFF))
+(defn- u32 ^long [^ByteBuffer b] (bit-and (.getInt b) 0xFFFFFFFF))
 
 (defn- mac [^ByteBuffer b]
   (format "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -171,7 +171,7 @@
         id (u16 b)
         flags-frag (u16 b)
         ttl (u8 b)
-        proto (u8 b)
+        proto (int (u8 b))
         hdr-csum (u16 b)
         src (ipv4-addr b)
         dst (ipv4-addr b)]

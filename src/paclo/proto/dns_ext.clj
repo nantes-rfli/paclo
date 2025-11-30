@@ -69,7 +69,7 @@
 
 (def ^:private qtype->kw
   {1 :A, 2 :NS, 5 :CNAME, 6 :SOA, 12 :PTR, 15 :MX, 16 :TXT
-   28 :AAAA, 33 :SRV, 65 :HTTPS, 64 :SVCB})
+   28 :AAAA, 33 :SRV, 64 :SVCB, 65 :HTTPS})
 
 (defn- annotate-qname-qtype
   "Best-effort: parse first Question from DNS payload and attach
@@ -82,13 +82,13 @@
           ba  (get-in m [:decoded :l3 :l4 :payload])]
       (if (and (pos? (long (or qd 0))) ba (>= (alength ^bytes ba) 12))
         (let [[qname off1] (decode-name ^bytes ba 12)
-              qt (some-> (u16 ^bytes ba off1))
-              qc (some-> (u16 ^bytes ba (+ off1 2)))
-              qtype-kw (get qtype->kw qt (keyword (str "TYPE" qt)))]
+              qt (when off1 (u16 ^bytes ba off1))
+              qc (when off1 (u16 ^bytes ba (+ off1 2)))
+              qtype-kw (when qt (get qtype->kw qt (keyword (str "TYPE" qt))))]
           (cond-> m
             qname (assoc-in [:decoded :l3 :l4 :app :qname] qname)
             qt    (assoc-in [:decoded :l3 :l4 :app :qtype] qt)
-            qt    (assoc-in [:decoded :l3 :l4 :app :qtype-name] qtype-kw)
+            qtype-kw (assoc-in [:decoded :l3 :l4 :app :qtype-name] qtype-kw)
             qc    (assoc-in [:decoded :l3 :l4 :app :qclass] qc)))
         m))
     (catch Throwable _ m)))

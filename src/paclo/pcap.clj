@@ -21,9 +21,9 @@
 (defn ^:private lookup-netmask
   "デバイス名から netmask を取得。失敗時は 0 を返す。"
   [^String device]
-  (let [err   (Memory/allocate rt PCAP_ERRBUF_SIZE)
-        netp  (IntByReference.)
-        maskp (IntByReference.)
+  (let [^Memory err   (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+        ^IntByReference netp  (IntByReference.)
+        ^IntByReference maskp (IntByReference.)
         rc    (.pcap_lookupnet lib device netp maskp err)]
     (if (neg? rc)
       0
@@ -64,7 +64,7 @@
        (throw (ex-info (str "pcap file is empty: " abs)
                        {:path abs :reason :empty})))
      ;; 2) 実際に pcap_open_offline（errbufも拾う）
-     (let [err  (Memory/allocate rt PCAP_ERRBUF_SIZE)
+     (let [^Memory err  (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
            pcap (.pcap_open_offline lib abs err)]
        (when (nil? pcap)
          (let [raw (try (.getString err 0) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
@@ -331,7 +331,9 @@
               (cond
                 (= rc 1)
                 (do
-                  (dump! dumper (.getValue hdr-ref) (.getValue dat-ref))
+                  (let [^Pointer hdr (.getValue hdr-ref)
+                        ^Pointer dat (.getValue dat-ref)]
+                    (dump! dumper hdr dat))
                   (recur (inc n) 0))
                 (= rc 0) ; timeout
                 (recur n (+ idle timeout-ms))
