@@ -19,7 +19,7 @@ fi
 # 2) 整形（clojure-lsp clean-ns & format）
 if [ "$SKIP_FMT" -ne 1 ]; then
   echo "[pre-commit] Formatting via clojure-lsp..."
-  script/fmt.sh
+  dev/script/fmt.sh
 else
   echo "[pre-commit] SKIP_FMT=1 -> skip formatting"
 fi
@@ -27,7 +27,7 @@ fi
 # 3) Markdown lint
 if [ "$SKIP_MD_LINT" -ne 1 ]; then
   echo "[pre-commit] Markdown lint (markdownlint-cli2 via npx)..."
-  if ! script/mdlint.sh; then
+  if ! dev/script/mdlint.sh; then
     echo "[pre-commit] markdownlint failed" >&2
     exit 1
   fi
