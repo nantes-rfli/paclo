@@ -150,6 +150,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 * OS: macOS（Intel Mac で動作確認）
 * JDK: Temurin/Oracle/OpenJDK 21+ 推奨
 * libpcap: システム標準（macOS 標準の `pcap` でOK）
+* Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください（`target/classes` はクラスパスに含まれます）。
 
 ---
 
