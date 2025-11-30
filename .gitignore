@@ -15,8 +15,4 @@ target/classes/# Tooling caches / REPL
 classes/
 
 # local scratch capture
-dns-sample.pcap
 out-dns*.pcap
-
-# allow test fixtures
-!resources/*.pcap

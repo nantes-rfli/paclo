@@ -21,11 +21,11 @@ the library’s structure.
 (require '[paclo.core :as core])
 
 ;; Read packets from file, no decode
-(->> (core/packets {:path "sample.pcap"})
+(->> (core/packets {:path "dev/resources/fixtures/sample.pcap"})
      (take 3) doall)
 
 ;; Read & decode, keep only summary fields
-(->> (core/packets {:path "resources/dns-sample.pcap" :decode? true})
+(->> (core/packets {:path "test/resources/dns-sample.pcap" :decode? true})
      (map #(select-keys % [:caplen :decoded :decode-error]))
      (take 2) doall)
 ```
@@ -70,7 +70,7 @@ the library’s structure.
 
 (dns-ext/register!) ; adds DNS summaries to decoded packets
 
-(->> (core/packets {:path "resources/dns-sample.pcap"
+(->> (core/packets {:path "test/resources/dns-sample.pcap"
                     :decode? true})
      (take 1) doall)
 ```
@@ -92,8 +92,8 @@ See `docs/extensions.md` for how to write your own hook (e.g., TLS SNI).
 
 ## Sample data
 
-- `resources/dns-sample.pcap` – sanitized DNS trace used in tests.
-- `sample.pcap` / `out-test.pcap` / `out.pcap` – small fixtures for examples and docs.
+- `test/resources/dns-sample.pcap` – sanitized DNS trace used in tests.
+- `dev/resources/fixtures/sample.pcap` / `out-test.pcap` / `out.pcap` – small fixtures for examples and docs (dev classpath).
 - CLI examples in `dev/examples` accept custom input PCAPs; see README “Run the examples”.
 
 ## Reference & further reading

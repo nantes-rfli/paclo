@@ -14,7 +14,7 @@ This page is the entry point to the documentation set.
 
 ## Common tasks
 
-- Read PCAP with filter: ../README.md#quick-start
+- Read PCAP with filter: ../README.md#quick-start (sample at dev/resources/fixtures/sample.pcap)
 - Write BPF DSL expressions: ../README.md#bpf-dsl-examples-extended
 - Write / transform PCAP (EDN/JSONL meta): ../README.md#pcap-filter-edn--jsonl-meta
 - Add decode hooks: ./extensions.md

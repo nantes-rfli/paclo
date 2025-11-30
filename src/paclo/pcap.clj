@@ -135,9 +135,9 @@
 
 (defmacro with-offline
   "例:
-     (with-offline [h (open-offline \"sample.pcap\")]
+     (with-offline [h (open-offline \"dev/resources/fixtures/sample.pcap\")]
        (loop-for-ms! h 2000 prn))
-     (with-offline [h (open-offline \"sample.pcap\" {:filter \"udp\"})]
+     (with-offline [h (open-offline \"dev/resources/fixtures/sample.pcap\" {:filter \"udp\"})]
        (loop-n! h 50 prn))"
   [[sym open-expr] & body]
   `(with-pcap [~sym ~open-expr]
