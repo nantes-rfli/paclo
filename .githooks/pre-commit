@@ -4,7 +4,6 @@ set -euo pipefail
 # === 可変フラグ（必要に応じて環境変数で上書き可能） ===
 : "${SKIP_TESTS:=0}"    # 1 = テストを飛ばす
 : "${SKIP_FMT:=0}"      # 1 = 整形を飛ばす
-: "${SKIP_HANDOFF:=0}"  # 1 = AI_HANDOFF.md の再生成を飛ばす
 
 echo "[pre-commit] start"
 
@@ -24,16 +23,7 @@ else
   echo "[pre-commit] SKIP_FMT=1 -> skip formatting"
 fi
 
-# 3) AI_HANDOFF.md 再生成
-if [ "$SKIP_HANDOFF" -ne 1 ]; then
-  echo "[pre-commit] Regenerating AI_HANDOFF.md..."
-  script/make-ai-handoff.sh
-  git add AI_HANDOFF.md || true
-else
-  echo "[pre-commit] SKIP_HANDOFF=1 -> skip AI_HANDOFF generation"
-fi
-
-# 4) 整形による差分などを自動ステージ
+# 3) 整形による差分などを自動ステージ
 git add -u
 
 echo "[pre-commit] done"

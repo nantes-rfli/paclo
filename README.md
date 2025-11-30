@@ -118,7 +118,6 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 ## Documentation
 
-* [AI\_HANDOFF.md](./AI_HANDOFF.md) — 開発・引き継ぎ手順
 * [docs/ROADMAP.md](./docs/ROADMAP.md) — ロードマップと進捗
 
 ## Install
