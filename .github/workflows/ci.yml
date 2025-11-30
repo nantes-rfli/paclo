@@ -48,18 +48,26 @@ jobs:
           restore-keys: |
             cljdeps-${{ runner.os }}-
 
-      # --- Install clojure-lsp (provides clean-ns / format) ---
+      # --- Install lint/format tooling ---
       - name: Set up Clojure tooling (clj-kondo)
         uses: DeLaGuardo/setup-clojure@13.0
         with:
           clj-kondo: 'latest'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install clojure-lsp
-        uses: clojure-lsp/setup-clojure-lsp@v1
-        with:
-          # Pin to a known release; 'latest' can be unavailable on GitHub redirects
-          clojure-lsp-version: 2024.09.19-12.03.09
+      - name: Add local bin to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install clojure-lsp (manual)
+        shell: bash
+        run: |
+          set -e
+          ver=2024.03.21-15.10.25
+          url="https://github.com/clojure-lsp/clojure-lsp/releases/download/${ver}/clojure-lsp-native-linux-amd64.zip"
+          curl -sL "$url" -o /tmp/clojure-lsp.zip
+          unzip -q /tmp/clojure-lsp.zip -d /tmp/clojure-lsp
+          install -m 755 /tmp/clojure-lsp/clojure-lsp "$HOME/.local/bin/clojure-lsp"
+          clojure-lsp --version
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
