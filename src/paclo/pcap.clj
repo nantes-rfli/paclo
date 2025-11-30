@@ -192,18 +192,18 @@
       (let [d (open-dumper pcap out)]
         (try
           (doseq [p packets]
-            (let [[ba sec usec]
+            (let [[^bytes ba sec usec]
                   (if (map? p)
                     (let [{:keys [bytes sec usec]} p
-                          ba' ^bytes (or bytes (byte-array 0))]
+                          ba' (or bytes (byte-array 0))]
                       (when (nil? bytes) (throw (ex-info "missing :bytes" {:item p})))
                       (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
-                        [ba' (long s) (long u)]))
+                        [^bytes ba' (long s) (long u)]))
                     ;; plain byte-array
                     (let [[s u] (now-sec-usec)]
                       [^bytes p (long s) (long u)]))
-                  hdr (mk-hdr sec usec (alength ^bytes ba))
-                  dat (bytes->ptr ^bytes ba)]
+                  hdr (mk-hdr sec usec (alength ba))
+                  dat (bytes->ptr ba)]
               (dump! d hdr dat)))
           (finally
             (flush-dumper! d)
@@ -216,9 +216,9 @@
    成功: {:net int :mask int}
    失敗: ex-info（:phase :lookupnet を含む）"
   [dev]
-  (let [net-ref  (IntByReference.)
-        mask-ref (IntByReference.)
-        err      (Memory/allocate rt PCAP_ERRBUF_SIZE)
+  (let [^IntByReference net-ref  (IntByReference.)
+        ^IntByReference mask-ref (IntByReference.)
+        ^Memory err      (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         rc       (.pcap_lookupnet lib dev net-ref mask-ref err)]
     (if (zero? rc)
       {:net  (.getValue net-ref)
@@ -227,7 +227,7 @@
                       {:phase  :lookupnet
                        :device dev
                        :rc     rc
-                       :err    (.getString err 0)})))))
+                       :err    (.getString ^Memory err 0)})))))
 
 (defn set-bpf!
   "pcap に BPF を適用。optimize=1、netmask=0（未知時）で apply-filter! に委譲。成功で true。"
@@ -253,8 +253,8 @@
   "pcap_next_ex をポーリング。handlerは (fn {:ts-sec :ts-usec :caplen :len :bytes}) を受け取る。
    終端: rc<0（pcap EOF/err）で終了。"
   [^Pointer pcap handler]
-  (let [hdr-ref (PointerByReference.)
-        dat-ref (PointerByReference.)]
+  (let [^PointerByReference hdr-ref (PointerByReference.)
+        ^PointerByReference dat-ref (PointerByReference.)]
     (loop []
       (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
         (cond
@@ -336,7 +336,7 @@
                     (dump! dumper hdr dat))
                   (recur (inc n) 0))
                 (= rc 0) ; timeout
-                (recur n (+ idle timeout-ms))
+                (recur n (+ idle (long timeout-ms)))
                 :else    ; -1 err / -2 EOF
                 n)))))
       (finally

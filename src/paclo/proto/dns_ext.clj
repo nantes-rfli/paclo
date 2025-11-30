@@ -7,11 +7,11 @@
 ;; internal: bytes helpers
 ;; ------------------------------
 
-(defn- u8 [^bytes ba i]
+(defn- u8 ^long [^bytes ba ^long i]
   (when (and ba (<= 0 i) (< i (alength ba)))
     (bit-and 0xFF (aget ba i))))
 
-(defn- u16 [^bytes ba i]
+(defn- u16 ^long [^bytes ba ^long i]
   (when-let [hi (u8 ba i)]
     (when-let [lo (u8 ba (unchecked-inc-int i))]
       (bit-or (bit-shift-left hi 8) lo))))
@@ -23,7 +23,7 @@
 (defn- decode-name
   "Return [name next-off] or nil on failure.
    Follows compression pointers (0xC0xx). Limits jumps to avoid loops."
-  [^bytes ba start-off]
+  [^bytes ba ^long start-off]
   (try
     (let [len (alength ba)]
       (loop [off start-off

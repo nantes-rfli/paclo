@@ -49,7 +49,7 @@
                   (if (and cur-i (>= cur-len 2) (> cur-len best-len))
                     [cur-i cur-len] [best-i best-len])]
               [best-i best-len])
-            (let [z? (zero? (nth ws i))]
+            (let [z? (zero? ^long (nth ws i))]
               (cond
                 z?
                 (recur (inc i)
