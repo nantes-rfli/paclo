@@ -1,0 +1,6 @@
+{
+  // keep lines readable but allow long URLs/content
+  "MD013": { "line_length": 120, "code_blocks": false, "tables": false },
+  // allow inline HTML (badges, etc.)
+  "MD033": false
+}

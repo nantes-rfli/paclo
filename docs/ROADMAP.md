@@ -51,13 +51,13 @@
 
 ### P2: ユースケース特化（v0.4）
 
-**候補ユースケース（1つ選ぶ）**
+#### 候補ユースケース（1つ選ぶ）
 
 - 教育/検証用ラボ
 - 軽量セキュリティ（DNS集計）
 - データ前処理（pcap→EDN/CSV/Parquet 変換）
 
-**成果**  
+#### 成果
 
 - examples/ ディレクトリ充実
 - プチ CLI（babashka/sci）
@@ -96,6 +96,7 @@
 **目的**: 例（examples）を小さく強くし、機械可読な出力と扱いやすいエラーを標準化する。
 
 **完了条件**:
+
 - [ ] examples: `pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt` が **EDN/JSONL 両対応**（※既に対応済みのものはチェック）
 - [ ] `decode_ext` API を**安定化**（破壊的変更なし明記）。DNS 以外の**最小拡張を1件**追加
 - [ ] CLI 体験: Usage とエラー表示の**統一**（README と実際の挙動が一致）
@@ -103,6 +104,7 @@
 - [ ] Docs: README の “Run the examples” **一覧性向上**、extensions.md に**安定化注記**、CHANGELOG に **0.3.0**
 
 **段階**:
+
 - **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats`/`flow-topn` の README 追記  
 - **Phase B**: decode 拡張をもう1本（候補: TCP 概要 or TLS SNI）  
 - **Phase C**: examples スモークテスト + エラー整形の統一  

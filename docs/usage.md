@@ -1,9 +1,12 @@
 # Paclo Usage Guide
 
-This page walks through the essential tasks for using Paclo as a PCAP toolkit in Clojure and explains the library’s structure.
+This page walks through the essential tasks for using Paclo as a PCAP toolkit in Clojure and explains
+the library’s structure.
 
 ## Architecture at a glance
-- **JNI-free binding**: Paclo uses `jnr-ffi`/`jnr-constants` to call `libpcap` without JNI headers. This keeps builds simple and portable.
+
+- **JNI-free binding**: Paclo uses `jnr-ffi`/`jnr-constants` to call `libpcap` without JNI
+  headers. This keeps builds simple and portable.
 - **Core namespaces**:
   - `paclo.pcap` – thin wrappers around libpcap (open live/offline, dump, capture loop).
   - `paclo.parse` – byte-level parsing to Clojure maps (Ethernet/IP/TCP/UDP/ICMP).
@@ -13,6 +16,7 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
 - **Lazy / streaming**: capture functions return lazy seqs or accept transducers (`:xform`) for early filtering/mapping.
 
 ## Quick start (offline)
+
 ```clojure
 (require '[paclo.core :as core])
 
@@ -27,6 +31,7 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
 ```
 
 ## Live capture with BPF DSL
+
 ```clojure
 (require '[paclo.core :as core])
 
@@ -37,6 +42,7 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
 ```
 
 ## Writing PCAP
+
 ```clojure
 (require '[paclo.core :as core])
 
@@ -47,6 +53,7 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
 ```
 
 ## BPF DSL examples
+
 ```clojure
 (core/bpf [:and [:ipv6] [:udp] [:dst-port-range 8000 9000]])
 ;; => "(ip6) and (udp) and (dst portrange 8000-9000)"
@@ -56,6 +63,7 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
 ```
 
 ## Decode hooks (extensions)
+
 ```clojure
 (require '[paclo.decode-ext :as dx]
          '[paclo.proto.dns-ext :as dns-ext])
@@ -66,24 +74,30 @@ This page walks through the essential tasks for using Paclo as a PCAP toolkit in
                     :decode? true})
      (take 1) doall)
 ```
+
 See `docs/extensions.md` for how to write your own hook (e.g., TLS SNI).
 
 ## Error handling
+
 - `:decode? true` never throws on parse failure; packets carry `:decode-error`.
-- Live capture options: `:timeout-ms`, `:idle-max-ms`, `:error-mode` (`:throw` or `:pass`), and `:stop?` predicate for early stop.
+- Live capture options: `:timeout-ms`, `:idle-max-ms`, `:error-mode` (`:throw` or `:pass`), and
+  `:stop?` predicate for early stop.
 - When writing PCAP, invalid records raise exceptions immediately.
 
 ## Performance tips
+
 - Use `:xform` transducers on `packets` to filter/map early (reduces allocations).
 - Prefer BPF at libpcap level for coarse filtering; use `:xform` for fine-grained logic.
 - For large captures, consume with `transduce` or `into []` to control realization.
 
 ## Sample data
+
 - `resources/dns-sample.pcap` – sanitized DNS trace used in tests.
 - `sample.pcap` / `out-test.pcap` / `out.pcap` – small fixtures for examples and docs.
 - CLI examples in `dev/examples` accept custom input PCAPs; see README “Run the examples”.
 
 ## Reference & further reading
-- API docs: https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT
+
+- API docs: <https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT>
 - Roadmap: ./ROADMAP.md
 - Decode extensions: ./extensions.md

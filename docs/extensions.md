@@ -1,6 +1,8 @@
 # Decode extensions (post-decode hooks)
 
-`paclo.decode-ext` lets you annotate or transform decoded packets **right after decode** without breaking the base parser (`parse/packet->clj`). It is designed as an after-the-fact, pluggable hook layer.
+`paclo.decode-ext` lets you annotate or transform decoded packets **right after decode** without
+breaking the base parser (`parse/packet->clj`). It is designed as an after-the-fact, pluggable hook
+layer.
 
 ## How it works
 
@@ -22,7 +24,8 @@
 (dx/installed)  ;; => (list of keys)
 ```
 
-`paclo.core/packets` calls `decode-ext/apply!` when `{:decode? true}` is set, so every decoded packet passes through installed hooks.
+`paclo.core/packets` calls `decode-ext/apply!` when `{:decode? true}` is set, so every decoded
+packet passes through installed hooks.
 
 ## Example: DNS summary
 
@@ -34,9 +37,10 @@
 
 ## Best practices
 
-* Use namespaced keywords for hook keys (e.g. `:my.ns/hook`).
-* In REPL work, avoid accidental duplicate registration; same key overwrites.
-* Wrap fragile logic in `try` inside the hook if needed—framework already isolates failures, but explicit handling makes intent clear.
+- Use namespaced keywords for hook keys (e.g. `:my.ns/hook`).
+- In REPL work, avoid accidental duplicate registration; same key overwrites.
+- Wrap fragile logic in `try` inside the hook if needed—framework already isolates failures, but
+  explicit handling makes intent clear.
 
 ## Example: TLS ClientHello SNI annotation
 
@@ -73,8 +77,8 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap
 clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap 'tcp and port 443' 10 jsonl
 ```
 
-**Notes / limitations**
+### Notes / limitations
 
-* ClientHello split across fragments/records is out of scope (best-effort only).
-* No SNI → nothing is added.
-* Hook runner is defensive: exceptions are swallowed and only map returns are applied.
+- ClientHello split across fragments/records is out of scope (best-effort only).
+- No SNI → nothing is added.
+- Hook runner is defensive: exceptions are swallowed and only map returns are applied.

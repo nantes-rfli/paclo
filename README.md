@@ -35,7 +35,8 @@ clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats
 clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 qstats p95
 ```
 
-> **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run examples via `load-file`. See **AI\_HANDOFF.md** for the workaround. Newer setups should prefer `-M:dev -m`.
+> **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run
+> examples via `load-file`. Newer setups should prefer `-M:dev -m`.
 
 ### DNS RTT with endpoint filters
 
@@ -53,7 +54,7 @@ clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 pairs _ 
 clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
 ```
 
-**Notes**
+#### Notes
 
 * `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
 * `alert%`（例: `2.5`）を与えると、NXDOMAIN+SERVFAIL がその割合を超えた時に `stderr` に `WARNING` を出力
@@ -125,7 +126,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 > まずは **Git 依存**で使えます（Clojars 配布は後日）。  
 > 安定化後に Clojars へ公開したら、ここに Clojars 用の記述を追記します。
 
-**deps.edn**
+### deps.edn
 
 ```edn
 {:deps
@@ -136,7 +137,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
    :git/sha "a1bbb263b22956001ef8e100061bcbfc7b1b2ec7"}}}
 ````
 
-**require 一文**
+### require 一文
 
 ```clojure
 (require '[paclo.core :as core])
@@ -182,6 +183,6 @@ A. 数十万パケット程度であれば REPL 内で問題なく処理でき�
 **Q. `:decode? true` の挙動は？**  
 A. デコードに失敗しても例外は投げず、各要素に `:decode-error` が付与されます。
 
-# fresh clone の場合は最初に Java をコンパイル
+## fresh clone の場合は最初に Java をコンパイル
 
 clojure -T:build javac
