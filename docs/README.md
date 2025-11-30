@@ -5,7 +5,7 @@ Paclo is a Clojure library that makes PCAP I/O and BPF DSL easy to use from idio
 ## Quick links
 - Getting Started / Quick Start: ../README.md#quick-start
 - Examples (CLI): ../README.md#run-the-examples
-- Decode extensions: ./EXTENSIONS.md
+- Decode extensions: ./extensions.md
 - Roadmap: ./ROADMAP.md
 - API on cljdoc: https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT
 
@@ -13,7 +13,7 @@ Paclo is a Clojure library that makes PCAP I/O and BPF DSL easy to use from idio
 - Read PCAP with filter: ../README.md#quick-start
 - Write BPF DSL expressions: ../README.md#bpf-dsl-examples-extended
 - Write / transform PCAP (EDN/JSONL meta): ../README.md#pcap-filter-edn--jsonl-meta
-- Add decode hooks: ./EXTENSIONS.md
+- Add decode hooks: ./extensions.md
 
 ## Development & verification
 - Run tests: `clj -M:test`

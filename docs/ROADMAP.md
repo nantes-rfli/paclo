@@ -100,7 +100,7 @@
 - [ ] `decode_ext` API を**安定化**（破壊的変更なし明記）。DNS 以外の**最小拡張を1件**追加
 - [ ] CLI 体験: Usage とエラー表示の**統一**（README と実際の挙動が一致）
 - [ ] テスト: examples **スモーク** + decode 拡張の**最小ゴールデン/プロパティ**いずれか1本
-- [ ] Docs: README の “Run the examples” **一覧性向上**、EXTENSIONS に**安定化注記**、CHANGELOG に **0.3.0**
+- [ ] Docs: README の “Run the examples” **一覧性向上**、extensions.md に**安定化注記**、CHANGELOG に **0.3.0**
 
 **段階**:
 - **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats`/`flow-topn` の README 追記  
