@@ -28,7 +28,7 @@
    Hooks are isolated; exceptions are caught and ignored."
   [m]
   (reduce
-   (fn [mm [k f]]
+   (fn [mm [_ f]]
      (try
        (let [r (f mm)]
          (if (map? r) r mm))

@@ -20,12 +20,12 @@
 (defn run-main
   "例の -main を実行して stdout/err を取り出す。"
   [f & args]
-  (let [err-w (java.io.StringWriter.)]
-    (let [out (with-out-str
-                (binding [*err* err-w]
-                  (apply f args)))]
-      {:out out
-       :err (.toString err-w)})))
+  (let [err-w (java.io.StringWriter.)
+        out (with-out-str
+              (binding [*err* err-w]
+                (apply f args)))]
+    {:out out
+     :err (.toString err-w)}))
 
 (defn parse-first-edn [s]
   (edn/read-string s))
@@ -46,20 +46,20 @@
 
 (deftest flow-topn-smoke
   (testing "flow-topn returns a non-empty vector"
-    (let [{:keys [out]} (run-main flow-topn/-main sample)]
-      (let [v (parse-first-edn out)]
-        (is (vector? v))
-        (is (= 4 (count v)))))))     ;; サンプルpcapの既知値（4フロー）
+    (let [{:keys [out]} (run-main flow-topn/-main sample)
+          v (parse-first-edn out)]
+      (is (vector? v))
+      (is (= 4 (count v))))))     ;; サンプルpcapの既知値（4フロー）
 
 (deftest dns-rtt-smoke
   (testing "dns-rtt stats mode returns a sane map"
     ;; pairs は片側欠損で 0 になりうるため、stats で健全性を確認する
     ;; 引数順: <in> [bpf] [topN] [mode] [metric] [format]
-    (let [{:keys [out]} (run-main dns-rtt/-main sample "_" "_" "stats")]
-      (let [m (parse-first-edn out)]
-        (is (map? m))
-        ;; サンプルでは 1 以上が期待（将来PCAPが変わっても 0 以外であればOKにするのも可）
-        (is (<= 1 (:pairs m)))))))
+    (let [{:keys [out]} (run-main dns-rtt/-main sample "_" "_" "stats")
+          m (parse-first-edn out)]
+      (is (map? m))
+      ;; サンプルでは 1 以上が期待（将来PCAPが変わっても 0 以外であればOKにするのも可）
+      (is (<= 1 (:pairs m))))))
 
 (deftest pcap-filter-smoke
   (testing "pcap-filter writes a file and prints EDN meta"

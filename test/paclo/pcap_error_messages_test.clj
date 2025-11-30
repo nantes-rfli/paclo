@@ -1,6 +1,6 @@
 (ns paclo.pcap-error-messages-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [paclo.pcap :as p]))
 
 (deftest open-offline-not-found

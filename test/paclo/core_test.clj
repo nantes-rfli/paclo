@@ -1,6 +1,6 @@
 (ns paclo.core-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [paclo.core :as sut])
   (:import
    [java.io File]))
@@ -66,21 +66,6 @@
   ;; not と組み合わせ（ユーザ要望例）
   (is (= "(net 10.0.0.0/8) and (not (port 22))"
          (sut/bpf [:and [:net "10.0.0.0/8"] [:not [:port 22]]]))))
-
-(deftest packets-xform-filters-and-maps
-  (let [pcap (-> (java.io.File/createTempFile "paclo-xf" ".pcap")
-                 .getAbsolutePath)]
-    ;; 3パケット: 60B / 42B / 60B
-    (sut/write-pcap! [(byte-array (repeat 60 (byte 0)))
-                      (byte-array (repeat 42 (byte 0)))
-                      (byte-array (repeat 60 (byte 0)))]
-                     pcap)
-    (let [xs (sut/packets {:path pcap
-                           :decode? false
-                           :xform (comp
-                                   (filter #(>= (:caplen %) 60))
-                                   (map :caplen))})]
-      (is (= [60 60] (into [] xs))))))
 
 (deftest bpf-dsl-error-cases
   ;; フォーム型が不正

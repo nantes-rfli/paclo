@@ -74,6 +74,12 @@ jobs:
           clojure-lsp clean-ns --dry
           clojure-lsp format --dry
 
+      - name: clj-kondo lint
+        shell: bash
+        run: |
+          set -e
+          clj-kondo --lint src test dev
+
       - name: Markdown lint (check only)
         shell: bash
         run: |

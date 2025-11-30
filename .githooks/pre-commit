@@ -35,7 +35,15 @@ else
   echo "[pre-commit] SKIP_MD_LINT=1 -> skip markdown lint"
 fi
 
-# 4) 整形による差分などを自動ステージ
+# 4) clj-kondo (with auto-fix where possible)
+if [ "${SKIP_KONDO:-0}" -ne 1 ]; then
+  echo "[pre-commit] clj-kondo lint (with --fix)..."
+  dev/script/kondo.sh --fix
+else
+  echo "[pre-commit] SKIP_KONDO=1 -> skip clj-kondo"
+fi
+
+# 5) 整形による差分などを自動ステージ
 git add -u
 
 echo "[pre-commit] done"

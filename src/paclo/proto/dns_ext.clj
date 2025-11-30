@@ -46,10 +46,11 @@
             ;; compression pointer 11xxxxxx
             (= 0xC0 (bit-and b 0xC0))
             (let [ptr (bit-or (bit-shift-left (bit-and b 0x3F) 8)
-                              (u8 ba (inc off)))]
+                              (u8 ba (inc off)))
+                  [nm _] (decode-name ba ptr)
+                  next-off (+ off 2)]
               ;; follow pointer; the 'next-off' does not advance if we've jumped
-              (let [[nm _] (decode-name ba ptr)]
-                [(or nm "") (if jumped? (inc (inc off)) (inc (inc off)))]))
+              [(or nm "") next-off])
 
             ;; ordinary label
             :else

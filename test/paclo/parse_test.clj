@@ -1,6 +1,6 @@
 (ns paclo.parse-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [paclo.parse :as parse]
    [paclo.test-util :as tu]))
 
@@ -167,7 +167,7 @@
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
 
 ;; DNS flags: Query (QR=0, RD=1)
-(deftest ipv4-udp-dns-flags-query-test
+(deftest ipv4-udp-dns-flags-query-flags-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 30 00 02 00 00 40 11 00 00
@@ -377,7 +377,7 @@
     (is (= :ipv4-fragment (get-in m [:l3 :l4 :type])))))
 
 ;; DNS フラグ（クエリ）: QR=0, RD=1（0x0100）
-(deftest ipv4-udp-dns-flags-query-test
+(deftest ipv4-udp-dns-flags-query-app-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
                45 00 00 28 00 02 00 00 40 11 00 00

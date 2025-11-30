@@ -10,10 +10,6 @@
     (println "Defaults: <bpf>=nil, <topN>=5, <format>=edn")
     (println "Formats : edn | jsonl")))
 
-(defn- micros [{:keys [sec usec]}]
-  (when (and (number? sec) (number? usec))
-    (+ (* (long sec) 1000000) (long usec))))
-
 (defn- fmt-ts
   "マイクロ秒のエポックを ISO8601（UTC）文字列に。無ければ nil。"
   [us]
@@ -23,11 +19,6 @@
         (long)
         (java.time.Instant/ofEpochMilli)
         (.toString))))
-
-(defn- topN
-  "頻度マップ → 上位Nの {:key k :count v} ベクタ"
-  [m n]
-  (->> m (sort-by val >) (take n) (map (fn [[k v]] {:key k :count v})) vec))
 
 (defn- top-freqs
   [n m]

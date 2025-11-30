@@ -1,6 +1,6 @@
 (ns paclo.list-devices-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [paclo.core :as sut]))
 
 (deftest list-devices-basic-shape

@@ -28,13 +28,6 @@
 (defn- ipv4-addr [^ByteBuffer b]
   (format "%d.%d.%d.%d" (u8 b) (u8 b) (u8 b) (u8 b)))
 
-(defn- ipv6-addr [^ByteBuffer b]
-  ;; 簡易表記。ゼロ圧縮はしていない（後で最適化可）
-  (format "%x:%x:%x:%x:%x:%x:%x:%x"
-          (u16 b) (u16 b) (u16 b) (u16 b)
-          (u16 b) (u16 b) (u16 b) (u16 b)))
-
-;; IPv6: 8ワード読み取り（u16×8）
 (defn- ipv6-addr-words ^clojure.lang.IPersistentVector [^ByteBuffer b]
   (vector (u16 b) (u16 b) (u16 b) (u16 b)
           (u16 b) (u16 b) (u16 b) (u16 b)))
@@ -104,7 +97,7 @@
 (defn- make-flow-key
   "L3の src/dst と L4の src/dst port から5タプルマップを作る。
    TCP/UDP以外はポートが無いので proto/ipだけの簡易キーにする。"
-  [{:keys [src dst protocol next-header] :as l3} l4]
+  [{:keys [src dst protocol next-header]} l4]
   (let [proto (or protocol next-header)]   ;; IPv4は :protocol, IPv6は :next-header
     (case proto
       6  {:proto :tcp  :src-ip src :src-port (:src-port l4) :dst-ip dst :dst-port (:dst-port l4)}
@@ -140,7 +133,7 @@
 
 (defn- arp [^ByteBuffer b]
   (when (<= 8 (.remaining b))                             ;; 最低限の固定部
-    (let [htype (u16 b) ptype (u16 b)
+    (let [_htype (u16 b) ptype (u16 b)
           hlen  (u8 b)  plen  (u8 b)
           oper  (u16 b)]
       (when (<= (+ (* 2 hlen) (* 2 plen)) (.remaining b))
@@ -185,8 +178,7 @@
     (when (> ihl 20)
       (.position b (+ (.position b) (- ihl 20))))
     ;; ★ 追加: フラグメント解釈（DF=0x4000, MF=0x2000, offset=下位13bit）
-    (let [df? (pos? (bit-and flags-frag 0x4000))
-          mf? (pos? (bit-and flags-frag 0x2000))
+    (let [mf? (pos? (bit-and flags-frag 0x2000))
           frag-off (bit-and flags-frag 0x1FFF)         ;; 8オクテット単位
           frag? (or mf? (pos? frag-off))
           payload-len (max 0 (- total-len ihl))
@@ -517,43 +509,44 @@
           an (.getShort bb)
           ns (.getShort bb)
           ar (.getShort bb)
-          f (bit-and flags 0xFFFF)]
-      (let [qr? (pos? (bit-and f 0x8000))
-            opcode (bit-and (bit-shift-right f 11) 0x0F)
-            aa? (pos? (bit-and f 0x0400))
-            tc? (pos? (bit-and f 0x0200))
-            rd? (pos? (bit-and f 0x0100))
-            ra? (pos? (bit-and f 0x0080))
-            rcode (bit-and f 0x000F)
-            oname (dns-opcode-name opcode)
-            rname (dns-rcode-name rcode)]
-        {:type :dns
-         :id (bit-and id 0xFFFF)
-         :qdcount (bit-and qd 0xFFFF)
-         :ancount (bit-and an 0xFFFF)
-         :nscount (bit-and ns 0xFFFF)
-         :arcount (bit-and ar 0xFFFF)
-         :flags-raw f
-         :qr? qr?
-         :opcode opcode
-         :opcode-name oname
-         :aa? aa?
-         :tc? tc?
-         :rd? rd?
-         :ra? ra?
-         :rcode rcode
-         :rcode-name rname
-         :summary (str (if qr? "response" "query")
-                       "/" oname
-                       (when qr? (str "/" rname)))
-         :flags {:raw f
-                 :qr qr?
-                 :opcode opcode
-                 :aa aa?
-                 :tc tc?
-                 :rd rd?
-                 :ra ra?
-                 :rcode rcode}}))))
+          f (bit-and flags 0xFFFF)
+          qr? (pos? (bit-and f 0x8000))
+          opcode (bit-and (bit-shift-right f 11) 0x0F)
+          aa? (pos? (bit-and f 0x0400))
+          tc? (pos? (bit-and f 0x0200))
+          rd? (pos? (bit-and f 0x0100))
+          ra? (pos? (bit-and f 0x0080))
+          rcode (bit-and f 0x000F)
+          oname (dns-opcode-name opcode)
+          rname (dns-rcode-name rcode)]
+      {:type :dns
+       :id (bit-and id 0xFFFF)
+       :qdcount (bit-and qd 0xFFFF)
+       :ancount (bit-and an 0xFFFF)
+       :nscount (bit-and ns 0xFFFF)
+       :arcount (bit-and ar 0xFFFF)
+       :flags-raw f
+       :qr? qr?
+       :opcode opcode
+       :opcode-name oname
+       :aa? aa?
+       :tc? tc?
+       :rd? rd?
+       :ra? ra?
+       :rcode rcode
+       :rcode-name rname
+       :summary (str (if qr? "response" "query")
+                     "/" oname
+                     (when qr? (str "/" rname)))
+       :flags {:raw f
+               :qr qr?
+               :opcode opcode
+               :aa aa?
+               :tc tc?
+               :rd rd?
+               :ra ra?
+               :rcode rcode
+               :rcode-name rname}})))
 
 (defn- maybe-attach-dns [m]
   (if (and (= :udp (:type m))

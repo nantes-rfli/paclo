@@ -10,10 +10,6 @@
     (println "Defaults: <bpf>=nil, <min-caplen>=nil, <format>=edn")
     (println "Formats : edn | jsonl")))
 
-;; clojure.core/parse-long と衝突しないように別名で
-(defn- parse-long-opt [s]
-  (try (some-> s Long/parseLong) (catch Exception _ nil)))
-
 (defn -main [& args]
   (let [[in out bpf min-caplen-str fmt-str] args]
     (when (or (nil? in) (nil? out))

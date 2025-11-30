@@ -71,11 +71,10 @@
       :ipv4 (println "  proto" proto
                      "src" (:src l3) "dst" (:dst l3)
                      (when (:frag? l3) (str " frag@" (:frag-offset l3))))
-      :ipv6 (do
-              (println "  nh" proto
-                       "src" (or (:src-compact l3) (:src l3))
-                       "dst" (or (:dst-compact l3) (:dst l3))
-                       (when (:frag? l3) (str "frag@" (:frag-offset l3)))))
+      :ipv6 (println "  nh" proto
+                     "src" (or (:src-compact l3) (:src l3))
+                     "dst" (or (:dst-compact l3) (:dst l3))
+                     (when (:frag? l3) (str "frag@" (:frag-offset l3))))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
     (println "L4:" (:type l4)

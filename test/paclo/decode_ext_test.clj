@@ -1,6 +1,6 @@
 (ns paclo.decode-ext-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [paclo.core :as core]
    [paclo.decode-ext :as dx]
    [paclo.proto.dns-ext :as dns-ext]

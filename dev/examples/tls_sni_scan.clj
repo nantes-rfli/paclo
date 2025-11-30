@@ -10,8 +10,6 @@
     (println "  clojure -M:dev -m examples.tls-sni-scan <in.pcap> [<bpf-string>] [<topN>] [<format>]")
     (println "Defaults: <bpf-string>='tcp and port 443', topN=50, format=edn")))
 
-(defn- topN [m n] (->> m (sort-by val >) (take n) (map (fn [[k v]] {:sni k :count v})) vec))
-
 (defn -main [& args]
   (let [[in bpf-str topn-str fmt-str] args]
     (when (nil? in) (usage) (System/exit 1))

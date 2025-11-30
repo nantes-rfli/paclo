@@ -1,6 +1,6 @@
 (ns paclo.golden-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is testing]]
    [paclo.core :as core]
    [paclo.test-util :as tu]))
 

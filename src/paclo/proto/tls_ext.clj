@@ -1,5 +1,6 @@
 (ns paclo.proto.tls-ext
   (:require
+   [clojure.string :as str]
    [paclo.decode-ext :as dx]))
 
 ;; --- tiny byte helpers -------------------------------------------------------
@@ -83,7 +84,7 @@
                                             (when (<= ne le)
                                               (if (zero? nt)       ;; host_name(0)
                                                 (let [s (substr ba nb (or nl 0))]
-                                                  (when (and s (not (clojure.string/blank? s)))
+                                                  (when (and s (not (str/blank? s)))
                                                     (throw (ex-info "FOUND" {:sni s}))))
                                                 (recur ne))))))))
                                   (recur de))))))))))))))))

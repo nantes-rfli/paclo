@@ -44,12 +44,12 @@
                        :src src :dst dst}
                 qname (assoc :qname qname)
                 qtype (assoc :qtype qtype))))]
-      (let [xf (comp
-                (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
-                (map summarize))
-            xs (into [] (core/packets {:path abs
-                                       :filter "udp and port 53"
-                                       :decode? true
-                                       :xform xf}))]
-        (println (pr-str xs))))))
-
+      (println
+       (pr-str
+        (into []
+              (comp
+               (filter #(= :dns (get-in % [:decoded :l3 :l4 :app :type])))
+               (map summarize))
+              (core/packets {:path abs
+                             :filter "udp and port 53"
+                             :decode? true})))))))

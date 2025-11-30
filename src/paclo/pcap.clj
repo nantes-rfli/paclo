@@ -17,9 +17,8 @@
 
 ;; --- constants (use before any functions) ---
 (def ^:const PCAP_ERRBUF_SIZE 256)
-(def ^:private ^:const BPF_PROG_BYTES 16)
 
-(defn ^:private ^Integer lookup-netmask
+(defn ^:private lookup-netmask
   "デバイス名から netmask を取得。失敗時は 0 を返す。"
   [^String device]
   (let [err   (Memory/allocate rt PCAP_ERRBUF_SIZE)
@@ -36,12 +35,12 @@
   [^Pointer pcap {:keys [filter optimize? netmask]}]
   (when (and pcap (some? filter) (not (str/blank? filter)))
     (let [opt?  (if (nil? optimize?) true optimize?)
-          mask  (int (or netmask 0))]         ;; ★ 既定は 0（不明）
-      (let [prog (PcapLibrary/compileFilter pcap filter opt? mask)]
-        (try
-          (PcapLibrary/setFilterOrThrow pcap prog)
-          (finally
-            (PcapLibrary/freeFilter prog))))))
+          mask  (int (or netmask 0))         ;; ★ 既定は 0（不明）
+          prog  (PcapLibrary/compileFilter pcap filter opt? mask)]
+      (try
+        (PcapLibrary/setFilterOrThrow pcap prog)
+        (finally
+          (PcapLibrary/freeFilter prog)))))
   pcap)
 
 (defn- blank-str? [^String s]
@@ -54,7 +53,7 @@
 (defn open-offline
   (^Pointer [path]
    (open-offline path {}))
-  (^Pointer [path {:keys [filter optimize? netmask] :as opts}]
+  (^Pointer [path opts]
    ;; 1) まずファイルの存在・サイズを明示チェック（原因を特定しやすく）
    (let [f   (io/file path)
          abs (.getAbsolutePath ^java.io.File f)]
@@ -80,8 +79,8 @@
        ;; 4) ハンドルを返す
        pcap))))
 
-(defn open-live ^Pointer
-  [{:keys [device snaplen promiscuous? timeout-ms filter optimize? netmask]
+(defn open-live
+  [{:keys [device snaplen promiscuous? timeout-ms netmask]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10}
     :as   opts}]
   (let [err     (Memory/allocate rt PCAP_ERRBUF_SIZE)
@@ -157,19 +156,19 @@
         usec (long (* 1000 (mod ms 1000)))]
     [sec usec]))
 
-(defn ^Pointer open-dead
+(defn open-dead
   "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
-  (^Pointer []
+  ([]
    (open-dead DLT_EN10MB 65536))
-  (^Pointer [linktype snaplen]
+  ([linktype snaplen]
    (.pcap_open_dead lib (int linktype) (int snaplen))))
 
-(defn ^:private ^Pointer bytes->ptr [^bytes ba]
+(defn ^:private bytes->ptr [^bytes ba]
   (let [m (Memory/allocate rt (alength ba))]
     (.put m 0 ba 0 (alength ba))
     m))
 
-(defn ^:private ^Pointer mk-hdr
+(defn ^:private mk-hdr
   "pcap_pkthdr を作る。sec/usec は long（エポック秒/マイクロ秒）。len は int。"
   [^long sec ^long usec ^long len]
   (let [hdr (Memory/allocate rt PCAP_PKTHDR_BYTES)]
@@ -531,7 +530,7 @@
 (defn loop-n-or-ms!
   "n件到達 or duration-ms 経過の早い方で停止。
    conf: {:n <long> :ms <long> :idle-max-ms <ms-optional> :timeout-ms <ms-optional> :stop? <fn-optional>}"
-  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?] :as conf} handler]
+  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?]} handler]
   (when (nil? n) (throw (ex-info "missing :n" {})))
   (when (nil? ms) (throw (ex-info "missing :ms" {})))
   (assert (pos? n) "n must be positive")
@@ -602,7 +601,7 @@
      :or {snaplen 65536 promiscuous? true timeout-ms 10}}
     ^long n
     handler
-    {:keys [idle-max-ms] :as loop-opts}]
+    {:keys [idle-max-ms]}]
    (let [h (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})]
      (try
        (when filter
@@ -626,7 +625,7 @@
      :or {snaplen 65536 promiscuous? true timeout-ms 10}}
     ^long duration-ms
     handler
-    {:keys [idle-max-ms] :as loop-opts}]
+    {:keys [idle-max-ms]}]
    (let [h (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})]
      (try
        (when filter
@@ -643,11 +642,6 @@
 ;; - デフォルトで安全に手仕舞い（:max/:max-time-ms/:idle-max-ms）
 ;; - バックグラウンドでキャプチャし、lazy-seq で取り出し
 ;; -----------------------------------------
-
-(def ^:private ^:const default-max 100)
-(def ^:private ^:const default-max-time-ms 10000)
-(def ^:private ^:const default-idle-max-ms 3000)
-(def ^:private ^:const default-queue-cap 1024)
 
 (defn capture->seq
   "パケットを lazy-seq で返す高レベルAPI。
