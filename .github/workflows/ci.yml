@@ -58,7 +58,7 @@ jobs:
       - name: Install clojure-lsp
         uses: clojure-lsp/setup-clojure-lsp@v1
         with:
-          version: latest
+          clojure-lsp-version: latest
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
