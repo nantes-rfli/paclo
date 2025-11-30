@@ -49,11 +49,17 @@ jobs:
             cljdeps-${{ runner.os }}-
 
       # --- Install clojure-lsp (provides clean-ns / format) ---
-      - name: Set up Clojure tooling (clojure-lsp)
+      - name: Set up Clojure tooling (clojure-lsp, clj-kondo)
         uses: DeLaGuardo/setup-clojure@13.0
         with:
           clojure-lsp: 'latest'
+          clj-kondo: 'latest'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add Clojure tooling to PATH
+        run: |
+          echo "$HOME/.clojure-lsp" >> $GITHUB_PATH
+          echo "$HOME/.clj-kondo" >> $GITHUB_PATH
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
