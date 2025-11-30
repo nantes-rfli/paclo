@@ -3,6 +3,7 @@
 Paclo is a Clojure library that makes PCAP I/O and BPF DSL easy to use from idiomatic Clojure code. This page is the entry point to the documentation set.
 
 ## Quick links
+- User Guide: ./usage.md
 - Getting Started / Quick Start: ../README.md#quick-start
 - Examples (CLI): ../README.md#run-the-examples
 - Decode extensions: ./extensions.md
