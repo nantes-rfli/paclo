@@ -187,22 +187,29 @@
             :or   {linktype DLT_EN10MB snaplen 65536}}]
   (when (str/blank? out)
     (throw (ex-info "bytes-seq->pcap!: :out is required" {})))
-  (with-pcap [pcap (open-dead linktype snaplen)]
-    (with-dumper [d (open-dumper pcap out)]
-      (doseq [p packets]
-        (let [[ba sec usec]
-              (if (map? p)
-                (let [{:keys [bytes sec usec]} p
-                      ba' ^bytes (or bytes (byte-array 0))]
-                  (when (nil? bytes) (throw (ex-info "missing :bytes" {:item p})))
-                  (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
-                    [ba' (long s) (long u)]))
-                ;; plain byte-array
-                (let [[s u] (now-sec-usec)]
-                  [^bytes p (long s) (long u)]))
-              hdr (mk-hdr sec usec (alength ^bytes ba))
-              dat (bytes->ptr ^bytes ba)]
-          (dump! d hdr dat))))))
+  (let [pcap (open-dead linktype snaplen)]
+    (try
+      (let [d (open-dumper pcap out)]
+        (try
+          (doseq [p packets]
+            (let [[ba sec usec]
+                  (if (map? p)
+                    (let [{:keys [bytes sec usec]} p
+                          ba' ^bytes (or bytes (byte-array 0))]
+                      (when (nil? bytes) (throw (ex-info "missing :bytes" {:item p})))
+                      (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
+                        [ba' (long s) (long u)]))
+                    ;; plain byte-array
+                    (let [[s u] (now-sec-usec)]
+                      [^bytes p (long s) (long u)]))
+                  hdr (mk-hdr sec usec (alength ^bytes ba))
+                  dat (bytes->ptr ^bytes ba)]
+              (dump! d hdr dat)))
+          (finally
+            (flush-dumper! d)
+            (close-dumper! d))))
+      (finally
+        (close! pcap)))))
 
 (defn lookupnet
   "デバイス名 dev のネットワークアドレス/マスクを取得。
