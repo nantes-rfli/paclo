@@ -118,7 +118,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 ## Documentation
 
-* [docs/ROADMAP.md](./docs/ROADMAP.md) — ロードマップと進捗
+* [docs/README.md](./docs/README.md) — ドキュメント入口（クイックリンク/ガイド）
 
 ## Install
 
