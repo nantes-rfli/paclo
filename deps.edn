@@ -13,5 +13,6 @@
           :ns-default build}
   :nvd   {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
           :main-opts ["-m" "nvd.task.check"]}
-  :eastwood {:extra-deps {jonase/eastwood {:mvn/version "1.4.3"}}
-             :main-opts  ["-m" "eastwood.lint" "-c" "dev/eastwood.edn"]}}}
+  :eastwood {:extra-paths ["dev" "test" "test/resources"]
+             :extra-deps {jonase/eastwood {:mvn/version "1.4.3"}}
+             :main-opts  ["-m" "eastwood-runner"]}}}

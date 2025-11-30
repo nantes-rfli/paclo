@@ -1,7 +1,0 @@
-{:linters [:all]
- :paths ["src" "test" "dev"]
- :namespaces [:source-paths]
- :config-files []
- ;; Uncomment to silence noisy rules:
- ;; :exclude-linters [:boxed-math]
- }
