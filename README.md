@@ -132,8 +132,9 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 {:deps
  {io.github.nantes-rfli/paclo
   {:git/url "https://github.com/nantes-rfli/paclo.git"
-   ;; リリースタグ作成後は :git/tag 推奨。ひとまず main の最新を固定したい場合は :git/sha を指定。
-   :git/sha "dc1a3c6"}}}
+   ;; 安定版を使う場合はタグを指定（v0.2.0 リリース）
+   :git/tag "v0.2.0"
+   :git/sha "a1bbb263b22956001ef8e100061bcbfc7b1b2ec7"}}}
 ````
 
 **require 一文**

@@ -3,8 +3,8 @@
 このファイルは自動生成されています。直接編集しないでください。  
 更新する場合は `script/make-ai-handoff.sh` を修正してください。
 
-- commit: 3d4444e
-- generated: 2025-08-25 12:34:45 UTC
+- commit: 2282a82
+- generated: 2025-11-30 07:51:00 UTC
 
 ## Primary docs（必読）
 
@@ -2907,13 +2907,13 @@ indent_size = 2
 ## Environment snapshot
 
 ```
-git commit: 3d4444e9a1fc
+git commit: 2282a82ad3ab
 branch: main
 java: openjdk version "21.0.8" 2025-07-15 LTS
 clojure: 1.12.1
-clojure-lsp: clojure-lsp 2025.08.15-17.11.38
-clj-kondo 2025.07.28
-clj-kondo: clj-kondo v2025.07.28
+clojure-lsp: clojure-lsp 2025.11.28-12.47.43
+clj-kondo 2025.10.24-SNAPSHOT
+clj-kondo: clj-kondo v2025.10.23
 os: Darwin Nantos-Mac-mini.local 24.4.0 Darwin Kernel Version 24.4.0: Fri Apr 11 18:28:23 PDT 2025; root:xnu-11417.101.15~117/RELEASE_X86_64 x86_64
 ```
 
