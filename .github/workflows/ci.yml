@@ -48,12 +48,11 @@ jobs:
           restore-keys: |
             cljdeps-${{ runner.os }}-
 
-      # --- Install clj-kondo & cljfmt binaries with auth to avoid 403 ---
-      - name: Set up Clojure tooling (clj-kondo, cljfmt)
+      # --- Install clojure-lsp (provides clean-ns / format) ---
+      - name: Set up Clojure tooling (clojure-lsp)
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          clj-kondo: '2024.05.24'
-          cljfmt: '0.13.0'
+          clojure-lsp: 'latest'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compile Java (jnr-ffi bindings)
@@ -67,13 +66,10 @@ jobs:
       - name: Run unit tests
         run: clojure -M:test
 
-      # --- Format check with cljfmt binary; fallback to no-op if missing ---
-      - name: Lint / Format (cljfmt)
+      # --- Format / ns check with clojure-lsp (dry-run) ---
+      - name: Lint / Format (clojure-lsp dry-run)
         shell: bash
         run: |
           set -e
-          if command -v cljfmt >/dev/null 2>&1; then
-            cljfmt check
-          else
-            echo "cljfmt not found; skipping format check (will be enforced locally & in pre-commit)"
-          fi
+          clojure-lsp clean-ns --dry
+          clojure-lsp format --dry
