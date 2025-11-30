@@ -62,8 +62,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          ver=2024.03.21-15.10.25
-          url="https://github.com/clojure-lsp/clojure-lsp/releases/download/${ver}/clojure-lsp-native-linux-amd64.zip"
+          ver=2025.11.28-12.47.43
+          url="https://github.com/clojure-lsp/clojure-lsp/releases/download/${ver}/clojure-lsp-native-static-linux-amd64.zip"
           curl -sL "$url" -o /tmp/clojure-lsp.zip
           unzip -q /tmp/clojure-lsp.zip -d /tmp/clojure-lsp
           install -m 755 /tmp/clojure-lsp/clojure-lsp "$HOME/.local/bin/clojure-lsp"
