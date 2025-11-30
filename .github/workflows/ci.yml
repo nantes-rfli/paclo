@@ -55,10 +55,10 @@ jobs:
           clj-kondo: 'latest'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install clojure-lsp (official action)
+      - name: Install clojure-lsp
         uses: clojure-lsp/setup-clojure-lsp@v1
         with:
-          version: latest
+          clojure-lsp-version: 2025.11.28-12.47.43
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
