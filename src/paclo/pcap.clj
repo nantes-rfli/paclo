@@ -67,7 +67,7 @@
      (let [^Memory err  (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
            pcap (.pcap_open_offline lib abs err)]
        (when (nil? pcap)
-         (let [raw (try (.getString ^Memory err 0) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
+         (let [raw (try (.getString ^jnr.ffi.Memory err (long 0)) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
                msg (let [t (str/trim (or raw ""))]
                      (if (seq t)
                        (str "pcap_open_offline failed: " t)
@@ -88,7 +88,7 @@
         pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
       (throw (ex-info "pcap_open_live failed"
-                      {:device device :err (.getString ^Memory err 0)})))
+                      {:device device :err (.getString ^jnr.ffi.Memory err (long 0))})))
     ;; ★ netmask 未指定ならデバイスから解決（失敗時は 0 が返る）
     (let [resolved-mask (or netmask (when device (lookup-netmask device)))
           opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
@@ -153,7 +153,7 @@
 (defn ^:private now-sec-usec []
   (let [ms (System/currentTimeMillis)
         sec (long (quot ms 1000))
-        usec (long (* 1000 (mod ms 1000)))]
+        usec (long (* 1000 (long (mod ms 1000))))]
     [sec usec]))
 
 (defn open-dead
@@ -164,18 +164,18 @@
    (.pcap_open_dead lib (int linktype) (int snaplen))))
 
 (defn ^:private bytes->ptr [^bytes ba]
-  (let [m (Memory/allocate rt (alength ba))]
-    (.put m 0 ba 0 (alength ba))
+  (let [^jnr.ffi.Memory m (Memory/allocate rt (long (alength ba)))]
+    (.put m (long 0) ba (int 0) (int (alength ba)))
     m))
 
 (defn ^:private mk-hdr
   "pcap_pkthdr を作る。sec/usec は long（エポック秒/マイクロ秒）。len は int。"
   [^long sec ^long usec ^long len]
-  (let [hdr (Memory/allocate rt PCAP_PKTHDR_BYTES)]
-    (.putLong hdr 0 sec)
-    (.putLong hdr 8 usec)
-    (.putInt  hdr 16 (int len))
-    (.putInt  hdr 20 (int len))
+  (let [^jnr.ffi.Memory hdr (Memory/allocate rt (long PCAP_PKTHDR_BYTES))]
+    (.putLong hdr (long 0) sec)
+    (.putLong hdr (long 8) usec)
+    (.putInt  hdr (long 16) (int len))
+    (.putInt  hdr (long 20) (int len))
     hdr))
 
 (defn bytes-seq->pcap!
@@ -227,7 +227,7 @@
                       {:phase  :lookupnet
                        :device dev
                        :rc     rc
-                       :err    (.getString ^Memory err 0)})))))
+                       :err    (.getString ^jnr.ffi.Memory err (long 0))})))))
 
 (defn set-bpf!
   "pcap に BPF を適用。optimize=1、netmask=0（未知時）で apply-filter! に委譲。成功で true。"
@@ -259,14 +259,14 @@
       (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
         (cond
           (= rc 1)
-          (let [hdr (.getValue hdr-ref)
-                dat (.getValue dat-ref)
+          (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
+                ^jnr.ffi.Pointer dat (.getValue dat-ref)
                 ts-sec (PcapHeader/tv_sec hdr)
                 ts-usec (PcapHeader/tv_usec hdr)
                 caplen (PcapHeader/caplen hdr)
                 len    (PcapHeader/len hdr)
                 arr    (byte-array (int caplen))]
-            (.get dat 0 arr 0 (alength arr))
+            (.get dat (long 0) arr (int 0) (int (alength arr)))
             (handler {:ts-sec ts-sec :ts-usec ts-usec
                       :caplen caplen :len len :bytes arr})
             (recur))
@@ -313,7 +313,10 @@
         dumper (open-dumper pcap out)
         ^PointerByReference hdr-ref (PointerByReference.)
         ^PointerByReference dat-ref (PointerByReference.)
-        t0 (System/currentTimeMillis)]
+        t0 (System/currentTimeMillis)
+        max-long (long max)
+        max-time-long (long max-time-ms)
+        idle-max-long (long idle-max-ms)]
     (try
       ;; ★ 変更点：device+filter が両方ある場合は netmask を自動適用
       (when filter
@@ -323,9 +326,9 @@
       (loop [n 0 idle 0]
         (let [now (System/currentTimeMillis)]
           (cond
-            (>= n max) n
-            (>= (- now t0) max-time-ms) n
-            (>= idle idle-max-ms) n
+            (>= n max-long) n
+            (>= (- now t0) max-time-long) n
+            (>= idle idle-max-long) n
             :else
             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
               (cond
@@ -349,8 +352,8 @@
   (let [os (.. System (getProperty "os.name") toLowerCase)]
     (if (not (.contains os "mac"))
       {}
-      (let [pb   (java.lang.ProcessBuilder.
-                  (into-array String ["networksetup" "-listallhardwareports"]))
+      (let [^java.lang.ProcessBuilder pb (java.lang.ProcessBuilder.
+                                          (into-array String ["networksetup" "-listallhardwareports"]))
             _    (.redirectErrorStream pb true)   ;; ← Redirect 定数は使わない
             proc (.start pb)
             rdr  (java.io.BufferedReader.
@@ -383,7 +386,7 @@
   (let [^Memory err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         ^PointerByReference pp  (PointerByReference.)]
     (when (neg? (.pcap_findalldevs lib pp err))
-      (throw (ex-info "pcap_findalldevs failed" {:err (.getString ^Memory err 0)})))
+      (throw (ex-info "pcap_findalldevs failed" {:err (.getString ^jnr.ffi.Memory err (long 0))})))
     (let [^Pointer head (.getValue pp)
           fallback (macos-device->desc)]
       (try
@@ -447,7 +450,8 @@
          handle (->pkt-handler handler)]
      (loop! pcap (fn [pkt]
                    (handle pkt)
-                   (when (>= (swap! c inc) n)
+                   (swap! c inc)
+                   (when (>= ^long @c n)
                      (breakloop! pcap))))))
   ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
    (if (nil? idle-max-ms)
@@ -464,14 +468,14 @@
              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
                (cond
                  (= rc 1)
-                 (let [hdr (.getValue hdr-ref)
-                       dat (.getValue dat-ref)
+                 (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
+                       ^jnr.ffi.Pointer dat (.getValue dat-ref)
                        ts-sec (PcapHeader/tv_sec hdr)
                        ts-usec (PcapHeader/tv_usec hdr)
                        caplen (PcapHeader/caplen hdr)
                        len    (PcapHeader/len hdr)
                        arr    (byte-array (int caplen))]
-                   (.get dat 0 arr 0 (alength arr))
+                   (.get dat (long 0) arr (int 0) (int (alength arr)))
                    (handle {:ts-sec ts-sec :ts-usec ts-usec
                             :caplen caplen :len len :bytes arr})
                    (recur (inc count) 0))
@@ -515,14 +519,14 @@
              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
                (cond
                  (= rc 1)
-                 (let [hdr (.getValue hdr-ref)
-                       dat (.getValue dat-ref)
+                 (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
+                       ^jnr.ffi.Pointer dat (.getValue dat-ref)
                        ts-sec (PcapHeader/tv_sec hdr)
                        ts-usec (PcapHeader/tv_usec hdr)
                        caplen (PcapHeader/caplen hdr)
                        len    (PcapHeader/len hdr)
                        arr    (byte-array (int caplen))]
-                   (.get dat 0 arr 0 (alength arr))
+                   (.get dat (long 0) arr (int 0) (int (alength arr)))
                    (handle {:ts-sec ts-sec :ts-usec ts-usec
                             :caplen caplen :len len :bytes arr})
                    (recur 0))
@@ -542,17 +546,20 @@
   [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?]} handler]
   (when (nil? n) (throw (ex-info "missing :n" {})))
   (when (nil? ms) (throw (ex-info "missing :ms" {})))
-  (assert (pos? n) "n must be positive")
-  (assert (pos? ms) "ms must be positive")
-  (let [handle (->pkt-handler handler)]
+  (assert (pos? (long n)) "n must be positive")
+  (assert (pos? (long ms)) "ms must be positive")
+  (let [handle (->pkt-handler handler)
+        n-long (long n)
+        ms-long (long ms)]
     (if (nil? idle-max-ms)
       ;; --- idle監視なし: loop! を使うパス（handler内で停止条件を見る）
       (let [c  (atom 0)
             t0 (System/currentTimeMillis)]
         (loop! pcap (fn [pkt]
                       (handle pkt)
-                      (let [stop-n? (>= (swap! c inc) n)
-                            stop-t? (>= (- (System/currentTimeMillis) t0) ms)
+                      (swap! c inc)
+                      (let [stop-n? (>= ^long @c n-long)
+                            stop-t? (>= (- (System/currentTimeMillis) t0) ms-long)
                             stop-custom? (and stop? (stop? pkt))]
                         (when (or stop-n? stop-t? stop-custom?)
                           (breakloop! pcap))))))
@@ -560,23 +567,23 @@
       (let [hdr-ref (PointerByReference.)
             dat-ref (PointerByReference.)
             t0 (System/currentTimeMillis)
-            deadline (+ t0 (long ms))
+            deadline (+ t0 ms-long)
             tick (long (or timeout-ms 100))
             idle-target (long idle-max-ms)]
         (loop [count 0 idle 0]
-          (when (and (< count n)
+          (when (and (< count n-long)
                      (< (System/currentTimeMillis) deadline))
             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
               (cond
                 (= rc 1)
-                (let [hdr (.getValue hdr-ref)
-                      dat (.getValue dat-ref)
+                (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
+                      ^jnr.ffi.Pointer dat (.getValue dat-ref)
                       ts-sec (PcapHeader/tv_sec hdr)
                       ts-usec (PcapHeader/tv_usec hdr)
                       caplen (PcapHeader/caplen hdr)
                       len    (PcapHeader/len hdr)
                       arr    (byte-array (int caplen))
-                      _      (.get dat 0 arr 0 (alength arr))
+                      _      (.get dat (long 0) arr (int 0) (int (alength arr)))
                       pkt    {:ts-sec ts-sec :ts-usec ts-usec
                               :caplen caplen :len len :bytes arr}]
                   (handle pkt)
@@ -741,7 +748,7 @@
          wrapped (fn [pkt] (swap! cnt inc) (handler pkt))]
      (run-live-n! opts n wrapped loop-opts)
      (let [elapsed (- (System/currentTimeMillis) t0)
-           stopped (if (>= @cnt n) :n :idle-or-eof)]
+           stopped (if (>= ^long @cnt n) :n :idle-or-eof)]
        {:count @cnt :duration-ms elapsed :stopped stopped}))))
 
 (defn run-live-for-ms-summary!

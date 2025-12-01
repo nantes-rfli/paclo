@@ -2,7 +2,7 @@
   (:require
    [paclo.core :as core]))
 
-(defn- nanos->ms [n] (double (/ n 1e6)))
+(defn- nanos->ms [n] (double (/ (long n) 1e6)))
 
 (defn- gen-bytes [n fill]
   ;; ^byte 型ヒントは使わず、内部で byte キャストする
@@ -34,7 +34,7 @@
           t1 (- (System/nanoTime) t0)]
       (println "plain count =" c1 "elapsed(ms)=" (format "%.1f" (nanos->ms t1))))
     ;; (b) with :xform — 同様に :max を指定
-    (let [xf (filter #(>= (:caplen %) 60))
+    (let [xf (filter #(>= (long (:caplen %)) 60))
           t0 (System/nanoTime)
           c2 (count (core/packets {:path tmp :xform xf :max n}))
           t1 (- (System/nanoTime) t0)]

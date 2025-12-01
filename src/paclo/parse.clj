@@ -42,10 +42,10 @@
   (let [n (count ws)
         ;; 最長0連続を探索（>=2のみ）
         [best-i best-len]
-        (loop [i 0 cur-i nil cur-len 0 best-i nil best-len 0]
+        (loop [i 0 cur-i nil cur-len (long 0) best-i nil best-len (long 0)]
           (if (= i n)
             ;; ループ終了時、直前の連続が最長なら更新
-            (let [[best-i best-len]
+            (let [[best-i ^long best-len]
                   (if (and cur-i (>= cur-len 2) (> cur-len best-len))
                     [cur-i cur-len] [best-i best-len])]
               [best-i best-len])
@@ -54,18 +54,18 @@
                 z?
                 (recur (inc i)
                        (or cur-i i)
-                       (inc cur-len)
+                       (long (inc cur-len))
                        best-i best-len)
 
                 ;; 連続0が途切れた
                 :else
-                (let [[best-i best-len]
+                (let [[best-i ^long best-len]
                       (if (and cur-i (>= cur-len 2) (> cur-len best-len))
                         [cur-i cur-len] [best-i best-len])]
-                  (recur (inc i) nil 0 best-i best-len))))))]
-    (if (>= best-len 2)
+                  (recur (inc i) nil (long 0) best-i best-len))))))]
+    (if (>= (long best-len) 2)
       (let [before (subvec ws 0 best-i)
-            after  (subvec ws (+ best-i best-len) n)
+            after  (subvec ws (unchecked-add (long best-i) (long best-len)) n)
             hexs   (fn [v] (map #(Integer/toHexString (int %)) v))
             s-before (clojure.string/join ":" (hexs before))
             s-after  (clojure.string/join ":" (hexs after))]
@@ -114,7 +114,7 @@
 ;; ------------------------------------------------------------
 (defn- valid-ipv6-options-tlv?
   [^ByteBuffer b ^long len]
-  (if-let [opt (limited-slice b len)]
+  (if-let [^ByteBuffer opt (limited-slice b len)]
     (loop []
       (if (zero? (.remaining opt))
         true
@@ -309,7 +309,7 @@
         l4buf (or (limited-slice b payload-len) (.duplicate b))
         {:keys [final-nh buf frag? frag-offset]}
         (parse-ipv6-ext-chain! l4buf next-hdr)
-        l4 (if (and frag? (pos? frag-offset))
+        l4 (if (and frag? (pos? (long (or frag-offset 0))))
              {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
              (l4-parse final-nh buf))
         flow-key (when final-nh
@@ -556,12 +556,14 @@
     m))
 
 (defn- l4-parse [proto ^ByteBuffer b]
-  (let [m (case proto
-            6  (tcp-header b)
-            17 (udp-header b)
-            1  (icmpv4-header b)
-            58 (icmpv6-header b)
-            {:type :unknown-l4 :proto proto :payload (remaining-bytes b)})]
+  (let [m (if (nil? proto)
+            {:type :unknown-l4 :proto proto :payload (remaining-bytes b)}
+            (case (int proto)
+              6  (tcp-header b)
+              17 (udp-header b)
+              1  (icmpv4-header b)
+              58 (icmpv6-header b)
+              {:type :unknown-l4 :proto proto :payload (remaining-bytes b)}))]
     (maybe-attach-dns m)))
 
 (defn packet->clj

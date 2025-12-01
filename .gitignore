@@ -20,4 +20,5 @@ out-dns*.pcap
 # local secrets / env
 .env
 .envrc
+.claude/
 .eastwood

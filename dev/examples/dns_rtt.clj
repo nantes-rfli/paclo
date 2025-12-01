@@ -102,7 +102,7 @@
   [sorted-xs p]
   (let [n (count sorted-xs)]
     (when (pos? n)
-      (let [rank (int (Math/ceil (* (/ p 100.0) n)))
+      (let [rank (int (Math/ceil (* (/ (double p) 100.0) (long n))))
             idx  (max 0 (min (dec n) (dec rank)))]
         (nth sorted-xs idx)))))
 
@@ -115,14 +115,14 @@
      :p50   (nearest-rank xs 50.0)
      :p95   (nearest-rank xs 95.0)
      :p99   (nearest-rank xs 99.0)
-     :avg   (when (pos? n) (/ sum n))
+     :avg   (when (pos? n) (/ (long sum) (long n)))
      :max   (when (pos? n) (peek xs))}))
 
 (defn- summarize-rcode [rows]
   (let [pairs (count rows)
         cnts  (frequencies (map #(or (:rcode %) :unknown) rows))
         ratio (into {} (for [[k c] cnts]
-                         [k (double (/ c (max 1 pairs)))]))]
+                         [k (double (/ (long c) (long (max 1 pairs))))]))]
     {:counts cnts
      :ratio  ratio}))
 
@@ -280,12 +280,12 @@
                                     app    (get-in m [:decoded :l3 :l4 :app])
                                     rcode  (some-> (:rcode-name app) keyword)
                                     rtt-ms (when (and (number? qt) (number? rt))
-                                             (double (/ (- rt qt) 1000.0)))]
+                                             (double (/ (unchecked-subtract (long rt) (long qt)) 1000.0)))]
                                 {:pending (dissoc pending k)
                                  :out (conj out
                                             (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
                                                         (assoc :rcode rcode))
-                                              (and (number? rtt-ms) (not (neg? rtt-ms)))
+                                              (and (number? rtt-ms) (not (neg? (double rtt-ms))))
                                               (assoc :rtt-ms rtt-ms)))})
                               {:pending pending :out out})))
                         {:pending pending :out out})))
@@ -296,8 +296,8 @@
         ;; アラート（フィルタ後 rows を対象）
         (when alert%
           (let [{:keys [rate counts]} (overall-error-rate rows)
-                pct (* 100.0 rate)]
-            (when (>= pct alert%)
+                pct (unchecked-multiply 100.0 (double rate))]
+            (when (>= pct (double alert%))
               (binding [*out* *err*]
                 (println "WARNING: DNS error rate"
                          (format "%.2f%%" pct)

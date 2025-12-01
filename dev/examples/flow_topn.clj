@@ -65,8 +65,8 @@
                         (let [k fk
                               prev (get m k {:packets 0 :bytes 0})
                               b (:caplen p)]
-                          (assoc m k {:packets (inc (:packets prev))
-                                      :bytes   (+ (:bytes prev) (long (or b 0)))}))
+                          (assoc m k {:packets (unchecked-inc (long (:packets prev)))
+                                      :bytes   (unchecked-add (long (:bytes prev)) (long (or b 0)))}))
                         m))
                     {} pkts)
             rows   (->> counts

@@ -83,7 +83,7 @@
       (if (and (pos? (long (or qd 0))) ba (>= (alength ^bytes ba) 12))
         (let [[qname off1] (decode-name ^bytes ba 12)
               qt (when off1 (u16 ^bytes ba off1))
-              qc (when off1 (u16 ^bytes ba (+ off1 2)))
+              qc (when off1 (u16 ^bytes ba (unchecked-add (long off1) 2)))
               qtype-kw (when qt (get qtype->kw qt (keyword (str "TYPE" qt))))]
           (cond-> m
             qname (assoc-in [:decoded :l3 :l4 :app :qname] qname)

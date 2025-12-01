@@ -14,9 +14,8 @@
   "マイクロ秒のエポックを ISO8601（UTC）文字列に。無ければ nil。"
   [us]
   (when (number? us)
-    (-> us
+    (-> (long us)
         (quot 1000)               ; μs → ms
-        (long)
         (java.time.Instant/ofEpochMilli)
         (.toString))))
 
@@ -42,7 +41,7 @@
           caplens (map :caplen pkts)
           cmin (when (seq caplens) (apply min caplens))
           cmax (when (seq caplens) (apply max caplens))
-          cavg (when (seq caplens) (double (/ (reduce + 0 caplens) cnt)))
+          cavg (when (seq caplens) (double (/ (long (reduce + 0 caplens)) (long cnt))))
           ;; タイムスタンプ（無ければ nil のまま）
           tlist (->> pkts
                      (map (fn [{:keys [sec usec]}]
@@ -57,7 +56,7 @@
                  :times   {:start-iso (fmt-ts start-us)
                            :end-iso   (fmt-ts end-us)
                            :duration-ms (when (and start-us end-us)
-                                          (long (/ (- end-us start-us) 1000)))}
+                                          (long (/ (unchecked-subtract (long end-us) (long start-us)) 1000)))}
                  :proto   {:l3 (->> pkts (map #(get-in % [:decoded :l3 :type])) (remove nil?) frequencies)
                            :l4 (->> pkts (map #(get-in % [:decoded :l3 :l4 :type])) (remove nil?) frequencies)}
                  :top     {:src (->> pkts (map #(get-in % [:decoded :l3 :src])) (remove nil?) frequencies (top-freqs n))

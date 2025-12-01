@@ -9,7 +9,8 @@
         n (/ (count s) 2)]
     (byte-array
      (for [i (range n)]
-       (byte (Integer/parseInt (.substring s (* 2 i) (+ (* 2 i) 2)) 16))))))
+       (let [idx (unchecked-multiply 2 (long i))]
+         (byte (Integer/parseInt (.substring s idx (unchecked-add idx 2)) 16)))))))
 
 (deftest sni-extracts-example-dot-com
   ;; TLS1.2 Record + ClientHello（最小構成）に SNI=example.com を埋め込み

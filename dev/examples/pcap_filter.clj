@@ -18,7 +18,7 @@
           fmt        (keyword (or fmt-str "edn"))
           _          (ex/ensure-one-of! "format" fmt #{:edn :jsonl})
           min-caplen (ex/parse-long* min-caplen-str)
-          xf         (if min-caplen (filter #(>= (:caplen %) min-caplen)) identity)]
+          xf         (if min-caplen (filter #(>= (long (:caplen %)) (long min-caplen))) identity)]
       (println "reading:" in)
       (println "writing:" out)
       (let [in-seq   (into [] (core/packets {:path in* :filter bpf :max Long/MAX_VALUE}))

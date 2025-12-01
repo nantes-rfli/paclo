@@ -130,7 +130,7 @@
         stream  (if decode?
                   (map (fn [m]
                          (let [ba ^bytes (:bytes m)]
-                           (if (and ba (>= (alength ba) ETH_MIN_HDR))
+                           (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
                              (let [{:keys [ok value error]} (decode-result ba)
                                    m' (cond-> m
                                         ok       (assoc :decoded value)

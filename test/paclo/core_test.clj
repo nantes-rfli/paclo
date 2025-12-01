@@ -39,7 +39,7 @@
     (let [xs (sut/packets {:path pcap
                            :decode? false
                            :xform (comp
-                                   (filter #(>= (:caplen %) 60))
+                                   (filter #(>= (long (:caplen %)) 60))
                                    (map :caplen))})]
       (is (= [60 60] (into [] xs))))))
 

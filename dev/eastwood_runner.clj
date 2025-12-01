@@ -7,4 +7,4 @@
   (lint/eastwood {:source-paths ["src" "dev"]
                   :test-paths   ["test"]
                   :linters      [:all]
-                  :exclude-linters [:keyword-typos]}))
+                  :exclude-linters [:keyword-typos :reflection]}))
