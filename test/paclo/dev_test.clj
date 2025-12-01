@@ -44,3 +44,15 @@
     (is (re-find #"tcp" (with-out-str (dev/summarize tcp-pkt))))
     (is (re-find #"echo-request" (with-out-str (dev/summarize icmp-pkt))))
     (is (re-find #"App: :dns" (with-out-str (dev/summarize app-pkt))))))
+
+(deftest summarize-more-flags-and-fragments
+  (let [tcp-pkt {:type :ethernet
+                 :src "aa" :dst "bb" :eth 0x0800
+                 :l3 {:type :ipv4 :protocol 6 :src "9.9.9.9" :dst "8.8.8.8"
+                      :l4 {:type :tcp :src-port 123 :dst-port 80 :flags-str "FA" :data-len 10}}}
+        frag-pkt {:type :ethernet
+                  :src "aa" :dst "bb" :eth 0x0800
+                  :l3 {:type :ipv4 :protocol 17 :src "1.1.1.1" :dst "2.2.2.2" :frag? true :frag-offset 1
+                       :l4 {:type :ipv4-fragment}}}]
+    (is (re-find #"FA" (with-out-str (dev/summarize tcp-pkt))))
+    (is (re-find #"frag@1" (with-out-str (dev/summarize frag-pkt))))))
