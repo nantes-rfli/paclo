@@ -9,9 +9,7 @@
    (-> HBH-BAD parse-hex summarize)"
   (:require
    [clojure.string :as str]
-   [paclo.parse :as parse])
-  (:import
-   [java.util Formatter]))
+   [paclo.parse :as parse]))
 
 ;; テストユーティリティに依存しない最小 hex→bytes
 (defn hex->bytes ^bytes [^String s]
@@ -37,13 +35,9 @@
 (defn- fmt-bytes
   "byte[] を 'xx xx xx ...' の文字列へ"
   [^bytes bs]
-  (let [sb (StringBuilder.)
-        fmt (Formatter. sb)]
-    (dotimes [i (alength bs)]
-      (.format fmt "%02x%s"
-               (bit-and 0xFF (aget bs i))
-               (if (= (inc i) (alength bs)) "" " ")))
-    (str sb)))
+  (->> bs
+       (map #(format "%02x" (bit-and 0xFF %)))
+       (str/join " ")))
 
 (defn hexd
   "packet map の :bytes を16進で表示（L2生データ）。戻り値は文字列。"
