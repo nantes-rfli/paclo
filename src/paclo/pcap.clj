@@ -21,7 +21,7 @@
 (defn ^:private lookup-netmask
   "デバイス名から netmask を取得。失敗時は 0 を返す。"
   [^String device]
-  (let [^Memory err   (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+  (let [^Pointer err  (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         ^IntByReference netp  (IntByReference.)
         ^IntByReference maskp (IntByReference.)
         rc    (.pcap_lookupnet lib device netp maskp err)]
@@ -64,10 +64,10 @@
        (throw (ex-info (str "pcap file is empty: " abs)
                        {:path abs :reason :empty})))
      ;; 2) 実際に pcap_open_offline（errbufも拾う）
-     (let [^Memory err  (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+     (let [^Pointer err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
            pcap (.pcap_open_offline lib abs err)]
        (when (nil? pcap)
-         (let [raw (try (.getString ^jnr.ffi.Memory err (long 0)) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
+         (let [raw (try (.getString ^Pointer err (long 0)) (catch Throwable _ ""))  ; errbuf 取得（失敗しても無視）
                msg (let [t (str/trim (or raw ""))]
                      (if (seq t)
                        (str "pcap_open_offline failed: " t)
@@ -83,12 +83,12 @@
   [{:keys [device snaplen promiscuous? timeout-ms netmask]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10}
     :as   opts}]
-  (let [^Memory err     (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+  (let [^Pointer err    (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         promisc (if promiscuous? 1 0)
         pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
     (when (nil? pcap)
       (throw (ex-info "pcap_open_live failed"
-                      {:device device :err (.getString ^jnr.ffi.Memory err (long 0))})))
+                      {:device device :err (.getString ^Pointer err (long 0))})))
     ;; ★ netmask 未指定ならデバイスから解決（失敗時は 0 が返る）
     (let [resolved-mask (or netmask (when device (lookup-netmask device)))
           opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
@@ -164,14 +164,14 @@
    (.pcap_open_dead lib (int linktype) (int snaplen))))
 
 (defn ^:private bytes->ptr [^bytes ba]
-  (let [^jnr.ffi.Memory m (Memory/allocate rt (long (alength ba)))]
+  (let [^Pointer m (Memory/allocate rt (long (alength ba)))]
     (.put m (long 0) ba (int 0) (int (alength ba)))
     m))
 
 (defn ^:private mk-hdr
   "pcap_pkthdr を作る。sec/usec は long（エポック秒/マイクロ秒）。len は int。"
   [^long sec ^long usec ^long len]
-  (let [^jnr.ffi.Memory hdr (Memory/allocate rt (long PCAP_PKTHDR_BYTES))]
+  (let [^Pointer hdr (Memory/allocate rt (long PCAP_PKTHDR_BYTES))]
     (.putLong hdr (long 0) sec)
     (.putLong hdr (long 8) usec)
     (.putInt  hdr (long 16) (int len))
@@ -218,7 +218,7 @@
   [dev]
   (let [^IntByReference net-ref  (IntByReference.)
         ^IntByReference mask-ref (IntByReference.)
-        ^Memory err      (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+        ^Pointer err     (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         rc       (.pcap_lookupnet lib dev net-ref mask-ref err)]
     (if (zero? rc)
       {:net  (.getValue net-ref)
@@ -227,7 +227,7 @@
                       {:phase  :lookupnet
                        :device dev
                        :rc     rc
-                       :err    (.getString ^jnr.ffi.Memory err (long 0))})))))
+                       :err    (.getString ^Pointer err (long 0))})))))
 
 (defn set-bpf!
   "pcap に BPF を適用。optimize=1、netmask=0（未知時）で apply-filter! に委譲。成功で true。"
@@ -352,8 +352,8 @@
   (let [os (.. System (getProperty "os.name") toLowerCase)]
     (if (not (.contains os "mac"))
       {}
-      (let [^java.lang.ProcessBuilder pb (java.lang.ProcessBuilder.
-                                          (into-array String ["networksetup" "-listallhardwareports"]))
+      (let [^"[Ljava.lang.String;" cmd (into-array String ["networksetup" "-listallhardwareports"])
+            ^java.lang.ProcessBuilder pb (java.lang.ProcessBuilder. cmd)
             _    (.redirectErrorStream pb true)   ;; ← Redirect 定数は使わない
             proc (.start pb)
             rdr  (java.io.BufferedReader.
@@ -383,10 +383,10 @@
    - name が空/空白のエントリはスキップ
    - desc が空/空白なら fallback を適用"
   []
-  (let [^Memory err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+  (let [^Pointer err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         ^PointerByReference pp  (PointerByReference.)]
     (when (neg? (.pcap_findalldevs lib pp err))
-      (throw (ex-info "pcap_findalldevs failed" {:err (.getString ^jnr.ffi.Memory err (long 0))})))
+      (throw (ex-info "pcap_findalldevs failed" {:err (.getString ^Pointer err (long 0))})))
     (let [^Pointer head (.getValue pp)
           fallback (macos-device->desc)]
       (try

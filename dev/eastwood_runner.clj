@@ -7,4 +7,5 @@
   (lint/eastwood {:source-paths ["src" "dev"]
                   :test-paths   ["test"]
                   :linters      [:all]
-                  :exclude-linters [:keyword-typos :reflection :non-clojure-file]}))
+                  ;; キーワード表記の揺れは意図的に許容
+                  :exclude-linters [:keyword-typos :non-clojure-file]}))
