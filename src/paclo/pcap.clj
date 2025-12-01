@@ -161,6 +161,22 @@
         usec (long (* 1000 (long (mod ms 1000))))]
     [sec usec]))
 
+(defn ^:private ensure-bytes-timestamp
+  "Normalize one packet input into [byte-array sec usec].
+   - If map, :bytes required; sec/usec optional (defaults to now).
+   - If byte-array, wraps with current timestamp.
+   Throws ex-info on missing :bytes."
+  [p]
+  (if (map? p)
+    (let [{:keys [bytes sec usec]} p
+          ba' (or bytes (byte-array 0))]
+      (when (nil? bytes)
+        (throw (ex-info "missing :bytes" {:item p})))
+      (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
+        [^bytes ba' (long s) (long u)]))
+    (let [[s u] (now-sec-usec)]
+      [^bytes p (long s) (long u)])))
+
 (defn open-dead
   "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
   ([]
@@ -197,16 +213,7 @@
       (let [d (open-dumper pcap out)]
         (try
           (doseq [p packets]
-            (let [[^bytes ba sec usec]
-                  (if (map? p)
-                    (let [{:keys [bytes sec usec]} p
-                          ba' (or bytes (byte-array 0))]
-                      (when (nil? bytes) (throw (ex-info "missing :bytes" {:item p})))
-                      (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
-                        [^bytes ba' (long s) (long u)]))
-                    ;; plain byte-array
-                    (let [[s u] (now-sec-usec)]
-                      [^bytes p (long s) (long u)]))
+            (let [[^bytes ba sec usec] (ensure-bytes-timestamp p)
                   hdr (mk-hdr sec usec (alength ba))
                   dat (bytes->ptr ba)]
               (dump! d hdr dat)))
