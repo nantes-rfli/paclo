@@ -3,25 +3,25 @@
          com.github.jnr/jnr-ffi {:mvn/version "2.2.14"}
          org.clojure/data.json {:mvn/version "2.5.0"}}
  :aliases
- {:dev   {:extra-paths ["dev" "dev/resources"]}
-  :test  {:extra-paths ["test" "test/resources" "dev"]
-          :extra-deps  {io.github.cognitect-labs/test-runner
-                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-          :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
- :run   {:main-opts ["-m" "paclo.core"]}
- :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
-          :ns-default build}
-  :nvd   {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
-          :main-opts ["-m" "nvd.task.check"]}
+ {:dev      {:extra-paths ["dev" "dev/resources"]}
+  :test     {:extra-paths ["test" "test/resources" "dev"]
+             :extra-deps  {io.github.cognitect-labs/test-runner
+                           {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+             :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
+  :run      {:main-opts ["-m" "paclo.core"]}
+  :build    {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+             :ns-default build}
+  :nvd      {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
+             :main-opts  ["-m" "nvd.task.check"]}
   :coverage {:extra-paths ["test" "test/resources" "dev"]
              :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
              :main-opts   ["-m" "cloverage.coverage"
                            "-p" "src"
-                          "-s" "test"
-                          "-t" ".*-test$"
-                          "--test-ns-regex" ".*-test$"
-                          "--codecov"
-                          "--output" "target/coverage"]}
+                           "-s" "test"
+                           "-t" ".*-test$"
+                           "--test-ns-regex" ".*-test$"
+                           "--codecov"
+                           "--output" "target/coverage"]}
   :eastwood {:extra-paths ["dev" "test" "test/resources"]
-             :extra-deps {jonase/eastwood {:mvn/version "1.4.3"}}
-             :main-opts  ["-m" "eastwood-runner"]}}}
+             :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}}
+             :main-opts   ["-m" "eastwood-runner"]}}}
