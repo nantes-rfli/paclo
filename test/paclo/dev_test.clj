@@ -27,3 +27,20 @@
     (is (re-find #"L2: :ethernet" out))
     (is (re-find #"L3: :ipv6" out))
     (is (re-find #"L4: :udp" out))))
+
+(deftest summarize-covers-l4-branches
+  (let [tcp-pkt {:type :ethernet
+                 :src "aa:aa:aa:aa:aa:aa" :dst "bb:bb:bb:bb:bb:bb" :eth 0x0800
+                 :l3 {:type :ipv4 :protocol 6 :src "1.1.1.1" :dst "2.2.2.2" :frag? true :frag-offset 5
+                      :l4 {:type :tcp :src-port 1000 :dst-port 2000 :flags-str "S" :data-len 0}}}
+        icmp-pkt {:type :ethernet :src "c" :dst "d" :eth 0x0800
+                  :l3 {:type :ipv4 :protocol 1 :src "3.3.3.3" :dst "4.4.4.4"
+                       :l4 {:type :icmpv4 :summary "echo-request" :data-len 0}}}
+        app-pkt {:type :ethernet :src "e" :dst "f" :eth 0x0800
+                 :l3 {:type :ipv4 :protocol 17 :src "5.5.5.5" :dst "6.6.6.6"
+                      :l4 {:type :udp :src-port 53 :dst-port 5353 :data-len 12
+                           :app {:type :dns}}}}]
+    (is (re-find #"frag@5" (with-out-str (dev/summarize tcp-pkt))))
+    (is (re-find #"tcp" (with-out-str (dev/summarize tcp-pkt))))
+    (is (re-find #"echo-request" (with-out-str (dev/summarize icmp-pkt))))
+    (is (re-find #"App: :dns" (with-out-str (dev/summarize app-pkt))))))
