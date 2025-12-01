@@ -46,7 +46,7 @@
           (if (= i n)
             ;; ループ終了時、直前の連続が最長なら更新
             (let [[best-i ^long best-len]
-                  (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                  (if (and cur-i (>= (long cur-len) 2) (> (long cur-len) (long best-len)))
                     [cur-i cur-len] [best-i best-len])]
               [best-i best-len])
             (let [z? (zero? ^long (nth ws i))]
@@ -55,14 +55,14 @@
                 (recur (inc i)
                        (or cur-i i)
                        (long (inc cur-len))
-                       best-i best-len)
+                       best-i (long best-len))
 
                 ;; 連続0が途切れた
                 :else
                 (let [[best-i ^long best-len]
-                      (if (and cur-i (>= cur-len 2) (> cur-len best-len))
+                      (if (and cur-i (>= (long cur-len) 2) (> (long cur-len) (long best-len)))
                         [cur-i cur-len] [best-i best-len])]
-                  (recur (inc i) nil (long 0) best-i best-len))))))]
+                  (recur (inc i) nil (long 0) best-i (long best-len)))))))]
     (if (>= (long best-len) 2)
       (let [before (subvec ws 0 best-i)
             after  (subvec ws (unchecked-add (long best-i) (long best-len)) n)
