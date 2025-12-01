@@ -177,6 +177,13 @@
     (let [[s u] (now-sec-usec)]
       [^bytes p (long s) (long u)])))
 
+(defn ^:private idle-next
+  "Given current idle ms, tick, and target, return {:idle <new> :break? bool}."
+  [idle tick idle-target]
+  (let [idle' (+ idle tick)]
+    {:idle idle'
+     :break? (>= idle' idle-target)}))
+
 (defn open-dead
   "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
   ([]
@@ -493,10 +500,10 @@
                    (recur (inc count) 0))
 
                  (= rc 0)
-                 (let [idle' (+ idle tick)]
-                   (if (>= idle' idle-ms-target)
+                 (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
+                   (if break?
                      (breakloop! pcap)
-                     (recur count idle')))
+                     (recur count idle)))
 
                  :else
                  (breakloop! pcap))))))))))
@@ -544,10 +551,10 @@
                    (recur 0))
 
                  (= rc 0)
-                 (let [idle' (+ idle tick)]
-                   (if (>= idle' idle-ms-target)
+                 (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
+                   (if break?
                      (breakloop! pcap)
-                     (recur idle')))
+                     (recur idle)))
 
                  :else
                  (breakloop! pcap))))))))))
@@ -604,10 +611,10 @@
                     (recur (inc count) 0)))
 
                 (= rc 0)
-                (let [idle' (+ idle tick)]
-                  (if (>= idle' idle-target)
+                (let [{:keys [idle break?]} (idle-next idle tick idle-target)]
+                  (if break?
                     (breakloop! pcap)
-                    (recur count idle')))
+                    (recur count idle)))
 
                 :else
                 (breakloop! pcap)))))))))
