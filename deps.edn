@@ -13,6 +13,15 @@
           :ns-default build}
   :nvd   {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
           :main-opts ["-m" "nvd.task.check"]}
+  :coverage {:extra-paths ["test" "test/resources" "dev"]
+             :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
+             :main-opts   ["-m" "cloverage.coverage"
+                           "-p" "src"
+                          "-s" "test"
+                          "-t" ".*-test$"
+                          "--test-ns-regex" ".*-test$"
+                          "--codecov"
+                          "--output" "target/coverage"]}
   :eastwood {:extra-paths ["dev" "test" "test/resources"]
              :extra-deps {jonase/eastwood {:mvn/version "1.4.3"}}
              :main-opts  ["-m" "eastwood-runner"]}}}

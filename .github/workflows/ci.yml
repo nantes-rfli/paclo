@@ -128,3 +128,54 @@ jobs:
         run: |
           set -e
           clojure -M:eastwood
+
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build jar || \
+          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
+      - name: Run cloverage
+        shell: bash
+        run: |
+          set -e
+          clojure -M:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: target/coverage
