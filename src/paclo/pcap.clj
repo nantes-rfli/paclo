@@ -29,11 +29,16 @@
       0
       (.getValue maskp))))
 
+(defn ^:private valid-filter-string?
+  "Return true when filter is a non-blank string."
+  [filter]
+  (and (string? filter) (not (str/blank? filter))))
+
 (defn ^:private apply-filter!
   "pcap ハンドルに BPF フィルタを適用。opts 例:
    {:filter \"udp and port 53\" :optimize? true :netmask 0}"
   [^Pointer pcap {:keys [filter optimize? netmask]}]
-  (when (and pcap (some? filter) (not (str/blank? filter)))
+  (when (and pcap (valid-filter-string? filter))
     (let [opt?  (if (nil? optimize?) true optimize?)
           mask  (int (or netmask 0))         ;; ★ 既定は 0（不明）
           prog  (PcapLibrary/compileFilter pcap filter opt? mask)]
