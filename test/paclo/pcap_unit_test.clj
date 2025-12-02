@@ -337,6 +337,21 @@
       (is (= -1 (p/loop! ptr (fn [_] (throw (RuntimeException. "should not happen")))))))
     (is (= 2 @calls))))
 
+(deftest capture->seq-live-stop-and-filter
+  (let [filter-seen (atom nil)
+        handled (atom [])]
+    (with-redefs [p/open-live (fn [_] :h)
+                  p/set-bpf-on-device! (fn [_ dev expr] (reset! filter-seen [dev expr]))
+                  p/set-bpf! (fn [& _] nil)
+                  p/loop-n-or-ms! (fn [_ _ handler]
+                                    (handler {:bytes (byte-array [1])})
+                                    nil)]
+      (let [pkts (doall (p/capture->seq {:device "en0" :filter "tcp" :max 1 :max-time-ms 5}))]
+        (reset! handled pkts)))
+    (is (= ["en0" "tcp"] @filter-seen))
+    (is (= 1 (count @handled)))
+    (is (= 1 (aget ^bytes (:bytes (first @handled)) 0)))))
+
 (deftest open-dead-custom-params
   (let [seen (atom nil)
         ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
@@ -377,10 +392,9 @@
   (let [calls (atom 0)
         breaks (atom 0)]
     (with-redefs [p/loop! (fn [_ h]
-                            (h {})
                             (Thread/sleep 2)
                             (h {}))
                   p/breakloop! (fn [_] (swap! breaks inc))]
       (p/loop-for-ms! :pcap 1 (fn [_] (swap! calls inc))))
-    (is (= 2 @calls))
+    (is (= 1 @calls))
     (is (= 1 @breaks))))
