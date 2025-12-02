@@ -7,8 +7,8 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.pipeline-bench <in.pcap> [<bpf>] [<max>] [<out.pcap>]")
-    (println "Defaults: <bpf>=nil, <max>=100000, <out>=<tmp file>")
+    (println "  clojure -M:dev -m examples.pipeline-bench <in.pcap> [<bpf>] [<max>] [<out.pcap>] [decode?]")
+    (println "Defaults: <bpf>=nil, <max>=100000, <out>=<tmp file>, decode?=false")
     (println "Pipeline: packets -> :xform (drop small frames) -> write-pcap! (count + elapsed)")))
 
 (defn- tmp-out []
@@ -30,21 +30,22 @@
           (select-keys m [:bytes :sec :usec])))))
 
 (defn -main [& args]
-  (let [[in bpf max-str out*] args]
+  (let [[in bpf max-str out* decode-str] args]
     (when (nil? in) (usage) (System/exit 1))
     (let [in*   (ex/require-file! in)
           max-n (or (ex/parse-long* max-str) 100000)
           out   (or out* (tmp-out))
+          decode? (boolean (some #{"true" "decode" "1" "yes"} [decode-str]))
           cnt   (volatile! 0)
           xf    (mk-xf cnt)
-          opts  {:path in* :filter bpf :decode? false :xform xf :max max-n}
+          opts  {:path in* :filter (when-not (ex/blank? bpf) bpf) :decode? decode? :xform xf :max max-n}
           t0    (System/nanoTime)]
       (core/write-pcap! (core/packets opts) out)
       (let [elapsed-ms (nanos->ms (- (System/nanoTime) t0))
             summary    (str/join " "
                                  ["filter=" (pr-str bpf)
                                   "max=" (str max-n)
-                                  "decode?=false"
+                                  (str "decode?=" decode?)
                                   "(:xform drop<60B>)"])]
         (println "pipeline done:" (fmt-num @cnt) "packets ->" out
                  "elapsed(ms)=" (format "%.1f" elapsed-ms))
