@@ -177,6 +177,33 @@
         (is (>= @stop-called 1))
         (is (<= 1 @breaks))))))
 
+(deftest capture->seq-throws-when-error-mode-throw
+  (let [lib (reify PcapLibrary
+              (pcap_next_ex [_ _ _ _] (throw (RuntimeException. "boom")))
+              (pcap_close [_ _] nil)
+              (pcap_open_offline [_ _ _] nil)
+              (pcap_open_live [_ _ _ _ _ _] nil)
+              (pcap_open_dead [_ _ _] nil)
+              (pcap_breakloop [_ _] nil)
+              (pcap_compile [_ _ _ _ _ _] 0)
+              (pcap_setfilter [_ _ _] 0)
+              (pcap_freecode [_ _] nil)
+              (pcap_lib_version [_] "fake")
+              (pcap_dump_open [_ _ _] nil)
+              (pcap_dump [_ _ _ _] nil)
+              (pcap_dump_flush [_ _] nil)
+              (pcap_dump_close [_ _] nil)
+              (pcap_geterr [_ _] "")
+              (pcap_findalldevs [_ _ _] 0)
+              (pcap_freealldevs [_ _] nil)
+              (pcap_lookupnet [_ _ _ _ _] 0))]
+    (with-redefs [pcap/lib lib
+                  pcap/open-offline (fn [& _] fake-pcap)]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"capture->seq background error"
+                            (dorun (pcap/capture->seq {:path "dummy"
+                                                       :error-mode :throw
+                                                       :max 1 :max-time-ms 10 :idle-max-ms 5})))))))
+
 (deftest run-live-n-summary-reports-n-or-idle
   (with-redefs [pcap/run-live-n! (stub-run-live-n! 2)]
     (let [summary (pcap/run-live-n-summary! {} 2 (fn [_]) {})]
