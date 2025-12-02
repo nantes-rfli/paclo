@@ -111,6 +111,19 @@
       (is (= "example.com" (:sni info)))
       (is (nil? (:alpn info))))))
 
+(deftest extract-tls-info-alpn-list-length-zero
+  ;; ALPN extension exists but protocol list length=0 → ALPN省略扱い
+  (let [ba (hex->bytes fixture-clienthello-sni-alpn)
+        ba' (byte-array ba)]
+    ;; ext len stays 0x0005, set protocol list len (at 76-77) to 0
+    (aset-byte ba' 76 (byte 0x00))
+    (aset-byte ba' 77 (byte 0x00))
+    ;; extensions total len adjust (0x001d -> 0x001b, minus 2)
+    (aset-byte ba' 51 (byte 0x1B))
+    (let [info ((deref #'tls-ext/extract-tls-info) ba')]
+      (is (= "example.com" (:sni info)))
+      (is (nil? (:alpn info))))))
+
 (deftest extract-sni-fast-path-without-alpn
   ;; 既存フィクスチャから ALPN 拡張を丸ごと削った版（長さも補正）
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
