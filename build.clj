@@ -4,6 +4,7 @@
 (def lib 'io.github.nantes-rfli/paclo)
 (def version "0.2.0")
 (def class-dir "target/classes")
+(def test-class-dir "target/test-classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
@@ -20,7 +21,7 @@
     (b/javac {:src-dirs ["src-java"]
               :class-dir class-dir
               :basis basis
-              :javac-opts ["-Xlint:all" "-proc:none"]}))
+              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]}))
   ;; Jar 作成
   (b/jar {:class-dir class-dir
           :jar-file jar-file
@@ -34,4 +35,13 @@
     (b/javac {:src-dirs   ["src-java"]
               :class-dir  class-dir
               :basis      basis
-              :javac-opts ["-Xlint:deprecation"]})))
+              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))
+
+(defn javac-test
+  "Compile Java test sources under test-java into target/test-classes."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn" :aliases [:junit]})]
+    (b/javac {:src-dirs   ["src-java" "test-java"]
+              :class-dir  test-class-dir
+              :basis      basis
+              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))

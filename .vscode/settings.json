@@ -6,5 +6,17 @@
 },
 "calva.formatOnSave": false,
 "calva.fmt.configPath": "CLOJURE-LSP",
-"editor.formatOnType": false
+"editor.formatOnType": false,
+"java.project.sourcePaths": [
+  "src-java",
+  "test-java"
+],
+"java.project.outputPath": "target/classes",
+"java.project.referencedLibraries": [
+  "${env:HOME}/.m2/repository/com/github/jnr/**/jnr-*.jar",
+  "${env:HOME}/.m2/repository/com/github/jnr/**/jffi-*.jar",
+  "${env:HOME}/.m2/repository/org/ow2/asm/**/asm*.jar",
+  "${env:HOME}/.m2/repository/org/junit/**/junit-*.jar",
+  "${env:HOME}/.m2/repository/org/junit/platform/**/junit-platform-console-standalone-*.jar"
+]
 }

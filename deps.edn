@@ -25,6 +25,11 @@
   :eastwood {:extra-paths ["dev" "test" "test/resources"]
              :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}}
              :main-opts   ["-m" "eastwood-runner"]}
+  :junit    {:extra-paths []
+             :extra-deps  {org.junit.platform/junit-platform-console-standalone
+                           {:mvn/version "1.10.2"}}
+             :main-opts   ["-e"
+                           "(org.junit.platform.console.ConsoleLauncher/main (into-array String [\"--class-path\" \"target/classes:target/test-classes\" \"--scan-classpath\" \"--fail-if-no-tests\"]))"]}
   :nrepl {:extra-deps {nrepl/nrepl       {:mvn/version "1.5.1"}
                        cider/cider-nrepl {:mvn/version "0.58.0"}}
           :main-opts  ["-m" "nrepl.cmdline"

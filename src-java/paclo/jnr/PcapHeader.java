@@ -2,7 +2,10 @@ package paclo.jnr;
 
 import jnr.ffi.Pointer;
 
-/** pcap_pkthdr をオフセットで読むだけの超軽量ヘルパー（macOS/64bit前提） */
+/**
+ * pcap_pkthdr を直接オフセットで読むための軽量ヘルパー。
+ * macOS/64bit でのオフセットを前提とし、長さは unsigned として扱う。
+ */
 public final class PcapHeader {
   private PcapHeader() {}
 

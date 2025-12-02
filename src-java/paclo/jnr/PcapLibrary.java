@@ -7,7 +7,12 @@ import jnr.ffi.Struct;
 import jnr.ffi.byref.PointerByReference;
 import jnr.ffi.byref.IntByReference;
 import paclo.jnr.BpfProgram;
+import paclo.jnr.PcapErrors;
 
+/**
+ * jnr-ffi 経由で libpcap の主要 API を公開するインターフェース。
+ * Clojure 側からも直接呼べるよう、静的メソッドで安全ヘルパーを提供する。
+ */
 public interface PcapLibrary {
 
   /** libpcap ローダ（Clojure側からも直接使えるようにしておく） */
@@ -62,8 +67,7 @@ public interface PcapLibrary {
     BpfProgram prog = new BpfProgram(rt);
     int rc = INSTANCE.pcap_compile(pcap, prog.addr(), expr, optimize ? 1 : 0, netmask);
     if (rc != 0) {
-      String msg = "(no detail)";
-      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      String msg = PcapErrors.lastError(pcap);
       throw new IllegalStateException("pcap_compile failed rc=" + rc + " expr=" + expr + " err=" + msg);
     }
     return prog;
@@ -72,8 +76,7 @@ public interface PcapLibrary {
   static void setFilterOrThrow(Pointer pcap, BpfProgram prog) {
     int rc = INSTANCE.pcap_setfilter(pcap, prog.addr());
     if (rc != 0) {
-      String msg = "(no detail)";
-      try { msg = INSTANCE.pcap_geterr(pcap); } catch (Throwable ignore) {}
+      String msg = PcapErrors.lastError(pcap);
       throw new IllegalStateException("pcap_setfilter failed rc=" + rc + " err=" + msg);
     }
   }
