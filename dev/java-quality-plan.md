@@ -36,15 +36,15 @@ Paclo の Java/JNR 層（約120行）向けに、段階的で軽量な品質向�
 - [x] Phase 3: Javadoc 自動生成パイプライン
 - [x] Phase 3: OS/arch 依存性の明文化またはランタイム判定実装
 
-## メモ
+## 開発者向けコマンド一覧
 
-- Mockito は当面不要（ネイティブ呼び出し中心のため）。必要になれば最小限で追加。
-- libpcap は CI/ローカルともに必須。macOS 開発環境では Homebrew、CI では apt でインストール。
-- 誤検知抑制はコメントで理由を残す（ボーイスカウトルール）。
-- VSCode での Java 参照エラー対策として、`.vscode/settings.json` に JNR/ASM の M2 リポジトリ glob を追加済み。再読込すると赤警告が消える。
-- Java テスト実行: `clojure -T:build javac-test` でコンパイル後、`clojure -M:junit` で JUnit 実行（`out-dns.pcap` を使用）。
-- SpotBugs 実行: `clojure -M:spotbugs -m paclo.dev.spotbugs`（結果は `target/spotbugs.xml`）。
-- CheckStyle 実行: `clojure -M:checkstyle -m paclo.dev.checkstyle`（結果は `target/checkstyle.xml`）。
-- JaCoCo 実行: `clojure -M:jacoco -m paclo.dev.jacoco`（exec → `target/jacoco.exec`, XML → `target/jacoco.xml`, HTML → `target/jacoco-html`）。
-- JaCoCo Gate: `clojure -T:build jacoco-gate`（環境変数 `JACOCO_MIN_LINE` で閾値指定。デフォルト60%）。
-- Javadoc 生成: `clojure -T:build javadoc`（出力先 `target/javadoc`）。
+| 用途 | コマンド | 出力/閾値 | 備考 |
+| --- | --- | --- | --- |
+| Java テスト | `clojure -T:build javac-test && clojure -M:junit` | target/classes, test-classes | `out-dns.pcap` を使用 |
+| SpotBugs | `clojure -M:spotbugs -m paclo.dev.spotbugs` | `target/spotbugs.xml` | 依存を auxclasspath に渡し、欠落クラス警告を抑制 |
+| CheckStyle | `clojure -M:checkstyle -m paclo.dev.checkstyle` | `target/checkstyle.xml` | ルールは最小セット |
+| JaCoCo 計測 | `clojure -M:jacoco -m paclo.dev.jacoco` | `target/jacoco.xml`, `target/jacoco-html` | JUnit をエージェント付きで実行 |
+| JaCoCo Gate | `clojure -T:build jacoco-gate` | 閾値 `JACOCO_MIN_LINE` (デフォ25% 通過) | 失敗で非ゼロ終了 |
+| Javadoc | `clojure -T:build javadoc` | `target/javadoc` | 生成のみ |
+| VSCode 参照修正 | ウィンドウ再読込 | — | `.vscode/settings.json` で JNR/ASM/JUnit を参照 |
+| 依存/環境 | libpcap インストール | — | macOS: Homebrew, CI: `apt install libpcap-dev` |

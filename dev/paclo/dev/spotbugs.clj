@@ -18,6 +18,7 @@
                                     "edu.umd.cs.findbugs.LaunchAppropriateUI"
                                     "-textui" "-effort:max"
                                     "-low"
+                                    "-auxclasspath" cp
                                     "-exclude" exclude
                                     "-xml:withMessages"
                                     "-output" target
