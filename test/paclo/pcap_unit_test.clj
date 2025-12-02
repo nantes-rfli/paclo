@@ -147,3 +147,9 @@
                                         :max 1 :max-time-ms 5 :idle-max-ms 5}))]
         (is (= [] out))
         (is (= 1 @err-called))))))
+
+(deftest list-devices-error-throws
+  (with-redefs [p/lib (reify PcapLibrary
+                        (pcap_findalldevs [_ _ _] -1))]
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_findalldevs failed"
+                          (p/list-devices)))))
