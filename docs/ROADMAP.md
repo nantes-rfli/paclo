@@ -126,7 +126,7 @@
 
 **段階**:
 
-- **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats` / `flow-topn` の README 追記
+- **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats` / `flow-topn` の README 追記、pipeline ベンチで REPL 往復のベースライン取得
 - **Phase B**: decode 拡張をもう 1 本（候補: TCP 概要 or TLS SNI）、`paclo-proto-dns` 整備
 - **Phase C**: examples スモークテスト、エラー整形統一、core.async オプション（任意）
 - **Phase D**: ドキュメント仕上げ & `v0.3.0` タグ
