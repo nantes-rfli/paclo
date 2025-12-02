@@ -96,3 +96,17 @@
     (let [info ((deref #'tls-ext/extract-tls-info) ba')]
       (is (= "example.com" (:sni info)))
       (is (nil? (:alpn info))))))
+
+(deftest extract-tls-info-alpn-extension-empty
+  ;; ALPN 拡張の長さフィールドを 0 にした場合も安全に SNI のみ残す
+  (let [ba (hex->bytes fixture-clienthello-sni-alpn)
+        ba' (byte-array ba)]
+    ;; ALPN ext length => 0 (indices 72-73 hold ext type? Wait ext type at 72? Actually ALPN ext starts at 72)
+    ;; Using known offsets from fixture: ext type at 72-73 = 00 10, ext len at 74-75 = 00 05
+    (aset-byte ba' 74 (byte 0x00))
+    (aset-byte ba' 75 (byte 0x00))
+    ;; also fix extensions total len (50-51) from 0x001d -> 0x0018 (minus 5)
+    (aset-byte ba' 51 (byte 0x18))
+    (let [info ((deref #'tls-ext/extract-tls-info) ba')]
+      (is (= "example.com" (:sni info)))
+      (is (nil? (:alpn info))))))

@@ -163,6 +163,20 @@
                                            :max 1 :max-time-ms 10 :idle-max-ms 5}))]
         (is (= [] out))))))
 
+(deftest capture->seq-stop?-preempts-error-while-pass
+  (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [1]))
+        {:keys [lib breaks]} (fake-lib {:rcs [1 -1] :hdr hdr :dat dat})
+        stop-called (atom 0)]
+    (with-redefs [pcap/lib lib
+                  pcap/open-offline (fn [& _] fake-pcap)]
+      (let [out (doall (pcap/capture->seq {:path "dummy"
+                                           :stop? (fn [_] (swap! stop-called inc) true)
+                                           :error-mode :pass
+                                           :max 5 :max-time-ms 50 :idle-max-ms 10}))]
+        (is (= 1 (count out)))
+        (is (>= @stop-called 1))
+        (is (<= 1 @breaks))))))
+
 (deftest run-live-n-summary-reports-n-or-idle
   (with-redefs [pcap/run-live-n! (stub-run-live-n! 2)]
     (let [summary (pcap/run-live-n-summary! {} 2 (fn [_]) {})]
