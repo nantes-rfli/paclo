@@ -26,41 +26,42 @@
   [^bytes ba ^long start-off]
   (try
     (let [len (alength ba)]
-      (loop [off start-off
-             parts (transient [])
-             jumps 0
-             jumped? false]
-        (when (>= jumps 20)
-          (throw (ex-info "too many jumps" {:off off})))
-        (when (or (nil? off) (>= off len))
-          (throw (ex-info "offset OOB" {:off off :len len})))
-        (let [b (u8 ba off)]
-          (cond
-            ;; terminal zero
-            (= b 0x00)
-            [(->> (persistent! parts)
-                  (remove str/blank?)
-                  (str/join "."))
-             (if jumped? start-off (inc off))]
+      (letfn [(step [off parts jumps]
+                (when (>= jumps 20)
+                  (throw (ex-info "too many jumps" {:off off})))
+                (when (or (nil? off) (>= off len))
+                  (throw (ex-info "offset OOB" {:off off :len len})))
+                (let [b (u8 ba off)]
+                  (cond
+                    ;; terminal zero
+                    (= b 0x00)
+                    [(->> (persistent! parts)
+                          (remove str/blank?)
+                          (str/join "."))
+                     (inc off)]
 
-            ;; compression pointer 11xxxxxx
-            (= 0xC0 (bit-and b 0xC0))
-            (let [ptr (bit-or (bit-shift-left (bit-and b 0x3F) 8)
-                              (u8 ba (inc off)))
-                  [nm _] (decode-name ba ptr)
-                  next-off (+ off 2)]
-              ;; follow pointer; the 'next-off' does not advance if we've jumped
-              [(or nm "") next-off])
+                    ;; compression pointer 11xxxxxx
+                    (= 0xC0 (bit-and b 0xC0))
+                    (let [ptr (bit-or (bit-shift-left (bit-and b 0x3F) 8)
+                                      (u8 ba (inc off)))
+                          [nm _] (step ptr (transient []) (inc jumps))
+                          next-off (+ off 2)
+                          prefix (persistent! parts)
+                          combined (cond-> prefix
+                                     (seq nm) (conj nm))]
+                      ;; follow pointer; next offset advances past the 2-byte pointer
+                      [(str/join "." combined) next-off])
 
-            ;; ordinary label
-            :else
-            (let [lablen b
-                  s (inc off)
-                  e (+ s lablen)]
-              (when (> e len)
-                (throw (ex-info "label OOB" {:s s :e e :len len})))
-              (let [label (String. ba s lablen "UTF-8")]
-                (recur e (conj! parts label) jumps jumped?)))))))
+                    ;; ordinary label
+                    :else
+                    (let [lablen b
+                          s (inc off)
+                          e (+ s lablen)]
+                      (when (> e len)
+                        (throw (ex-info "label OOB" {:s s :e e :len len})))
+                      (let [label (String. ba s lablen "UTF-8")]
+                        (step e (conj! parts label) jumps))))))]
+        (step start-off (transient []) 0)))
     (catch Throwable _ nil)))
 
 ;; ------------------------------

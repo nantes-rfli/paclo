@@ -79,3 +79,19 @@
   (is (nil? (decode-name (byte-array 0) 0)))
   ;; label length OOB
   (is (nil? (decode-name (byte-array [5 1 2]) 0))))
+
+(deftest decode-name-returns-nil-when-offset-out-of-range
+  ;; start offset が長さを超えている場合は nil
+  (is (nil? (decode-name (byte-array [0]) 5))))
+
+(deftest decode-name-detects-pointer-loop
+  ;; 圧縮ポインタが自己参照している場合は jumps リミットで nil を返す
+  (is (nil? (decode-name (byte-array [(unchecked-byte 0xC0) 0]) 0))))
+
+(deftest annotate-qname-qtype-handles-unknown-type
+  ;; Unknown QTYPE should be keywordized as TYPE###
+  (let [payload (byte-array (concat (repeat 12 0) [0 0 (unchecked-byte 0xFF) 0 1])) ; root name, TYPE255, IN
+        m {:decoded {:l3 {:l4 {:payload payload
+                               :app {:type :dns :qdcount 1}}}}}
+        out (annotate-qname-qtype m)]
+    (is (= :TYPE255 (get-in out [:decoded :l3 :l4 :app :qtype-name])))))

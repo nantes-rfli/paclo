@@ -309,6 +309,28 @@
                 p/macos-device->desc (fn [] {})]
     (is (= [] (p/list-devices)))))
 
+(deftest list-devices-falls-back-to-macos-desc-when-missing
+  (let [rt         (jnr.ffi.Runtime/getSystemRuntime)
+        ptr-size   (.addressSize rt)
+        name-bytes (.getBytes "en0")
+        name-buf   (doto (java.nio.ByteBuffer/allocateDirect (inc (alength name-bytes)))
+                     (.put name-bytes)
+                     (.put (byte 0))
+                     (.flip))
+        name-ptr   (jnr.ffi.Pointer/wrap rt name-buf)
+        struct-buf (java.nio.ByteBuffer/allocateDirect (* 3 ptr-size))
+        struct     (jnr.ffi.Pointer/wrap rt struct-buf)]
+    ;; next=NULL, name=name-ptr, desc=NULL (fallback should be used)
+    (.putAddress struct (long 0) (long 0))
+    (.putAddress struct (long ptr-size) (.address name-ptr))
+    (.putAddress struct (long (* 2 ptr-size)) (long 0))
+    (with-redefs [p/lib (stub-lib {:findalldevs-fn (fn [pp _err]
+                                                     (set-ref! pp struct)
+                                                     0)})
+                  p/macos-device->desc (fn [] {"en0" "AirPort"})]
+      (is (= [{:name "en0" :desc "AirPort"}]
+             (p/list-devices))))))
+
 (deftest loop!-returns-error-on-timeout-and-error
   (let [calls (atom 0)
         ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
@@ -449,6 +471,35 @@
                       {:idle-max-ms 2 :timeout-ms 1}))
     (is (some #{1} @handled))
     (is (some #{:break} @handled))))
+
+(deftest loop-n!-idle-branch-breaks-on-error
+  (let [rt     (jnr.ffi.Runtime/getSystemRuntime)
+        breaks (atom 0)
+        lib    (stub-lib {:next-ex-fn (fn [& _] -1)})]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-n! (Memory/allocate rt 1) 1 (fn [_]) {:idle-max-ms 1 :timeout-ms 1}))
+    (is (= 1 @breaks))))
+
+(deftest loop-for-ms!-idle-branch-breaks-on-error
+  (let [rt     (jnr.ffi.Runtime/getSystemRuntime)
+        breaks (atom 0)
+        lib    (stub-lib {:next-ex-fn (fn [& _] -1)})]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-for-ms! (Memory/allocate rt 1) 2 (fn [_]) {:idle-max-ms 1 :timeout-ms 1}))
+    (is (= 1 @breaks))))
+
+(deftest loop-n-or-ms!-idle-branch-breaks-on-error
+  (let [rt     (jnr.ffi.Runtime/getSystemRuntime)
+        breaks (atom 0)
+        lib    (stub-lib {:next-ex-fn (fn [& _] -1)})]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-n-or-ms! (Memory/allocate rt 1)
+                       {:n 2 :ms 10 :idle-max-ms 1 :timeout-ms 1}
+                       (fn [_])))
+    (is (= 1 @breaks))))
 
 (deftest loop-n-or-ms!-no-idle-breaks-on-count
   (let [breaks (atom 0)]
