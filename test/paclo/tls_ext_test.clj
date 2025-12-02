@@ -110,3 +110,23 @@
     (let [info ((deref #'tls-ext/extract-tls-info) ba')]
       (is (= "example.com" (:sni info)))
       (is (nil? (:alpn info))))))
+
+(deftest extract-sni-fast-path-without-alpn
+  ;; 既存フィクスチャから ALPN 拡張を丸ごと削った版（長さも補正）
+  (let [ba (hex->bytes fixture-clienthello-sni-alpn)
+        ;; 元は81B。末尾の ALPN 拡張 9B を落として 72B にする。
+        short (byte-array 72)]
+    (System/arraycopy ba 0 short 0 72)
+    ;; record length 0x004c -> 0x0043 (handshake len 63 + header 4 = 67)
+    (aset-byte short 3 (byte 0x00))
+    (aset-byte short 4 (byte 0x43))
+    ;; handshake length 0x000048 -> 0x00003F
+    (aset-byte short 6 (byte 0x00))
+    (aset-byte short 7 (byte 0x00))
+    (aset-byte short 8 (byte 0x3F))
+    ;; extensions length 0x001d -> 0x0014 (SNIのみ)
+    (aset-byte short 50 (byte 0x00))
+    (aset-byte short 51 (byte 0x14))
+    (let [info ((deref #'tls-ext/extract-tls-info) short)]
+      (is (= "example.com" (:sni info)))
+      (is (nil? (:alpn info))))))

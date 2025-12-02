@@ -204,6 +204,18 @@
                                                        :error-mode :throw
                                                        :max 1 :max-time-ms 10 :idle-max-ms 5})))))))
 
+(deftest capture->seq-respects-queue-cap
+  (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
+        {:keys [lib breaks]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})]
+    (with-redefs [pcap/lib lib
+                  pcap/open-offline (fn [& _] fake-pcap)]
+      (let [pkts (doall (pcap/capture->seq {:path "dummy"
+                                            :queue-cap 2
+                                            :max 10 :max-time-ms 50 :idle-max-ms 20}))]
+        (is (= 3 (count pkts)))
+        (is (= [42 42 42] (map #(aget ^bytes % 0) (map :bytes pkts))))
+        (is (= 1 @breaks))))))
+
 (deftest run-live-n-summary-reports-n-or-idle
   (with-redefs [pcap/run-live-n! (stub-run-live-n! 2)]
     (let [summary (pcap/run-live-n-summary! {} 2 (fn [_]) {})]
