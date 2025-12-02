@@ -39,13 +39,34 @@
 
 ### P1: Clojureらしい処理体験（v0.3）
 
-**目的**: d)「Clojureならでは」の体験を前面に  
+**目的**: North Star の「data-first / REPL 快速」を v0.3 で可視化し、pcap を REPL・seq・EDN にそのまま流し込める体験を前面に出す。
 
-- [ ] pipeline 最適化（`packets → :xform → write-pcap!`、ゼロコピー意識）
-- [ ] core.async オプション（任意）
-- [ ] デコード拡張点（`register!` API or multimethod）
-- [ ] DNS デコードを別モジュール（`paclo-proto-dns`）
-- [ ] Cookbook 例集 / 性能目安公開
+#### UX指標
+
+- REPL 往復（小 pcaps）3–5 秒以内で decode → xform → 出力を確認できる
+- EDN/JSONL 出力の一貫性（diff/grep 即応）
+- ゼロコピー志向で不要コピー・GC を抑える pipeline
+
+#### スコープ
+
+- 必須: pipeline 最適化（`packets → :xform → write-pcap!`）、decode 拡張点 API 安定化、DNS デコードを `paclo-proto-dns` として分離、Cookbook/例集の充実
+- 任意: core.async オプション（背圧・キャンセル例付き）
+- 非スコープ: 可視化 UI や重い統計処理（P2 以降で検討）
+
+#### 受け入れ条件（Done 定義）
+
+- [ ] REPL ワークフロー指標を README/ROADMAP に明記し、計測結果サンプルを 1 件掲載
+- [ ] `decode_ext` API が破壊的変更なしで安定化し、DNS + 追加 1 拡張（例: TCP 概要 or TLS SNI）が同 API で動作
+- [ ] examples（`pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt`）が共通フラグで EDN/JSONL 切替でき、エラー表示が README と一致
+- [ ] スモークテスト（examples）＋ decode 拡張の最小ゴールデン or プロパティテストを 1 本追加
+- [ ] Docs: README “Run the examples” の一覧化、extensions.md に安定化注記、CHANGELOG に 0.3.0 を追記
+
+#### フェーズ分割
+
+- Phase A: pipeline 最適化 PoC、`pcap-stats` / `flow-topn` の README 補強
+- Phase B: decode 拡張 API 安定化、追加拡張 1 本、`paclo-proto-dns` 切り出し
+- Phase C: core.async オプション（任意）、examples スモークテスト、エラー整形の統一
+- Phase D: ドキュメント仕上げ、CHANGELOG 更新、`v0.3.0` タグ準備
 
 ---
 
@@ -91,21 +112,21 @@
 - v0.3 = decode拡張点 + proto-dns + examples + (任意) core.async  
 - v1.0 = スコープ固定・破壊変更収束・安定宣言
 
-## Improvement Track toward v0.3.0 (Done 定義)
+## P1 Improvement Track (v0.3.0)
 
-**目的**: 例（examples）を小さく強くし、機械可読な出力と扱いやすいエラーを標準化する。
+**目的**: P1 のスコープを実務タスクに落とし込み、例（examples）とエラーハンドリングを「小さく強く」仕上げる。
 
-**完了条件**:
+**完了条件**（上記受け入れ条件と対応）:
 
-- [ ] examples: `pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt` が **EDN/JSONL 両対応**（※既に対応済みのものはチェック）
-- [ ] `decode_ext` API を**安定化**（破壊的変更なし明記）。DNS 以外の**最小拡張を1件**追加
-- [ ] CLI 体験: Usage とエラー表示の**統一**（README と実際の挙動が一致）
-- [ ] テスト: examples **スモーク** + decode 拡張の**最小ゴールデン/プロパティ**いずれか1本
-- [ ] Docs: README の “Run the examples” **一覧性向上**、extensions.md に**安定化注記**、CHANGELOG に **0.3.0**
+- [ ] REPL 計測結果を 1 例残し、指標を明文化
+- [ ] examples 4 本が共通フラグで EDN/JSONL 切替し、Usage/エラー文言が一致
+- [ ] `decode_ext` API 安定化 + DNS 以外の拡張 1 本追加
+- [ ] スモークテストと decode 拡張の最小ゴールデン/プロパティいずれか 1 本
+- [ ] Docs 仕上げ（README examples 一覧化、extensions.md 安定化注記、CHANGELOG 0.3.0）
 
 **段階**:
 
-- **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats`/`flow-topn` の README 追記  
-- **Phase B**: decode 拡張をもう1本（候補: TCP 概要 or TLS SNI）  
-- **Phase C**: examples スモークテスト + エラー整形の統一  
+- **Phase A**: `dns-rtt` に client/server フィルタ、`pcap-stats` / `flow-topn` の README 追記
+- **Phase B**: decode 拡張をもう 1 本（候補: TCP 概要 or TLS SNI）、`paclo-proto-dns` 整備
+- **Phase C**: examples スモークテスト、エラー整形統一、core.async オプション（任意）
 - **Phase D**: ドキュメント仕上げ & `v0.3.0` タグ
