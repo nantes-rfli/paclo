@@ -62,19 +62,46 @@ clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p
 
 ### pcap-stats (EDN / JSONL)
 
+|引数|省略時|説明|
+|---|---|---|
+|`<in.pcap>`|必須|入力 PCAP|
+|`<bpf>`|なし|BPF 文字列（例: `udp and port 53`）|
+|`<topN>`|5|上位件数（src/dst）|
+|`<format>`|edn|`edn` or `jsonl`|
+
 ```bash
 # Basic stats (EDN)
 clojure -Srepro -M:dev -m examples.pcap-stats in.pcap
 
 # With BPF, topN=10, JSONL output
 clojure -Srepro -M:dev -m examples.pcap-stats in.pcap 'udp and port 53' 10 jsonl
+
+# Sample output (EDN)
+{:packets 1234, :bytes 98765, :caplen {:avg 80.1, :min 42, :max 1514},
+ :proto {:l3 {:ipv4 1200}, :l4 {:tcp 900, :udp 300}},
+ :top {:src [{:key "10.0.0.1" :count 200}], :dst [{:key "8.8.8.8" :count 150}]}}
 ```
 
 ### flow-topn (EDN / JSONL)
 
+|引数|省略時|説明|
+|---|---|---|
+|`<in.pcap>`|必須|入力 PCAP|
+|`<bpf>`|`udp or tcp`|BPF 文字列|
+|`<topN>`|10|上位フロー件数|
+|`<mode>`|unidir|`unidir`（片方向）/ `bidir`（双方向まとめ）|
+|`<metric>`|packets|`packets` or `bytes`|
+|`<format>`|edn|`edn` or `jsonl`|
+
 ```bash
 # Top flows (bidir, sort by bytes), JSONL output
 clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 bidir bytes jsonl
+
+# Sample output (EDN)
+[{:flow {:proto :udp, :src "10.0.0.1:5353", :dst "224.0.0.251:5353"}
+  :packets 320 :bytes 18320}
+ {:flow {:proto :tcp, :src "10.0.0.1:443", :dst "10.0.0.2:53422"}
+  :packets 210 :bytes 14000}]
 ```
 
 ### pcap-filter (EDN / JSONL meta)
