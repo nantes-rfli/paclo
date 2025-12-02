@@ -54,6 +54,18 @@ clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 pairs _ 
 clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
 ```
 
+|引数|省略時|説明|
+|---|---|---|
+|`<in.pcap>`|必須|入力 PCAP|
+|`<bpf>`|`udp and port 53`|BPF 文字列|
+|`<topN>`|50|pairs/qstats の上限行数|
+|`<mode>`|pairs|`pairs` / `stats` / `qstats`|
+|`<metric>`|pairs|`pairs` / `with-rtt` / `p50` / `p95` / `p99` / `avg` / `max`|
+|`<format>`|edn|`edn` or `jsonl`|
+|`<alert%>`|なし|NXDOMAIN+SERVFAIL 率の閾値（例: `2.5`）|
+|`--client` / `-c`|なし|送信元/宛先プレフィックスフィルタ（前方一致）|
+|`--server` / `-s`|なし|送信元/宛先プレフィックスフィルタ（前方一致）|
+
 #### Notes
 
 * `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
