@@ -60,6 +60,13 @@
     (b/process {:command-args ["clojure" "-M:jacoco" "-m" "paclo.dev.jacoco"]
                 :basis basis})))
 
+(defn jacoco-gate
+  "Fail if line coverage is below threshold (default 60%)."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn" :aliases [:jacoco-gate]})]
+    (b/process {:command-args ["clojure" "-M:jacoco-gate" "-m" "paclo.dev.jacoco-gate"]
+                :basis basis})))
+
 (defn javadoc
   "Generate Javadoc for src-java into target/javadoc." 
   [_]

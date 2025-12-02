@@ -13,9 +13,10 @@
 
 (defn -main [& _]
   (let [cp-all (cp "-A:junit:jacoco")
+        ;; include compiled outputs explicitly
+        cp-run (str cp-all ":target/classes:target/test-classes")
         agent (or (find-in-cp cp-all "org.jacoco.agent")
                   (find-in-cp cp-all "jacocoagent"))
-        cli   cp-all
         _ (when-not agent (throw (ex-info "jacoco agent jar not found on classpath" {})))
         exec "target/jacoco.exec"
         xml  "target/jacoco.xml"
@@ -24,7 +25,7 @@
     (println "[jacoco] running tests with agent ->" exec)
     (let [{:keys [exit err]} (sh/sh "java"
                                     (str "-javaagent:" agent "=destfile=" exec)
-                                    "-cp" cp-all
+                                    "-cp" cp-run
                                     "org.junit.platform.console.ConsoleLauncher"
                                     "--class-path" "target/classes:target/test-classes"
                                     "--scan-classpath")]
@@ -33,7 +34,7 @@
         (System/exit exit)))
     (println "[jacoco] generating reports ->" xml "and" html)
     (let [{:keys [exit err]} (sh/sh "java"
-                                    "-cp" cli
+                                    "-cp" cp-run
                                     "org.jacoco.cli.internal.Main" "report" exec
                                     "--classfiles" "target/classes"
                                     "--sourcefiles" "src-java"

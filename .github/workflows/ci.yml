@@ -92,6 +92,15 @@ jobs:
           set -e
           clojure -T:build checkstyle
 
+      - name: JaCoCo (coverage gate)
+        shell: bash
+        env:
+          JACOCO_MIN_LINE: "0.25"
+        run: |
+          set -e
+          clojure -T:build jacoco
+          clojure -T:build jacoco-gate
+
       - name: Run unit tests
         run: clojure -M:test
 

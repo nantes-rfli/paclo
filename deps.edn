@@ -36,6 +36,9 @@
              :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.12"}
                            org.jacoco/org.jacoco.cli           {:mvn/version "0.8.12"}}
              :main-opts   ["-m" "paclo.dev.jacoco"]}
+  :jacoco-gate {:extra-paths ["dev"]
+                :extra-deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}}
+                :main-opts   ["-m" "paclo.dev.jacoco-gate"]}
   :junit    {:extra-paths []
              :extra-deps  {org.junit.platform/junit-platform-console-standalone
                            {:mvn/version "1.10.2"}}
