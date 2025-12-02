@@ -32,6 +32,10 @@
   :checkstyle {:extra-paths ["dev" "dev/resources"]
                :extra-deps  {com.puppycrawl.tools/checkstyle {:mvn/version "10.18.0"}}
                :main-opts   ["-m" "paclo.dev.checkstyle"]}
+  :jacoco   {:extra-paths ["dev"]
+             :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.12"}
+                           org.jacoco/org.jacoco.cli           {:mvn/version "0.8.12"}}
+             :main-opts   ["-m" "paclo.dev.jacoco"]}
   :junit    {:extra-paths []
              :extra-deps  {org.junit.platform/junit-platform-console-standalone
                            {:mvn/version "1.10.2"}}

@@ -31,10 +31,10 @@ Paclo の Java/JNR 層（約120行）向けに、段階的で軽量な品質向�
 - [x] Phase 1: 公開 API への最小 Javadoc 付与
 - [x] Phase 2: SpotBugs 導入と警告ゼロ確認
 - [x] Phase 2: CheckStyle 最小ルール導入（必要なら）
-- [ ] Phase 2: CI に Java ジョブ追加（libpcap インストール＋テスト/解析）
-- [ ] Phase 3: JaCoCo 設定と閾値設定
-- [ ] Phase 3: Javadoc 自動生成パイプライン
-- [ ] Phase 3: OS/arch 依存性の明文化またはランタイム判定実装
+- [x] Phase 2: CI に Java ジョブ追加（libpcap インストール＋テスト/解析）
+- [x] Phase 3: JaCoCo 設定と閾値設定
+- [x] Phase 3: Javadoc 自動生成パイプライン
+- [x] Phase 3: OS/arch 依存性の明文化またはランタイム判定実装
 
 ## メモ
 
@@ -45,3 +45,5 @@ Paclo の Java/JNR 層（約120行）向けに、段階的で軽量な品質向�
 - Java テスト実行: `clojure -T:build javac-test` でコンパイル後、`clojure -M:junit` で JUnit 実行（`out-dns.pcap` を使用）。
 - SpotBugs 実行: `clojure -M:spotbugs -m paclo.dev.spotbugs`（結果は `target/spotbugs.xml`）。
 - CheckStyle 実行: `clojure -M:checkstyle -m paclo.dev.checkstyle`（結果は `target/checkstyle.xml`）。
+- JaCoCo 実行: `clojure -M:jacoco -m paclo.dev.jacoco`（exec → `target/jacoco.exec`, XML → `target/jacoco.xml`, HTML → `target/jacoco-html`）。
+- Javadoc 生成: `clojure -T:build javadoc`（出力先 `target/javadoc`）。

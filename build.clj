@@ -1,5 +1,7 @@
 (ns build
-  (:require [clojure.tools.build.api :as b]))
+  (:require [clojure.tools.build.api :as b]
+            [clojure.java.shell :as sh]
+            [clojure.string :as str]))
 
 (def lib 'io.github.nantes-rfli/paclo)
 (def version "0.2.0")
@@ -50,6 +52,23 @@
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:checkstyle]})]
     (b/process {:command-args ["clojure" "-M:checkstyle" "-m" "paclo.dev.checkstyle"]
                 :basis basis})))
+
+(defn jacoco
+  "Run JUnit with JaCoCo agent and generate reports."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn" :aliases [:jacoco]})]
+    (b/process {:command-args ["clojure" "-M:jacoco" "-m" "paclo.dev.jacoco"]
+                :basis basis})))
+
+(defn javadoc
+  "Generate Javadoc for src-java into target/javadoc." 
+  [_]
+  (let [cp (-> (sh/sh "clojure" "-Spath") :out str/trim)]
+    (b/process {:command-args ["javadoc"
+                               "-d" "target/javadoc"
+                               "-cp" cp
+                               "-sourcepath" "src-java"
+                               "-subpackages" "paclo.jnr"]})))
 
 (defn javac-test
   "Compile Java test sources under test-java into target/test-classes."
