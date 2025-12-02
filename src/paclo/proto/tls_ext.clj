@@ -47,9 +47,13 @@
       (let [pl (u8 ba q)
             nb (inc q)
             ne (+ nb (or pl 0))]
-        (if (<= ne le)
-          (recur ne (conj acc (substr ba nb (or pl 0))))
-          acc))
+        (cond
+          (nil? pl) acc
+          (<= ne le)
+          (if-let [proto (substr ba nb (or pl 0))]
+            (recur ne (conj acc proto))
+            acc)
+          :else acc))
       acc)))
 
 (defn- parse-extensions [^bytes ba ext-beg ext-end]
@@ -82,32 +86,34 @@
    返り値例: {:sni \"example.com\" :alpn [\"h2\" \"http/1.1\"]}（キーは存在するものだけ）"
   [^bytes ba]
   (try
-    (let [len (alength ba)]
-      (when (<= 5 len)
-        (let [ct   (u8 ba 0)
-              vmaj (u8 ba 1)
-              rlen (u16 ba 3)]
-          (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (+ 5 rlen) len))
-            (let [ho    5
-                  htype (u8 ba ho)
-                  hlen  (u24 ba (inc ho))
-                  hb    (+ ho 4)
-                  he    (+ hb (or hlen 0))]
-              (when (and (= 1 htype) (some? hlen) (<= he (+ 5 rlen)) (<= (+ hb 2 32 1) len))
-                (let [p0       hb
-                      p1       (+ p0 2 32)
-                      sid-len  (u8 ba p1)
-                      p2       (+ p1 1 (or sid-len 0))
-                      cs-len   (u16 ba p2)
-                      p3       (+ p2 2 (or cs-len 0))
-                      cm-len   (u8 ba p3)
-                      p4       (+ p3 1 (or cm-len 0))]
-                  (when (<= (+ p4 2) he)
-                    (let [ext-len (u16 ba p4)
-                          ext-beg (+ p4 2)
-                          ext-end (+ ext-beg (or ext-len 0))]
-                      (when (<= ext-end he)
-                        (parse-extensions ba ext-beg ext-end)))))))))))
+    (or
+     (let [len (alength ba)]
+       (when (<= 5 len)
+         (let [ct   (u8 ba 0)
+               vmaj (u8 ba 1)
+               rlen (u16 ba 3)]
+           (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (+ 5 rlen) len))
+             (let [ho    5
+                   htype (u8 ba ho)
+                   hlen  (u24 ba (inc ho))
+                   hb    (+ ho 4)
+                   he    (+ hb (or hlen 0))]
+               (when (and (= 1 htype) (some? hlen) (<= he (+ 5 rlen)) (<= (+ hb 2 32 1) len))
+                 (let [p0       hb
+                       p1       (+ p0 2 32)
+                       sid-len  (u8 ba p1)
+                       p2       (+ p1 1 (or sid-len 0))
+                       cs-len   (u16 ba p2)
+                       p3       (+ p2 2 (or cs-len 0))
+                       cm-len   (u8 ba p3)
+                       p4       (+ p3 1 (or cm-len 0))]
+                   (when (<= (+ p4 2) he)
+                     (let [ext-len (u16 ba p4)
+                           ext-beg (+ p4 2)
+                           ext-end (+ ext-beg (or ext-len 0))]
+                       (when (<= ext-end he)
+                         (parse-extensions ba ext-beg ext-end)))))))))))
+     {})
     (catch Throwable _ {})))
 
 (defn extract-sni

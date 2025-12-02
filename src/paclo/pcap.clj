@@ -199,6 +199,18 @@
     -2 :eof
     :error))
 
+(defn rc->status-detail
+  "Return a map {:rc rc :status <kw> :summary <string|nil>} that is convenient for
+   logging when pcap_next_ex finishes with EOF (-2) or an error (-1/others)."
+  [rc]
+  (let [status (rc->status rc)]
+    {:rc rc
+     :status status
+     :summary (case status
+                :eof "pcap_next_ex reached EOF (rc=-2)"
+                :error (format "pcap_next_ex returned error (rc=%d)" (long rc))
+                nil)}))
+
 (defn open-dead
   "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
   ([]

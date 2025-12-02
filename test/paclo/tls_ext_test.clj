@@ -57,3 +57,10 @@
   (let [pkt {:decoded {:l3 {:l4 {:type :udp :payload (byte-array 0)}}}}
         annotate (deref #'tls-ext/annotate-tls-sni)]
     (is (= pkt (annotate pkt)))))
+
+(deftest extract-tls-info-returns-empty-map-when-alpn-truncated
+  (let [full (hex->bytes fixture-clienthello-sni-alpn)
+        truncated (byte-array (dec (alength full)))
+        extract (deref #'tls-ext/extract-tls-info)]
+    (System/arraycopy full 0 truncated 0 (alength truncated))
+    (is (= {} (extract truncated)))))

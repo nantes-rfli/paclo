@@ -18,6 +18,18 @@
   (let [pkt {:bytes (byte-array [1 2 10])}]
     (is (= "01 02 0a" (dev/hexd pkt)))))
 
+(deftest fragment-note-builds-offset
+  (is (= "frag@10" (dev/fragment-note {:frag? true :frag-offset 10})))
+  (is (= "frag@0" (dev/fragment-note {:frag? true})))
+  (is (nil? (dev/fragment-note {:frag? false}))))
+
+(deftest vlan-summary-renders-tags
+  (let [tags [{:tpid 0x8100 :vid 100 :pcp 5 :dei true}
+              {:tpid 0x88A8 :vid 200 :pcp 1 :dei false}]]
+    (is (= "VLAN: [TPID=0x8100 VID=100 PCP=5 DEI=true] [TPID=0x88A8 VID=200 PCP=1 DEI=false]"
+           (dev/vlan-summary tags)))
+    (is (nil? (dev/vlan-summary nil)))))
+
 (deftest parse-and-summarize-hbh-ok
   (let [pkt (dev/parse-hex dev/HBH-OK)
         out (with-out-str (dev/summarize pkt))]

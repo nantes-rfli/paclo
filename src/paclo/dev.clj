@@ -45,6 +45,21 @@
   [pkt]
   (fmt-bytes (:bytes pkt)))
 
+(defn fragment-note
+  "L3マップにフラグメント情報があれば \"frag@<offset>\" を返す。"
+  [l3]
+  (when (:frag? l3)
+    (str "frag@" (or (:frag-offset l3) 0))))
+
+(defn vlan-summary
+  "VLANタグのベクタを \"VLAN: [TPID=…] [TPID=…]\" 形式で連結。なければ nil。"
+  [vlan-tags]
+  (when (seq vlan-tags)
+    (str "VLAN:"
+         (->> vlan-tags
+              (map #(str " " (pcap/vlan-tag->str %)))
+              (apply str)))))
+
 (defn summarize
   "要点だけサマリ出力（println）。戻り値は pkt そのもの（スレッディングしやすく）。"
   [pkt]
@@ -55,20 +70,18 @@
     (println "L2:" type)
     (when (= :ethernet type)
       (print "  src/dst:" (:src pkt) "->" (:dst pkt) "eth" (format "0x%04X" (:eth pkt)))
-      (when (seq vlan-tags)
-        (print "  VLAN:")
-        (doseq [t vlan-tags]
-          (print " " (pcap/vlan-tag->str t))))
+      (when-let [vline (vlan-summary vlan-tags)]
+        (print "  " vline))
       (println))
     (println "L3:" l3t)
     (case l3t
       :ipv4 (println "  proto" proto
                      "src" (:src l3) "dst" (:dst l3)
-                     (when (:frag? l3) (str " frag@" (:frag-offset l3))))
+                     (when-let [frag (fragment-note l3)] (str " " frag)))
       :ipv6 (println "  nh" proto
                      "src" (or (:src-compact l3) (:src l3))
                      "dst" (or (:dst-compact l3) (:dst l3))
-                     (when (:frag? l3) (str "frag@" (:frag-offset l3))))
+                     (when-let [frag (fragment-note l3)] (str " " frag)))
       :arp  (println "  op" (:op l3) "spa" (:spa l3) "tpa" (:tpa l3))
       nil)
     (println "L4:" (:type l4)
