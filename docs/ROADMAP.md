@@ -61,6 +61,13 @@
 - [ ] スモークテスト（examples）＋ decode 拡張の最小ゴールデン or プロパティテストを 1 本追加
 - [ ] Docs: README “Run the examples” の一覧化、extensions.md に安定化注記、CHANGELOG に 0.3.0 を追記
 
+#### ベースライン（計測メモ）
+
+- 2025-12-02 `examples.pipeline-bench`（macOS, local tmp PCAP）
+  - `decode?=false` 100k pkt → drop<60B で 50k pkt / 約 0.37s
+  - `decode?=true` 100k pkt → 50k pkt / 約 1.36s
+  - 小サンプル `test/resources/dns-sample.pcap` 4 pkt / 約 7.9ms
+
 #### フェーズ分割
 
 - Phase A: pipeline 最適化 PoC、`pcap-stats` / `flow-topn` の README 補強
