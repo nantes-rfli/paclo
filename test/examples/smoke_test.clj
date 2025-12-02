@@ -1,5 +1,6 @@
 (ns examples.smoke-test
   (:require
+   [clojure.data.json :as json]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -36,6 +37,11 @@
            last
            edn/read-string))
 
+(defn parse-first-json [s]
+  (-> (str/split-lines s)
+      first
+      (json/read-str :key-fn keyword)))
+
 (deftest pcap-stats-smoke
   (testing "pcap-stats returns a sane map"
     (let [{:keys [out]} (run-main pcap-stats/-main sample)
@@ -44,12 +50,28 @@
       (is (= 4 (:packets m)))        ;; サンプルpcapの既知値
       (is (= 4 (get-in m [:proto :l4 :udp]))))))
 
+(deftest pcap-stats-jsonl-smoke
+  (testing "pcap-stats returns JSONL when requested"
+    (let [{:keys [out]} (run-main pcap-stats/-main sample nil nil "jsonl")
+          m (parse-first-json out)]
+      (is (map? m))
+      (is (= 4 (:packets m))))))
+
 (deftest flow-topn-smoke
   (testing "flow-topn returns a non-empty vector"
     (let [{:keys [out]} (run-main flow-topn/-main sample)
           v (parse-first-edn out)]
       (is (vector? v))
       (is (= 4 (count v))))))     ;; サンプルpcapの既知値（4フロー）
+
+(deftest flow-topn-jsonl-smoke
+  (testing "flow-topn emits JSONL per row"
+    (let [{:keys [out]} (run-main flow-topn/-main sample "udp or tcp" "10" "unidir" "packets" "jsonl")
+          lines (str/split-lines out)
+          m (-> lines first (json/read-str :key-fn keyword))]
+      (is (<= 1 (count lines)))   ;; 小PCAPだと 2〜4 行想定
+      (is (map? m))
+      (is (contains? m :flow)))))
 
 (deftest dns-rtt-smoke
   (testing "dns-rtt stats mode returns a sane map"
@@ -59,6 +81,13 @@
           m (parse-first-edn out)]
       (is (map? m))
       ;; サンプルでは 1 以上が期待（将来PCAPが変わっても 0 以外であればOKにするのも可）
+      (is (<= 1 (:pairs m))))))
+
+(deftest dns-rtt-jsonl-smoke
+  (testing "dns-rtt stats mode emits JSONL"
+    (let [{:keys [out]} (run-main dns-rtt/-main sample "_" "_" "stats" "_" "jsonl")
+          m (parse-first-json out)]
+      (is (map? m))
       (is (<= 1 (:pairs m))))))
 
 (deftest pcap-filter-smoke
