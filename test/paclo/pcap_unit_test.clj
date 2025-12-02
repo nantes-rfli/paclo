@@ -3,7 +3,44 @@
    [clojure.test :refer [deftest is testing]]
    [paclo.pcap :as p])
   (:import
+   [jnr.ffi Memory Pointer]
+   [jnr.ffi.byref AbstractReference IntByReference PointerByReference]
    [paclo.jnr PcapLibrary]))
+
+;; テスト用の軽量スタブ群 -------------------------------------------------
+
+(defn- set-ref! ^PointerByReference [^PointerByReference ref ^Pointer p]
+  (let [f (.getDeclaredField AbstractReference "value")]
+    (.setAccessible f true)
+    (.set f ref p))
+  ref)
+
+(defn- stub-lib
+  "PcapLibrary の簡易スタブ。必要な挙動のみ fns で上書きする。"
+  [{:keys [lookupnet-fn dump-open-fn open-dead-fn next-ex-fn]}]
+  (reify PcapLibrary
+    (pcap_lookupnet [_ dev netp maskp err]
+      (if lookupnet-fn (lookupnet-fn dev netp maskp err) 0))
+    (pcap_dump_open [_ _pcap path]
+      (if dump-open-fn (dump-open-fn path) nil))
+    (pcap_open_dead [_ link snap]
+      (if open-dead-fn (open-dead-fn link snap) nil))
+    (pcap_next_ex [_ _ hdr-ref dat-ref]
+      (if next-ex-fn (next-ex-fn hdr-ref dat-ref) 0))
+    (pcap_breakloop [_ _] nil)
+    (pcap_close [_ _] nil)
+    (pcap_open_offline [_ _ _] nil)
+    (pcap_open_live [_ _ _ _ _ _] nil)
+    (pcap_compile [_ _ _ _ _ _] 0)
+    (pcap_setfilter [_ _ _] 0)
+    (pcap_freecode [_ _] nil)
+    (pcap_lib_version [_] "fake")
+    (pcap_dump [_ _ _ _] nil)
+    (pcap_dump_flush [_ _] nil)
+    (pcap_dump_close [_ _] nil)
+    (pcap_geterr [_ _] "")
+    (pcap_findalldevs [_ _ _] 0)
+    (pcap_freealldevs [_ _] nil)))
 
 (deftest blank-str?-basics
   (let [f (deref #'p/blank-str?)]
@@ -153,3 +190,129 @@
                         (pcap_findalldevs [_ _ _] -1))]
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_findalldevs failed"
                           (p/list-devices)))))
+
+;; ここから新規追加テスト --------------------------------------------------
+
+(deftest lookup-netmask-success-and-error
+  (let [lib-ok  (stub-lib {:lookupnet-fn (fn [_dev _net mask _err]
+                                           (let [rt  (jnr.ffi.Runtime/getSystemRuntime)
+                                                 mem (Memory/allocate rt 4)]
+                                             (.putInt mem 0 (int 0x1234))
+                                             (.fromNative ^IntByReference mask rt mem 0))
+                                           0)})
+        lib-ng  (stub-lib {:lookupnet-fn (fn [& _] -1)})
+        f       (deref #'p/lookup-netmask)]
+    (with-redefs [p/lib lib-ok]
+      (is (= 0x1234 (f "en0"))))
+    (with-redefs [p/lib lib-ng]
+      (is (= 0 (f "lo0"))))))
+
+(deftest open-dead-defaults-to-ethernet-65536
+  (let [called (atom nil)
+        ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
+        lib    (stub-lib {:open-dead-fn (fn [link snap]
+                                          (reset! called [link snap])
+                                          ptr)})]
+    (with-redefs [p/lib lib]
+      (is (= ptr (p/open-dead))))
+    (is (= [p/DLT_EN10MB 65536] @called))))
+
+(deftest bytes-seq->pcap!-requires-out
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #":out is required"
+                        (p/bytes-seq->pcap! [(byte-array 0)] {:out "   "})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #":out is required"
+                        (p/bytes-seq->pcap! [(byte-array 0)] {:out nil}))))
+
+(deftest open-dumper-throws-when-lib-returns-nil
+  (let [pcap (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
+        lib (stub-lib {:dump-open-fn (fn [_] nil)})]
+    (with-redefs [p/lib lib]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_dump_open failed"
+                            (p/open-dumper pcap "out.pcap"))))))
+
+(deftest loop!-processes-packet-and-stops-on-eof
+  (let [rt   (jnr.ffi.Runtime/getSystemRuntime)
+        hdr  (Memory/allocate rt 24)
+        dat  (Memory/allocate rt 2)
+        _    (.putLong hdr (long 0) (long 1))
+        _    (.putLong hdr (long 8) (long 2))
+        _    (.putInt  hdr (long 16) (int 2))
+        _    (.putInt  hdr (long 20) (int 2))
+        _    (.put dat (long 0) (byte-array [9 8]) (int 0) (int 2))
+        rcs  (atom [1 0 -2])
+        lib  (stub-lib {:next-ex-fn (fn [hdr-ref dat-ref]
+                                      (let [rc (first @rcs)]
+                                        (swap! rcs rest)
+                                        (when (= 1 rc)
+                                          (set-ref! hdr-ref hdr)
+                                          (set-ref! dat-ref dat))
+                                        rc))})
+        handled (atom [])]
+    (with-redefs [p/lib lib]
+      (is (= -2 (p/loop! dat #(swap! handled conj %)))))
+    (is (= 1 (count @handled)))
+    (is (= 2 (:caplen (first @handled))))
+    (is (= [9 8] (vec (:bytes (first @handled)))))))
+
+(deftest with-pcap-closes-on-throw
+  (let [closed (atom nil)
+        ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
+    (with-redefs [p/close! (fn [h] (reset! closed h))]
+      (is (thrown? Exception
+                   (p/with-pcap [_ ptr]
+                     (throw (Exception. "boom"))))))
+    (is (= ptr @closed))))
+
+(deftest with-dumper-flushes-and-closes-on-throw
+  (let [flushed (atom 0)
+        closed  (atom 0)]
+    (with-redefs [p/open-dumper (fn [& _] :d)
+                  p/flush-dumper! (fn [_] (swap! flushed inc))
+                  p/close-dumper! (fn [_] (swap! closed inc))]
+      (is (thrown? Exception
+                   (p/with-dumper [_ (p/open-dumper :pcap "out")]
+                     (throw (Exception. "fail"))))))
+    (is (= 1 @flushed))
+    (is (= 1 @closed))))
+
+(deftest open-offline-applies-filter-when-provided
+  (let [tmp (java.io.File/createTempFile "pcap" ".pcap")
+        ptr (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
+        seen (atom nil)]
+    (spit tmp "data")
+    (try
+      (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_open_offline [_ _ _] ptr)
+                            (pcap_close [_ _] nil))
+                    p/apply-filter! (fn [h opts] (reset! seen [h opts]) h)]
+        (is (= ptr (p/open-offline (.getAbsolutePath tmp) {:filter "udp" :optimize? false})))
+        (is (= [ptr {:filter "udp" :optimize? false}] @seen)))
+      (finally (.delete tmp)))))
+
+(deftest list-devices-empty-when-no-ifaces
+  (with-redefs [p/lib (reify PcapLibrary
+                        (pcap_findalldevs [_ _ _] 0)
+                        (pcap_freealldevs [_ _] nil))
+                p/macos-device->desc (fn [] {})]
+    (is (= [] (p/list-devices)))))
+
+(deftest loop-n!-arity1-stops-after-n
+  (let [calls (atom 0)
+        breaks (atom 0)]
+    (with-redefs [p/loop! (fn [_ h] (dotimes [_ 2] (h {})))
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-n! :pcap 2 (fn [_] (swap! calls inc))))
+    (is (= 2 @calls))
+    (is (= 1 @breaks))))
+
+(deftest loop-for-ms!-arity1-breaks-on-duration
+  (let [calls (atom 0)
+        breaks (atom 0)]
+    (with-redefs [p/loop! (fn [_ h]
+                            (h {})
+                            (Thread/sleep 2)
+                            (h {}))
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-for-ms! :pcap 1 (fn [_] (swap! calls inc))))
+    (is (= 2 @calls))
+    (is (= 1 @breaks))))
