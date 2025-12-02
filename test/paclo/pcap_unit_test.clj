@@ -1,7 +1,9 @@
 (ns paclo.pcap-unit-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [paclo.pcap :as p]))
+   [paclo.pcap :as p])
+  (:import
+   [paclo.jnr PcapLibrary]))
 
 (deftest blank-str?-basics
   (let [f (deref #'p/blank-str?)]
@@ -105,3 +107,13 @@
               [:close-d]
               [:close-pcap]]
              @calls)))))
+
+(deftest open-offline-empty-errbuf-message
+  (let [f (doto (java.io.File/createTempFile "pcap" ".pcap")
+            (spit "ab"))]
+    (try
+      (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_open_offline [_ _ _] nil))]
+        (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_offline failed"
+                              (p/open-offline (.getAbsolutePath f)))))
+      (finally (.delete f)))))
