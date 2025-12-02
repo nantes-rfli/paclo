@@ -51,6 +51,11 @@
 (defn- blank-str? [^String s]
   (or (nil? s) (re-find #"^\s*$" s)))
 
+(defn vlan-tag->str
+  "VLANタグマップ {:tpid .. :vid .. :pcp .. :dei ..} を表示用文字列にする。"
+  [{:keys [tpid vid pcp dei]}]
+  (format "[TPID=0x%04X VID=%d PCP=%d DEI=%s]" (long tpid) (long vid) (long pcp) (boolean dei)))
+
 (defn- normalize-desc [^String s]
   (let [t (when s (str/trim s))]
     (when (and t (not (blank-str? t))) t)))

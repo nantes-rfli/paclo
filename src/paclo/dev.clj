@@ -9,7 +9,8 @@
    (-> HBH-BAD parse-hex summarize)"
   (:require
    [clojure.string :as str]
-   [paclo.parse :as parse]))
+   [paclo.parse :as parse]
+   [paclo.pcap :as pcap]))
 
 ;; テストユーティリティに依存しない最小 hex→bytes
 (defn hex->bytes ^bytes [^String s]
@@ -57,8 +58,7 @@
       (when (seq vlan-tags)
         (print "  VLAN:")
         (doseq [t vlan-tags]
-          (print (format " [TPID=0x%04X VID=%d PCP=%d DEI=%s]"
-                         (:tpid t) (:vid t) (:pcp t) (boolean (:dei t))))))
+          (print " " (pcap/vlan-tag->str t))))
       (println))
     (println "L3:" l3t)
     (case l3t
