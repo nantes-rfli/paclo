@@ -9,21 +9,34 @@ import jnr.ffi.Struct;
  */
 @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
 public class BpfProgram extends Struct implements AutoCloseable {
+  /** instruction length (bf_len) */
   public final Unsigned32      bf_len  = new Unsigned32();
+  /** pointer to instructions (bf_insn) */
   public final Struct.Pointer  bf_insn = new Struct.Pointer();
 
   private boolean closed;
 
+  /**
+   * Construct a BpfProgram struct bound to the given runtime.
+   *
+   * @param r jnr runtime
+   */
   public BpfProgram(jnr.ffi.Runtime r) { super(r); }
 
-  /** Address to pass to libpcap functions (jnr.ffi.Pointer). */
+  /**
+   * Address to pass to libpcap functions (jnr.ffi.Pointer).
+   *
+   * @return pointer to the underlying struct memory
+   */
   public jnr.ffi.Pointer addr() {
     return Struct.getMemory(this);
   }
 
   @Override
   public void close() {
-    if (closed) return;
+    if (closed) {
+      return;
+    }
     closed = true;
     try {
       PcapLibrary.freeFilter(this);
