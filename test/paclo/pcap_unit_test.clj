@@ -26,6 +26,13 @@
     (is (= {:idle 5 :break? false} (f 3 2 10)))
     (is (= {:idle 12 :break? true} (f 5 7 10)))))
 
+(deftest valid-filter-string?-accepts-non-blank
+  (let [f (deref #'p/valid-filter-string?)]
+    (is (false? (f nil)))
+    (is (false? (f "")))
+    (is (false? (f "   ")))
+    (is (true? (f "tcp")))))
+
 (deftest apply-filter!-skips-when-no-filter
   (let [calls (atom 0)
         f (deref #'p/apply-filter!)]
@@ -47,6 +54,18 @@
                   p/set-bpf-with-netmask! (fn [_ _ m] (reset! mask m))]
       (p/set-bpf-on-device! :pcap "en0" "udp")
       (is (= 0 @mask)))))
+
+(deftest set-bpf!-uses-zero-netmask
+  (let [opts (atom nil)]
+    (with-redefs [p/apply-filter! (fn [_ o] (reset! opts o))]
+      (p/set-bpf! :pcap "udp")
+      (is (= {:filter "udp" :optimize? true :netmask 0} @opts)))))
+
+(deftest set-bpf-with-netmask!-passes-int
+  (let [opts (atom nil)]
+    (with-redefs [p/apply-filter! (fn [_ o] (reset! opts o))]
+      (p/set-bpf-with-netmask! :pcap "tcp" 255)
+      (is (= {:filter "tcp" :optimize? true :netmask 255} @opts)))))
 
 (deftest pkt-handler-normalizes-arities
   (let [h0-called (atom 0)
