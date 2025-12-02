@@ -64,3 +64,35 @@
         extract (deref #'tls-ext/extract-tls-info)]
     (System/arraycopy full 0 truncated 0 (alength truncated))
     (is (= {} (extract truncated)))))
+
+(deftest extract-tls-info-empty-when-sni-list-empty
+  ;; Extensions length present but SNI list length=0 ⇒ 安全に {} を返す
+  (let [hex "
+    16 03 03 00 2f
+    01 00 00 2b
+    03 03
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    00
+    00 00
+    00
+    00 05
+    00 00 00 01 00
+  "
+        extract (deref #'tls-ext/extract-tls-info)]
+    (is (= {} (extract (hex->bytes hex))))))
+
+(deftest extract-tls-info-sni-only-when-alpn-empty
+  ;; 既存フィクスチャを改変し、ALPN extension の長さを 0 にする
+  (let [ba (hex->bytes fixture-clienthello-sni-alpn)
+        ba' (byte-array ba)]
+    ;; extensions length 0x001d -> 0x001a (index 50-51)
+    (aset-byte ba' 51 (byte 0x1A))
+    ;; ALPN ext length 0x0005 -> 0x0002 (index 75)
+    (aset-byte ba' 75 (byte 0x02))
+    ;; ALPN protocol list length -> 0 (index 76-77)
+    (aset-byte ba' 76 (byte 0x00))
+    (aset-byte ba' 77 (byte 0x00))
+    (let [info ((deref #'tls-ext/extract-tls-info) ba')]
+      (is (= "example.com" (:sni info)))
+      (is (nil? (:alpn info))))))

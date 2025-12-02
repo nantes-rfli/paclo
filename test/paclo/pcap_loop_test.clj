@@ -53,6 +53,32 @@
       (when (pos? sleep-ms) (Thread/sleep sleep-ms))
       nil)))
 
+(defn- fake-lib-open-live
+  "pcap_open_live が指定の pcap を返すフェイク lib。nil を返させたい場合は :pcap nil を渡す。"
+  [{:keys [pcap] :as opts}]
+  (let [p (if (contains? opts :pcap) pcap fake-pcap)]
+    {:lib
+     (reify PcapLibrary
+       (pcap_open_live [_ _device _snaplen _promisc _to_ms _errbuf] p)
+       (pcap_close [_ _] nil)
+       (pcap_open_offline [_ _ _] nil)
+       (pcap_open_dead [_ _ _] nil)
+       (pcap_next_ex [_ _ _ _] 0)
+       (pcap_breakloop [_ _] nil)
+       (pcap_compile [_ _ _ _ _ _] 0)
+       (pcap_setfilter [_ _ _] 0)
+       (pcap_freecode [_ _] nil)
+       (pcap_lib_version [_] "fake")
+       (pcap_dump_open [_ _ _] nil)
+       (pcap_dump [_ _ _ _] nil)
+       (pcap_dump_flush [_ _] nil)
+       (pcap_dump_close [_ _] nil)
+       (pcap_geterr [_ _] "")
+       (pcap_findalldevs [_ _ _] 0)
+       (pcap_freealldevs [_ _] nil)
+       (pcap_lookupnet [_ _ _ _ _] 0))
+     :pcap p}))
+
 (defn- fake-lib
   "rcs を順に返す pcap lib のフェイク。
    rc=1 のときは hdr/dat をセットする。"
@@ -156,3 +182,29 @@
     (let [summary (pcap/run-live-for-ms-summary! {} 1000 (fn [_]) {})]
       (is (= 1 (:count summary)))
       (is (= :idle-or-eof (:stopped summary))))))
+
+(deftest open-live-uses-lookup-netmask-and-filter
+  (let [{:keys [lib pcap]} (fake-lib-open-live {})
+        seen (atom nil)]
+    (with-redefs [pcap/lib lib
+                  pcap/lookup-netmask (fn [_] 0x1234)
+                  pcap/apply-filter! (fn [h opts] (reset! seen opts) h)]
+      (is (= pcap (pcap/open-live {:device "en0" :filter "tcp"})))
+      (is (= 0x1234 (:netmask @seen)))
+      (is (= "tcp" (:filter @seen))))))
+
+(deftest open-live-skips-filter-when-nil
+  (let [{:keys [lib pcap]} (fake-lib-open-live {})
+        seen (atom nil)]
+    (with-redefs [pcap/lib lib
+                  pcap/lookup-netmask (fn [_] 0x1)
+                  pcap/apply-filter! (fn [h opts] (reset! seen opts) h)]
+      (is (= pcap (pcap/open-live {:device "en0"})))
+      (is (= 0x1 (:netmask @seen)))
+      (is (nil? (:filter @seen))))))
+
+(deftest open-live-throws-when-lib-returns-nil
+  (let [{:keys [lib]} (fake-lib-open-live {:pcap nil})]
+    (with-redefs [pcap/lib lib]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_live failed"
+                            (pcap/open-live {:device "en0"}))))))
