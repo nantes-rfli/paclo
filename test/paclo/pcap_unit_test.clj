@@ -117,3 +117,33 @@
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_offline failed"
                               (p/open-offline (.getAbsolutePath f)))))
       (finally (.delete f)))))
+
+(deftest capture->seq-on-error-hook-called
+  (let [err-called (atom 0)]
+    (with-redefs [p/lib (reify PcapLibrary
+                          (pcap_next_ex [_ _ _ _] (throw (RuntimeException. "boom")))
+                          (pcap_close [_ _] nil)
+                          (pcap_open_offline [_ _ _] :h)
+                          (pcap_open_live [_ _ _ _ _ _] nil)
+                          (pcap_open_dead [_ _ _] nil)
+                          (pcap_breakloop [_ _] nil)
+                          (pcap_compile [_ _ _ _ _ _] 0)
+                          (pcap_setfilter [_ _ _] 0)
+                          (pcap_freecode [_ _] nil)
+                          (pcap_lib_version [_] "fake")
+                          (pcap_dump_open [_ _ _] nil)
+                          (pcap_dump [_ _ _ _] nil)
+                          (pcap_dump_flush [_ _] nil)
+                          (pcap_dump_close [_ _] nil)
+                          (pcap_geterr [_ _] "")
+                          (pcap_findalldevs [_ _ _] 0)
+                          (pcap_freealldevs [_ _] nil)
+                          (pcap_lookupnet [_ _ _ _ _] 0))
+                  p/open-offline (fn [& _] :h)
+                  p/close! (fn [_] nil)]
+      (let [out (doall (p/capture->seq {:path "dummy"
+                                        :error-mode :pass
+                                        :on-error (fn [_] (swap! err-called inc))
+                                        :max 1 :max-time-ms 5 :idle-max-ms 5}))]
+        (is (= [] out))
+        (is (= 1 @err-called))))))
