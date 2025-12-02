@@ -105,5 +105,3 @@
               [:close-d]
               [:close-pcap]]
              @calls)))))
-
-;; end of file
