@@ -61,7 +61,21 @@
     (is (= :A (get-in out [:decoded :l3 :l4 :app :qtype-name])))
     (is (= 1 (get-in out [:decoded :l3 :l4 :app :qclass])))))
 
+(deftest annotate-qname-qtype-noop-when-preconditions-missing
+  (let [payload (byte-array 20)
+        missing-q {:decoded {:l3 {:l4 {:payload payload
+                                       :app {:type :dns :qdcount 0}}}}}
+        missing-payload {:decoded {:l3 {:l4 {:app {:type :dns :qdcount 1}}}}}]
+    (is (= missing-q (annotate-qname-qtype missing-q)))
+    (is (= missing-payload (annotate-qname-qtype missing-payload)))))
+
 (deftest annotate-dns-noop-when-not-dns
   (let [m {:decoded {:l3 {:l4 {:app {:type :other}}}}}
         out (annotate-dns m)]
     (is (= m out))))
+
+(deftest decode-name-fails-gracefully-on-oob
+  ;; offset OOB
+  (is (nil? (decode-name (byte-array 0) 0)))
+  ;; label length OOB
+  (is (nil? (decode-name (byte-array [5 1 2]) 0))))

@@ -16,6 +16,20 @@
   (is (thrown? clojure.lang.ExceptionInfo (core/bpf [:foo 1])))
   (is (thrown? clojure.lang.ExceptionInfo (core/bpf 1234))))
 
+(deftest bpf-host-and-port-variants
+  (is (= "(udp) or (tcp)" (core/bpf [:or :udp :tcp])))
+  (is (= "src host 1.2.3.4" (core/bpf [:src-host "1.2.3.4"])))
+  (is (= "dst host 5.6.7.8" (core/bpf [:dst-host "5.6.7.8"])))
+  (is (= "src port 80" (core/bpf [:src-port "80"])))
+  (is (= "dst port 443" (core/bpf [:dst-port 443]))))
+
+(deftest decode-result-captures-errors
+  (let [f (deref #'core/decode-result)
+        res (with-redefs [parse/packet->clj (fn [_] (throw (Exception. "oops")))]
+              (f (byte-array 0)))]
+    (is (false? (:ok res)))
+    (is (re-find #"oops" (:error res)))))
+
 (deftest packets-decodes-and-hooks
   (let [parse-called (atom 0)
         hook-called (atom 0)
@@ -42,3 +56,7 @@
       (let [[ps opts] @called]
         (is (= [0] (vec (first ps))))
         (is (= {:out "out.pcap"} opts))))))
+
+(deftest list-devices-delegates
+  (with-redefs [pcap/list-devices (fn [] [:devs])]
+    (is (= [:devs] (core/list-devices)))))

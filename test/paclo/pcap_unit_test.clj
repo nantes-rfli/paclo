@@ -17,7 +17,7 @@
 
 (defn- stub-lib
   "PcapLibrary の簡易スタブ。必要な挙動のみ fns で上書きする。"
-  [{:keys [lookupnet-fn dump-open-fn open-dead-fn next-ex-fn]}]
+  [{:keys [lookupnet-fn dump-open-fn open-dead-fn next-ex-fn findalldevs-fn]}]
   (reify PcapLibrary
     (pcap_lookupnet [_ dev netp maskp err]
       (if lookupnet-fn (lookupnet-fn dev netp maskp err) 0))
@@ -39,7 +39,8 @@
     (pcap_dump_flush [_ _] nil)
     (pcap_dump_close [_ _] nil)
     (pcap_geterr [_ _] "")
-    (pcap_findalldevs [_ _ _] 0)
+    (pcap_findalldevs [_ pp err]
+      (if findalldevs-fn (findalldevs-fn pp err) 0))
     (pcap_freealldevs [_ _] nil)))
 
 (deftest blank-str?-basics
@@ -398,3 +399,236 @@
       (p/loop-for-ms! :pcap 1 (fn [_] (swap! calls inc))))
     (is (= 1 @calls))
     (is (= 1 @breaks))))
+
+(deftest loop-n!-idle-branch-handles-packet-and-timeout
+  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
+        hdr (Memory/allocate rt 24)
+        dat (Memory/allocate rt 2)
+        _ (.putLong hdr (long 0) (long 1))
+        _ (.putLong hdr (long 8) (long 2))
+        _ (.putInt  hdr (long 16) (int 2))
+        _ (.putInt  hdr (long 20) (int 2))
+        _ (.put dat (long 0) (byte-array [9 8]) (int 0) (int 2))
+        rcs (atom [1 0 -1])
+        lib (stub-lib {:next-ex-fn (fn [hdr-ref dat-ref]
+                                     (let [rc (first @rcs)]
+                                       (swap! rcs rest)
+                                       (when (= 1 rc)
+                                         (set-ref! hdr-ref hdr)
+                                         (set-ref! dat-ref dat))
+                                       rc))})
+        handled (atom [])]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! handled conj :break))]
+      (p/loop-n! (Memory/allocate rt 1) 2 #(swap! handled conj (:caplen %))
+                 {:idle-max-ms 2 :timeout-ms 1}))
+    (is (some #{2} @handled))
+    (is (some #{:break} @handled))))
+
+(deftest loop-for-ms!-idle-branch-processes-packet
+  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
+        hdr (Memory/allocate rt 24)
+        dat (Memory/allocate rt 1)
+        _ (.putLong hdr (long 0) (long 1))
+        _ (.putLong hdr (long 8) (long 2))
+        _ (.putInt  hdr (long 16) (int 1))
+        _ (.putInt  hdr (long 20) (int 1))
+        _ (.put dat (long 0) (byte-array [7]) (int 0) (int 1))
+        rcs (atom [1 -2])
+        lib (stub-lib {:next-ex-fn (fn [hdr-ref dat-ref]
+                                     (let [rc (first @rcs)]
+                                       (swap! rcs rest)
+                                       (when (= 1 rc)
+                                         (set-ref! hdr-ref hdr)
+                                         (set-ref! dat-ref dat))
+                                       rc))})
+        handled (atom [])]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! handled conj :break))]
+      (p/loop-for-ms! (Memory/allocate rt 1) 5 #(swap! handled conj (:caplen %))
+                      {:idle-max-ms 2 :timeout-ms 1}))
+    (is (some #{1} @handled))
+    (is (some #{:break} @handled))))
+
+(deftest loop-n-or-ms!-no-idle-breaks-on-count
+  (let [breaks (atom 0)]
+    (with-redefs [p/loop! (fn [_ handler] (handler {:bytes (byte-array 1)}))
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-n-or-ms! :pcap {:n 1 :ms 100} (fn [_])))
+    (is (= 1 @breaks))))
+
+(deftest loop-n-or-ms!-idle-branch-breaks-on-timeout
+  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
+        rcs (atom [0 -1])
+        lib (stub-lib {:next-ex-fn (fn [& _]
+                                     (let [rc (first @rcs)]
+                                       (swap! rcs rest)
+                                       rc))})
+        breaks (atom 0)]
+    (with-redefs [p/lib lib
+                  p/breakloop! (fn [_] (swap! breaks inc))]
+      (p/loop-n-or-ms! (Memory/allocate rt 1)
+                       {:n 2 :ms 50 :idle-max-ms 5 :timeout-ms 5}
+                       (fn [_])))
+    (is (pos? @breaks))))
+
+(deftest with-live-and-offline-wrap-close
+  (let [opened-live (atom nil)
+        opened-offline (atom nil)
+        closed (atom [])]
+    (with-redefs [p/open-live (fn [opts] (reset! opened-live opts) :live)
+                  p/open-offline (fn [path] (reset! opened-offline path) :off)
+                  p/close! (fn [h] (swap! closed conj h))]
+      (p/with-live [h {:device "en0"}]
+        (is (= :live h)))
+      (p/with-offline [h (p/open-offline "/tmp/dummy.pcap")]
+        (is (= :off h))))
+    (is (= {:device "en0"} @opened-live))
+    (is (= "/tmp/dummy.pcap" @opened-offline))
+    (is (= [:live :off] @closed))))
+
+(deftest lookupnet-success-and-error
+  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
+        lib-ok (stub-lib {:lookupnet-fn (fn [_ net mask _]
+                                          (let [mem (Memory/allocate rt 4)]
+                                            (.putInt mem 0 (int 0x01020304))
+                                            (.fromNative ^IntByReference net rt mem 0))
+                                          (let [mem (Memory/allocate rt 4)]
+                                            (.putInt mem 0 (int 0x0000ff00))
+                                            (.fromNative ^IntByReference mask rt mem 0))
+                                          0)})
+        lib-ng (stub-lib {:lookupnet-fn (fn [_ _ _ err]
+                                          (.put ^Memory err (long 0) (.getBytes "oops") (int 0) (int 4))
+                                          -1)})]
+    (with-redefs [p/lib lib-ok]
+      (is (= {:net 0x01020304 :mask 0x0000ff00} (p/lookupnet "en0"))))
+    (with-redefs [p/lib lib-ng]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_lookupnet failed"
+                            (p/lookupnet "en0"))))))
+
+(deftest capture->pcap-applies-filter-and-stops-at-max
+  (let [calls (atom [])
+        rt (jnr.ffi.Runtime/getSystemRuntime)
+        hdr (Memory/allocate rt 24)
+        dat (Memory/allocate rt 1)
+        lib (stub-lib {:next-ex-fn (let [first? (atom true)]
+                                     (fn [hdr-ref dat-ref]
+                                       (if @first?
+                                         (do (reset! first? false)
+                                             (set-ref! hdr-ref hdr)
+                                             (set-ref! dat-ref dat)
+                                             1)
+                                         -2)))})]
+    (with-redefs [p/lib lib
+                  p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
+                  p/open-dumper (fn [_ out] (swap! calls conj [:open-dumper out]) :d)
+                  p/dump! (fn [& _] (swap! calls conj [:dump]))
+                  p/flush-dumper! (fn [_] (swap! calls conj [:flush]))
+                  p/close-dumper! (fn [_] (swap! calls conj [:close-d]))
+                  p/close! (fn [_] (swap! calls conj [:close-pcap]))
+                  p/set-bpf-on-device! (fn [& args] (swap! calls conj (into [:set-bpf-device] args)))
+                  p/set-bpf! (fn [& args] (swap! calls conj (into [:set-bpf] args)))]
+      (is (= 1 (p/capture->pcap {:device "en0" :filter "tcp" :max 1} "out.pcap"))))
+    (let [tags (map first @calls)]
+      (is (= [:open :open-dumper :set-bpf-device :dump :flush :close-d :close-pcap]
+             tags)))))
+
+(deftest capture->pcap-handles-timeout-and-error
+  (let [calls (atom [])
+        rt (jnr.ffi.Runtime/getSystemRuntime)
+        hdr (Memory/allocate rt 24)
+        dat (Memory/allocate rt 1)
+        rc-seq (atom [0 -1])
+        lib (stub-lib {:next-ex-fn (fn [hdr-ref dat-ref]
+                                     (let [rc (first @rc-seq)]
+                                       (swap! rc-seq rest)
+                                       (set-ref! hdr-ref hdr)
+                                       (set-ref! dat-ref dat)
+                                       rc))})]
+    (with-redefs [p/lib lib
+                  p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
+                  p/open-dumper (fn [_ out] (swap! calls conj [:open-dumper out]) :d)
+                  p/dump! (fn [& _] (swap! calls conj [:dump]))
+                  p/flush-dumper! (fn [_] (swap! calls conj [:flush]))
+                  p/close-dumper! (fn [_] (swap! calls conj [:close-d]))
+                  p/close! (fn [_] (swap! calls conj [:close-pcap]))
+                  p/set-bpf! (fn [& args] (swap! calls conj (into [:set-bpf] args)))]
+      (is (= 0 (p/capture->pcap {:filter "udp" :max 1 :timeout-ms 10} "out2.pcap"))))
+    (is (some #{:set-bpf} (map first @calls)))
+    (is (some #{:flush} (map first @calls)))))
+
+(deftest run-live-for-ms!-covers-arities-and-branches
+  (let [calls (atom [])
+        rt (jnr.ffi.Runtime/getSystemRuntime)
+        hdr (Memory/allocate rt 24)
+        dat (Memory/allocate rt 1)
+        lib (stub-lib {:next-ex-fn (fn [hdr-ref dat-ref]
+                                     (set-ref! hdr-ref hdr)
+                                     (set-ref! dat-ref dat)
+                                     -2)})]
+    (with-redefs [p/lib lib
+                  p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
+                  p/breakloop! (fn [_] (swap! calls conj [:break]))
+                  p/set-bpf-on-device! (fn [& args] (swap! calls conj (into [:set-bpf-device] args)))
+                  p/set-bpf! (fn [& args] (swap! calls conj (into [:set-bpf] args)))
+                  p/close! (fn [h] (swap! calls conj [:close h]))]
+      ;; arity with loop opts (idle branch + device filter path)
+      (p/run-live-for-ms! {:device "en0" :filter "tcp"} 5 (fn [_]) {:idle-max-ms 10})
+      ;; 3-arity delegate (no device, filter -> set-bpf path)
+      (p/run-live-for-ms! {:filter "udp"} 3 (fn [_])))
+    (let [tags (map first @calls)]
+      (is (some #{:set-bpf-device} tags))
+      (is (some #{:set-bpf} tags))
+      (is (<= 2 (count (filter #(= :close %) tags)))))))
+
+(deftest run-live-n!-covers-arities-and-idle-branch
+  (let [calls (atom [])
+        rt (jnr.ffi.Runtime/getSystemRuntime)
+        lib (stub-lib {:next-ex-fn (fn [& _] -2)})]
+    (with-redefs [p/lib lib
+                  p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
+                  p/set-bpf! (fn [& args] (swap! calls conj (into [:set-bpf] args)))
+                  p/set-bpf-on-device! (fn [& args] (swap! calls conj (into [:set-bpf-device] args)))
+                  p/close! (fn [_] (swap! calls conj [:close]))]
+      (p/run-live-n! {:filter "udp"} 1 (fn [_]))
+      (p/run-live-n! {:device "en0" :filter "tcp"} 2 (fn [_]) {:idle-max-ms 5 :timeout-ms 1}))
+    (let [tags (map first @calls)]
+      (is (some #{:set-bpf} tags))
+      (is (some #{:set-bpf-device} tags))
+      (is (= 2 (count (filter #(= :close %) tags)))))))
+
+(deftest run-live-summaries-cover-shortcuts
+  (let [stub-n  (reify clojure.lang.IFn$OLOOO
+                  (invokePrim [_ _opts _n handler _loop-opts]
+                    (handler :pkt)
+                    nil)
+                  clojure.lang.IFn
+                  (invoke [_ _opts _n handler _loop-opts]
+                    (handler :pkt)
+                    nil))
+        stub-ms (reify clojure.lang.IFn$OLOOO
+                  (invokePrim [_ _opts _ms handler _loop-opts]
+                    (handler :pkt)
+                    nil)
+                  clojure.lang.IFn
+                  (invoke [_ _opts _ms handler _loop-opts]
+                    (handler :pkt)
+                    nil))]
+    (with-redefs [p/run-live-n! stub-n
+                  p/run-live-for-ms! stub-ms]
+      (let [res-n  (p/run-live-n-summary! {:device "d"} 1 (fn [_] nil))
+            res-ms (p/run-live-for-ms-summary! {:device "d"} 5 (fn [_] nil))]
+        (is (= 1 (:count res-n)))
+        (is (= :n (:stopped res-n)))
+        (is (>= (:duration-ms res-n) 0))
+        (is (= 1 (:count res-ms)))
+        (is (= :idle-or-eof (:stopped res-ms)))))))
+
+(deftest macos-device->desc-non-mac-returns-empty-map
+  (let [orig (System/getProperty "os.name")
+        f (deref #'p/macos-device->desc)]
+    (try
+      (System/setProperty "os.name" "Linux")
+      (is (= {} (f)))
+      (finally
+        (when orig (System/setProperty "os.name" orig))))))
