@@ -33,6 +33,15 @@
     (is (false? (f "   ")))
     (is (true? (f "tcp")))))
 
+(deftest ensure-bytes-timestamp-requires-bytes
+  (let [f (deref #'p/ensure-bytes-timestamp)]
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"missing :bytes"
+                          (f {:sec 1})))
+    (let [[ba sec usec] (f {:bytes (byte-array [1]) :sec 10 :usec 20})]
+      (is (= [1] (vec ba)))
+      (is (= 10 sec))
+      (is (= 20 usec)))))
+
 (deftest apply-filter!-skips-when-no-filter
   (let [calls (atom 0)
         f (deref #'p/apply-filter!)]
@@ -76,5 +85,25 @@
     ((f (fn [m] (reset! h1-called m))) {:x 2})
     (is (= 1 @h0-called))
     (is (= {:x 2} @h1-called))))
+
+(deftest bytes-seq->pcap!-writes-and-closes
+  (let [calls (atom [])]
+    (with-redefs [p/open-dead (fn [& _] :dead)
+                  p/open-dumper (fn [_ out] (swap! calls conj [:open out]) :dumper)
+                  p/ensure-bytes-timestamp (fn [p] (if (map? p) [(:bytes p) 1 2] [p 1 2]))
+                  p/mk-hdr (fn ^Object [^long sec ^long usec ^long len] {:hdr [sec usec len]})
+                  p/bytes->ptr (fn [ba] {:ptr (vec ba)})
+                  p/dump! (fn [_ hdr dat] (swap! calls conj [:dump hdr dat]))
+                  p/flush-dumper! (fn [_] (swap! calls conj [:flush]))
+                  p/close-dumper! (fn [_] (swap! calls conj [:close-d]))
+                  p/close! (fn [_] (swap! calls conj [:close-pcap]))]
+      (p/bytes-seq->pcap! [(byte-array [1 2]) {:bytes (byte-array [3])}] {:out "x"})
+      (is (= [[:open "x"]
+              [:dump {:hdr [1 2 2]} {:ptr [1 2]}]
+              [:dump {:hdr [1 2 1]} {:ptr [3]}]
+              [:flush]
+              [:close-d]
+              [:close-pcap]]
+             @calls)))))
 
 ;; end of file
