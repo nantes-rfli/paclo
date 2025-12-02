@@ -12,12 +12,10 @@ public final class PcapHandle implements AutoCloseable {
   private static final int ERRBUF_SIZE = 256;
 
   private final Pointer pcap;
-  private final Runtime rt;
   private boolean closed;
 
-  private PcapHandle(Pointer pcap, Runtime rt) {
+  private PcapHandle(Pointer pcap) {
     this.pcap = pcap;
-    this.rt = rt;
   }
 
   /** offline pcap を開く。失敗時は IllegalStateException を投げる。 */
@@ -29,7 +27,7 @@ public final class PcapHandle implements AutoCloseable {
       String msg = PcapErrors.fromErrbuf(err);
       throw new IllegalStateException("pcap_open_offline failed: " + msg);
     }
-    return new PcapHandle(pcap, rt);
+    return new PcapHandle(pcap);
   }
 
   /** libpcap の pcap_t ポインタをそのまま返す。 */

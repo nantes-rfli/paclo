@@ -37,6 +37,13 @@
               :basis      basis
               :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))
 
+(defn spotbugs
+  "Run SpotBugs on compiled classes (target/classes)."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn" :aliases [:spotbugs]})]
+    (b/process {:command-args ["clojure" "-M:spotbugs" "-m" "paclo.dev.spotbugs"]
+                :basis basis})))
+
 (defn javac-test
   "Compile Java test sources under test-java into target/test-classes."
   [_]

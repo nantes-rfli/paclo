@@ -1,7 +1,8 @@
 {:paths ["src" "src-java" "target/classes"]
  :deps  {org.clojure/clojure {:mvn/version "1.12.1"}
          com.github.jnr/jnr-ffi {:mvn/version "2.2.14"}
-         org.clojure/data.json {:mvn/version "2.5.0"}}
+         org.clojure/data.json {:mvn/version "2.5.0"}
+         com.github.spotbugs/spotbugs-annotations {:mvn/version "4.8.6"}}
  :aliases
  {:dev      {:extra-paths ["dev" "dev/resources"]}
   :test     {:extra-paths ["test" "test/resources" "dev"]
@@ -25,6 +26,9 @@
   :eastwood {:extra-paths ["dev" "test" "test/resources"]
              :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}}
              :main-opts   ["-m" "eastwood-runner"]}
+  :spotbugs {:extra-paths ["dev"]
+             :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.8.6"}}
+             :main-opts   ["-m" "paclo.dev.spotbugs"]}
   :junit    {:extra-paths []
              :extra-deps  {org.junit.platform/junit-platform-console-standalone
                            {:mvn/version "1.10.2"}}

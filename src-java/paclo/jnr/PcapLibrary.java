@@ -1,6 +1,7 @@
 package paclo.jnr;
 
 import jnr.ffi.LibraryLoader;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jnr.ffi.Runtime;
 import jnr.ffi.Pointer;
 import jnr.ffi.Struct;
@@ -50,8 +51,11 @@ public interface PcapLibrary {
 
   // 構造体ヘルパー（最小限）
   public static final class PcapIf extends jnr.ffi.Struct {
+    @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
     public final jnr.ffi.Struct.Pointer  next = new jnr.ffi.Struct.Pointer();
+    @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
     public final jnr.ffi.Struct.Pointer  name = new jnr.ffi.Struct.Pointer();
+    @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
     public final jnr.ffi.Struct.Pointer  desc = new jnr.ffi.Struct.Pointer();
     public PcapIf(jnr.ffi.Runtime r) { super(r); }
   }

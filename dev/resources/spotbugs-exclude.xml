@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!-- 必要になったらここに <Match> を追加して抑制する。現状は空でゼロ基準。 -->
+</FindBugsFilter>
