@@ -44,6 +44,13 @@
     (b/process {:command-args ["clojure" "-M:spotbugs" "-m" "paclo.dev.spotbugs"]
                 :basis basis})))
 
+(defn checkstyle
+  "Run CheckStyle on Java sources (src-java, test-java)."
+  [_]
+  (let [basis (b/create-basis {:project "deps.edn" :aliases [:checkstyle]})]
+    (b/process {:command-args ["clojure" "-M:checkstyle" "-m" "paclo.dev.checkstyle"]
+                :basis basis})))
+
 (defn javac-test
   "Compile Java test sources under test-java into target/test-classes."
   [_]

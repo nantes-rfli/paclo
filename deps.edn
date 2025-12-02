@@ -29,6 +29,9 @@
   :spotbugs {:extra-paths ["dev"]
              :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.8.6"}}
              :main-opts   ["-m" "paclo.dev.spotbugs"]}
+  :checkstyle {:extra-paths ["dev" "dev/resources"]
+               :extra-deps  {com.puppycrawl.tools/checkstyle {:mvn/version "10.18.0"}}
+               :main-opts   ["-m" "paclo.dev.checkstyle"]}
   :junit    {:extra-paths []
              :extra-deps  {org.junit.platform/junit-platform-console-standalone
                            {:mvn/version "1.10.2"}}

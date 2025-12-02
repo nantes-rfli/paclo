@@ -27,6 +27,11 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
       # --- Install Clojure CLI via official script (robust) ---
       - name: Install Clojure CLI
         shell: bash
@@ -67,6 +72,25 @@ jobs:
           # Prefer tools.build; fallback to direct javac with deps classpath
           clojure -T:build jar || \
           (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
+      - name: Run Java tests (JUnit)
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build javac-test
+          clojure -M:junit
+
+      - name: SpotBugs
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build spotbugs
+
+      - name: CheckStyle
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build checkstyle
 
       - name: Run unit tests
         run: clojure -M:test

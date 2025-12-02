@@ -30,7 +30,7 @@ Paclo の Java/JNR 層（約120行）向けに、段階的で軽量な品質向�
 - [x] Phase 1: コンパイラオプション `-Xlint:all -Werror` を build alias に追加
 - [x] Phase 1: 公開 API への最小 Javadoc 付与
 - [x] Phase 2: SpotBugs 導入と警告ゼロ確認
-- [ ] Phase 2: CheckStyle 最小ルール導入（必要なら）
+- [x] Phase 2: CheckStyle 最小ルール導入（必要なら）
 - [ ] Phase 2: CI に Java ジョブ追加（libpcap インストール＋テスト/解析）
 - [ ] Phase 3: JaCoCo 設定と閾値設定
 - [ ] Phase 3: Javadoc 自動生成パイプライン
@@ -44,3 +44,4 @@ Paclo の Java/JNR 層（約120行）向けに、段階的で軽量な品質向�
 - VSCode での Java 参照エラー対策として、`.vscode/settings.json` に JNR/ASM の M2 リポジトリ glob を追加済み。再読込すると赤警告が消える。
 - Java テスト実行: `clojure -T:build javac-test` でコンパイル後、`clojure -M:junit` で JUnit 実行（`out-dns.pcap` を使用）。
 - SpotBugs 実行: `clojure -M:spotbugs -m paclo.dev.spotbugs`（結果は `target/spotbugs.xml`）。
+- CheckStyle 実行: `clojure -M:checkstyle -m paclo.dev.checkstyle`（結果は `target/checkstyle.xml`）。
