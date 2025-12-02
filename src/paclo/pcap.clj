@@ -290,9 +290,10 @@
   (let [^PointerByReference hdr-ref (PointerByReference.)
         ^PointerByReference dat-ref (PointerByReference.)]
     (loop []
-      (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+      (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+            status (rc->status rc)]
         (cond
-          (= rc 1)
+          (= status :packet)
           (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
                 ^jnr.ffi.Pointer dat (.getValue dat-ref)
                 ts-sec (PcapHeader/tv_sec hdr)
@@ -305,10 +306,13 @@
                       :caplen caplen :len len :bytes arr})
             (recur))
 
-          (= rc 0)  ; timeout (live capture)
+          (= status :timeout)  ; timeout (live capture)
           (recur)
 
-          :else     ; -1 error / -2 EOF (offline)
+          (= status :eof)     ; offline EOF
+          rc
+
+          :else     ; -1 error
           rc)))))
 
 (defn breakloop! [^Pointer pcap] (.pcap_breakloop lib pcap))
@@ -364,17 +368,18 @@
             (>= (- now t0) max-time-long) n
             (>= idle idle-max-long) n
             :else
-            (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+            (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+                  status (rc->status rc)]
               (cond
-                (= rc 1)
+                (= status :packet)
                 (do
                   (let [^Pointer hdr (.getValue hdr-ref)
                         ^Pointer dat (.getValue dat-ref)]
                     (dump! dumper hdr dat))
                   (recur (inc n) 0))
-                (= rc 0) ; timeout
+                (= status :timeout) ; timeout
                 (recur n (+ idle (long timeout-ms)))
-                :else    ; -1 err / -2 EOF
+                :else    ; eof or error
                 n)))))
       (finally
         (flush-dumper! dumper)
