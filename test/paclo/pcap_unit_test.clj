@@ -155,6 +155,18 @@
                               (p/open-offline (.getAbsolutePath f)))))
       (finally (.delete f)))))
 
+(deftest open-offline-nonempty-errbuf-message
+  (let [f (doto (java.io.File/createTempFile "pcap" ".pcap")
+            (spit "ab"))]
+    (try
+      (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_open_offline [_ _ err]
+                              (.put ^Memory err (long 0) (.getBytes "oops") (int 0) (int 4))
+                              nil))]
+        (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_offline failed: oops"
+                              (p/open-offline (.getAbsolutePath f)))))
+      (finally (.delete f)))))
+
 (deftest capture->seq-on-error-hook-called
   (let [err-called (atom 0)]
     (with-redefs [p/lib (reify PcapLibrary
@@ -295,6 +307,62 @@
                         (pcap_freealldevs [_ _] nil))
                 p/macos-device->desc (fn [] {})]
     (is (= [] (p/list-devices)))))
+
+(deftest loop!-returns-error-on-timeout-and-error
+  (let [calls (atom 0)
+        ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
+        lib (reify PcapLibrary
+              (pcap_next_ex [_ _ _ _]
+                (case (swap! calls inc)
+                  1 0    ; timeout
+                  2 -1))
+              (pcap_breakloop [_ _] nil)
+              (pcap_close [_ _] nil)
+              (pcap_open_offline [_ _ _] nil)
+              (pcap_open_live [_ _ _ _ _ _] nil)
+              (pcap_open_dead [_ _ _] nil)
+              (pcap_compile [_ _ _ _ _ _] 0)
+              (pcap_setfilter [_ _ _] 0)
+              (pcap_freecode [_ _] nil)
+              (pcap_lib_version [_] "fake")
+              (pcap_dump_open [_ _ _] nil)
+              (pcap_dump [_ _ _ _] nil)
+              (pcap_dump_flush [_ _] nil)
+              (pcap_dump_close [_ _] nil)
+              (pcap_geterr [_ _] "")
+              (pcap_findalldevs [_ _ _] 0)
+              (pcap_freealldevs [_ _] nil)
+              (pcap_lookupnet [_ _ _ _ _] 0))]
+    (with-redefs [p/lib lib]
+      (is (= -1 (p/loop! ptr (fn [_] (throw (RuntimeException. "should not happen")))))))
+    (is (= 2 @calls))))
+
+(deftest open-dead-custom-params
+  (let [seen (atom nil)
+        ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
+    (with-redefs [p/lib (reify PcapLibrary
+                          (pcap_open_dead [_ link snap]
+                            (reset! seen [link snap])
+                            ptr)
+                          (pcap_close [_ _] nil)
+                          (pcap_open_offline [_ _ _] nil)
+                          (pcap_open_live [_ _ _ _ _ _] nil)
+                          (pcap_next_ex [_ _ _ _] -2)
+                          (pcap_breakloop [_ _] nil)
+                          (pcap_compile [_ _ _ _ _ _] 0)
+                          (pcap_setfilter [_ _ _] 0)
+                          (pcap_freecode [_ _] nil)
+                          (pcap_lib_version [_] "fake")
+                          (pcap_dump_open [_ _ _] nil)
+                          (pcap_dump [_ _ _ _] nil)
+                          (pcap_dump_flush [_ _] nil)
+                          (pcap_dump_close [_ _] nil)
+                          (pcap_geterr [_ _] "")
+                          (pcap_findalldevs [_ _ _] 0)
+                          (pcap_freealldevs [_ _] nil)
+                          (pcap_lookupnet [_ _ _ _ _] 0))]
+      (is (= ptr (p/open-dead 100 9000))))
+    (is (= [100 9000] @seen))))
 
 (deftest loop-n!-arity1-stops-after-n
   (let [calls (atom 0)
