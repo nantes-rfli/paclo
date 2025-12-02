@@ -189,6 +189,16 @@
     {:idle idle'
      :break? (>= idle' idle-target)}))
 
+(defn rc->status
+  "Classify pcap_next_ex return code.
+   1 => :packet, 0 => :timeout, -2 => :eof, anything else => :error."
+  [rc]
+  (case rc
+    1 :packet
+    0 :timeout
+    -2 :eof
+    :error))
+
 (defn open-dead
   "生成用の pcap ハンドルを作る（linktype は DLT_*、snaplen 既定 65536）"
   ([]
@@ -489,9 +499,10 @@
              handle (->pkt-handler handler)]
          (loop [count 0 idle 0]
            (when (< count n)
-             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+                   status (rc->status rc)]
                (cond
-                 (= rc 1)
+                 (= status :packet)
                  (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
                        ^jnr.ffi.Pointer dat (.getValue dat-ref)
                        ts-sec (PcapHeader/tv_sec hdr)
@@ -504,7 +515,7 @@
                             :caplen caplen :len len :bytes arr})
                    (recur (inc count) 0))
 
-                 (= rc 0)
+                 (= status :timeout)
                  (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
                    (if break?
                      (breakloop! pcap)
@@ -540,9 +551,10 @@
              handle (->pkt-handler handler)]
          (loop [idle 0]
            (when (< (System/currentTimeMillis) deadline)
-             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+                   status (rc->status rc)]
                (cond
-                 (= rc 1)
+                 (= status :packet)
                  (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
                        ^jnr.ffi.Pointer dat (.getValue dat-ref)
                        ts-sec (PcapHeader/tv_sec hdr)
@@ -555,7 +567,7 @@
                             :caplen caplen :len len :bytes arr})
                    (recur 0))
 
-                 (= rc 0)
+                 (= status :timeout)
                  (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
                    (if break?
                      (breakloop! pcap)
@@ -597,9 +609,10 @@
         (loop [count 0 idle 0]
           (when (and (< count n-long)
                      (< (System/currentTimeMillis) deadline))
-            (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)]
+            (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+                  status (rc->status rc)]
               (cond
-                (= rc 1)
+                (= status :packet)
                 (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
                       ^jnr.ffi.Pointer dat (.getValue dat-ref)
                       ts-sec (PcapHeader/tv_sec hdr)
@@ -615,7 +628,7 @@
                     (breakloop! pcap)            ;; ★ ヒット即停止（オフラインでも即効）
                     (recur (inc count) 0)))
 
-                (= rc 0)
+                (= status :timeout)
                 (let [{:keys [idle break?]} (idle-next idle tick idle-target)]
                   (if break?
                     (breakloop! pcap)
