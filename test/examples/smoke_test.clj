@@ -38,9 +38,10 @@
            edn/read-string))
 
 (defn parse-first-json [s]
-  (-> (str/split-lines s)
-      first
-      (json/read-str :key-fn keyword)))
+  (let [line (->> (str/split-lines s)
+                  (filter #(re-find #"^[\[{]" (str/trim %)))
+                  first)]
+    (json/read-str line :key-fn keyword)))
 
 (deftest pcap-stats-smoke
   (testing "pcap-stats returns a sane map"
@@ -99,3 +100,13 @@
       (is (map? meta))
       (is (= tmp (:out meta)))
       (is (= (:in-packets meta) (:out-packets meta))))))  ;; フィルタなし=等数
+
+(deftest pcap-filter-jsonl-smoke
+  (testing "pcap-filter writes JSONL meta when requested"
+    (let [tmp (-> (File/createTempFile "paclo-smoke-jsonl" ".pcap") .getAbsolutePath)
+          {:keys [out]} (run-main pcap-filter/-main sample tmp nil nil "jsonl")
+          meta (parse-first-json out)]
+      (is (.exists (File. tmp)))
+      (is (map? meta))
+      (is (= tmp (:out meta)))
+      (is (= (:in-packets meta) (:out-packets meta))))))

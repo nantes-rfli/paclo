@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # Paclo
 
 [![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)
@@ -24,16 +25,22 @@ It provides a Clojure-friendly API for reading, writing, and filtering packets w
 
 Development examples live under `dev/examples` and are loaded via the `:dev` alias.
 
-```bash
-clojure -M:dev -m examples.bench
-clojure -M:dev -m examples.dns-summary path/to/trace.pcap
-clojure -M:dev -m examples.ping
-clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60
-clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10
-clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20
-clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats
-clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 qstats p95
-```
+| Example | What it shows | Formats | Typical command |
+| --- | --- | --- | --- |
+| bench | PCAP read perf smoke | edn | `clojure -M:dev -m examples.bench` |
+| dns-summary | DNS summary rows | edn/jsonl | `clojure -M:dev -m examples.dns-summary trace.pcap` |
+| ping | Minimal capture loop | edn | `clojure -M:dev -m examples.ping` |
+| pcap-filter | Filter + write, meta to stdout | edn/jsonl | `clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60 jsonl` |
+| flow-topn | Top flows (unidir/bidir, packets/bytes) | edn/jsonl | `clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10` |
+| dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats` |
+| tls-sni-scan | TLS ClientHello SNI top-N | edn/jsonl | `clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl` |
+
+#### REPL turnaround (sample)
+
+- 2025-12-03 `examples.pipeline-bench test/resources/dns-sample.pcap`
+  - `decode?=false` 4 pkt / 11.1ms, `decode?=true` 4 pkt / 13.3ms（ローカル開発機、:xform=drop<60B）
+  - 計測コマンド例: `clojure -M:dev -m examples.pipeline-bench test/resources/dns-sample.pcap`
+    / `... "" "" /tmp/pipeline-out.pcap true`
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run
 > examples via `load-file`. Newer setups should prefer `-M:dev -m`.
@@ -68,9 +75,9 @@ clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p
 
 #### Notes
 
-* `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
-* `alert%`（例: `2.5`）を与えると、NXDOMAIN+SERVFAIL がその割合を超えた時に `stderr` に `WARNING` を出力
-* RTT は PCAP にタイムスタンプが無い場合は計算されません（`with-rtt: 0`）
+- `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
+- `alert%`（例: `2.5`）を与えると、NXDOMAIN+SERVFAIL がその割合を超えた時に `stderr` に `WARNING` を出力
+- RTT は PCAP にタイムスタンプが無い場合は計算されません（`with-rtt: 0`）
 
 ### pcap-stats (EDN / JSONL)
 
@@ -158,7 +165,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 ## Documentation
 
-* [docs/README.md](./docs/README.md) — Documentation index (user guide, extensions, roadmap)
+- [docs/README.md](./docs/README.md) — Documentation index (user guide, extensions, roadmap)
 
 ## Install
 
@@ -186,10 +193,10 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 ## Supported Environments
 
-* OS: macOS（Intel/Apple Silicon で動作確認）、Ubuntu 22.04 x86_64（CIで libpcap-dev 導入）
-* JDK: Temurin/Oracle/OpenJDK 21+ 推奨
-* libpcap: システム標準（macOS 標準の `pcap`、Linux は `libpcap-dev` をインストール）
-* Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください（`target/classes` はクラスパスに含まれます）。
+- OS: macOS（Intel/Apple Silicon で動作確認）、Ubuntu 22.04 x86_64（CIで libpcap-dev 導入）
+- JDK: Temurin/Oracle/OpenJDK 21+ 推奨
+- libpcap: システム標準（macOS 標準の `pcap`、Linux は `libpcap-dev` をインストール）
+- Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください（`target/classes` はクラスパスに含まれます）。
 
 ---
 
@@ -198,8 +205,8 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 `(core/packets {:decode? true ...})` のとき、デコード失敗でも例外は投げません。
 各要素に以下のいずれかが付与されます。
 
-* `:decoded` … デコード成功時の構造化マップ
-* `:decode-error` … 失敗時のエラーメッセージ（例: フレームが短い、未対応など）
+- `:decoded` … デコード成功時の構造化マップ
+- `:decode-error` … 失敗時のエラーメッセージ（例: フレームが短い、未対応など）
 
 ---
 
@@ -207,8 +214,8 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 公開後に以下を掲示します（Clojars/cljdoc 公開時に URL を差し替え）
 
-* cljdoc: `[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)`
-* Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)`
+- cljdoc: `[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)`
+- Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)`
 
 ---
 

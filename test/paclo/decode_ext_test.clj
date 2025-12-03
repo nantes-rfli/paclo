@@ -26,3 +26,35 @@
                (get-in (first xs) [:decoded :l3 :l4 :app :summary])))))
     (finally
       (dx/unregister! ::dns-summary))))
+
+(deftest hooks-ignore-non-map-and-swallow-exceptions
+  (let [pkt {:decoded {:l3 {:l4 {:type :udp}}}}]
+    (dx/register! ::non-map (fn [_] :not-a-map))
+    (dx/register! ::boom (fn [_] (throw (ex-info "boom" {}))))
+    (dx/register! ::annotate (fn [m] (assoc-in m [:decoded :note] :ok)))
+    (try
+      (let [out (dx/apply! pkt)]
+        (is (= :ok (get-in out [:decoded :note])))
+        ;; 非 map 戻り値は無視されるため元のキーは保持される
+        (is (= :udp (get-in out [:decoded :l3 :l4 :type]))))
+      (finally
+        (dx/unregister! ::annotate)
+        (dx/unregister! ::boom)
+        (dx/unregister! ::non-map)))))
+
+(deftest hooks-preserve-registration-order
+  (let [order (atom [])
+        record (fn [k] (fn [m] (swap! order conj k) m))
+        pkt {:decoded {:l3 {:l4 {:type :udp}}}}]
+    (dx/register! ::a (record :a))
+    (dx/register! ::b (record :b))
+    ;; overwrite key moves it to the tail
+    (dx/register! ::a (record :a2))
+    (try
+      (dx/apply! pkt)
+      (is (= [:b :a2] @order))
+      ;; 他テストのフックが先頭に残っていても末尾順は保証される
+      (is (= [::b ::a] (vec (take-last 2 (dx/installed)))))
+      (finally
+        (dx/unregister! ::a)
+        (dx/unregister! ::b)))))
