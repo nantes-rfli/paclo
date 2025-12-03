@@ -52,10 +52,9 @@
           topN   (or (ex/parse-long* topn-str) 10)
           mode   (keyword (or mode-str "unidir"))
           metric (keyword (or metric-str "packets"))
-          fmt    (keyword (or fmt-str "edn"))]
+          fmt    (ex/parse-format fmt-str)]
       (ex/ensure-one-of! "mode"   mode   #{:unidir :bidir})
       (ex/ensure-one-of! "metric" metric #{:packets :bytes})
-      (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
       (let [bidir? (= :bidir mode)
             pkts   (into [] (core/packets {:path in* :filter bpf :decode? true :max Long/MAX_VALUE}))
             total  (count pkts)
@@ -85,4 +84,3 @@
           (println "flows=" (count rows)
                    " total-packets=" total
                    " topN=" topN " mode=" (name mode) " metric=" (name metric)))))))
-

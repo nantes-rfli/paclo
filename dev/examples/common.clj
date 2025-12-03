@@ -26,6 +26,13 @@
                                 what x (str (seq allowed)))))
     (System/exit 3)))
 
+(defn parse-format
+  "fmt-str -> :edn/:jsonl（nil や \"_\" はデフォルトedn）。不正なら usage エラーを出して終了。"
+  [fmt-str]
+  (let [fmt (keyword (or (when-not (blank? fmt-str) fmt-str) "edn"))]
+    (ensure-one-of! "format" fmt #{:edn :jsonl})
+    fmt))
+
 (defn emit
   "fmt = :edn | :jsonl。ベクタ/シーケンスは :jsonl で1行ずつ。"
   [fmt data]

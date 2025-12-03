@@ -32,8 +32,7 @@
     (when (nil? in) (usage) (System/exit 1))
     (let [in*  (ex/require-file! in)
           n    (or (ex/parse-long* topn-str) 5)      ;; ← 変数名を n に
-          fmt  (keyword (or fmt-str "edn"))
-          _    (ex/ensure-one-of! "format" fmt #{:edn :jsonl})
+          fmt  (ex/parse-format fmt-str)
           ;; すべて decode? して L3/L4 を取る
           pkts  (into [] (core/packets {:path in* :filter bpf :decode? true :max Long/MAX_VALUE}))
           cnt   (count pkts)

@@ -15,8 +15,7 @@
     (when (or (nil? in) (nil? out))
       (usage) (System/exit 1))
     (let [in*        (ex/require-file! in)
-          fmt        (keyword (or fmt-str "edn"))
-          _          (ex/ensure-one-of! "format" fmt #{:edn :jsonl})
+          fmt        (ex/parse-format fmt-str)
           min-caplen (ex/parse-long* min-caplen-str)
           xf         (if min-caplen (filter #(>= (long (:caplen %)) (long min-caplen))) identity)]
       (println "reading:" in)

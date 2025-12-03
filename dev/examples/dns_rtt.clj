@@ -243,13 +243,12 @@
           topN   (or (parse-long* topn) 50)
           mode   (keyword (or mode "pairs"))
           metric (keyword (or metric "pairs"))
-          fmt    (keyword (or fmt "edn"))
+          fmt    (ex/parse-format fmt)
           alert% (parse-double* alert)
           fopts  (parse-filters tail)
           _      (dns-ext/register!)]
       (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
       (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
-      (dns-ext/register!)
       ;; rows-all を構築
       (let [rows-all
             (->> (core/packets {:path in
