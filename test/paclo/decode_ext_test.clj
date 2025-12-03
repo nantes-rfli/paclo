@@ -58,3 +58,18 @@
       (finally
         (dx/unregister! ::a)
         (dx/unregister! ::b)))))
+
+(deftest hooks-unregister-prunes-order
+  (let [pkt {:decoded {:l3 {:l4 {:type :udp}}}}
+        identity-hook (fn [m] m)]
+    ;; 保守のため既存を一旦クリア
+    (doseq [k (dx/installed)] (dx/unregister! k))
+    (try
+      (dx/register! ::a identity-hook)
+      (dx/register! ::b identity-hook)
+      (dx/unregister! ::a)
+      (is (= [::b] (vec (dx/installed))))
+      ;; apply! が落ちないことも確認
+      (is (= pkt (dx/apply! pkt)))
+      (finally
+        (doseq [k (dx/installed)] (dx/unregister! k))))))
