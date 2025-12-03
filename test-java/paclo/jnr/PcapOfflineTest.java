@@ -2,6 +2,9 @@ package paclo.jnr;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import org.junit.jupiter.api.Test;
@@ -13,7 +16,10 @@ public class PcapOfflineTest {
 
   @Test
   void readFirstPacketFromSamplePcap() {
-    try (PcapHandle handle = PcapHandle.openOffline("out-dns.pcap")) {
+    Path pcap = Paths.get("test/resources/dns-sample.pcap").toAbsolutePath();
+    assertTrue(Files.isRegularFile(pcap), "dns-sample.pcap should exist");
+
+    try (PcapHandle handle = PcapHandle.openOffline(pcap.toString())) {
       PointerByReference hdrRef = new PointerByReference();
       PointerByReference dataRef = new PointerByReference();
 
