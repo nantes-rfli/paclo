@@ -8,6 +8,8 @@
   :test     {:extra-paths ["test" "test/resources" "dev"]
              :extra-deps  {io.github.cognitect-labs/test-runner
                            {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+             :jvm-opts    ["-Djnr.ffi.asm.enabled=false"
+                           "-Djnr.ffi.library.nocache=true"]
              :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
   :run      {:main-opts ["-m" "paclo.core"]}
   :build    {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
@@ -16,6 +18,8 @@
              :main-opts  ["-m" "nvd.task.check"]}
   :coverage {:extra-paths ["test" "test/resources" "dev"]
              :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
+             :jvm-opts    ["-Djnr.ffi.asm.enabled=false"
+                           "-Djnr.ffi.library.nocache=true"]
              :main-opts   ["-m" "cloverage.coverage"
                            "-p" "src"
                            "-s" "test"
