@@ -272,6 +272,7 @@
         ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
     (with-redefs [p/close! (fn [h] (reset! closed h))]
       (is (thrown? Exception
+                   ^{:clj-kondo/ignore [:unresolved-symbol]}
                    (p/with-pcap [h ptr]
                      (is (= ptr h))
                      (throw (Exception. "boom"))))))
@@ -284,6 +285,7 @@
                   p/flush-dumper! (fn [_] (swap! flushed inc))
                   p/close-dumper! (fn [_] (swap! closed inc))]
       (is (thrown? Exception
+                   ^{:clj-kondo/ignore [:unresolved-symbol]}
                    (p/with-dumper [d (p/open-dumper :pcap "out")]
                      (is (= :d d))
                      (throw (Exception. "fail"))))))
