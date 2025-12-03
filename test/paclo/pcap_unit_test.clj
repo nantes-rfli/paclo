@@ -273,7 +273,7 @@
     (with-redefs [p/close! (fn [h] (reset! closed h))]
       (is (thrown? Exception
                    (p/with-pcap [h ptr]
-                     (let [_ h] nil)   ;; use binding for lint
+                     (is (= ptr h))
                      (throw (Exception. "boom"))))))
     (is (= ptr @closed))))
 
@@ -285,7 +285,7 @@
                   p/close-dumper! (fn [_] (swap! closed inc))]
       (is (thrown? Exception
                    (p/with-dumper [d (p/open-dumper :pcap "out")]
-                     (let [_ d] nil)  ;; use binding for lint
+                     (is (= :d d))
                      (throw (Exception. "fail"))))))
     (is (= 1 @flushed))
     (is (= 1 @closed))))
