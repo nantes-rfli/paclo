@@ -39,10 +39,12 @@ packet passes through installed hooks.
 ## Example: DNS summary
 
 ```clojure
-(require '[paclo.proto.dns-ext :as dns-ext])
+(require '[paclo.proto.dns-ext :as dns-ext]) ; ← 要 :dns-ext alias で classpath に載せる
 (dns-ext/register!)
 ;; adds [:l3 :l4 :app :summary] to DNS packets in :decoded
 ```
+
+CLI で DNS 拡張を使うときは `clojure -M:dev:dns-ext ...` のように `:dns-ext` alias を付けてください。
 
 ## Best practices
 

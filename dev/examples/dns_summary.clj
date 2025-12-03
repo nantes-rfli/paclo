@@ -6,7 +6,7 @@
 
 (defn -main
   "Usage:
-    clojure -M:dev -m examples.dns-summary <pcap-path>
+    clojure -M:dev:dns-ext -m examples.dns-summary <pcap-path>
 
   Prints compact DNS summaries as EDN vector.
   Example element:

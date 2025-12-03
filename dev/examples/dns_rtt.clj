@@ -11,7 +11,7 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.dns-rtt <in.pcap>"
+    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt <in.pcap>"
              " [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]"
              " [--client <prefix>] [--server <prefix>]")
     (println)
@@ -26,10 +26,10 @@
     (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
     (println)
     (println "Examples:")
-    (println "  clojure -M:dev -m examples.dns-rtt test/resources/dns-sample.pcap")
-    (println "  clojure -M:dev -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 10")
-    (println "  clojure -M:dev -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
-    (println "  clojure -M:dev -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl --server 1.1.1.1:53")))
+    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap")
+    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 10")
+    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
+    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl --server 1.1.1.1:53")))
 
 ;; -------- tiny helpers --------
 

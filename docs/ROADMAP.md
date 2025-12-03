@@ -181,6 +181,7 @@
   非破壊ルール/実行条件/例外方針を記載。`dx/with-hooks` は要否検討のまま保留。
 - 完了: `paclo-proto-dns` 分離計画ドラフトを `dev/proto-dns-split-plan.md` に作成
   （別リポジトリ化・依存・公開手順）。
+- 完了: DNS 拡張を `:dns-ext` alias 経由のオプション扱いに整理（同リポ・単一アーティファクトのまま）。
 - 未了: REPL 指標/計測結果の公開、decode_ext 追加テスト
   （フック順序・非 map 戻り値無害化等）、
   examples 共通フラグ/エラー整形の統一、CHANGELOG/README 仕上げ。

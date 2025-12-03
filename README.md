@@ -28,12 +28,14 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 | Example | What it shows | Formats | Typical command |
 | --- | --- | --- | --- |
 | bench | PCAP read perf smoke | edn | `clojure -M:dev -m examples.bench` |
-| dns-summary | DNS summary rows | edn/jsonl | `clojure -M:dev -m examples.dns-summary trace.pcap` |
+| dns-summary | DNS summary rows | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-summary trace.pcap` |
 | ping | Minimal capture loop | edn | `clojure -M:dev -m examples.ping` |
 | pcap-filter | Filter + write, meta to stdout | edn/jsonl | `clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60 jsonl` |
 | flow-topn | Top flows (unidir/bidir, packets/bytes) | edn/jsonl | `clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10` |
-| dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats` |
+| dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats` |
 | tls-sni-scan | TLS ClientHello SNI top-N | edn/jsonl | `clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl` |
+
+> DNS 例（dns-summary / dns-rtt）を動かすときは `-M:dev:dns-ext` を付与してください（DNS拡張をclasspathに載せるため）。
 
 #### REPL turnaround (sample)
 
