@@ -41,6 +41,10 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
   - `decode?=false` 4 pkt / 11.1ms, `decode?=true` 4 pkt / 13.3ms（ローカル開発機、:xform=drop<60B）
   - 計測コマンド例: `clojure -M:dev -m examples.pipeline-bench test/resources/dns-sample.pcap`
     / `... "" "" /tmp/pipeline-out.pcap true`
+- 2025-12-03 `examples.pipeline-bench /tmp/bench-100k.pcap`（合成 PCAP, 100k pkt, caplen≈74B）
+  - `decode?=false` 100k pkt / 432.5ms, `decode?=true` 100k pkt / 1754.8ms（ローカル開発機）
+  - 生成: ローカルで合成（リポジトリ未同梱）、`paclo.pcap/bytes-seq->pcap!` で 100k pkt を作成
+  - ベンチ: `clojure -M:dev -m examples.pipeline-bench /tmp/bench-100k.pcap "" 100000 /tmp/pipeline-bench-out.pcap true`
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run
 > examples via `load-file`. Newer setups should prefer `-M:dev -m`.

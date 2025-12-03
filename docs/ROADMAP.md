@@ -77,6 +77,10 @@
   - `decode?=false` 4 pkt / 11.1ms （フィルタなし、:xform drop<60B）
   - `decode?=true`  4 pkt / 13.3ms （同条件、出力 `/tmp/pipeline-out.pcap`）
   - 条件: ローカル開発機（詳細スペックは未記録）
+- 2025-12-03 `examples.pipeline-bench`（合成 PCAP `/tmp/bench-100k.pcap` 100k pkt, caplen≈74B）
+  - `decode?=false` 100k pkt / 432.5ms
+  - `decode?=true`  100k pkt / 1754.8ms
+  - 条件: ローカル開発機、:xform drop<60B（デフォルト）。入力 PCAP はローカル生成（リポジトリ未同梱）。
 
 ### フェーズ分割
 
