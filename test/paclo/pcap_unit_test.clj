@@ -272,7 +272,8 @@
         ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
     (with-redefs [p/close! (fn [h] (reset! closed h))]
       (is (thrown? Exception
-                   (p/with-pcap [_ ptr]
+                   (p/with-pcap [h ptr]
+                     (let [_ h] nil)   ;; use binding for lint
                      (throw (Exception. "boom"))))))
     (is (= ptr @closed))))
 
@@ -283,7 +284,8 @@
                   p/flush-dumper! (fn [_] (swap! flushed inc))
                   p/close-dumper! (fn [_] (swap! closed inc))]
       (is (thrown? Exception
-                   (p/with-dumper [_ (p/open-dumper :pcap "out")]
+                   (p/with-dumper [d (p/open-dumper :pcap "out")]
+                     (let [_ d] nil)  ;; use binding for lint
                      (throw (Exception. "fail"))))))
     (is (= 1 @flushed))
     (is (= 1 @closed))))
