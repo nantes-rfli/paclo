@@ -4,53 +4,49 @@
          org.clojure/data.json {:mvn/version "2.5.0"}
          com.github.spotbugs/spotbugs-annotations {:mvn/version "4.8.6"}}
  :aliases
- {:dev      {:extra-paths ["dev" "dev/resources"]}
-  :test     {:extra-paths ["test" "test/resources" "dev"]
-             :extra-deps  {io.github.cognitect-labs/test-runner
-                           {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-             :jvm-opts    ["-Djnr.ffi.asm.enabled=false"
-                           "-Djnr.ffi.library.nocache=true"]
-             :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
-  :run      {:main-opts ["-m" "paclo.core"]}
-  :build    {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
-             :ns-default build}
-  :nvd      {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
-             :main-opts  ["-m" "nvd.task.check"]}
-  :coverage {:extra-paths ["test" "test/resources" "dev"]
-             :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
-             :jvm-opts    ["-Djnr.ffi.asm.enabled=false"
-                           "-Djnr.ffi.library.nocache=true"]
-             :main-opts   ["-m" "cloverage.coverage"
-                           "-p" "src"
-                           "-s" "test"
-                           "-t" ".*-test$"
-                           "--test-ns-regex" ".*-test$"
-                           "--codecov"
-                           "--output" "target/coverage"]}
-  :eastwood {:extra-paths ["dev" "test" "test/resources"]
-             :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}}
-             :main-opts   ["-m" "eastwood-runner"]}
-  :spotbugs {:extra-paths ["dev"]
-             :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.8.6"}}
-             :main-opts   ["-m" "paclo.dev.spotbugs"]}
-  :checkstyle {:extra-paths ["dev" "dev/resources"]
-               :extra-deps  {com.puppycrawl.tools/checkstyle {:mvn/version "10.18.0"}}
-               :main-opts   ["-m" "paclo.dev.checkstyle"]}
-  :jacoco   {:extra-paths ["dev"]
-             :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.12"}
-                           org.jacoco/org.jacoco.cli           {:mvn/version "0.8.12"}}
-             :main-opts   ["-m" "paclo.dev.jacoco"]}
+ {:dev         {:extra-paths ["dev" "dev/resources"]}
+  :test        {:extra-paths ["test" "test/resources" "dev"]
+                :extra-deps  {io.github.cognitect-labs/test-runner
+                              {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
+  :run         {:main-opts ["-m" "paclo.core"]}
+  :build       {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+                :ns-default build}
+  :nvd         {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
+                :main-opts  ["-m" "nvd.task.check"]}
+  :coverage    {:extra-paths ["test" "test/resources" "dev"]
+                :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
+                :main-opts   ["-m" "cloverage.coverage"
+                              "-p" "src"
+                              "-s" "test"
+                              "-t" ".*-test$"
+                              "--test-ns-regex" ".*-test$"
+                              "--codecov"
+                              "--output" "target/coverage"]}
+  :eastwood    {:extra-paths ["dev" "test" "test/resources"]
+                :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}}
+                :main-opts   ["-m" "eastwood-runner"]}
+  :spotbugs    {:extra-paths ["dev"]
+                :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.8.6"}}
+                :main-opts   ["-m" "paclo.dev.spotbugs"]}
+  :checkstyle  {:extra-paths ["dev" "dev/resources"]
+                :extra-deps  {com.puppycrawl.tools/checkstyle {:mvn/version "10.18.0"}}
+                :main-opts   ["-m" "paclo.dev.checkstyle"]}
+  :jacoco      {:extra-paths ["dev"]
+                :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.12"}
+                              org.jacoco/org.jacoco.cli           {:mvn/version "0.8.12"}}
+                :main-opts   ["-m" "paclo.dev.jacoco"]}
   :jacoco-gate {:extra-paths ["dev"]
                 :extra-deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}}
                 :main-opts   ["-m" "paclo.dev.jacoco-gate"]}
-  :junit    {:extra-paths []
-             :extra-deps  {org.junit.platform/junit-platform-console-standalone
-                           {:mvn/version "1.10.2"}}
-             :main-opts   ["-e"
-                           "(org.junit.platform.console.ConsoleLauncher/main (into-array String [\"--class-path\" \"target/classes:target/test-classes\" \"--scan-classpath\" \"--fail-if-no-tests\"]))"]}
-  :nrepl {:extra-deps {nrepl/nrepl       {:mvn/version "1.5.1"}
-                       cider/cider-nrepl {:mvn/version "0.58.0"}}
-          :main-opts  ["-m" "nrepl.cmdline"
-                       "-b" "127.0.0.1"
-                       "-p" "7888"
-                       "--middleware" "[cider.nrepl/cider-middleware]"]}}}
+  :junit       {:extra-paths []
+                :extra-deps  {org.junit.platform/junit-platform-console-standalone
+                              {:mvn/version "1.10.2"}}
+                :main-opts   ["-e"
+                              "(org.junit.platform.console.ConsoleLauncher/main (into-array String [\"--class-path\" \"target/classes:target/test-classes\" \"--scan-classpath\" \"--fail-if-no-tests\"]))"]}
+  :nrepl       {:extra-deps {nrepl/nrepl       {:mvn/version "1.5.1"}
+                             cider/cider-nrepl {:mvn/version "0.58.0"}}
+                :main-opts  ["-m" "nrepl.cmdline"
+                             "-b" "127.0.0.1"
+                             "-p" "7888"
+                             "--middleware" "[cider.nrepl/cider-middleware]"]}}}
