@@ -8,7 +8,8 @@
     (println "Usage:")
     (println "  clojure -M:dev -m examples.pcap-filter <in.pcap> <out.pcap> [<bpf>] [<min-caplen>] [<format>]")
     (println "Defaults: <bpf>=nil, <min-caplen>=nil, <format>=edn")
-    (println "Formats : edn | jsonl")))
+    (println "Formats : edn | jsonl")
+    (println "Tips    : use \"_\" to skip an optional arg (e.g., '_' for <bpf>)")))
 
 (defn -main [& args]
   (let [[in out bpf min-caplen-str fmt-str] args]

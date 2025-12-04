@@ -24,6 +24,7 @@
     (println "  <alert%>     = NXDOMAIN+SERVFAIL 率（例: 5 → 5%）")
     (println "  --client/-c  <prefix>  例: 192.168.4.28  or  192.168.4.28:5")
     (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
+    (println "  Tips         = optional args can be skipped with '_' (e.g., '_' for <alert%>)")
     (println)
     (println "Examples:")
     (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap")

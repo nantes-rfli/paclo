@@ -10,7 +10,8 @@
     (println "Defaults: <bpf>='udp or tcp', <topN>=10, <mode>=unidir, <metric>=packets, <format>=edn")
     (println "Modes  : unidir | bidir")
     (println "Metric : packets | bytes")
-    (println "Formats: edn | jsonl")))
+    (println "Formats: edn | jsonl")
+    (println "Tips   : use \"_\" to skip an optional arg (e.g., '_' for <bpf>)")))
 
 (defn- flow->repr [{:keys [proto src-ip src-port dst-ip dst-port]}]
   {:proto proto

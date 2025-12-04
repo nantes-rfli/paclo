@@ -37,6 +37,7 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 
 > DNS 例（dns-summary / dns-rtt）を動かすときは `-M:dev:dns-ext` を付与してください（リポをcloneして動かす場合）。
 > ライブラリとして依存する場合は JAR に DNS 拡張も含まれるので `require` するだけで利用できます。
+> 省略可能な引数は `_` でスキップできます（例: `... _ _ stats jsonl`）。
 
 #### REPL turnaround (sample)
 

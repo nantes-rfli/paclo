@@ -191,8 +191,8 @@
 
 次のアクション（Phase C に持ち越し予定のものも含む）
 
-- `paclo-proto-dns` 分離計画ドラフトを作成して Phase B をクローズ可能な状態にする。
-- REPL ワークフロー計測値を README/ROADMAP に掲載（例: 小 PCAP での decode 有無の往復時間）。
+- DNS 拡張は alias 方針に切替済み。`dev/proto-dns-split-plan.md` は将来分割案として保管。
+- REPL ワークフロー計測値を README/ROADMAP に掲載（例: decode 有無の往復時間）。
 - decode_ext のスモーク/プロパティテスト追加
   （フック順序・例外無害化・非 map 戻り値無視を確認）。
 - examples 4 本のフラグ/Usage/エラー整形を統一し、`pcap-filter` JSONL メタの挙動も

@@ -8,7 +8,8 @@
     (println "Usage:")
     (println "  clojure -M:dev -m examples.pcap-stats <in.pcap> [<bpf>] [<topN>] [<format>]")
     (println "Defaults: <bpf>=nil, <topN>=5, <format>=edn")
-    (println "Formats : edn | jsonl")))
+    (println "Formats : edn | jsonl")
+    (println "Tips    : use \"_\" to skip an optional arg (e.g., '_' for <bpf>)")))
 
 (defn- fmt-ts
   "マイクロ秒のエポックを ISO8601（UTC）文字列に。無ければ nil。"
