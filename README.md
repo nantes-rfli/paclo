@@ -60,13 +60,13 @@ You can filter by endpoint prefix (`--client` / `--server`), where the prefix is
 
 ```bash
 # Pairs (default), all servers
-clojure -Srepro -M:dev -m examples.dns-rtt in.pcap
+clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap
 
 # Pairs, only server 1.1.1.1:53
-clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 50 pairs _ edn _ --server 1.1.1.1:53
+clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 pairs _ edn _ --server 1.1.1.1:53
 
 # Qname stats, JSONL output, only client 192.168.4.28, sort by p95
-clojure -Srepro -M:dev -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
+clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
 ```
 
 |引数|省略時|説明|
