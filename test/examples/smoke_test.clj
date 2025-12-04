@@ -58,6 +58,14 @@
       (is (map? m))
       (is (= 4 (:packets m))))))
 
+(deftest pcap-stats-async-smoke
+  (testing "pcap-stats async still counts packets"
+    (let [{:keys [out err]} (run-main pcap-stats/-main sample "_" "_" "edn" "--async" "--async-buffer" "16" "--async-mode" "dropping")
+          m (parse-first-edn out)]
+      (is (map? m))
+      (is (= 4 (:packets m)))
+      (is (str/includes? err "async=true")))))
+
 (deftest flow-topn-smoke
   (testing "flow-topn returns a non-empty vector"
     (let [{:keys [out]} (run-main flow-topn/-main sample)
@@ -73,6 +81,22 @@
       (is (<= 1 (count lines)))   ;; 小PCAPだと 2〜4 行想定
       (is (map? m))
       (is (contains? m :flow)))))
+
+(deftest flow-topn-async-smoke
+  (testing "flow-topn async keeps same results on small PCAP"
+    (let [{:keys [out err]} (run-main flow-topn/-main sample "udp or tcp" "10" "unidir" "packets" "edn" "--async" "--async-buffer" "1024")
+          v (parse-first-edn out)]
+      (is (vector? v))
+      (is (= 4 (count v)))  ;; sample known size
+      (is (str/includes? err "async=true")))))
+
+(deftest flow-topn-async-timeout-smoke
+  (testing "flow-topn async timeout may truncate results"
+    (let [{:keys [out err]} (run-main flow-topn/-main sample "udp or tcp" "10" "unidir" "packets" "edn" "--async" "--async-timeout-ms" "0" "--async-buffer" "4")
+          v (parse-first-edn out)]
+      (is (vector? v))
+      (is (<= (count v) 4))
+      (is (str/includes? err "cancelled=")))))
 
 (deftest dns-rtt-smoke
   (testing "dns-rtt stats mode returns a sane map"
@@ -90,6 +114,21 @@
           m (parse-first-json out)]
       (is (map? m))
       (is (<= 1 (:pairs m))))))
+
+(deftest dns-rtt-async-smoke
+  (testing "dns-rtt async still produces rows and metadata"
+    (let [{:keys [out err]} (run-main dns-rtt/-main sample "_" "_" "pairs" "_" "edn" "_" "--async" "--async-buffer" "16" "--async-mode" "dropping")
+          rows (parse-first-edn out)]
+      (is (vector? rows))
+      (is (<= 1 (count rows)))
+      (is (str/includes? err "async=true")))))
+
+(deftest dns-rtt-async-timeout-smoke
+  (testing "dns-rtt async timeout cancels early"
+    (let [{:keys [out err]} (run-main dns-rtt/-main sample "_" "_" "stats" "_" "edn" "_" "--async" "--async-buffer" "8" "--async-timeout-ms" "0")
+          m (parse-first-edn out)]
+      (is (map? m))
+      (is (str/includes? err "cancelled=true")))))
 
 (deftest pcap-filter-smoke
   (testing "pcap-filter writes a file and prints EDN meta"
@@ -110,3 +149,23 @@
       (is (map? meta))
       (is (= tmp (:out meta)))
       (is (= (:in-packets meta) (:out-packets meta))))))
+
+(deftest pcap-filter-async-buffer-smoke
+  (testing "pcap-filter async mode matches sync output on small PCAP"
+    (let [tmp (-> (File/createTempFile "paclo-smoke-async" ".pcap") .getAbsolutePath)
+          {:keys [out]} (run-main pcap-filter/-main sample tmp "_" "_" "edn" "--async" "--async-buffer" "1024" "--async-mode" "buffer")
+          meta (parse-last-edn-line out)]
+      (is (.exists (File. tmp)))
+      (is (:async? meta))
+      (is (false? (:async-cancelled? meta)))
+      (is (= (:in-packets meta) (:out-packets meta))))))
+
+(deftest pcap-filter-async-timeout-smoke
+  (testing "pcap-filter async timeout cancels early"
+    (let [tmp (-> (File/createTempFile "paclo-smoke-async-timeout" ".pcap") .getAbsolutePath)
+          {:keys [out]} (run-main pcap-filter/-main sample tmp "_" "_" "edn" "--async" "--async-timeout-ms" "0" "--async-buffer" "4")
+          meta (parse-last-edn-line out)]
+      (is (.exists (File. tmp)))
+      (is (:async? meta))
+      (is (:async-cancelled? meta))
+      (is (< (:out-packets meta) (:in-packets meta))))))

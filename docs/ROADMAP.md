@@ -184,6 +184,18 @@
 
 次のアクション（Phase C 以降）
 
-- core.async オプション（背圧/キャンセル例付き）の要否を判断し、必要なら小スコープで実装。
-- examples スモークテストを拡充（flow-topn / pcap-stats / dns-rtt）し、CLI エラー整形の統一度をさらに上げる。
-- `v0.3.0` タグ準備：CHANGELOG 最終化、ドキュメント微修正、CI green 確認。
+- [x] core.async オプション（背圧/キャンセル例付き）を pcap-filter / flow-topn に opt-in で実装（デフォルト同期）。長尺 PCAP で drop/cancel を観察できる。
+- [x] examples スモークテストを拡充（flow-topn / pcap-stats / dns-rtt async opt-in を追加）し、CLI エラー整形の統一度をさらに上げる。
+- [ ] `v0.3.0` タグ準備：CHANGELOG 最終化、ドキュメント微修正、CI green 確認。
+
+#### core.async オプション（任意）のスコープ案
+
+- 目的: 長尺 PCAP で背圧/キャンセルを示す最小デモを提供し、デフォルトの同期パスは維持。
+- 実装方針: pcap reader → `chan`(buffer/dropping-buffer) → transducer → writer という go block 2 本構成。
+  `stop-chan` と `timeout` を `alts!` 監視してキャンセル可能にする。examples に `--async` フラグを 1 本だけ追加し、
+  同期/非同期で出力一致を確認。
+- バッファ初期値: `buffer 1024` をデフォルト（背圧デモ重視）。`--async-buffer` で変更可、`--async-mode` で `buffer` / `dropping-buffer` を
+  切替。dropping 時は drop 件数をログに出す。
+- 対象例: まず `pcap-filter` に `--async` を追加（最小パスで比較容易）。必要なら次点で `flow-topn` に拡張。
+- Done 条件: (1) 小/中 PCAP で同期パスと出力一致テストが 1 本、(2) 長尺 PCAP でキャンセル/背圧が効くスモークテスト 1 本、
+  (3) README examples に `--async` 説明追記（opt-in 強調、デフォルトは同期）。

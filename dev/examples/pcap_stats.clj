@@ -1,5 +1,6 @@
 (ns examples.pcap-stats
   (:require
+   [clojure.core.async :as async]
    [examples.common :as ex]
    [paclo.core :as core]))
 
@@ -29,14 +30,39 @@
        vec))
 
 (defn -main [& args]
-  (let [[in bpf topn-str fmt-str] args]
+  (let [[in bpf topn-str fmt-str & flags] args]
     (when (nil? in) (usage) (System/exit 1))
     (let [in*  (ex/require-file! in)
-          n    (or (ex/parse-long* topn-str) 5)      ;; ← 変数名を n に
+          n    (or (ex/parse-long* topn-str) 5)
           fmt  (ex/parse-format fmt-str)
           bpf* (when-not (ex/blank? bpf) bpf)
-          ;; すべて decode? して L3/L4 を取る
-          pkts  (into [] (core/packets {:path in* :filter bpf* :decode? true :max Long/MAX_VALUE}))
+          {:keys [async? async-buffer async-mode async-timeout-ms]} (ex/parse-async-opts flags {:default-buffer 1024 :default-mode :buffer})
+          dropped    (atom 0)
+          cancelled? (atom false)
+          pkt-ch     (when async? (async/chan (case async-mode
+                                                :dropping (async/dropping-buffer async-buffer)
+                                                (async/buffer async-buffer))))
+          cancel-ch  (when (and async? async-timeout-ms) (async/timeout async-timeout-ms))
+          pkts (if-not async?
+                 (into [] (core/packets {:path in* :filter bpf* :decode? true :max Long/MAX_VALUE}))
+                 ;; async path: stream through channel, allow drop/cancel
+                 (do
+                   (async/thread
+                     (try
+                       (doseq [p (core/packets {:path in* :filter bpf* :decode? true :max Long/MAX_VALUE})]
+                         (when cancel-ch
+                           (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
+                             (when port (reset! cancelled? true))))
+                         (when-not @cancelled?
+                           (if (= async-mode :dropping)
+                             (when-not (async/offer! pkt-ch p)
+                               (swap! dropped inc))
+                             (async/>!! pkt-ch p))))
+                       (finally (async/close! pkt-ch))))
+                   (loop [acc []]
+                     (if-let [p (async/<!! pkt-ch)]
+                       (recur (conj acc p))
+                       acc))))
           cnt   (count pkts)
           bytes (reduce + 0 (map :caplen pkts))
           caplens (map :caplen pkts)
@@ -61,7 +87,15 @@
                  :proto   {:l3 (->> pkts (map #(get-in % [:decoded :l3 :type])) (remove nil?) frequencies)
                            :l4 (->> pkts (map #(get-in % [:decoded :l3 :l4 :type])) (remove nil?) frequencies)}
                  :top     {:src (->> pkts (map #(get-in % [:decoded :l3 :src])) (remove nil?) frequencies (top-freqs n))
-                           :dst (->> pkts (map #(get-in % [:decoded :l3 :dst])) (remove nil?) frequencies (top-freqs n))}}]
+                           :dst (->> pkts (map #(get-in % [:decoded :l3 :dst])) (remove nil?) frequencies (top-freqs n))}
+                 :async? async?
+                 :async-mode async-mode
+                 :async-buffer async-buffer
+                 :async-timeout-ms async-timeout-ms
+                 :async-cancelled? @cancelled?
+                 :async-dropped @dropped}]
       (ex/emit fmt stats)
       (binding [*out* *err*]
-        (println "bpf=" (pr-str bpf) " topN=" n " format=" (name fmt))))))
+        (println "bpf=" (pr-str bpf) " topN=" n " format=" (name fmt)
+                 (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
+                                   " dropped=" @dropped " cancelled=" @cancelled?)))))))

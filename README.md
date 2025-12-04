@@ -30,9 +30,9 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 | bench | PCAP read perf smoke | edn | `clojure -M:dev -m examples.bench` |
 | dns-summary | DNS summary rows | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-summary trace.pcap` |
 | ping | Minimal capture loop | edn | `clojure -M:dev -m examples.ping` |
-| pcap-filter | Filter + write, meta to stdout | edn/jsonl | `clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60 jsonl` |
-| flow-topn | Top flows (unidir/bidir, packets/bytes) | edn/jsonl | `clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10` |
-| dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats` |
+| pcap-filter | Filter + write, meta to stdout | edn/jsonl | `clojure -M:dev -m examples.pcap-filter in.pcap out.pcap 'udp and port 53' 60 jsonl --async` |
+| flow-topn | Top flows (unidir/bidir, packets/bytes) | edn/jsonl | `clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 --async` |
+| dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats --async` |
 | tls-sni-scan | TLS ClientHello SNI top-N | edn/jsonl | `clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl` |
 
 - DNS 例（dns-summary / dns-rtt）はリポ clone 実行時のみ `-M:dev:dns-ext` が必要。ライブラリ利用時は JAR に同梱済みで `require` だけで OK。
@@ -83,6 +83,10 @@ clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 
 
 # Qname stats, JSONL output, only client 192.168.4.28, sort by p95
 clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 20 qstats p95 jsonl --client 192.168.4.28
+
+# Opt-in async (backpressure/drop/cancel demo). Defaults: buffer=1024, mode=buffer
+clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats edn --async --async-buffer 1024
+clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats edn --async --async-mode dropping --async-timeout-ms 1000
 ```
 
 |引数|省略時|説明|
@@ -119,6 +123,10 @@ clojure -Srepro -M:dev -m examples.pcap-stats in.pcap
 # With BPF, topN=10, JSONL output
 clojure -Srepro -M:dev -m examples.pcap-stats in.pcap 'udp and port 53' 10 jsonl
 
+# Opt-in async (backpressure/drop demo). Defaults: buffer=1024, mode=buffer
+clojure -Srepro -M:dev -m examples.pcap-stats in.pcap '_' '_' edn --async --async-buffer 1024
+clojure -Srepro -M:dev -m examples.pcap-stats in.pcap '_' '_' edn --async --async-mode dropping --async-timeout-ms 1000
+
 # Sample output (EDN)
 {:packets 1234, :bytes 98765, :caplen {:avg 80.1, :min 42, :max 1514},
  :proto {:l3 {:ipv4 1200}, :l4 {:tcp 900, :udp 300}},
@@ -140,6 +148,12 @@ clojure -Srepro -M:dev -m examples.pcap-stats in.pcap 'udp and port 53' 10 jsonl
 # Top flows (bidir, sort by bytes), JSONL output
 clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 bidir bytes jsonl
 
+# Opt-in async (backpressure/cancel demo). Defaults: buffer=1024, mode=buffer
+clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp or tcp' 10 bidir bytes edn --async --async-buffer 1024
+clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp or tcp' 10 bidir bytes edn --async --async-mode dropping --async-timeout-ms 1000
+# 例: 合成DNS 25k pkt, buffer=64, dropping → flows=2 (DNSクエリ/レス), dropped=0
+# 例: 同ファイル timeout=1000ms → flows=0, cancelled=true（途中停止デモ）
+
 # Sample output (EDN)
 [{:flow {:proto :udp, :src "10.0.0.1:5353", :dst "224.0.0.251:5353"}
   :packets 320 :bytes 18320}
@@ -155,6 +169,15 @@ clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap
 
 # With BPF and JSONL meta
 clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out-dns.pcap 'udp and port 53' 0 jsonl
+
+# Opt-in async (backpressure/cancel demo). Defaults: buffer=1024, mode=buffer
+clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap --async --async-buffer 1024 --async-mode buffer
+clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap --async --async-mode dropping --async-timeout-ms 1000
+
+# Long PCAP で背圧/ドロップを観察（値は環境依存）
+clojure -Srepro -M:dev -m examples.pcap-filter /tmp/large.pcap /tmp/out.pcap --async --async-mode dropping --async-buffer 16
+# => メタの :async-dropped/:async-cancelled? や stderr ログで挙動を確認
+# 例: 合成DNS 25k pkt, buffer=16, dropping → async-dropped≈14k (drop-pct≈56%)
 ```
 
 ### TLS SNI scan (EDN / JSONL)

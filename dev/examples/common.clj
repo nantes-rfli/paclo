@@ -4,6 +4,11 @@
 
 ;; ----- tiny utils -----
 
+(defn error-exit! [msg code]
+  (binding [*out* *err*]
+    (println "ERROR:" msg))
+  (System/exit code))
+
 (defn blank? [s] (or (nil? s) (= "" s) (= "_" s)))
 
 (defn parse-long* [s]
@@ -42,3 +47,33 @@
              (map? data) (do (json/write data *out*) (println))
              :else (do (json/write {:value data} *out*) (println)))
     (println (pr-str data))))
+
+(defn parse-async-opts
+  "共通 async フラグのパーサ。
+  args -> {:async? bool :async-buffer long :async-mode :buffer|:dropping :async-timeout-ms long|nil}
+  defaults 省略時: buffer=1024, mode=:buffer"
+  [args {:keys [default-buffer default-mode] :or {default-buffer 1024 default-mode :buffer}}]
+  (loop [opts {:async? false
+               :async-buffer default-buffer
+               :async-mode default-mode
+               :async-timeout-ms nil}
+         xs   args]
+    (if (empty? xs)
+      opts
+      (let [[k & more] xs]
+        (case k
+          "--async" (recur (assoc opts :async? true) more)
+          "--async-buffer"
+          (let [n (parse-long* (first more))]
+            (when-not n (error-exit! "--async-buffer requires a number" 4))
+            (recur (assoc opts :async-buffer n) (rest more)))
+          "--async-mode"
+          (let [m (keyword (or (first more) ""))]
+            (when-not (contains? #{:buffer :dropping} m)
+              (error-exit! "--async-mode must be buffer|dropping" 4))
+            (recur (assoc opts :async-mode m) (rest more)))
+          "--async-timeout-ms"
+          (let [n (parse-long* (first more))]
+            (when-not n (error-exit! "--async-timeout-ms requires a number" 4))
+            (recur (assoc opts :async-timeout-ms n) (rest more)))
+          (error-exit! (str "unknown flag: " k) 4))))))

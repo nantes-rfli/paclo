@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Property test to assert decode_ext isolates exceptions yet keeps later hooks running.
 - decode_ext ガード（`:decoded` が無い/`:decode-error` がある場合は hook をスキップ）とカバレッジ追加。
 - `examples.pcap-filter` の JSONL メタ出力スモークテスト。
+- examples: `pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt` に opt-in の `--async`（背圧/ドロップ/タイムアウトデモ）を追加。
 
 ### Docs
 - `docs/extensions.md` stability notes for decode_ext hooks (map-only apply, exception isolation, API compatibility).
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README REPL turnaround section now lists small/mid/large pipeline-bench samples.
 - Examples docs/help text aligned (`dns-summary` alias hint, `tls-sni-scan` formats/tips) に加え、EDN/JSONL 共通フラグと `_` スキップの説明を整理。
 - `docs/extensions.md` を v0.3 安定化注記に更新（適用条件ガードを明文化）。
+- README に async オプションの opt-in 用例と長尺 PCAP での背圧/ドロップ観察手順を追記（pcap-filter / flow-topn / pcap-stats / dns-rtt）。ROADMAP に core.async 進捗を反映。
 
 ### Fixed
 - `examples.dns-summary` help text now references the required `:dns-ext` alias.

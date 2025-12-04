@@ -1,5 +1,6 @@
 (ns examples.dns-rtt
   (:require
+   [clojure.core.async :as async]
    [clojure.data.json :as json]
    [clojure.string :as str]
    [examples.common :as ex]
@@ -13,7 +14,7 @@
     (println "Usage:")
     (println "  clojure -M:dev:dns-ext -m examples.dns-rtt <in.pcap>"
              " [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]"
-             " [--client <prefix>] [--server <prefix>]")
+             " [--client <prefix>] [--server <prefix>] [--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS]")
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
@@ -24,6 +25,7 @@
     (println "  <alert%>     = NXDOMAIN+SERVFAIL 率（例: 5 → 5%）")
     (println "  --client/-c  <prefix>  例: 192.168.4.28  or  192.168.4.28:5")
     (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
+    (println "  async        = opt-in (backpressure/drop/cancel). Defaults: buffer=1024, mode=buffer")
     (println "  Tips         = optional args can be skipped with '_' (e.g., '_' for <alert%>)")
     (println)
     (println "Examples:")
@@ -180,6 +182,18 @@
           :else
           (recur m (next xs)))))))
 
+(defn- drop-client-server-opts
+  "client/server オプションを取り除き、残りを返す（async 解析用）。"
+  [opts]
+  (loop [xs opts acc []]
+    (if (empty? xs)
+      acc
+      (let [[a & more] xs]
+        (cond
+          (#{"--client" "-c"} a) (recur more acc)
+          (#{"--server" "-s"} a) (recur more acc)
+          :else (recur (rest xs) (conj acc a)))))))
+
 (defn- parse-positionals
   "位置引数を左から [:bpf :topn :mode :metric :fmt :alert] に詰める。
    '_' は未指定扱い。途中で '--' 始まりを見つけたら以降は :tail へ。"
@@ -240,50 +254,104 @@
           fmt    (ex/parse-format fmt)
           alert% (ex/parse-double* alert)
           fopts  (parse-filters tail)
+          async-tail (drop-client-server-opts tail)
+          {:keys [async? async-buffer async-mode async-timeout-ms]} (ex/parse-async-opts async-tail {:default-buffer 1024 :default-mode :buffer})
           _      (dns-ext/register!)]
       (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
       (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
-      ;; rows-all を構築
+      ;; rows-all を構築（async 対応）
       (let [rows-all
-            (->> (core/packets {:path in
-                                :filter bpf
-                                :decode? true
-                                :max Long/MAX_VALUE})
-                 (reduce
-                  (fn [{:keys [pending out]} m]
+            (if-not async?
+              (->> (core/packets {:path in
+                                  :filter bpf
+                                  :decode? true
+                                  :max Long/MAX_VALUE})
+                   (reduce
+                    (fn [{:keys [pending out]} m]
+                      (let [ba (get-in m [:decoded :l3 :l4 :payload])]
+                        (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
+                          (let [k (canon-key m id)]
+                            (if (not qr?) ; query
+                              (if (contains? pending k)
+                                {:pending pending :out out}
+                                (let [app (get-in m [:decoded :l3 :l4 :app])
+                                      t   (micros m)
+                                      es  (classify-client-server m)]
+                                  {:pending (assoc pending k
+                                                   (merge es
+                                                          {:t t
+                                                           :id id
+                                                           :qname (:qname app)
+                                                           :qtype (:qtype-name app)}))
+                                   :out out}))
+                              ;; response
+                              (if-let [{qt :t :as q} (get pending k)]
+                                (let [rt     (micros m)
+                                      app    (get-in m [:decoded :l3 :l4 :app])
+                                      rcode  (some-> (:rcode-name app) keyword)
+                                      rtt-ms (when (and (number? qt) (number? rt))
+                                               (double (/ (unchecked-subtract (long rt) (long qt)) 1000.0)))]
+                                  {:pending (dissoc pending k)
+                                   :out (conj out
+                                              (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
+                                                          (assoc :rcode rcode))
+                                                (and (number? rtt-ms) (not (neg? (double rtt-ms))))
+                                                (assoc :rtt-ms rtt-ms)))})
+                                {:pending pending :out out})))
+                          {:pending pending :out out})))
+                    {:pending {} :out []})
+                   :out)
+              (let [dropped    (atom 0)
+                    cancelled? (atom false)
+                    buf (case async-mode
+                          :dropping (async/dropping-buffer async-buffer)
+                          (async/buffer async-buffer))
+                    pkt-ch (async/chan buf)
+                    cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))]
+                (async/thread
+                  (try
+                    (doseq [m (core/packets {:path in :filter bpf :decode? true :max Long/MAX_VALUE})]
+                      (when cancel-ch
+                        (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
+                          (when port (reset! cancelled? true))))
+                      (when-not @cancelled?
+                        (if (= async-mode :dropping)
+                          (when-not (async/offer! pkt-ch m)
+                            (swap! dropped inc))
+                          (async/>!! pkt-ch m))))
+                    (finally (async/close! pkt-ch))))
+                (loop [pending {} out []]
+                  (if-let [m (async/<!! pkt-ch)]
                     (let [ba (get-in m [:decoded :l3 :l4 :payload])]
                       (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
                         (let [k (canon-key m id)]
-                          (if (not qr?) ; query
+                          (if (not qr?)
                             (if (contains? pending k)
-                              {:pending pending :out out}
+                              (recur pending out)
                               (let [app (get-in m [:decoded :l3 :l4 :app])
                                     t   (micros m)
                                     es  (classify-client-server m)]
-                                {:pending (assoc pending k
-                                                 (merge es
-                                                        {:t t
-                                                         :id id
-                                                         :qname (:qname app)
-                                                         :qtype (:qtype-name app)}))
-                                 :out out}))
-                             ;; response
+                                (recur (assoc pending k (merge es {:t t :id id :qname (:qname app) :qtype (:qtype-name app)})) out)))
                             (if-let [{qt :t :as q} (get pending k)]
                               (let [rt     (micros m)
                                     app    (get-in m [:decoded :l3 :l4 :app])
                                     rcode  (some-> (:rcode-name app) keyword)
                                     rtt-ms (when (and (number? qt) (number? rt))
                                              (double (/ (unchecked-subtract (long rt) (long qt)) 1000.0)))]
-                                {:pending (dissoc pending k)
-                                 :out (conj out
-                                            (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
-                                                        (assoc :rcode rcode))
-                                              (and (number? rtt-ms) (not (neg? (double rtt-ms))))
-                                              (assoc :rtt-ms rtt-ms)))})
-                              {:pending pending :out out})))
-                        {:pending pending :out out})))
-                  {:pending {} :out []})
-                 :out)
+                                (recur (dissoc pending k)
+                                       (conj out (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
+                                                             (assoc :rcode rcode))
+                                                   (and (number? rtt-ms) (not (neg? (double rtt-ms))))
+                                                   (assoc :rtt-ms rtt-ms)))))
+                              (recur pending out))))
+                        (recur pending out)))
+                    (conj out {:dangling (count pending)
+                               :async? async?
+                               :async-mode async-mode
+                               :async-buffer async-buffer
+                               :async-timeout-ms async-timeout-ms
+                               :async-cancelled? @cancelled?
+                               :async-dropped @dropped})))))
             rows (apply-endpoint-filters fopts rows-all)]
 
         ;; アラート（フィルタ後 rows を対象）
@@ -312,7 +380,10 @@
               (println "mode=stats bpf=" (pr-str bpf)
                        " format=" (name fmt)
                        " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts)))))
+                       " server=" (pr-str (:server fopts))
+                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
+                                         " dropped=" (:async-dropped (last rows-all))
+                                         " cancelled=" (:async-cancelled? (last rows-all)))))))
 
           :qstats
           (let [qs    (summarize-qstats rows)
@@ -328,7 +399,10 @@
                        " bpf=" (pr-str bpf)
                        " format=" (name fmt)
                        " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts)))))
+                       " server=" (pr-str (:server fopts))
+                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
+                                         " dropped=" (:async-dropped (last rows-all))
+                                         " cancelled=" (:async-cancelled? (last rows-all)))))))
 
           ;; default: pairs
           (let [sorted (->> rows
@@ -344,4 +418,7 @@
                        " bpf=" (pr-str bpf)
                        " format=" (name fmt)
                        " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts))))))))))
+                       " server=" (pr-str (:server fopts))
+                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
+                                         " dropped=" (:async-dropped (last rows-all))
+                                         " cancelled=" (:async-cancelled? (last rows-all))))))))))))
