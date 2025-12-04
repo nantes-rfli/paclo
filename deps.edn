@@ -16,8 +16,9 @@
                 :ns-default build}
   :nvd         {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
                 :main-opts  ["-m" "nvd.task.check"]}
-  :coverage    {:extra-paths ["test" "test/resources" "dev"]
-                :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}}
+  :coverage    {:extra-paths ["test" "test/resources" "dev" "extensions/dns/src"]
+                :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}
+                              org.clojure/test.check {:mvn/version "1.1.1"}}
                 :main-opts   ["-m" "cloverage.coverage"
                               "-p" "src"
                               "-s" "test"
