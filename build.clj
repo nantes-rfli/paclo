@@ -1,5 +1,6 @@
 (ns build
   (:require [clojure.tools.build.api :as b]
+            [clojure.java.io :as io]
             [clojure.java.shell :as sh]
             [clojure.string :as str]))
 
@@ -16,8 +17,10 @@
 (defn jar [_]
   (clean nil)
   ;; Clojure/リソースをコピー
-  (b/copy-dir {:src-dirs ["src" "resources"]
-               :target-dir class-dir})
+  (let [src-dirs (filter #(.exists (io/file %))
+                         ["src" "extensions/dns/src" "resources"])]
+    (b/copy-dir {:src-dirs src-dirs
+                 :target-dir class-dir}))
   ;; ★ Java をコンパイル（src-java → target/classes）
   (when (.exists (java.io.File. "src-java"))
     (b/javac {:src-dirs ["src-java"]

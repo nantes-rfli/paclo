@@ -35,7 +35,8 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 | dns-rtt | RTT pairs/stats/qstats, endpoint filters | edn/jsonl | `clojure -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats` |
 | tls-sni-scan | TLS ClientHello SNI top-N | edn/jsonl | `clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl` |
 
-> DNS 例（dns-summary / dns-rtt）を動かすときは `-M:dev:dns-ext` を付与してください（DNS拡張をclasspathに載せるため）。
+> DNS 例（dns-summary / dns-rtt）を動かすときは `-M:dev:dns-ext` を付与してください（リポをcloneして動かす場合）。
+> ライブラリとして依存する場合は JAR に DNS 拡張も含まれるので `require` するだけで利用できます。
 
 #### REPL turnaround (sample)
 
