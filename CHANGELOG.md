@@ -12,12 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REPL pipeline benchmark sample numbers for small / mid (50k) / large (100k) synthetic PCAPs.
 - Synthetic PCAP generator `make-synth-pcap` to reproduce benchmark inputs (count/caplen configurable).
 - Property test to assert decode_ext isolates exceptions yet keeps later hooks running.
+- decode_ext ガード（`:decoded` が無い/`:decode-error` がある場合は hook をスキップ）とカバレッジ追加。
+- `examples.pcap-filter` の JSONL メタ出力スモークテスト。
 
 ### Docs
 - `docs/extensions.md` stability notes for decode_ext hooks (map-only apply, exception isolation, API compatibility).
 - Roadmap updated to reflect Phase B progress and outstanding tasks; mid-size REPL turnaround numbers added; proto-dns split draft added (`dev/proto-dns-split-plan.md`).
 - README REPL turnaround section now lists small/mid/large pipeline-bench samples.
-- Examples docs/help text aligned (`dns-summary` alias hint, `tls-sni-scan` formats/tips).
+- Examples docs/help text aligned (`dns-summary` alias hint, `tls-sni-scan` formats/tips) に加え、EDN/JSONL 共通フラグと `_` スキップの説明を整理。
+- `docs/extensions.md` を v0.3 安定化注記に更新（適用条件ガードを明文化）。
 
 ### Fixed
 - `examples.dns-summary` help text now references the required `:dns-ext` alias.

@@ -57,14 +57,14 @@
 
 #### 受け入れ条件（Done 定義）
 
-- [ ] REPL ワークフロー指標を README/ROADMAP に明記し、計測結果サンプルを 1 件掲載
-- [ ] `decode_ext` API が破壊的変更なしで安定化し、DNS + 追加 1 拡張
+- [x] REPL ワークフロー指標を README/ROADMAP に明記し、計測結果サンプルを 1 件掲載（小/中/大サンプル掲載済み）
+- [x] `decode_ext` API が破壊的変更なしで安定化し、DNS + 追加 1 拡張
   （例: TCP 概要 or TLS SNI）が同 API で動作
-- [ ] examples（`pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt`）が共通フラグで
+- [x] examples（`pcap-filter` / `pcap-stats` / `flow-topn` / `dns-rtt`）が共通フラグで
   EDN/JSONL 切替でき、エラー表示が README と一致
-- [ ] スモークテスト（examples）＋ decode 拡張の最小ゴールデン or プロパティテストを
+- [x] スモークテスト（examples）＋ decode 拡張の最小ゴールデン or プロパティテストを
   1 本追加
-- [ ] Docs: README “Run the examples” の一覧化、extensions.md に安定化注記、
+- [x] Docs: README “Run the examples” の一覧化、extensions.md に安定化注記、
   CHANGELOG に 0.3.0 を追記
 
 ### ベースライン（計測メモ）
@@ -89,8 +89,8 @@
 ### フェーズ分割
 
 - [x] Phase A: pipeline 最適化 PoC、`pcap-stats` / `flow-topn` の README 補強（完了: 2025-12-03）
-- [ ] Phase B: decode 拡張 API 安定化、追加拡張 1 本（TLS SNI）、
-  `paclo-proto-dns` 切り出し計画（進行中）
+- [x] Phase B: decode 拡張 API 安定化、追加拡張 1 本（TLS SNI）、
+  `paclo-proto-dns` 切り出し計画（完了: 2025-12-04）
 - [ ] Phase C: core.async オプション（任意）、examples スモークテスト、エラー整形の統一
 - [ ] Phase D: ドキュメント仕上げ、CHANGELOG 更新、`v0.3.0` タグ準備
 
@@ -145,21 +145,18 @@
 
 **完了条件**（上記受け入れ条件と対応）:
 
-- [ ] REPL 計測結果を 1 例残し、指標を明文化
-- [ ] examples 4 本が共通フラグで EDN/JSONL 切替し、Usage/エラー文言が一致
-- [ ] `decode_ext` API 安定化 + DNS 以外の拡張 1 本追加
-- [ ] スモークテストと decode 拡張の最小ゴールデン/プロパティいずれか 1 本
-- [ ] Docs 仕上げ（README examples 一覧化、extensions.md 安定化注記、CHANGELOG 0.3.0）
+- [x] REPL 計測結果を 1 例残し、指標を明文化
+- [x] examples 4 本が共通フラグで EDN/JSONL 切替し、Usage/エラー文言が一致
+- [x] `decode_ext` API 安定化 + DNS 以外の拡張 1 本追加
+- [x] スモークテストと decode 拡張の最小ゴールデン/プロパティいずれか 1 本
+- [x] Docs 仕上げ（README examples 一覧化、extensions.md 安定化注記、CHANGELOG 0.3.0）
 
 **段階**:
 
 - **Phase A** (完了 2025-12-03): `dns-rtt` に client/server フィルタ、
   `pcap-stats` / `flow-topn` の README 追記、pipeline ベンチで REPL 往復のベースライン取得
-- **Phase B** (進行中): TLS SNI 拡張を examples へ統合済み。
-  decode_ext API の安定化方針ドラフトあり。
-  `paclo-proto-dns` 分離計画ドラフトは未作成。
-  残: 計測掲載/ドキュメント整備/追加テスト/分離計画の明文化。
-- **Phase C**: examples スモークテスト、エラー整形統一、core.async オプション（任意）
+- **Phase B** (完了 2025-12-04): TLS SNI 拡張統合、decode_ext ガード+追加テスト、例の共通化/計測掲載、proto-dns 分離計画ドラフト完了。
+- **Phase C**: examples スモークテスト拡充、エラー整形統一、core.async オプション（任意）
 - **Phase D**: ドキュメント仕上げ & `v0.3.0` タグ
 
 ### Phase B の初期タスクリスト（着手用）
@@ -175,27 +172,18 @@
 - [x] `paclo-proto-dns` モジュールの切り出し作業計画: `dev/proto-dns-split-plan.md`
   にドラフト作成（2025-12-03）。
 
-### Phase B 進捗（2025-12-03 時点）
+### Phase B 進捗（2025-12-04 時点）
 
-- 完了: TLS SNI 拡張を実装・検証。`src/paclo/proto/tls_ext.clj` に SNI/ALPN/summary 付与、
-  `test/paclo/tls_ext_test.clj` で境界ケースをカバー。
-- 完了: Examples への統合。`dev/examples/tls_sni_scan.clj` で EDN/JSONL 切替・TopN 集計を提供。
-  `docs/extensions.md` に使用方法と制約を追記済み。
-- 完了: decode_ext API 安定化ドラフトを `dev/decode-ext-api-plan.md` に作成。
-  非破壊ルール/実行条件/例外方針を記載。`dx/with-hooks` は要否検討のまま保留。
-- 完了: `paclo-proto-dns` 分離計画ドラフトを `dev/proto-dns-split-plan.md` に作成
-  （別リポジトリ化・依存・公開手順）。
-- 完了: DNS 拡張を `:dns-ext` alias 経由のオプション扱いに整理（同リポ・単一アーティファクトのまま）。
-- 完了: REPL 指標を中規模PCAP(50k pkt)で取得し、ベースラインに追加（2025-12-04）。
-- 未了: REPL 指標/計測結果の公開（README への反映）、decode_ext 追加テスト
-  （フック順序・非 map 戻り値無害化等）、examples 共通フラグ/エラー整形の統一、CHANGELOG/README 仕上げ。
+- 完了: TLS SNI 拡張実装 + テスト、examples への統合、`docs/extensions.md` への使用/制約記載。
+- 完了: decode_ext API 安定化ドラフト (`dev/decode-ext-api-plan.md`)、`paclo-proto-dns` 分離計画ドラフト (`dev/proto-dns-split-plan.md`) を作成。
+- 完了: DNS 拡張の alias 方針整理（リポ clone 時のみ `:dns-ext` 必要）。
+- 完了: REPL 指標（小/中/大）を取得し README/ROADMAP に掲載。ベースラインを最新化。
+- 完了: decode_ext 防御ガード（`:decoded` が無い / `:decode-error` ありをスキップ）と追加テストを実装。
+- 完了: examples 4 本のフォーマット/エラー整形を共通化し、`pcap-filter` JSONL メタ出力のスモークテストを追加。
+- 次段: Phase C に移行（core.async オプション検討、examples スモークの自動化強化、エラー整形のさらなる統一）。
 
-次のアクション（Phase C に持ち越し予定のものも含む）
+次のアクション（Phase C 以降）
 
-- DNS 拡張は alias 方針に切替済み。`dev/proto-dns-split-plan.md` は将来分割案として保管。
-- REPL ワークフロー計測値を README/ROADMAP に掲載（例: decode 有無の往復時間）。
-- decode_ext のスモーク/プロパティテスト追加
-  （フック順序・例外無害化・非 map 戻り値無視を確認）。
-- examples 4 本のフラグ/Usage/エラー整形を統一し、`pcap-filter` JSONL メタの挙動も
-  smoke で確認。
-- Docs 仕上げ（extensions.md 安定化注記、README examples 一覧整形、CHANGELOG 0.3.0 追記）。
+- core.async オプション（背圧/キャンセル例付き）の要否を判断し、必要なら小スコープで実装。
+- examples スモークテストを拡充（flow-topn / pcap-stats / dns-rtt）し、CLI エラー整形の統一度をさらに上げる。
+- `v0.3.0` タグ準備：CHANGELOG 最終化、ドキュメント微修正、CI green 確認。

@@ -73,3 +73,21 @@
       (is (= pkt (dx/apply! pkt)))
       (finally
         (doseq [k (dx/installed)] (dx/unregister! k))))))
+
+(deftest hooks-skip-when-no-decoded-or-error
+  (let [called (atom 0)
+        hook   (fn [m] (swap! called inc) m)]
+    (dx/register! ::count hook)
+    (try
+      ;; :decoded が無い → スキップ
+      (is (= {:foo 1} (dx/apply! {:foo 1})))
+      (is (= 0 @called))
+      ;; :decode-error がある → スキップ
+      (is (= {:decode-error "boom"} (dx/apply! {:decode-error "boom"})))
+      (is (= 0 @called))
+      ;; 通常ケースでは hook が動く
+      (is (= {:decoded {:l3 {:type :udp}}}
+             (dx/apply! {:decoded {:l3 {:type :udp}}})))
+      (is (= 1 @called))
+      (finally
+        (dx/unregister! ::count)))))

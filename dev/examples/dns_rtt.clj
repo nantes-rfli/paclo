@@ -43,14 +43,7 @@
         p  (get-in m [:decoded :l3 :l4 (case side :src :src-port :dst :dst-port)])]
     (str ip (when p (str ":" p)))))
 
-(defn- blank? [s] (or (nil? s) (= "" s) (= "_" s)))
 (defn- starts-opt? [s] (and (string? s) (str/starts-with? s "-")))
-
-(defn- parse-long* [s]
-  (try (when (and (string? s) (not (blank? s))) (Long/parseLong s)) (catch Exception _ nil)))
-
-(defn- parse-double* [s]
-  (try (when (and (string? s) (not (blank? s))) (Double/parseDouble s)) (catch Exception _ nil)))
 
 ;; -------- DNS header parse --------
 
@@ -202,7 +195,7 @@
           (if (empty? order)
             (assoc acc :tail more)
             (recur (rest order)
-                   (assoc acc (first order) (when-not (blank? t) t))
+                   (assoc acc (first order) (when-not (ex/blank? t) t))
                    (rest more))))))))
 
 ;; -------- endpoint filter --------
@@ -241,11 +234,11 @@
     (when (nil? in) (usage) (System/exit 1))
     (let [{:keys [bpf topn mode metric fmt alert tail]} (parse-positionals rest-args)
           bpf    (or bpf "udp and port 53")
-          topN   (or (parse-long* topn) 50)
+          topN   (or (ex/parse-long* topn) 50)
           mode   (keyword (or mode "pairs"))
           metric (keyword (or metric "pairs"))
           fmt    (ex/parse-format fmt)
-          alert% (parse-double* alert)
+          alert% (ex/parse-double* alert)
           fopts  (parse-filters tail)
           _      (dns-ext/register!)]
       (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})

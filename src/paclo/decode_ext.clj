@@ -29,14 +29,19 @@
 (defn apply!
   "Apply all hooks to message map m (execution order = registration order).
    Hooks are isolated; exceptions are caught and ignored.
-   Only map return values are applied; others are ignored."
+   Only map return values are applied; others are ignored.
+   Skips when :decoded is absent or :decode-error is present (defensive guard)."
   [m]
-  (reduce
-   (fn [mm [_ f]]
-     (try
-       (let [r (f mm)]
-         (if (map? r) r mm))
-       (catch Throwable _
-         mm)))
-   m
-   @hooks))
+  (if (and (map? m)
+           (contains? m :decoded)
+           (not (contains? m :decode-error)))
+    (reduce
+     (fn [mm [_ f]]
+       (try
+         (let [r (f mm)]
+           (if (map? r) r mm))
+         (catch Throwable _
+           mm)))
+     m
+     @hooks)
+    m))

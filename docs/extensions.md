@@ -12,10 +12,10 @@ layer.
 - Hooks run only when `:decoded` exists (they are skipped on `:decode-error` entries).
 - Hooks run in registration order; same key overwrites prior registration and moves to the tail.
 
-### Stability notes (v0.3 draft)
+### Stability notes (v0.3)
 
-- API 互換性: hook 署名（`m -> m'`）と `register!` / `unregister!` / `installed` の挙動は v0.3 で固定する方針。
-- 適用範囲: `:decoded` があり `:decode-error` でないパケットにのみ適用。
+- API 互換性: hook 署名（`m -> m'`）と `register!` / `unregister!` / `installed` の挙動を v0.3 で固定。
+- 適用条件: `:decoded` が存在し、かつ `:decode-error` が無いパケットのみ hook を適用（防御的ガードを追加）。
 - 失敗耐性: hook 内例外は握りつぶし（ログ無し）。必要なら hook 側で明示的に処理するか、今後の opt-in ロギング（検討中）を利用。
 - 非 map 戻り値: map 以外は無視される（副作用は許容）。
 - 追加検討中: 一時的に hook セットを差し替えるユーティリティ `dx/with-hooks` を Phase C で検討。
