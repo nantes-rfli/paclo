@@ -153,6 +153,7 @@ clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp or tcp' 10 bidir bytes
 clojure -Srepro -M:dev -m examples.flow-topn in.pcap 'udp or tcp' 10 bidir bytes edn --async --async-mode dropping --async-timeout-ms 1000
 # 例: 合成DNS 25k pkt, buffer=64, dropping → flows=2 (DNSクエリ/レス), dropped=0
 # 例: 同ファイル timeout=1000ms → flows=0, cancelled=true（途中停止デモ）
+# 例: 実PCAP(約2.5k pkt, UDP多め), buffer=64, dropping → flows=10, dropped=0, cancelled=false
 
 # Sample output (EDN)
 [{:flow {:proto :udp, :src "10.0.0.1:5353", :dst "224.0.0.251:5353"}
@@ -178,6 +179,7 @@ clojure -Srepro -M:dev -m examples.pcap-filter in.pcap out.pcap --async --async-
 clojure -Srepro -M:dev -m examples.pcap-filter /tmp/large.pcap /tmp/out.pcap --async --async-mode dropping --async-buffer 16
 # => メタの :async-dropped/:async-cancelled? や stderr ログで挙動を確認
 # 例: 合成DNS 25k pkt, buffer=16, dropping → async-dropped≈14k (drop-pct≈56%)
+# 例: 実PCAP(3.1k pkt, home LAN), buffer=16, dropping → async-dropped=2046 (drop-pct≈65.6%)
 ```
 
 ### TLS SNI scan (EDN / JSONL)
