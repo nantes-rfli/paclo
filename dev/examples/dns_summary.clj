@@ -21,7 +21,7 @@
   [& args]
   (when (empty? args)
     (binding [*out* *err*]
-      (println "Usage: clojure -M:dev -m examples.dns-summary <pcap-path>"))
+      (println "Usage: clojure -M:dev:dns-ext -m examples.dns-summary <pcap-path>"))
     (System/exit 1))
   (let [pcap (first args)
         abs  (.getAbsolutePath (io/file pcap))]

@@ -45,10 +45,26 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
   - `decode?=false` 4 pkt / 11.1ms, `decode?=true` 4 pkt / 13.3ms（ローカル開発機、:xform=drop<60B）
   - 計測コマンド例: `clojure -M:dev -m examples.pipeline-bench test/resources/dns-sample.pcap`
     / `... "" "" /tmp/pipeline-out.pcap true`
+- 2025-12-04 `examples.pipeline-bench /tmp/paclo-mid-50k.pcap`（合成 PCAP 50k pkt, caplen≈74B）
+  - `decode?=false` 50k pkt / 273.7ms, `decode?=true` 50k pkt / 879.9ms（ローカル開発機、:xform=drop<60B）
+  - PCAP は `make-synth-pcap` でローカル生成（非同梱）
+  - ベンチ例: `clojure -M:dev -m examples.pipeline-bench /tmp/paclo-mid-50k.pcap "" 50000 /tmp/paclo-mid-50k-out.pcap true`
+- 合成PCAP生成スクリプト（再現用）: `clojure -M:dev -m make-synth-pcap /tmp/paclo-mid-50k.pcap 50000 74`
 - 2025-12-03 `examples.pipeline-bench /tmp/bench-100k.pcap`（合成 PCAP, 100k pkt, caplen≈74B）
-  - `decode?=false` 100k pkt / 432.5ms, `decode?=true` 100k pkt / 1754.8ms（ローカル開発機）
-  - 生成: ローカルで合成（リポジトリ未同梱）、`paclo.pcap/bytes-seq->pcap!` で 100k pkt を作成
+  - `decode?=false` 100k pkt / 398.5ms, `decode?=true` 100k pkt / 1291.7ms（ローカル開発機）
+  - 生成: `make-synth-pcap` でローカル合成（非同梱）
   - ベンチ: `clojure -M:dev -m examples.pipeline-bench /tmp/bench-100k.pcap "" 100000 /tmp/pipeline-bench-out.pcap true`
+
+Bench summary (xform=drop<60B, same machine)
+
+| sample | packets | decode?=false | decode?=true | note |
+| --- | ---: | ---: | ---: | --- |
+| dns-sample | 4 | 11.1ms | 13.3ms | bundled PCAP |
+| synth-mid | 1,000 | 36.2ms | 76.2ms | make-synth-pcap 74B |
+| synth-50k | 50,000 | 273.7ms | 879.9ms | make-synth-pcap 74B |
+| synth-100k | 100,000 | 398.5ms | 1291.7ms | make-synth-pcap 74B |
+
+計測環境: macOS 14.4 / Intel i7-8700B 3.20GHz / JDK 21 / :xform=drop<60B 共通。
 
 > **Note:** If you’re stuck on an older CLI setup and cannot use `:dev`, you can temporarily run
 > examples via `load-file`. Newer setups should prefer `-M:dev -m`.

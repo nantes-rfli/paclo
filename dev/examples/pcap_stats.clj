@@ -34,8 +34,9 @@
     (let [in*  (ex/require-file! in)
           n    (or (ex/parse-long* topn-str) 5)      ;; ← 変数名を n に
           fmt  (ex/parse-format fmt-str)
+          bpf* (when-not (ex/blank? bpf) bpf)
           ;; すべて decode? して L3/L4 を取る
-          pkts  (into [] (core/packets {:path in* :filter bpf :decode? true :max Long/MAX_VALUE}))
+          pkts  (into [] (core/packets {:path in* :filter bpf* :decode? true :max Long/MAX_VALUE}))
           cnt   (count pkts)
           bytes (reduce + 0 (map :caplen pkts))
           caplens (map :caplen pkts)

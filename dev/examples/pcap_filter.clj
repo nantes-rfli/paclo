@@ -17,11 +17,12 @@
       (usage) (System/exit 1))
     (let [in*        (ex/require-file! in)
           fmt        (ex/parse-format fmt-str)
+          bpf*       (when-not (ex/blank? bpf) bpf)
           min-caplen (ex/parse-long* min-caplen-str)
           xf         (if min-caplen (filter #(>= (long (:caplen %)) (long min-caplen))) identity)]
       (println "reading:" in)
       (println "writing:" out)
-      (let [in-seq   (into [] (core/packets {:path in* :filter bpf :max Long/MAX_VALUE}))
+      (let [in-seq   (into [] (core/packets {:path in* :filter bpf* :max Long/MAX_VALUE}))
             written  (core/write-pcap! (sequence xf in-seq) out)
             out-seq  (into [] (core/packets {:path out :max Long/MAX_VALUE}))
             in-pkts  (count in-seq)
@@ -31,7 +32,7 @@
             drop-pct (if (pos? in-pkts)
                        (double (* 100.0 (- 1.0 (/ (double out-pkts) (double in-pkts)))))
                        0.0)
-            meta {:in in :out out :filter bpf
+            meta {:in in :out out :filter bpf*
                   :min-caplen min-caplen
                   :in-packets  in-pkts
                   :out-packets out-pkts

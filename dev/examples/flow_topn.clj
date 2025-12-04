@@ -49,7 +49,7 @@
   (let [[in bpf topn-str mode-str metric-str fmt-str] args]
     (when (nil? in) (usage) (System/exit 1))
     (let [in*    (ex/require-file! in)
-          bpf    (or bpf "udp or tcp")
+          bpf    (if (ex/blank? bpf) "udp or tcp" bpf)
           topN   (or (ex/parse-long* topn-str) 10)
           mode   (keyword (or mode-str "unidir"))
           metric (keyword (or metric-str "packets"))

@@ -6,6 +6,7 @@
    [paclo.decode-ext :as dx]))
 
 (declare prop-apply-respects-map-only prop-register-overwrites-to-tail)
+(declare prop-exception-isolated)
 
 ;; Helpers
 (defn reset-hooks! []
@@ -69,3 +70,14 @@
                     (= expected installed))
                   (finally
                     (reset-hooks!)))))
+
+;; Property: exceptions inside hooks are isolated; later hooks still run
+(defspec prop-exception-isolated 50
+  (prop/for-all [v gen/any-printable]
+                (reset-hooks!)
+                (try
+                  (dx/register! ::boom (fn [_] (throw (ex-info "boom" {}))))
+                  (dx/register! ::ok   (fn [m] (assoc m :ok v)))
+                  (= {:decoded {:l3 {:l4 {:type :udp}}} :ok v}
+                     (dx/apply! {:decoded {:l3 {:l4 {:type :udp}}}}))
+                  (finally (reset-hooks!)))))

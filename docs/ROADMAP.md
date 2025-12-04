@@ -78,9 +78,13 @@
   - `decode?=true`  4 pkt / 13.3ms （同条件、出力 `/tmp/pipeline-out.pcap`）
   - 条件: ローカル開発機（詳細スペックは未記録）
 - 2025-12-03 `examples.pipeline-bench`（合成 PCAP `/tmp/bench-100k.pcap` 100k pkt, caplen≈74B）
-  - `decode?=false` 100k pkt / 432.5ms
-  - `decode?=true`  100k pkt / 1754.8ms
-  - 条件: ローカル開発機、:xform drop<60B（デフォルト）。入力 PCAP はローカル生成（リポジトリ未同梱）。
+  - `decode?=false` 100k pkt / 398.5ms
+  - `decode?=true`  100k pkt / 1291.7ms
+  - 条件: ローカル開発機、:xform drop<60B（デフォルト）。入力 PCAP は `make-synth-pcap` でローカル生成（非同梱）。
+- 2025-12-04 `examples.pipeline-bench`（合成 PCAP `/tmp/paclo-mid-50k.pcap` 50k pkt, caplen≈74B）
+  - `decode?=false` 50k pkt / 273.7ms
+  - `decode?=true`  50k pkt / 879.9ms
+  - 条件: ローカル開発機、:xform drop<60B。PCAP は `make-synth-pcap` で合成（非同梱）。
 
 ### フェーズ分割
 
@@ -182,12 +186,9 @@
 - 完了: `paclo-proto-dns` 分離計画ドラフトを `dev/proto-dns-split-plan.md` に作成
   （別リポジトリ化・依存・公開手順）。
 - 完了: DNS 拡張を `:dns-ext` alias 経由のオプション扱いに整理（同リポ・単一アーティファクトのまま）。
-- 未了: REPL 指標/計測結果の公開、decode_ext 追加テスト
-  （フック順序・非 map 戻り値無害化等）、
-  examples 共通フラグ/エラー整形の統一、CHANGELOG/README 仕上げ。
-- 未了: REPL 指標/計測結果の公開（中〜大規模サンプル）、decode_ext 追加テスト
-  （順序保証のプロパティなど）、
-  examples 共通フラグ/エラー整形の統一、CHANGELOG/README 仕上げ。
+- 完了: REPL 指標を中規模PCAP(50k pkt)で取得し、ベースラインに追加（2025-12-04）。
+- 未了: REPL 指標/計測結果の公開（README への反映）、decode_ext 追加テスト
+  （フック順序・非 map 戻り値無害化等）、examples 共通フラグ/エラー整形の統一、CHANGELOG/README 仕上げ。
 
 次のアクション（Phase C に持ち越し予定のものも含む）
 
