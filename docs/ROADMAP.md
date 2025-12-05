@@ -186,7 +186,14 @@
 
 - [x] core.async オプション（背圧/キャンセル例付き）を pcap-filter / flow-topn に opt-in で実装（デフォルト同期）。長尺 PCAP で drop/cancel を観察できる。
 - [x] examples スモークテストを拡充（flow-topn / pcap-stats / dns-rtt async opt-in を追加）し、CLI エラー整形の統一度をさらに上げる。
-- [ ] `v0.3.0` タグ準備：CHANGELOG 最終化済み・ドキュメント更新済み。残タスク = タグ付与 + release note 公開。
+- [x] `v0.3.0` タグ準備・リリース公開（CHANGELOG/Docs 反映済み）。
+
+### 次のアクション（v0.4/P2 に向けて）
+
+- [ ] P2 ユースケースの確定（教育ラボ vs DNS 集計 vs 前処理変換のいずれかを選定）とスコープ記述を追加。
+- [ ] `paclo-proto-dns` 別リポ切り出しの着手（ドラフトを実作業に移行、最小 CI を整備）。
+- [ ] CLI/babashka スケルトンの PoC（最小コマンド 1 本 + README 追記）。
+- [ ] 依存・セキュリティアップデートのキュー整理（次リリースに向けた nvd/eastwood チェック）。
 
 #### core.async オプション（任意）のスコープ案
 
