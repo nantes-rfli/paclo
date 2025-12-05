@@ -226,10 +226,10 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 ```edn
 {:deps
  {io.github.nantes-rfli/paclo
-  {:git/url "https://github.com/nantes-rfli/paclo.git"
-   ;; 安定版を使う場合はタグを指定（v0.2.0 リリース）
-   :git/tag "v0.2.0"
-   :git/sha "a1bbb263b22956001ef8e100061bcbfc7b1b2ec7"}}}
+ {:git/url "https://github.com/nantes-rfli/paclo.git"
+   ;; 安定版を使う場合はタグを指定（v0.3.0 リリース）
+   :git/tag "v0.3.0"
+   :git/sha "caf16e6b16d6cbd7f381fbf5bb85a0c1c4b5ee10"}}}
 ````
 
 ### require 一文

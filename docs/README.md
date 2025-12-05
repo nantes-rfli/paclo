@@ -27,5 +27,5 @@ This page is the entry point to the documentation set.
 
 ## Release info
 
-- Current stable tag: v0.2.0
+- Current stable tag: v0.3.0
 - deps.edn usage: README “Install” section

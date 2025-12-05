@@ -186,7 +186,7 @@
 
 - [x] core.async オプション（背圧/キャンセル例付き）を pcap-filter / flow-topn に opt-in で実装（デフォルト同期）。長尺 PCAP で drop/cancel を観察できる。
 - [x] examples スモークテストを拡充（flow-topn / pcap-stats / dns-rtt async opt-in を追加）し、CLI エラー整形の統一度をさらに上げる。
-- [ ] `v0.3.0` タグ準備：CHANGELOG 最終化、ドキュメント微修正、CI green 確認。
+- [ ] `v0.3.0` タグ準備：CHANGELOG 最終化済み・ドキュメント更新済み。残タスク = タグ付与 + release note 公開。
 
 #### core.async オプション（任意）のスコープ案
 
