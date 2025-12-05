@@ -12,7 +12,8 @@
                               org.clojure/test.check {:mvn/version "1.1.1"}}
                 :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
   :run         {:main-opts ["-m" "paclo.core"]}
-  :dns-ext     {:extra-paths ["extensions/dns/src"]}
+ :dns-ext     {:extra-paths ["extensions/dns/src"]}
+  :csv        {:extra-deps {org.clojure/data.csv {:mvn/version "1.1.0"}}}
   :build       {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
                 :ns-default build}
   :nvd         {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}

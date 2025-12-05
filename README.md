@@ -38,6 +38,22 @@ Development examples live under `dev/examples` and are loaded via the `:dev` ali
 - DNS 例（dns-summary / dns-rtt）はリポ clone 実行時のみ `-M:dev:dns-ext` が必要。ライブラリ利用時は JAR に同梱済みで `require` だけで OK。
 - 省略可能な引数は `_` でスキップできます（例: `... _ _ stats jsonl`）。
 - すべての例で `<format>` は `edn` / `jsonl` を受け付け、指定が無ければ `edn` です。
+- DNS の同梱サンプル: `test/resources/dns-sample.pcap`（4 pkt）, `test/resources/dns-synth-small.pcap`（10 pkt synthetic）。CLI の動作確認に使えます。
+
+オプション依存（必要な人だけ alias で追加）
+
+- CSV: `-A:csv`（`org.clojure/data.csv`）で CSV 出力ユースケースを軽く試せます。デフォルト依存には含めていません。
+- Parquet / DuckDB: 未同梱。必要になったら別 alias を追加して opt-in する方針です。
+
+#### dns-ext alias クイックチェック
+
+```bash
+# 開発環境で DNS 拡張をロードできるか確認（依存追加は不要）
+clojure -M:dev:dns-ext -e "(require 'paclo.dns.decode) (println :dns-ext-ok)"
+```
+
+- 成功すると `:dns-ext-ok` が表示されます。失敗する場合は `:dev` alias のパスに `extensions/dns/src` が含まれているか `deps.edn` を確認してください。
+- examples の実行は `-M:dev:dns-ext` を先頭に付けるだけで OK です（JAR 利用時は不要）。
 
 #### REPL turnaround (sample)
 
@@ -246,6 +262,7 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 - JDK: Temurin/Oracle/OpenJDK 21+ 推奨
 - libpcap: システム標準（macOS 標準の `pcap`、Linux は `libpcap-dev` をインストール）
 - Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください（`target/classes` はクラスパスに含まれます）。
+- Babashka: 最新安定版に追従（現在 `bb --version` = 1.12.212 で確認）。CLI 例や今後の bb/sci スクリプトを動かすためにインストールしてください。アップデートは `bb upgrade` で行えます。
 
 ---
 

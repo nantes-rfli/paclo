@@ -18,6 +18,12 @@
       (throw (ex-info "dns-sample.pcap not found on classpath" {})))
     (.getAbsolutePath (io/file url))))
 
+(def sample-synth
+  (let [url (io/resource "dns-synth-small.pcap")]
+    (when (nil? url)
+      (throw (ex-info "dns-synth-small.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
+
 (defn run-main
   "例の -main を実行して stdout/err を取り出す。"
   [f & args]
@@ -129,6 +135,14 @@
           m (parse-first-edn out)]
       (is (map? m))
       (is (str/includes? err "cancelled=true")))))
+
+(deftest dns-rtt-synth-query-only-smoke
+  (testing "dns-rtt handles query-only synthetic PCAP without errors"
+    (let [{:keys [out]} (run-main dns-rtt/-main sample-synth "_" "_" "stats")
+          m (parse-first-edn out)]
+      (is (map? m))
+      (is (= 0 (:pairs m)))
+      (is (= 0 (:with-rtt m))))))
 
 (deftest pcap-filter-smoke
   (testing "pcap-filter writes a file and prints EDN meta"
