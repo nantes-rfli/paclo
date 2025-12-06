@@ -123,6 +123,18 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での CI（lint+tests+cljdoc）を green に。
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
+### Phase E 着手メモ（2025-12-05 更新）
+
+- DNS 集計 CLI を `dev/examples/dns_topn.clj` / `dev/examples/dns_qps.clj` に実装中
+  （async/drop/cancel、punycode opt-in + warn、max-buckets/warn-buckets-threshold、empty-bucket 補完、
+   SNI/ALPN 集計、SNI BPF 切替）。SNI/ALPN サンプル `test/resources/tls-sni-sample.pcap`
+  / `tls-sni-alpn-sample.pcap` を追加。設計は `dev/dns-agg-cli-plan.md` に反映。
+- サンプル PCAP は既存 `dns-sample.pcap` + `dns-synth-small.pcap` をゴールデン候補とし README に記載。
+  必要に応じて `dev/make_synth_pcap.clj` で生成（dns-synth-small は同梱）。
+- 決定事項: CSV は RFC4180 風 quoting（" と , ; 改行で quote）、qname は lower + trailing dot 削除。
+  SNI 集計は `dns-topn` の group オプションとして含める（別 BPF 指定は将来検討）。
+- 残件: punycode 対応の要否、async の実動実装、dns-qps の空洞バケット出力オプション、SNI 用デフォルト BPF 指定。
+
 ### リスクと緩和
 
 - PCAP サンプル不足 → `make-synth-pcap` を DNS 用に拡張し、小/中サイズのゴールデンを生成して同梱。

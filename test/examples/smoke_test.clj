@@ -5,7 +5,9 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
+   [examples.dns-qps :as dns-qps]
    [examples.dns-rtt :as dns-rtt]
+   [examples.dns-topn :as dns-topn]
    [examples.flow-topn :as flow-topn]
    [examples.pcap-filter :as pcap-filter]
    [examples.pcap-stats :as pcap-stats])
@@ -22,6 +24,24 @@
   (let [url (io/resource "dns-synth-small.pcap")]
     (when (nil? url)
       (throw (ex-info "dns-synth-small.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
+
+(def sample-tls
+  (let [url (io/resource "tls-sni-sample.pcap")]
+    (when (nil? url)
+      (throw (ex-info "tls-sni-sample.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
+
+(def sample-tls-alpn
+  (let [url (io/resource "tls-sni-alpn-sample.pcap")]
+    (when (nil? url)
+      (throw (ex-info "tls-sni-alpn-sample.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
+
+(def sample-tls-h3
+  (let [url (io/resource "tls-sni-h3-sample.pcap")]
+    (when (nil? url)
+      (throw (ex-info "tls-sni-h3-sample.pcap not found on classpath" {})))
     (.getAbsolutePath (io/file url))))
 
 (defn run-main
@@ -175,11 +195,98 @@
       (is (= (:in-packets meta) (:out-packets meta))))))
 
 (deftest pcap-filter-async-timeout-smoke
-  (testing "pcap-filter async timeout cancels early"
-    (let [tmp (-> (File/createTempFile "paclo-smoke-async-timeout" ".pcap") .getAbsolutePath)
-          {:keys [out]} (run-main pcap-filter/-main sample tmp "_" "_" "edn" "--async" "--async-timeout-ms" "0" "--async-buffer" "4")
-          meta (parse-last-edn-line out)]
-      (is (.exists (File. tmp)))
-      (is (:async? meta))
-      (is (:async-cancelled? meta))
-      (is (< (:out-packets meta) (:in-packets meta))))))
+  (testing "pcap-filter async timeout cancels early")
+  (let [tmp (-> (File/createTempFile "paclo-smoke-async-timeout" ".pcap") .getAbsolutePath)
+        {:keys [out]} (run-main pcap-filter/-main sample tmp "_" "_" "edn" "--async" "--async-timeout-ms" "0" "--async-buffer" "4")
+        meta (parse-last-edn-line out)]
+    (is (.exists (File. tmp)))
+    (is (:async? meta))
+    (is (:async-cancelled? meta))
+    (is (< (:out-packets meta) (:in-packets meta)))))
+
+;; ---------- dns-topn / dns-qps (v0.4 追加) ----------
+
+(deftest dns-topn-default-smoke
+  (testing "dns-topn returns vector of rankings"
+    (let [{:keys [out err]} (run-main dns-topn/-main sample)
+          rows (parse-first-edn out)
+          meta (parse-last-edn-line err)]
+      (is (vector? rows))
+      (is (pos? (count rows)))
+      (is (map? (first rows)))
+      (is (false? (:async? meta)) (str "meta: " meta)))))
+
+(deftest dns-topn-csv-smoke
+  (testing "dns-topn emits csv when requested"
+    (let [{:keys [out]} (run-main dns-topn/-main sample "_" "_" "qname" "csv")
+          lines (str/split-lines out)]
+      (is (>= (count lines) 2))
+      (is (= "key,count,bytes,pct" (first lines))))))
+
+(deftest dns-topn-sni-smoke
+  (testing "dns-topn extracts SNI"
+    (let [{:keys [out]} (run-main dns-topn/-main sample-tls "_" "_" "sni" "edn")
+          rows (parse-first-edn out)]
+      (is (vector? rows))
+      (is (= "example.com" (:key (first rows)))))))
+
+(deftest dns-topn-alpn-smoke
+  (testing "dns-topn extracts ALPN"
+    (let [{:keys [out]} (run-main dns-topn/-main sample-tls-alpn "_" "_" "alpn" "edn")
+          rows (parse-first-edn out)]
+      (is (vector? rows))
+      (is (= "h2" (:key (first rows)))))))
+
+(deftest dns-topn-alpn-join-smoke
+  (testing "dns-topn alpn join aggregates all protocols"
+    (let [{:keys [out]} (run-main dns-topn/-main sample-tls-alpn "_" "_" "alpn" "edn" "_" "--alpn-join")
+          rows (parse-first-edn out)]
+      (is (= "h2,http/1.1" (:key (first rows)))))))
+
+(deftest dns-topn-alpn-h3-smoke
+  (testing "dns-topn alpn handles h3"
+    (let [{:keys [out]} (run-main dns-topn/-main sample-tls-h3 "_" "_" "alpn" "edn")
+          rows (parse-first-edn out)]
+      (is (= "h3" (:key (first rows)))))))
+
+(deftest dns-qps-smoke
+  (testing "dns-qps buckets timestamps"
+    (let [{:keys [out err]} (run-main dns-qps/-main sample)
+          rows (parse-first-edn out)
+          meta (parse-last-edn-line err)]
+      (is (vector? rows))
+      (is (<= 1 (count rows)))
+      (is (every? #(contains? % :t) rows))
+      (is (= (:bucket-ms meta) 1000))
+      (is (false? (:async? meta))))))
+
+(deftest dns-qps-max-buckets-smoke
+  (testing "dns-qps honors max-buckets"
+    (let [{:keys [out err]} (run-main dns-qps/-main sample "_" "_" "_" "_" "--max-buckets" "1")
+          rows (parse-first-edn out)
+          meta (parse-last-edn-line err)]
+      (is (<= (count rows) 1))
+      (is (= 1 (:max-buckets meta))))))
+
+(deftest dns-qps-emit-empty-flag-smoke
+  (testing "dns-qps accepts emit-empty-buckets flag"
+    (let [{:keys [err]} (run-main dns-qps/-main sample "_" "2000" "_" "_" "--emit-empty-buckets")
+          meta (parse-last-edn-line err)]
+      (is (= true (:emit-empty-buckets meta))))))
+
+(deftest dns-qps-empty-per-key-smoke
+  (testing "dns-qps emit-empty-per-key fills gaps"
+    (let [{:keys [err]} (run-main dns-qps/-main sample "_" "2000" "qname" "_" "--emit-empty-per-key" "--max-buckets" "100")
+          meta (parse-last-edn-line err)]
+      (is (= true (:emit-empty-per-key meta))))))
+
+(deftest dns-topn-punycode-warn-smoke
+  (testing "dns-topn logs punycode failure when requested"
+    (let [normalize #'examples.dns-topn/normalize-qname
+          bad (str "xn--" (apply str (repeat 200 "a")))
+          err-w (java.io.StringWriter.)]
+      (binding [*err* err-w]
+        (let [res (normalize bad true true)
+              err-str (.toString err-w)]
+          (is (= bad res))
+          (is (re-find #"punycode-decode failed" err-str)))))))

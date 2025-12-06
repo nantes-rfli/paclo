@@ -103,7 +103,71 @@ clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 20 
 # Opt-in async (backpressure/drop/cancel demo). Defaults: buffer=1024, mode=buffer
 clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats edn --async --async-buffer 1024
 clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats edn --async --async-mode dropping --async-timeout-ms 1000
+
+サンプル PCAP: `test/resources/dns-sample.pcap`（4pkt, query/response x2）、`test/resources/dns-synth-small.pcap`（10pkt, query-only 合成）、`test/resources/tls-sni-sample.pcap`（SNI=example.com）、`test/resources/tls-sni-alpn-sample.pcap`（SNI=example.com, ALPN=h2,http/1.1）、`test/resources/tls-sni-h3-sample.pcap`（SNI=example.com, ALPN=h3）。
+
+### DNS Top-N (v0.4)
+
+DNS 指標のランキングを EDN/JSONL/CSV で出力。group によって集計キーを切替え、SNI 集計も可能です。
+
+```bash
+# 既定 (rcode top20, edn)
+clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+
+# qname suffix で CSV 出力、punycode を Unicode 化
+clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap _ 10 qname-suffix csv --punycode-to-unicode
+
+# SNI ランキング（TLS BPF 既定: tcp and port 443）
+clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 sni edn --sni-bpf "tcp and port 443"
+
+# opt-in async（drop/cancelデモ）
+clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 rcode edn --async --async-buffer 1024 --async-mode dropping --async-timeout-ms 1000
 ```
+
+|引数|省略時|説明|
+|---|---|---|
+|`<pcap>`|必須|入力 PCAP|
+|`<bpf>`|`udp and port 53`（group=sni 時は `tcp and port 443`）|BPF 文字列|
+|`<topN>`|20|表示上限|
+|`<group>`|rcode|`rcode` / `rrtype` / `qname` / `qname-suffix` / `client` / `server` / `sni` / `alpn`|
+|`<format>`|edn|`edn` / `jsonl` / `csv`|
+|`<metric>`|count|`count` / `bytes`|
+|`--punycode-to-unicode`|-|qname を Unicode に正規化（失敗時は元のラベルを使用）|
+|`--log-punycode-fail`|-|punycode 変換失敗を stderr に WARN ログする|
+|`--sni-bpf`|tcp and port 443|SNI/ALPN 集計時の BPF を上書き|
+|`--alpn-join`|-|ALPN を全てカンマ結合（デフォルトは先頭プロトコルのみ）|
+|`--async*`|off|既存 async フラグ（buffer/mode/timeout）|
+
+### DNS QPS (v0.4)
+
+時間粒度で DNS トラフィックを集計（count/bytes）。bucket 毎に key（rcode/rrtype/qname...）で分けて出力。
+
+```bash
+clojure -M:dev:dns-ext -m examples.dns-qps test/resources/dns-sample.pcap
+
+# qname で 200ms バケット、max-buckets=1000
+clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 200 qname edn --max-buckets 1000 --punycode-to-unicode
+
+# JSONL で出力（async drop デモ）
+clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --async-mode dropping --async-buffer 256
+```
+
+|引数|省略時|説明|
+|---|---|---|
+|`<pcap>`|必須|入力 PCAP|
+|`<bpf>`|`udp and port 53`|BPF 文字列|
+|`<bucket-ms>`|1000|バケット幅 (ms)|
+|`<group>`|rcode|`rcode` / `rrtype` / `qname` / `qname-suffix` / `client` / `server`|
+|`<format>`|edn|`edn` / `jsonl` / `csv`|
+|`--punycode-to-unicode`|-|qname を Unicode に正規化|
+|`--emit-empty-buckets`|-|バケット欠損も 0 行として出力（key=:_all で補完）|
+|`--emit-empty-per-key`|-|各 key × バケットを 0 で補完（行数増に注意、max-buckets で上限）|
+|`--max-buckets`|200000|出力行数の上限（メモリ保護、per-key 補完時に特に有効）|
+|`--warn-buckets-threshold`|100000|警告を出す行数閾値（emit-empty-per-key 併用時に有効）|
+|`--log-punycode-fail`|-|punycode 変換失敗を stderr に WARN ログする|
+|`--async*`|off|既存 async フラグ（buffer/mode/timeout）|
+
+参考: `--emit-empty-per-key --max-buckets 100000 --warn-buckets-threshold 50000` のように併用すると、長時間走る集計でも行数膨張を見逃しにくい。短時間・小 PCAP では既定の 100k で十分。
 
 |引数|省略時|説明|
 |---|---|---|
@@ -117,7 +181,7 @@ clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 
 |`--client` / `-c`|なし|送信元/宛先プレフィックスフィルタ（前方一致）|
 |`--server` / `-s`|なし|送信元/宛先プレフィックスフィルタ（前方一致）|
 
-#### Notes
+### Notes
 
 - `--client/-c` / `--server/-s` は**前方一致**（`192.168.4.28` や `1.1.1.1:53` など）
 - `alert%`（例: `2.5`）を与えると、NXDOMAIN+SERVFAIL がその割合を超えた時に `stderr` に `WARNING` を出力
