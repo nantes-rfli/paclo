@@ -109,7 +109,7 @@ clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 
 
 ### DNS Top-N (v0.4)
 
-DNS 指標のランキングを EDN/JSONL/CSV で出力。group によって集計キーを切替え、SNI 集計も可能です。
+DNS 指標のランキングを EDN/JSONL/CSV で出力。group によって集計キーを切替え、SNI / ALPN 集計も可能です。
 
 ```bash
 # 既定 (rcode top20, edn)
@@ -120,6 +120,12 @@ clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap _ 10 
 
 # SNI ランキング（TLS BPF 既定: tcp and port 443）
 clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 sni edn --sni-bpf "tcp and port 443"
+
+# ALPN の第一候補をランキング（デフォルト挙動）
+clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 alpn edn
+
+# ALPN をすべて結合して監査したい場合
+clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 alpn edn _ --alpn-join
 
 # opt-in async（drop/cancelデモ）
 clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 rcode edn --async --async-buffer 1024 --async-mode dropping --async-timeout-ms 1000
@@ -136,7 +142,7 @@ clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 rcode edn --async --asy
 |`--punycode-to-unicode`|-|qname を Unicode に正規化（失敗時は元のラベルを使用）|
 |`--log-punycode-fail`|-|punycode 変換失敗を stderr に WARN ログする|
 |`--sni-bpf`|tcp and port 443|SNI/ALPN 集計時の BPF を上書き|
-|`--alpn-join`|-|ALPN を全てカンマ結合（デフォルトは先頭プロトコルのみ）|
+|`--alpn-join`|-|ALPN を全てカンマ結合（デフォルトは「先頭のみ」＝優先度トップを採用）|
 |`--async*`|off|既存 async フラグ（buffer/mode/timeout）|
 
 ### DNS QPS (v0.4)
