@@ -44,6 +44,12 @@
       (throw (ex-info "tls-sni-h3-sample.pcap not found on classpath" {})))
     (.getAbsolutePath (io/file url))))
 
+(def sample-tls-h3mix
+  (let [url (io/resource "tls-sni-alpn-h3mix-sample.pcap")]
+    (when (nil? url)
+      (throw (ex-info "tls-sni-alpn-h3mix-sample.pcap not found on classpath" {})))
+    (.getAbsolutePath (io/file url))))
+
 (defn run-main
   "例の -main を実行して stdout/err を取り出す。"
   [f & args]
@@ -248,6 +254,12 @@
     (let [{:keys [out]} (run-main dns-topn/-main sample-tls-h3 "_" "_" "alpn" "edn")
           rows (parse-first-edn out)]
       (is (= "h3" (:key (first rows)))))))
+
+(deftest dns-topn-alpn-h3mix-join-smoke
+  (testing "dns-topn alpn join aggregates h3/h2/http1.1"
+    (let [{:keys [out]} (run-main dns-topn/-main sample-tls-h3mix "_" "_" "alpn" "edn" "_" "--alpn-join")
+          rows (parse-first-edn out)]
+      (is (= "h3,h2,http/1.1" (:key (first rows)))))))
 
 (deftest dns-qps-smoke
   (testing "dns-qps buckets timestamps"

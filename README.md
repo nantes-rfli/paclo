@@ -105,6 +105,7 @@ clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 
 clojure -Srepro -M:dev:dns-ext -m examples.dns-rtt in.pcap 'udp and port 53' 50 stats edn --async --async-mode dropping --async-timeout-ms 1000
 
 サンプル PCAP: `test/resources/dns-sample.pcap`（4pkt, query/response x2）、`test/resources/dns-synth-small.pcap`（10pkt, query-only 合成）、`test/resources/tls-sni-sample.pcap`（SNI=example.com）、`test/resources/tls-sni-alpn-sample.pcap`（SNI=example.com, ALPN=h2,http/1.1）、`test/resources/tls-sni-h3-sample.pcap`（SNI=example.com, ALPN=h3）。
+参考: ALPN 複合例として `test/resources/tls-sni-alpn-h3mix-sample.pcap`（h3,h2,http/1.1）も同梱。
 
 ### DNS Top-N (v0.4)
 
@@ -145,8 +146,8 @@ clojure -M:dev:dns-ext -m examples.dns-topn in.pcap _ 20 rcode edn --async --asy
 ```bash
 clojure -M:dev:dns-ext -m examples.dns-qps test/resources/dns-sample.pcap
 
-# qname で 200ms バケット、max-buckets=1000
-clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 200 qname edn --max-buckets 1000 --punycode-to-unicode
+# qname で 200ms バケット、max-buckets=1000（per-key補完と warn 閾値を低めに設定）
+clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 200 qname edn --max-buckets 100000 --warn-buckets-threshold 50000 --emit-empty-per-key
 
 # JSONL で出力（async drop デモ）
 clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --async-mode dropping --async-buffer 256
@@ -167,7 +168,7 @@ clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --
 |`--log-punycode-fail`|-|punycode 変換失敗を stderr に WARN ログする|
 |`--async*`|off|既存 async フラグ（buffer/mode/timeout）|
 
-参考: `--emit-empty-per-key --max-buckets 100000 --warn-buckets-threshold 50000` のように併用すると、長時間走る集計でも行数膨張を見逃しにくい。短時間・小 PCAP では既定の 100k で十分。
+参考: `--emit-empty-per-key --max-buckets 100000 --warn-buckets-threshold 50000` のように併用すると、長時間走る集計でも行数膨張を見逃しにくい。短時間・小 PCAP（<=1k 行想定）では既定の 100k で十分。目安: 10万行 ≈ 数百 ms、50万行 ≈ 数秒（環境依存）。
 
 |引数|省略時|説明|
 |---|---|---|

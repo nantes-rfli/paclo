@@ -48,4 +48,4 @@ v0.4 / P2 の着手用たたき台。2025-12-12 までに CLI 仕様を確定す
 
 ## 未決事項（残件）
 
-- ALPN 集計: group=:alpn を追加（デフォルトは先頭 ALPN、`--alpn-join` で全 ALPN をカンマ結合）。サンプル PCAP: `test/resources/tls-sni-alpn-sample.pcap`（h2,http/1.1）、`test/resources/tls-sni-h3-sample.pcap`（h3）。
+- ALPN 集計: group=:alpn を追加（デフォルトは先頭 ALPN、`--alpn-join` で全 ALPN をカンマ結合）。サンプル PCAP: `test/resources/tls-sni-alpn-sample.pcap`（h2,http/1.1）、`test/resources/tls-sni-h3-sample.pcap`（h3）、`test/resources/tls-sni-alpn-h3mix-sample.pcap`（h3,h2,http/1.1）。
