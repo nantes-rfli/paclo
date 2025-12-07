@@ -102,10 +102,10 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 
 ### 受け入れ条件（Done 定義）
 
-- [ ] `paclo-proto-dns` が `:dns-ext` alias で一貫して動作し、README にセットアップ/依存手順が明示されている。
-- [ ] DNS 集計 CLI（bb/sci）が `--async` 系フラグを含め examples と一貫し、サンプル PCAP で動作確認済み。
-- [ ] DNS 集計用のスモーク/ゴールデンテストを追加（小 PCAP 同梱）。
-- [ ] README/ROADMAP/CHANGELOG に v0.4 内容と使い方を反映し、最新ベンチまたは目安を 1 件掲載。
+- [x] `paclo-proto-dns` が `:dns-ext` alias で一貫して動作し、README にセットアップ/依存手順が明示されている。
+- [x] DNS 集計 CLI（bb/sci）が `--async` 系フラグを含め examples と一貫し、サンプル PCAP で動作確認済み。
+- [x] DNS 集計用のスモーク/ゴールデンテストを追加（小 PCAP 同梱）。
+- [x] README/ROADMAP/CHANGELOG に v0.4 内容と使い方を反映し、最新ベンチまたは目安を 1 件掲載。
 - [ ] 依存・セキュリティチェック（eastwood/nvd）を実行し、クリティカルなしであることを明記。
 
 ### 着手前の準備（進行中）
@@ -123,17 +123,17 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での CI（lint+tests+cljdoc）を green に。
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
-### Phase E 着手メモ（2025-12-05 更新）
+### Phase E メモ（2025-12-07 更新）
 
-- DNS 集計 CLI を `dev/examples/dns_topn.clj` / `dev/examples/dns_qps.clj` に実装中
-  （async/drop/cancel、punycode opt-in + warn、max-buckets/warn-buckets-threshold、empty-bucket 補完、
-   SNI/ALPN 集計、SNI BPF 切替）。SNI/ALPN サンプル `test/resources/tls-sni-sample.pcap`
-  / `tls-sni-alpn-sample.pcap` を追加。設計は `dev/dns-agg-cli-plan.md` に反映。
-- サンプル PCAP は既存 `dns-sample.pcap` + `dns-synth-small.pcap` をゴールデン候補とし README に記載。
-  必要に応じて `dev/make_synth_pcap.clj` で生成（dns-synth-small は同梱）。
-- 決定事項: CSV は RFC4180 風 quoting（" と , ; 改行で quote）、qname は lower + trailing dot 削除。
-  SNI 集計は `dns-topn` の group オプションとして含める（別 BPF 指定は将来検討）。
-- 残件: punycode 対応の要否、async の実動実装、dns-qps の空洞バケット出力オプション、SNI 用デフォルト BPF 指定。
+- `dns-topn` / `dns-qps` を実装済み（punycode opt-in+warn, async/drop/cancel, empty-bucket 補完, SNI/ALPN 集計, RFC4180 CSV）。
+  SNI/ALPN サンプル `tls-sni-sample.pcap` / `tls-sni-alpn-sample.pcap` / `tls-sni-h3[-mix]-sample.pcap` を同梱し、スモークテスト追加。
+- `dns-qps` に `--log-punycode-fail` を追加し README/Usage を同期。qname 正規化は toASCII で検証して warn を stderr 出力。
+- スモークテストを `test/examples/smoke_test.clj` に拡充（csv ヘッダ、punycode warn）し、`clojure -M:test` は 2025-12-07 時点で green。
+- v0.4 ベンチ目安を追加: `dns-qps` on `dns-synth-small.pcap` (10 pkt, bucket=1000, decode?=true)
+  で elapsed ≈ 16.2ms（macOS 14.4 / i7-8700B / JDK21）。
+- eastwood は `-M:eastwood:dns-ext` + data.xml 追加で完走（警告は boxed-math 等のみ）。
+  nvd は GitHub Actions `Dependency Audit`（secrets.NVD_API_TOKEN）で実行予定。ローカル実行時は同トークンを
+  `NVD_API_TOKEN` に設定する。
 
 ### リスクと緩和
 

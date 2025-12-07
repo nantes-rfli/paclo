@@ -24,7 +24,7 @@
   (binding [*out* *err*]
     (println "Usage:")
     (println "  clojure -M:dev:dns-ext -m examples.dns-qps <pcap> [<bpf>] [<bucket-ms>] [<group>] [<format>]"
-             "[--punycode-to-unicode] [--emit-empty-buckets] [--emit-empty-per-key] [--max-buckets N] [--warn-buckets-threshold N]"
+             "[--punycode-to-unicode] [--log-punycode-fail] [--emit-empty-buckets] [--emit-empty-per-key] [--max-buckets N] [--warn-buckets-threshold N]"
              "[--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS]")
     (println "Defaults: bpf='" default-bpf "', bucket-ms=" default-bucket-ms ", group=rcode, format=edn, async=off")
     (println "Groups : rcode | rrtype | qname | qname-suffix | client | server")
@@ -39,6 +39,7 @@
 (defn- parse-flags [flags]
   (loop [xs flags
          acc {:punycode? false
+              :log-punycode-fail? false
               :emit-empty? false
               :emit-empty-per-key? false
               :max-buckets default-max-buckets
@@ -49,6 +50,7 @@
       (let [[k & more] xs]
         (case k
           "--punycode-to-unicode" (recur more (assoc acc :punycode? true))
+          "--log-punycode-fail" (recur more (assoc acc :log-punycode-fail? true))
           "--emit-empty-buckets"  (recur more (assoc acc :emit-empty? true))
           "--emit-empty-per-key" (recur more (assoc acc :emit-empty-per-key? true))
           "--max-buckets" (let [n (ex/parse-long* (first more))]
@@ -85,17 +87,24 @@
     :jsonl (doseq [row rows] (json/write row *out*) (println))
     (println (pr-str rows))))
 
-(defn- normalize-qname [^String q puny?]
+(defn- normalize-qname [^String q puny? log-fail?]
   (when (seq q)
     (let [trimmed (-> q str/trim (str/replace #"\.$" "") str/lower-case)
           decoded (if (and puny? (str/starts-with? trimmed "xn--"))
-                    (try (IDN/toUnicode trimmed) (catch Exception _ trimmed))
+                    (try
+                      (let [_ (IDN/toASCII trimmed)]
+                        (IDN/toUnicode trimmed))
+                      (catch Exception e
+                        (when log-fail?
+                          (binding [*out* *err*]
+                            (println "WARN punycode-decode failed:" (.getMessage e) "label=" trimmed)))
+                        trimmed))
                     trimmed)]
       decoded)))
 
-(defn- qname-suffix [^String q puny?]
+(defn- qname-suffix [^String q puny? log-fail?]
   (when (seq q)
-    (let [trimmed (normalize-qname q puny?)
+    (let [trimmed (normalize-qname q puny? log-fail?)
           parts   (str/split trimmed #"\.")
           n (count parts)]
       (cond
@@ -103,13 +112,13 @@
         (= n 1) trimmed
         :else (str/join "." (take-last 2 parts))))))
 
-(defn- group-key [pkt group puny?]
+(defn- group-key [pkt group puny? log-fail?]
   (let [app (get-in pkt [:decoded :l3 :l4 :app])]
     (case group
       :rcode        (some-> (:rcode-name app) keyword)
       :rrtype       (some-> (:qtype-name app) keyword)
-      :qname        (some-> (:qname app) (normalize-qname puny?))
-      :qname-suffix (some-> (:qname app) (qname-suffix puny?))
+      :qname        (some-> (:qname app) (normalize-qname puny? log-fail?))
+      :qname-suffix (some-> (:qname app) (qname-suffix puny? log-fail?))
       :client       (get-in pkt [:decoded :l3 :src])
       :server       (get-in pkt [:decoded :l3 :dst])
       nil)))
@@ -142,7 +151,7 @@
           group (keyword (or (when-not (ex/blank? group-str) group-str)
                              (name default-group)))
           fmt   (parse-format fmt-str)
-          {:keys [punycode? emit-empty? emit-empty-per-key? max-buckets warn-buckets-threshold async]} (parse-flags flags)
+          {:keys [punycode? log-punycode-fail? emit-empty? emit-empty-per-key? max-buckets warn-buckets-threshold async]} (parse-flags flags)
           {:keys [async? async-buffer async-mode async-timeout-ms]} async]
       (ex/ensure-one-of! "group" group allowed-groups)
       (let [agg (atom {})
@@ -153,7 +162,7 @@
             process! (fn [p]
                        (when (= :dns (get-in p [:decoded :l3 :l4 :app :type]))
                          (when-let [t (pkt-ts-ms p)]
-                           (when-let [k (group-key p group punycode?)]
+                           (when-let [k (group-key p group punycode? log-punycode-fail?)]
                              (let [bucket (bucket-start bucket-ms t)]
                                (swap! agg update [bucket k]
                                       (fn [{:keys [count bytes]}]
@@ -241,6 +250,8 @@
                     :bucket-ms bucket-ms
                     :group group
                     :format fmt
+                    :punycode punycode?
+                    :log-punycode-fail log-punycode-fail?
                     :emit-empty-buckets emit-empty?
                     :emit-empty-per-key emit-empty-per-key?
                     :empty-per-key-truncated? (:truncated? rows1)

@@ -292,6 +292,24 @@
           meta (parse-last-edn-line err)]
       (is (= true (:emit-empty-per-key meta))))))
 
+(deftest dns-qps-csv-smoke
+  (testing "dns-qps emits csv header"
+    (let [{:keys [out]} (run-main dns-qps/-main sample "_" "_" "rcode" "csv")
+          lines (str/split-lines out)]
+      (is (>= (count lines) 2))
+      (is (= "t_ms,key,count,bytes" (first lines))))))
+
+(deftest dns-qps-punycode-warn-smoke
+  (testing "dns-qps logs punycode failure when requested"
+    (let [normalize #'examples.dns-qps/normalize-qname
+          bad (str "xn--" (apply str (repeat 200 "a")))
+          err-w (java.io.StringWriter.)]
+      (binding [*err* err-w]
+        (let [res (normalize bad true true)
+              err-str (.toString err-w)]
+          (is (= bad res))
+          (is (re-find #"punycode-decode failed" err-str)))))))
+
 (deftest dns-topn-punycode-warn-smoke
   (testing "dns-topn logs punycode failure when requested"
     (let [normalize #'examples.dns-topn/normalize-qname

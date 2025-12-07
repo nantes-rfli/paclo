@@ -167,6 +167,7 @@ clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --
 |`<group>`|rcode|`rcode` / `rrtype` / `qname` / `qname-suffix` / `client` / `server`|
 |`<format>`|edn|`edn` / `jsonl` / `csv`|
 |`--punycode-to-unicode`|-|qname を Unicode に正規化|
+|`--log-punycode-fail`|-|punycode 変換失敗を stderr に WARN で記録|
 |`--emit-empty-buckets`|-|バケット欠損も 0 行として出力（key=:_all で補完）|
 |`--emit-empty-per-key`|-|各 key × バケットを 0 で補完（行数増に注意、max-buckets で上限）|
 |`--max-buckets`|200000|出力行数の上限（メモリ保護、per-key 補完時に特に有効）|
@@ -175,6 +176,17 @@ clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --
 |`--async*`|off|既存 async フラグ（buffer/mode/timeout）|
 
 参考: `--emit-empty-per-key --max-buckets 100000 --warn-buckets-threshold 50000` のように併用すると、長時間走る集計でも行数膨張を見逃しにくい。短時間・小 PCAP（<=1k 行想定）では既定の 100k で十分。目安: 10万行 ≈ 数百 ms、50万行 ≈ 数秒（環境依存）。
+
+ベンチ目安（macOS 14.4 / i7-8700B / JDK21）
+
+|sample|pkts|bucket-ms|decode?|elapsed-ms|
+|---|---:|---:|---|---:|
+|dns-synth-small.pcap (同梱)|10|1000|true|≈16.2|
+
+### 依存脆弱性スキャン（NVD）
+
+- GitHub Actions の `Dependency Audit` ワークフローで `secrets.NVD_API_TOKEN` を用いて定期実行します。
+- ローカルで再現する場合は `NVD_API_TOKEN=<token> clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を実行してください。
 
 |引数|省略時|説明|
 |---|---|---|
