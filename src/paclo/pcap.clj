@@ -51,6 +51,15 @@
 (defn- blank-str? [^String s]
   (or (nil? s) (re-find #"^\s*$" s)))
 
+(defn- valid-device? [device]
+  (and (string? device) (not (blank-str? device))))
+
+(defn- valid-path? [path]
+  (cond
+    (instance? java.io.File path) (not (blank-str? (.getPath ^java.io.File path)))
+    (string? path) (not (blank-str? path))
+    :else false))
+
 (defn vlan-tag->str
   "VLANタグマップ {:tpid .. :vid .. :pcp .. :dei ..} を表示用文字列にする。"
   [{:keys [tpid vid pcp dei]}]
@@ -93,6 +102,8 @@
   [{:keys [device snaplen promiscuous? timeout-ms netmask]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10}
     :as   opts}]
+  (when-not (valid-device? device)
+    (throw (ex-info "open-live requires non-blank :device" {:device device})))
   (let [^Pointer err    (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         promisc (if promiscuous? 1 0)
         pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
@@ -739,6 +750,10 @@
         default-max-time-ms 10000
         default-idle-max-ms 3000
         default-queue-cap 1024
+        _ (when (and device path)
+            (throw (ex-info "capture->seq takes either :device or :path, not both" {:device device :path path})))
+        _ (when-not (or (valid-device? device) (valid-path? path))
+            (throw (ex-info "capture->seq requires either :device or :path" {:device device :path path})))
         max         (or max default-max)
         max-time-ms (or max-time-ms default-max-time-ms)
         idle-max-ms (or idle-max-ms default-idle-max-ms)
