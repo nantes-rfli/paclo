@@ -73,6 +73,18 @@
     (is (false? (f "   ")))
     (is (true? (f "tcp")))))
 
+(deftest open-live-rejects-missing-device
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"non-blank"
+                        (p/open-live {})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"non-blank"
+                        (p/open-live {:device "   "}))))
+
+(deftest capture->seq-requires-source
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"requires either :device or :path"
+                        (p/capture->seq {})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"either :device or :path, not both"
+                        (p/capture->seq {:device "en0" :path "trace.pcap"}))))
+
 (deftest ensure-bytes-timestamp-requires-bytes
   (let [f (deref #'p/ensure-bytes-timestamp)]
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"missing :bytes"
