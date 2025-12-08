@@ -400,10 +400,13 @@
 
 ;; macOS だけ networksetup から “人間が読める名称” を補完
 (defn- macos-device->desc []
-  (let [os (.. System (getProperty "os.name") toLowerCase)]
-    (if (not (.contains os "mac"))
+  (let [os (.. System (getProperty "os.name") toLowerCase)
+        ^java.io.File networksetup-bin (io/file "/usr/sbin/networksetup")]
+    (if (or (not (.contains os "mac"))
+            (not (and (.exists networksetup-bin)
+                      (.canExecute networksetup-bin))))
       {}
-      (let [^"[Ljava.lang.String;" cmd (into-array String ["networksetup" "-listallhardwareports"])
+      (let [^"[Ljava.lang.String;" cmd (into-array String [(.getAbsolutePath networksetup-bin) "-listallhardwareports"])
             ^java.lang.ProcessBuilder pb (java.lang.ProcessBuilder. cmd)
             _    (.redirectErrorStream pb true)   ;; ← Redirect 定数は使わない
             proc (.start pb)
