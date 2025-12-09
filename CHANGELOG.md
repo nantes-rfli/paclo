@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DNS 集計 CLI `examples.dns-topn` / `examples.dns-qps`（EDN/JSONL/CSV、async/drop/cancel、qname punycode 正規化、SNI/ALPN 集計、empty-bucket 補完）。
 - TLS サンプル PCAP を追加（`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`）し、スモークテストを拡充。
 - DNS QPS ベンチ目安を README/ROADMAP に追記（dns-synth-small 10pkt, bucket=1000, decode?=true, ≈16.2ms）。
+- CI: build ジョブに dns-ext smoke（`examples.dns-topn`）と cljdoc ドライランを追加予定（Phase F）。
 
 ### Fixed
 - `dns-qps` に `--log-punycode-fail` を追加し、README/ヘルプと実装の不整合を解消。punycode decode 失敗を WARN として標準エラーに出力。
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - Eastwood は `-M:eastwood:dns-ext`（+ data.xml 追加）で完走。警告は boxed-math/performance/reflection のみ。
 - nvd-clojure は GitHub Actions `Dependency Audit` で `secrets.NVD_API_TOKEN` を用いて実行。ローカル再現は `NVD_API_TOKEN` を設定して `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`。
+- 2025-12-09 時点のローカル nvd-clojure 実行は `NVD_API_TOKEN` 未設定で失敗（要トークン設定）。
 
 ## [0.3.0] - 2025-12-05
 

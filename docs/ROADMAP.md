@@ -119,11 +119,13 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 
 ### マイルストン
 
-- Phase E (計画確定) — 2025-12-12: DNS 集計の指標と出力項目を固め、CLI コマンド仕様を決定。`:dns-ext` alias の依存/起動確認を整備。
-- Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での CI（lint+tests+cljdoc）を green に。
+- Phase E (計画確定) — 2025-12-12: DNS 集計の指標と出力項目を固め、CLI コマンド仕様を決定。`:dns-ext` alias
+  の依存/起動確認を整備。 **状態: 完了 (2025-12-09 更新メモを完走)**
+- Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での
+  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-09)**
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
-### Phase E メモ（2025-12-09 更新）
+### Phase E メモ（2025-12-09 更新 / 完了）
 
 - `dns-topn` / `dns-qps` を実装済み（punycode opt-in+warn, async/drop/cancel, empty-bucket 補完, SNI/ALPN 集計, RFC4180 CSV）。
   SNI/ALPN サンプル `tls-sni-sample.pcap` / `tls-sni-alpn-sample.pcap` / `tls-sni-h3[-mix]-sample.pcap` を同梱し、スモークテスト追加。
@@ -135,6 +137,15 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - eastwood は `-M:eastwood:dns-ext` + data.xml 追加で完走（警告は boxed-math 等のみ）。
   nvd は GitHub Actions `Dependency Audit`（secrets.NVD_API_TOKEN）で実行予定。ローカル実行時は同トークンを
   `NVD_API_TOKEN` に設定する。
+
+### Phase F 進行中メモ（2025-12-09 着手）
+
+- CI 拡張: `dns-topn` の最小 smoke (`clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`) を
+  `ci.yml` build ジョブに追加。
+- CI 拡張: cljdoc ドライランを追加（`cljdoc/cljdoc-action` 利用想定）し、`:dns-ext` 経路でも壊れないことを確認。
+- セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
+  結果を CHANGELOG/ROADMAP に反映（現状トークン未設定で失敗→要対応）。
+- ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
 
 ### リスクと緩和
 

@@ -113,6 +113,15 @@ jobs:
       - name: Run unit tests
         run: clojure -M:test
 
+      - name: dns-ext smoke (dns-topn)
+        run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+
+      - name: cljdoc dry run
+        uses: cljdoc/cljdoc-action@v1
+        with:
+          projects: |
+            io.github.nantes-rfli/paclo
+
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
         shell: bash
