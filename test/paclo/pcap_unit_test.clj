@@ -289,8 +289,7 @@
         ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
     (with-redefs [p/close! (fn [h] (reset! closed h))]
       (is (thrown? Exception
-                   ;; clj-kondo: disable-next-line unresolved-symbol
-                   (p/with-pcap [h ptr]
+                   (p/with-pcap ^{:clj-kondo/ignore [:unresolved-symbol]} [h ptr]
                      (is (= ptr h))
                      (throw (Exception. "boom"))))))
     (is (= ptr @closed))))
@@ -302,8 +301,7 @@
                   p/flush-dumper! (fn [_] (swap! flushed inc))
                   p/close-dumper! (fn [_] (swap! closed inc))]
       (is (thrown? Exception
-                   ;; clj-kondo: disable-next-line unresolved-symbol
-                   (p/with-dumper [d (p/open-dumper :pcap "out")]
+                   (p/with-dumper ^{:clj-kondo/ignore [:unresolved-symbol]} [d (p/open-dumper :pcap "out")]
                      (is (= :d d))
                      (throw (Exception. "fail"))))))
     (is (= 1 @flushed))
