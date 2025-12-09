@@ -11,13 +11,13 @@
                               {:git/tag "v0.5.1" :git/sha "dfb30dd"}
                               org.clojure/test.check {:mvn/version "1.1.1"}}
                 :main-opts   ["-m" "cognitect.test-runner" "-d" "test"]}
-  :run         {:main-opts ["-m" "paclo.core"]}
- :dns-ext     {:extra-paths ["extensions/dns/src"]}
-  :csv        {:extra-deps {org.clojure/data.csv {:mvn/version "1.1.0"}}}
-  :build       {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
-                :ns-default build}
-  :nvd         {:extra-deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
-                :main-opts  ["-m" "nvd.task.check"]}
+  :run         {:main-opts   ["-m" "paclo.core"]}
+  :dns-ext     {:extra-paths ["extensions/dns/src"]}
+  :csv         {:extra-deps  {org.clojure/data.csv {:mvn/version "1.1.0"}}}
+  :build       {:deps        {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+                :ns-default  build}
+  :nvd         {:extra-deps  {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
+                :main-opts   ["-m" "nvd.task.check"]}
   :coverage    {:extra-paths ["test" "test/resources" "dev" "extensions/dns/src"]
                 :extra-deps  {cloverage/cloverage {:mvn/version "1.2.4"}
                               org.clojure/test.check {:mvn/version "1.1.1"}}
@@ -51,9 +51,9 @@
                               {:mvn/version "1.10.2"}}
                 :main-opts   ["-e"
                               "(org.junit.platform.console.ConsoleLauncher/main (into-array String [\"--class-path\" \"target/classes:target/test-classes\" \"--scan-classpath\" \"--fail-if-no-tests\"]))"]}
-  :nrepl       {:extra-deps {nrepl/nrepl       {:mvn/version "1.5.1"}
-                             cider/cider-nrepl {:mvn/version "0.58.0"}}
-                :main-opts  ["-m" "nrepl.cmdline"
-                             "-b" "127.0.0.1"
-                             "-p" "7888"
-                             "--middleware" "[cider.nrepl/cider-middleware]"]}}}
+  :nrepl       {:extra-deps  {nrepl/nrepl       {:mvn/version "1.5.1"}
+                              cider/cider-nrepl {:mvn/version "0.58.0"}}
+                :main-opts   ["-m" "nrepl.cmdline"
+                              "-b" "127.0.0.1"
+                              "-p" "7888"
+                              "--middleware" "[cider.nrepl/cider-middleware]"]}}}
