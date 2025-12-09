@@ -129,16 +129,17 @@
   [pkt]
   (let [sec (get pkt :ts-sec)
         usec (get pkt :ts-usec)
-        base (cond
-               (number? sec) (+ (double sec) (/ (double (mod (long (or usec 0)) 1000000)) 1e6))
-               (and (number? usec) (> usec 1e12)) (/ (double usec) 1e6)
-               (number? usec) (/ (double usec) 1e6)
-               :else nil)]
+        ^double base (cond
+                       (number? sec) (+ (double sec) (/ (double (mod (long (or usec 0)) 1000000)) 1e6))
+                       (and (number? usec) (> (double usec) 1e12)) (/ (double usec) 1e6)
+                       (number? usec) (/ (double usec) 1e6)
+                       :else nil)]
     (when base
       (long (Math/floor (* base 1000.0))))))
 
 (defn- bucket-start [bucket-ms t-ms]
-  (* (quot t-ms bucket-ms) bucket-ms))
+  (let [q (quot (long t-ms) (long bucket-ms))]
+    (unchecked-multiply q (long bucket-ms))))
 
 (defn -main [& args]
   ;; <pcap> [bpf] [bucket-ms] [group] [format] flags...
@@ -147,7 +148,7 @@
     (let [pcap* (ex/require-file! pcap)
           _     (dns-ext/register!)
           bpf   (if (ex/blank? bpf-str) default-bpf bpf-str)
-          bucket-ms (or (ex/parse-long* bucket-str) default-bucket-ms)
+          bucket-ms (long (or (ex/parse-long* bucket-str) default-bucket-ms))
           group (keyword (or (when-not (ex/blank? group-str) group-str)
                              (name default-group)))
           fmt   (parse-format fmt-str)
@@ -163,13 +164,16 @@
                        (when (= :dns (get-in p [:decoded :l3 :l4 :app :type]))
                          (when-let [t (pkt-ts-ms p)]
                            (when-let [k (group-key p group punycode? log-punycode-fail?)]
-                             (let [bucket (bucket-start bucket-ms t)]
+                             (let [bucket (bucket-start bucket-ms t)
+                                   cap (long (or (:caplen p) 0))]
                                (swap! agg update [bucket k]
                                       (fn [{:keys [count bytes]}]
-                                        {:t bucket :key k
-                                         :count (inc (long (or count 0)))
-                                         :bytes (+ (long (or bytes 0)) (long (or (:caplen p) 0)))}))
-                               (swap! total inc))))))]
+                                        (let [c (long (or count 0))
+                                              b (long (or bytes 0))]
+                                          {:t bucket :key k
+                                           :count (unchecked-inc c)
+                                           :bytes (unchecked-add b cap)})))
+                               (swap! total (fn [n] (unchecked-inc (long n)))))))))]
         (if-not async?
           (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
             (process! p))
@@ -204,36 +208,40 @@
                                  (when (seq rows)
                                    (let [min-t (:t (first rows))
                                          max-t (:t (peek rows))
-                                         step bucket-ms
+                                         step (long bucket-ms)
                                          filled (transient [])]
-                                     (loop [t min-t
-                                            xs rows]
-                                       (cond
-                                         (> t max-t) (persistent! filled)
-                                         (and (seq xs) (= t (:t (first xs))))
-                                         (let [_ (conj! filled (first xs))]
-                                           (recur (+ t step) (rest xs)))
-                                         :else (let [_ (conj! filled {:t t :key :_all :count 0 :bytes 0})]
-                                                 (recur (+ t step) xs)))))))
-              rows-per-key (fn [rows]
-                             (when (seq rows)
-                               (let [min-t (:t (first rows))
-                                     max-t (:t (peek rows))
-                                     step bucket-ms
-                                     keys (set (map :key rows))
-                                     lookup (into {} (map (fn [m] [[(:t m) (:key m)] m]) rows))
-                                     bucket-count (inc (quot (- max-t min-t) step))
-                                     total (* bucket-count (count keys))]
-                                 (if (> total max-buckets)
-                                   {:rows rows :truncated? true}
-                                   (let [filled (transient [])]
-                                     (loop [t min-t]
-                                       (when (<= t max-t)
-                                         (doseq [k keys]
-                                           (let [_ (conj! filled (get lookup [t k] {:t t :key k :count 0 :bytes 0}))]
-                                             nil))
-                                         (recur (+ t step))))
-                                     {:rows (persistent! filled) :truncated? false})))))
+                                     (loop [t min-t xs rows]
+                                       (let [t-long (long t)
+                                             max-long (long max-t)]
+                                         (cond
+                                           (> t-long max-long) (persistent! filled)
+                                           (and (seq xs) (= t-long (:t (first xs))))
+                                           (let [_ (conj! filled (first xs))]
+                                             (recur (unchecked-add t-long step) (rest xs)))
+                                           :else (let [_ (conj! filled {:t t-long :key :_all :count 0 :bytes 0})]
+                                                   (recur (unchecked-add t-long step) xs))))))))
+              rows-per-key
+              (fn [rows]
+                (when (seq rows)
+                  (let [min-t (:t (first rows))
+                        max-t (:t (peek rows))
+                        step (long bucket-ms)
+                        keys (set (map :key rows))
+                        lookup (into {} (map (fn [m] [[(:t m) (:key m)] m]) rows))
+                        bucket-count (unchecked-inc (quot (- (long max-t) (long min-t)) step))
+                        total (unchecked-multiply bucket-count (long (count keys)))]
+                    (if (> total (long max-buckets))
+                      {:rows rows :truncated? true}
+                      (let [filled (transient [])]
+                        (loop [t min-t]
+                          (let [t-long (long t)
+                                max-long (long max-t)]
+                            (when (<= t-long max-long)
+                              (doseq [k keys]
+                                (let [_ (conj! filled (get lookup [t-long k] {:t t-long :key k :count 0 :bytes 0}))]
+                                  nil))
+                              (recur (unchecked-add t-long step)))))
+                        {:rows (persistent! filled) :truncated? false})))))
               rows1 (cond
                       (and emit-empty-per-key? rows-core)
                       (let [{rows :rows truncated? :truncated?} (rows-per-key rows-core)]
@@ -242,7 +250,7 @@
                       {:rows (rows-empty-range rows-core) :per-key? false :truncated? false}
                       :else {:rows rows-core :per-key? false :truncated? false})
               rows2 (or (:rows rows1) [])
-              rows (if (> (count rows2) max-buckets)
+              rows (if (> (count rows2) (long max-buckets))
                      (subvec (vec rows2) 0 max-buckets)
                      rows2)
               meta {:rows (count rows)
@@ -257,7 +265,7 @@
                     :empty-per-key-truncated? (:truncated? rows1)
                     :max-buckets max-buckets
                     :warn-buckets-threshold warn-buckets-threshold
-                    :warned-buckets? (<= warn-buckets-threshold (count rows))
+                    :warned-buckets? (<= (long warn-buckets-threshold) (count rows))
                     :async? async?
                     :async-mode async-mode
                     :async-buffer async-buffer
@@ -268,5 +276,5 @@
           (emit fmt rows)
           (binding [*out* *err*]
             (println (pr-str meta))
-            (when (and emit-empty-per-key? (> (count rows) warn-buckets-threshold))
+            (when (and emit-empty-per-key? (> (count rows) (long warn-buckets-threshold)))
               (println "WARNING: emit-empty-per-key produced" (count rows) "rows (threshold" warn-buckets-threshold ")"))))))))

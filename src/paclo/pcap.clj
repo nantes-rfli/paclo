@@ -195,16 +195,16 @@
 
 (defn ^:private idle-next
   "Given current idle ms, tick, and target, return {:idle <new> :break? bool}."
-  [idle tick idle-target]
-  (let [idle' (+ idle tick)]
+  [^long idle ^long tick ^long idle-target]
+  (let [idle' (unchecked-add idle tick)]
     {:idle idle'
      :break? (>= idle' idle-target)}))
 
 (defn rc->status
   "Classify pcap_next_ex return code.
    1 => :packet, 0 => :timeout, -2 => :eof, anything else => :error."
-  [rc]
-  (case rc
+  [^long rc]
+  (case (int rc)
     1 :packet
     0 :timeout
     -2 :eof
@@ -516,7 +516,7 @@
      (loop! pcap (fn [pkt]
                    (handle pkt)
                    (swap! c inc)
-                   (when (>= ^long @c n)
+                   (when (>= (long @c) n)
                      (breakloop! pcap))))))
   ([^Pointer pcap ^long n handler {:keys [idle-max-ms timeout-ms]}]
    (if (nil? idle-max-ms)
@@ -544,13 +544,13 @@
                    (.get dat (long 0) arr (int 0) (int (alength arr)))
                    (handle {:ts-sec ts-sec :ts-usec ts-usec
                             :caplen caplen :len len :bytes arr})
-                   (recur (inc count) 0))
+                   (recur (unchecked-inc (long count)) 0))
 
                  (= status :timeout)
                  (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
                    (if break?
                      (breakloop! pcap)
-                     (recur count idle)))
+                     (recur count (long idle))))
 
                  :else
                  (breakloop! pcap))))))))))
@@ -602,7 +602,7 @@
                  (let [{:keys [idle break?]} (idle-next idle tick idle-ms-target)]
                    (if break?
                      (breakloop! pcap)
-                     (recur idle)))
+                     (recur (long idle))))
 
                  :else
                  (breakloop! pcap))))))))))
@@ -625,7 +625,7 @@
         (loop! pcap (fn [pkt]
                       (handle pkt)
                       (swap! c inc)
-                      (let [stop-n? (>= ^long @c n-long)
+                      (let [stop-n? (>= (long @c) n-long)
                             stop-t? (>= (- (System/currentTimeMillis) t0) ms-long)
                             stop-custom? (and stop? (stop? pkt))]
                         (when (or stop-n? stop-t? stop-custom?)
@@ -657,13 +657,13 @@
                   (handle pkt)
                   (if (and stop? (stop? pkt))
                     (breakloop! pcap)            ;; ★ ヒット即停止（オフラインでも即効）
-                    (recur (inc count) 0)))
+                    (recur (unchecked-inc (long count)) 0)))
 
                 (= status :timeout)
                 (let [{:keys [idle break?]} (idle-next idle tick idle-target)]
                   (if break?
                     (breakloop! pcap)
-                    (recur count idle)))
+                    (recur count (long idle))))
 
                 :else
                 (breakloop! pcap)))))))))

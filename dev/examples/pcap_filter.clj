@@ -91,7 +91,7 @@
               out-seq   (into [] (core/packets {:path out :max Long/MAX_VALUE}))
               out-count (count out-seq)
               out-total (reduce + 0 (map :caplen out-seq))
-              drop-pct  (if (pos? @in-pkts)
+              drop-pct  (if (pos? (long @in-pkts))
                           (double (* 100.0 (- 1.0 (/ (double out-count) (double @in-pkts)))))
                           0.0)
               meta {:in in :out out :filter bpf*

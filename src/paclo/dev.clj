@@ -37,7 +37,9 @@
   "byte[] を 'xx xx xx ...' の文字列へ"
   [^bytes bs]
   (->> bs
-       (map #(format "%02x" (bit-and 0xFF %)))
+       (map (fn [b]
+              (let [i (int b)]
+                (format "%02x" (bit-and 0xFF i)))))
        (str/join " ")))
 
 (defn hexd

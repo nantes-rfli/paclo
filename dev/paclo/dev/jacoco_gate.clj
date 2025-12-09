@@ -16,18 +16,22 @@
   (let [report (parse-report "target/jacoco.xml")
         counters (bundle-counters report)
         line-counters (filter #(= "LINE" (:type %)) counters)
-        covered (reduce + (map #(Double/parseDouble (:covered %)) line-counters))
-        missed  (reduce + (map #(Double/parseDouble (:missed %)) line-counters))
-        total (+ covered missed)]
-    (if (pos? total)
+        covered (double (reduce (fn ^double [^double acc ^double v] (+ acc v))
+                                0.0
+                                (map #(Double/parseDouble (:covered %)) line-counters)))
+        missed  (double (reduce (fn ^double [^double acc ^double v] (+ acc v))
+                                0.0
+                                (map #(Double/parseDouble (:missed %)) line-counters)))
+        total (double (+ covered missed))]
+    (if (> total 0.0)
       (/ covered total)
       1.0)))
 
 (defn -main [& _]
   (let [min-threshold (Double/parseDouble (or (System/getenv "JACOCO_MIN_LINE") "0.25"))
         ratio (line-coverage)]
-    (println (format "[jacoco-gate] line coverage %.1f%% (threshold %.1f%%)" (* 100 ratio) (* 100 min-threshold)))
-    (when (< ratio min-threshold)
+    (println (format "[jacoco-gate] line coverage %.1f%% (threshold %.1f%%)" (* 100.0 (double ratio)) (* 100.0 min-threshold)))
+    (when (< (double ratio) min-threshold)
       (println "[jacoco-gate] FAIL: line coverage below threshold")
       (System/exit 1))
     (println "[jacoco-gate] PASS")))

@@ -8,7 +8,7 @@
     (let [s "AA bb ; line comment\n/*block*/ CC\nDD"
           bs (dev/hex->bytes s)]
       (is (= [0xaa 0xbb 0xcc 0xdd]
-             (map #(bit-and 0xFF %) bs)))))
+             (map #(bit-and 0xFF (int %)) bs)))))
   (testing "odd digit count throws"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
                           #"Odd number of hex digits"

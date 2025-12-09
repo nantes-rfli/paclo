@@ -19,6 +19,6 @@
                                   "-o" out
                                   "src-java" "test-java")]
     (println "[checkstyle] report ->" out)
-    (when (pos? exit)
+    (when (pos? (long exit))
       (println err)
       (System/exit exit))))

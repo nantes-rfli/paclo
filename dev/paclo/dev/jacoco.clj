@@ -29,7 +29,7 @@
                                     "org.junit.platform.console.ConsoleLauncher"
                                     "--class-path" "target/classes:target/test-classes"
                                     "--scan-classpath")]
-      (when (pos? exit)
+      (when (pos? (long exit))
         (println err)
         (System/exit exit)))
     (println "[jacoco] generating reports ->" xml "and" html)
@@ -40,7 +40,7 @@
                                     "--sourcefiles" "src-java"
                                     "--xml" xml
                                     "--html" html)]
-      (when (pos? exit)
+      (when (pos? (long exit))
         (println err)
         (System/exit exit)))
     (println "[jacoco] done")))

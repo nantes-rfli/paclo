@@ -26,7 +26,7 @@
   (comp
    (filter #(>= (long (or (:caplen %) 0)) 60))
    (map (fn [m]
-          (vswap! counter inc)
+          (vswap! counter (fn ^long [^long n] (unchecked-inc n)))
           (select-keys m [:bytes :sec :usec])))))
 
 (defn -main [& args]

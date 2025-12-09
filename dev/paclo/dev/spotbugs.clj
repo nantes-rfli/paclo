@@ -23,7 +23,7 @@
                                     "-xml:withMessages"
                                     "-output" target
                                     "target/classes")]
-      (when (pos? exit)
+      (when (pos? (long exit))
         (println err)
         (System/exit exit))))
   (println "[spotbugs] done"))

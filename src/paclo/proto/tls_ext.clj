@@ -28,52 +28,52 @@
 
 ;; --- TLS ClientHello → SNI / ALPN --------------------------------------------
 
-(defn- parse-server-name [^bytes ba lb le]
+(defn- parse-server-name [^bytes ba ^long lb ^long le]
   (loop [q lb]
-    (when (<= (+ q 3) le)
+    (when (<= (unchecked-add q 3) le)
       (let [nt (u8 ba q)
-            nl (u16 ba (inc q))
-            nb (+ q 3)
-            ne (+ nb (or nl 0))]
+            nl (u16 ba (unchecked-inc q))
+            nb (unchecked-add q 3)
+            ne (unchecked-add nb (long (or nl 0)))]
         (when (<= ne le)
           (if (zero? nt) ;; host_name
-            (let [s (substr ba nb (or nl 0))]
+            (let [s (substr ba nb (long (or nl 0)))]
               (when (and s (not (str/blank? s))) s))
             (recur ne)))))))
 
-(defn- parse-alpn [^bytes ba lb le]
+(defn- parse-alpn [^bytes ba ^long lb ^long le]
   (loop [q lb acc []]
     (if (< q le)
       (let [pl (u8 ba q)
-            nb (inc q)
-            ne (+ nb (or pl 0))]
+            nb (unchecked-inc q)
+            ne (unchecked-add nb (long (or pl 0)))]
         (cond
           (nil? pl) acc
           (<= ne le)
-          (if-let [proto (substr ba nb (or pl 0))]
+          (if-let [proto (substr ba nb (long (or pl 0)))]
             (recur ne (conj acc proto))
             acc)
           :else acc))
       acc)))
 
-(defn- parse-extensions [^bytes ba ext-beg ext-end]
+(defn- parse-extensions [^bytes ba ^long ext-beg ^long ext-end]
   (loop [p ext-beg info {}]
-    (if (<= (+ p 4) ext-end)
-      (let [et (u16 ba p)
-            el (u16 ba (+ p 2))
-            db (+ p 4)
-            de (+ db (or el 0))]
+    (if (<= (unchecked-add p 4) ext-end)
+      (let [et (or (u16 ba p) 0)
+            el (u16 ba (unchecked-add p 2))
+            db (unchecked-add p 4)
+            de (unchecked-add db (long (or el 0)))]
         (if (<= de ext-end)
           (let [info'
                 (case et
                   0  (let [list-len (u16 ba db)
-                           lb (+ db 2)
-                           le (+ lb (or list-len 0))
+                           lb (unchecked-add db 2)
+                           le (unchecked-add lb (long (or list-len 0)))
                            sni (when (<= le de) (parse-server-name ba lb le))]
                        (cond-> info sni (assoc :sni sni)))
                   16 (let [alpn-len (u16 ba db)
-                           lb (+ db 2)
-                           le (+ lb (or alpn-len 0))
+                           lb (unchecked-add db 2)
+                           le (unchecked-add lb (long (or alpn-len 0)))
                            protos (when (<= le de) (parse-alpn ba lb le))]
                        (cond-> info (seq protos) (assoc :alpn protos)))
                   info)]
@@ -92,25 +92,25 @@
          (let [ct   (u8 ba 0)
                vmaj (u8 ba 1)
                rlen (u16 ba 3)]
-           (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (+ 5 rlen) len))
+           (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (unchecked-add 5 (long rlen)) len))
              (let [ho    5
                    htype (u8 ba ho)
                    hlen  (u24 ba (inc ho))
-                   hb    (+ ho 4)
-                   he    (+ hb (or hlen 0))]
-               (when (and (= 1 htype) (some? hlen) (<= he (+ 5 rlen)) (<= (+ hb 2 32 1) len))
+                   hb    (unchecked-add ho 4)
+                   he    (unchecked-add hb (long (or hlen 0)))]
+               (when (and (= 1 htype) (some? hlen) (<= he (unchecked-add 5 (long rlen))) (<= (unchecked-add hb 35) len))
                  (let [p0       hb
-                       p1       (+ p0 2 32)
+                       p1       (unchecked-add p0 34) ;; 2 + 32
                        sid-len  (u8 ba p1)
-                       p2       (+ p1 1 (or sid-len 0))
+                       p2       (unchecked-add (unchecked-inc p1) (long (or sid-len 0)))
                        cs-len   (u16 ba p2)
-                       p3       (+ p2 2 (or cs-len 0))
+                       p3       (unchecked-add (unchecked-add p2 2) (long (or cs-len 0)))
                        cm-len   (u8 ba p3)
-                       p4       (+ p3 1 (or cm-len 0))]
-                   (when (<= (+ p4 2) he)
+                       p4       (unchecked-add (unchecked-inc p3) (long (or cm-len 0)))]
+                   (when (<= (unchecked-add p4 2) he)
                      (let [ext-len (u16 ba p4)
-                           ext-beg (+ p4 2)
-                           ext-end (+ ext-beg (or ext-len 0))]
+                           ext-beg (unchecked-add p4 2)
+                           ext-end (unchecked-add ext-beg (long (or ext-len 0)))]
                        (when (<= ext-end he)
                          (parse-extensions ba ext-beg ext-end)))))))))))
      {})

@@ -174,7 +174,12 @@
     (try
       (with-redefs [p/lib (reify PcapLibrary
                             (pcap_open_offline [_ _ err]
-                              (.put ^Memory err (long 0) (.getBytes "oops") (int 0) (int 4))
+                              (let [^Pointer err* err
+                                    ^bytes msg (.getBytes "oops")
+                                    len (alength msg)]
+                                (dotimes [i len]
+                                  (.putByte err* (long i) (aget msg i)))
+                                (.putByte err* (long len) (byte 0)))
                               nil))]
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_offline failed: oops"
                               (p/open-offline (.getAbsolutePath f)))))
@@ -284,7 +289,6 @@
         ptr    (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
     (with-redefs [p/close! (fn [h] (reset! closed h))]
       (is (thrown? Exception
-                   ^{:clj-kondo/ignore [:unresolved-symbol]}
                    (p/with-pcap [h ptr]
                      (is (= ptr h))
                      (throw (Exception. "boom"))))))
@@ -297,7 +301,6 @@
                   p/flush-dumper! (fn [_] (swap! flushed inc))
                   p/close-dumper! (fn [_] (swap! closed inc))]
       (is (thrown? Exception
-                   ^{:clj-kondo/ignore [:unresolved-symbol]}
                    (p/with-dumper [d (p/open-dumper :pcap "out")]
                      (is (= :d d))
                      (throw (Exception. "fail"))))))
@@ -352,9 +355,10 @@
         ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
         lib (reify PcapLibrary
               (pcap_next_ex [_ _ _ _]
-                (case (swap! calls inc)
-                  1 0    ; timeout
-                  2 -1))
+                (let [^long n (swap! calls inc)]
+                  (case (int n)
+                    1 0    ; timeout
+                    2 -1)))
               (pcap_breakloop [_ _] nil)
               (pcap_close [_ _] nil)
               (pcap_open_offline [_ _ _] nil)
@@ -537,7 +541,7 @@
       (p/loop-n-or-ms! (Memory/allocate rt 1)
                        {:n 2 :ms 50 :idle-max-ms 5 :timeout-ms 5}
                        (fn [_])))
-    (is (pos? @breaks))))
+    (is (pos? (long @breaks)))))
 
 (deftest with-live-and-offline-wrap-close
   (let [opened-live (atom nil)
@@ -565,7 +569,12 @@
                                             (.fromNative ^IntByReference mask rt mem 0))
                                           0)})
         lib-ng (stub-lib {:lookupnet-fn (fn [_ _ _ err]
-                                          (.put ^Memory err (long 0) (.getBytes "oops") (int 0) (int 4))
+                                          (let [^Pointer err* err
+                                                ^bytes msg (.getBytes "oops")
+                                                len (alength msg)]
+                                            (dotimes [i len]
+                                              (.putByte err* (long i) (aget msg i)))
+                                            (.putByte err* (long len) (byte 0)))
                                           -1)})]
     (with-redefs [p/lib lib-ok]
       (is (= {:net 0x01020304 :mask 0x0000ff00} (p/lookupnet "en0"))))

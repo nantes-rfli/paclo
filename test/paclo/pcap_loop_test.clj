@@ -41,16 +41,16 @@
       (dotimes [_ call-count] (handler {}))
       nil)))
 
-(defn- stub-run-live-for-ms! [call-count sleep-ms]
+(defn- stub-run-live-for-ms! [call-count ^long sleep-ms]
   (reify clojure.lang.IFn$OLOOO
     (invokePrim [_ _opts _dur handler _loop-opts]
       (dotimes [_ call-count] (handler {}))
-      (when (pos? sleep-ms) (Thread/sleep sleep-ms))
+      (when (pos? sleep-ms) (Thread/sleep (long sleep-ms)))
       nil)
     clojure.lang.IFn
     (invoke [_ _opts _dur handler _loop-opts]
       (dotimes [_ call-count] (handler {}))
-      (when (pos? sleep-ms) (Thread/sleep sleep-ms))
+      (when (pos? sleep-ms) (Thread/sleep (long sleep-ms)))
       nil)))
 
 (defn- fake-lib-open-live
@@ -224,7 +224,7 @@
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
                                             :queue-cap 2
-                                            :stop? (fn [_] (swap! stopped inc) (>= @stopped 1))
+                                            :stop? (fn [_] (swap! stopped inc) (>= (long @stopped) 1))
                                             :max 10 :max-time-ms 100 :idle-max-ms 30}))]
         (is (= 1 (count pkts)))
         (is (>= @stopped 1))))))
