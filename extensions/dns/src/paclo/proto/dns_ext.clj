@@ -25,12 +25,12 @@
    Follows compression pointers (0xC0xx). Limits jumps to avoid loops."
   [^bytes ba ^long start-off]
   (try
-    (let [len (alength ba)]
-      (letfn [(step [off parts jumps]
-                (when (>= jumps 20)
-                  (throw (ex-info "too many jumps" {:off off})))
-                (when (or (nil? off) (>= off len))
+    (let [len (long (alength ba))]
+      (letfn [(step [^long off parts ^long jumps]
+                (when (>= off len)
                   (throw (ex-info "offset OOB" {:off off :len len})))
+                (when (>= jumps 20)
+                  (throw (ex-info "too many jumps" {:off off :jumps jumps})))
                 (let [b (u8 ba off)]
                   (cond
                     ;; terminal zero
@@ -38,14 +38,14 @@
                     [(->> (persistent! parts)
                           (remove str/blank?)
                           (str/join "."))
-                     (inc off)]
+                     (unchecked-inc off)]
 
                     ;; compression pointer 11xxxxxx
                     (= 0xC0 (bit-and b 0xC0))
                     (let [ptr (bit-or (bit-shift-left (bit-and b 0x3F) 8)
-                                      (u8 ba (inc off)))
-                          [nm _] (step ptr (transient []) (inc jumps))
-                          next-off (+ off 2)
+                                      (u8 ba (unchecked-inc off)))
+                          [nm _] (step ptr (transient []) (unchecked-inc jumps))
+                          next-off (unchecked-add off 2)
                           prefix (persistent! parts)
                           combined (cond-> prefix
                                      (seq nm) (conj nm))]
@@ -55,11 +55,11 @@
                     ;; ordinary label
                     :else
                     (let [lablen b
-                          s (inc off)
-                          e (+ s lablen)]
+                          s (unchecked-inc off)
+                          e (unchecked-add s lablen)]
                       (when (> e len)
                         (throw (ex-info "label OOB" {:s s :e e :len len})))
-                      (let [label (String. ba s lablen "UTF-8")]
+                      (let [label (String. ^bytes ba (int s) (int lablen) "UTF-8")]
                         (step e (conj! parts label) jumps))))))]
         (step start-off (transient []) 0)))
     (catch Throwable _ nil)))

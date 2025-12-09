@@ -42,6 +42,15 @@ jobs:
           sudo ./clj.sh
           clojure -Sdescribe
 
+      - name: Install babashka (latest)
+        shell: bash
+        run: |
+          set -e
+          curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install
+          chmod +x install
+          sudo ./install
+          bb --version
+
       - name: Cache Clojure deps
         uses: actions/cache@v4
         with:

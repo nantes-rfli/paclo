@@ -123,12 +123,13 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での CI（lint+tests+cljdoc）を green に。
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
-### Phase E メモ（2025-12-07 更新）
+### Phase E メモ（2025-12-09 更新）
 
 - `dns-topn` / `dns-qps` を実装済み（punycode opt-in+warn, async/drop/cancel, empty-bucket 補完, SNI/ALPN 集計, RFC4180 CSV）。
   SNI/ALPN サンプル `tls-sni-sample.pcap` / `tls-sni-alpn-sample.pcap` / `tls-sni-h3[-mix]-sample.pcap` を同梱し、スモークテスト追加。
+- ALPN 集計仕様を確定（group=:alpn、デフォルトは先頭のみ採用、`--alpn-join` で全 ALPN を結合）し、サンプル PCAP と smoke テストを整備済み。
 - `dns-qps` に `--log-punycode-fail` を追加し README/Usage を同期。qname 正規化は toASCII で検証して warn を stderr 出力。
-- スモークテストを `test/examples/smoke_test.clj` に拡充（csv ヘッダ、punycode warn）し、`clojure -M:test` は 2025-12-07 時点で green。
+- スモークテストを `test/examples/smoke_test.clj` に拡充（csv ヘッダ、punycode warn）し、`clojure -M:test` は 2025-12-09 時点で green。
 - v0.4 ベンチ目安を追加: `dns-qps` on `dns-synth-small.pcap` (10 pkt, bucket=1000, decode?=true)
   で elapsed ≈ 16.2ms（macOS 14.4 / i7-8700B / JDK21）。
 - eastwood は `-M:eastwood:dns-ext` + data.xml 追加で完走（警告は boxed-math 等のみ）。

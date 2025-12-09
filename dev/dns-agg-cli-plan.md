@@ -21,6 +21,7 @@ v0.4 / P2 の着手用たたき台。2025-12-12 までに CLI 仕様を確定す
 - async: buffer/mode/timeout を実装済み（dropping で drop カウント、timeout で cancel）。
 - punycode: `--punycode-to-unicode` で qname を Unicode へ変換（失敗時は元のラベル）。`--log-punycode-fail` で WARN を stderr に出力。
 - SNI: group=sni 時は BPF 既定を `tcp and port 443` に切替え。`--sni-bpf` で上書き可。サンプル `test/resources/tls-sni-sample.pcap` 追加。
+- ALPN: group=:alpn で ClientHello ALPN を集計（デフォルトは先頭のみ、`--alpn-join` で全 ALPN をカンマ結合）。サンプル PCAP（`tls-sni-alpn-sample.pcap` / `tls-sni-h3-sample.pcap` / `tls-sni-alpn-h3mix-sample.pcap`）とスモークテストを追加済み。
 
 ### dns-qps（タイムシリーズ, 実装中）
 
@@ -48,4 +49,4 @@ v0.4 / P2 の着手用たたき台。2025-12-12 までに CLI 仕様を確定す
 
 ## 未決事項（残件）
 
-- ALPN 集計: group=:alpn を追加（デフォルトは先頭 ALPN、`--alpn-join` で全 ALPN をカンマ結合）。サンプル PCAP: `test/resources/tls-sni-alpn-sample.pcap`（h2,http/1.1）、`test/resources/tls-sni-h3-sample.pcap`（h3）、`test/resources/tls-sni-alpn-h3mix-sample.pcap`（h3,h2,http/1.1）。
+- なし（2025-12-09 時点）

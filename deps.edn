@@ -28,7 +28,7 @@
                               "--test-ns-regex" ".*-test$"
                               "--codecov"
                               "--output" "target/coverage"]}
-  :eastwood    {:extra-paths ["dev" "test" "test/resources"]
+  :eastwood    {:extra-paths ["dev" "test" "test/resources" "extensions/dns/src"]
                 :extra-deps  {jonase/eastwood {:mvn/version "1.4.3"}
                               org.clojure/test.check {:mvn/version "1.1.1"}
                               org.clojure/data.xml   {:mvn/version "0.2.0-alpha8"}}

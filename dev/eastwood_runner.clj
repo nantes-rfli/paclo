@@ -4,7 +4,7 @@
 
 (defn -main [& _]
   ;; Lint both source and tests. Adjust paths if you add new roots.
-  (lint/eastwood {:source-paths ["src" "dev"]
+  (lint/eastwood {:source-paths ["src" "dev" "extensions/dns/src"]
                   :test-paths   ["test"]
                   :linters      [:all]
                   ;; キーワード表記の揺れは意図的に許容
