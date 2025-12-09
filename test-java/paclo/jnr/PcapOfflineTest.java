@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 public class PcapOfflineTest {
 
   @Test
-  void readFirstPacketFromSamplePcap() {
+  public void readFirstPacketFromSamplePcap() {
     Path pcap = Paths.get("test/resources/dns-sample.pcap").toAbsolutePath();
     assertTrue(Files.isRegularFile(pcap), "dns-sample.pcap should exist");
 

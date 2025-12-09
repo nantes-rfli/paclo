@@ -87,7 +87,7 @@ jobs:
         run: |
           set -e
           clojure -T:build javac-test
-          clojure -M:junit
+          clojure -T:build junit
 
       - name: SpotBugs
         shell: bash

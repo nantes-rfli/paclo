@@ -88,3 +88,13 @@
               :class-dir  test-class-dir
               :basis      basis
               :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))
+
+(defn junit
+  "Run JUnit Platform (Java tests). Assumes javac-test has been executed."
+  [_]
+  (let [cp (-> (sh/sh "clojure" "-A:junit" "-Spath") :out str/trim)]
+    (b/process {:command-args ["java" "-cp" cp
+                               "org.junit.platform.console.ConsoleLauncher"
+                               "--scan-class-path" "target/test-classes"
+                               "--fail-if-no-tests"]
+                :inherit true})))
