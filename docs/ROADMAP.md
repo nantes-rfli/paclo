@@ -60,7 +60,7 @@ pcap を REPL・seq・EDN にそのまま流し込める「data-first / REPL 快
 - README に async オプションの opt-in 手順と観察例を追記、ROADMAP 反映、CHANGELOG 0.3.0 公開
 - `git tag v0.3.0` 済み（2025-12-05）
 
-### 進捗サマリ（2025-12-05 時点）
+### 進捗サマリ（2025-12-10 時点）
 
 - TLS SNI 拡張実装・テスト・例への統合を完了し、`docs/extensions.md` に使用/制約を追記
 - decode_ext の安定化ドラフト `dev/decode-ext-api-plan.md` と proto-dns 分離計画ドラフト `dev/proto-dns-split-plan.md` を作成
@@ -68,6 +68,7 @@ pcap を REPL・seq・EDN にそのまま流し込める「data-first / REPL 快
 - REPL 指標（小/中/大）を取得し README/ROADMAP に反映、ベースラインを最新化
 - examples 4 本のフォーマット/エラー整形を共通化し、`pcap-filter` JSONL メタ出力のスモークテストを追加
 - async オプションの opt-in 実装とスモークテストを整備し、CHANGELOG/README/ROADMAP を v0.3.0 内容に同期
+- CI は dns-ext smoke / cljdoc dry-run を含め green（2025-12-10 時点）。NVD スキャンは `NVD_API_TOKEN` 未設定のため未完了（ローカル実行で確認）。
 
 ---
 
@@ -107,6 +108,7 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - [x] DNS 集計用のスモーク/ゴールデンテストを追加（小 PCAP 同梱）。
 - [x] README/ROADMAP/CHANGELOG に v0.4 内容と使い方を反映し、最新ベンチまたは目安を 1 件掲載。
 - [ ] 依存・セキュリティチェック（eastwood/nvd）を実行し、クリティカルなしであることを明記。
+  - 2025-12-10: `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` をローカル実行したが、`NVD_API_TOKEN` 未設定により失敗（要トークン設定）。
 
 ### 着手前の準備（進行中）
 
@@ -122,7 +124,7 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - Phase E (計画確定) — 2025-12-12: DNS 集計の指標と出力項目を固め、CLI コマンド仕様を決定。`:dns-ext` alias
   の依存/起動確認を整備。 **状態: 完了 (2025-12-09 更新メモを完走)**
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での
-  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-09)**
+  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-10: CI green / cljdoc dry-run / dns-topn smoke 反映済み、NVD はトークン未設定で未完)**
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
 ### Phase E メモ（2025-12-09 更新 / 完了）
@@ -138,13 +140,13 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
   nvd は GitHub Actions `Dependency Audit`（secrets.NVD_API_TOKEN）で実行予定。ローカル実行時は同トークンを
   `NVD_API_TOKEN` に設定する。
 
-### Phase F 進行中メモ（2025-12-09 着手）
+### Phase F 進行中メモ（2025-12-10 更新）
 
 - CI 拡張: `dns-topn` の最小 smoke (`clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`) を
-  `ci.yml` build ジョブに追加。
-- CI 拡張: cljdoc ドライランを追加し、`:dns-ext` 経路でも壊れないことを確認（`cljdoc.doc-tree` の require を CI で実施）。
+  `ci.yml` build ジョブに追加（2025-12-09 適用済み）。
+- CI 拡張: cljdoc ドライランを追加し、`:dns-ext` 経路でも壊れないことを確認（`cljdoc.doc-tree` の require を CI で実施、2025-12-09 適用済み）。
 - セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
-  結果を CHANGELOG/ROADMAP に反映（現状トークン未設定で失敗→要対応）。
+  結果を CHANGELOG/ROADMAP に反映する必要あり（2025-12-10 ローカル実行はトークン未設定で失敗→要トークン）。
 - ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
 
 #### CI トラブルシュート（2025-12-10）
@@ -175,5 +177,6 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - paclo-proto-dns — 上位プロトコル例（同リポで `:dns-ext` alias 提供）
 - paclo-cli — 最小 CLI
 - paclo-examples — サンプル集
-- [ ] CSV/Parquet オプションの依存戦略を決定（デフォルト依存に含めない方針の確認）
+- [x] CSV/Parquet オプションの依存戦略を決定（デフォルト依存に含めない方針の確認）
+  - 方針: CSV は `:csv` alias のみ追加しデフォルト非依存、Parquet/duckdb は任意オプションとして今後もデフォルトに含めない。
 - [x] CSV 用の軽量 alias `:csv` を追加（`org.clojure/data.csv`）。Parquet/duckdb はデフォルト依存に含めず、今後の任意オプションで検討。

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - Eastwood は `-M:eastwood:dns-ext`（+ data.xml 追加）で完走。警告は boxed-math/performance/reflection のみ。
 - nvd-clojure は GitHub Actions `Dependency Audit` で `secrets.NVD_API_TOKEN` を用いて実行。ローカル再現は `NVD_API_TOKEN` を設定して `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`。
-- 2025-12-09 時点のローカル nvd-clojure 実行は `NVD_API_TOKEN` 未設定で失敗（要トークン設定）。
+- 2025-12-10 ローカルで `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を実行したが、`NVD_API_TOKEN` 未設定で失敗（要トークン設定）。
 
 ## [0.3.0] - 2025-12-05
 
