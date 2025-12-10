@@ -116,12 +116,12 @@ jobs:
       - name: dns-ext smoke (dns-topn)
         run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
 
-      - name: cljdoc dry run (placeholder)
+      - name: cljdoc dry run
         shell: bash
         run: |
           set -e
-          echo "cljdoc dry run is temporarily skipped (cljdoc/cljdoc-action unresolved)."
-          echo "Pending: replace with working cljdoc CLI once available."
+          clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
+            -e "(require 'cljdoc.main) (println :cljdoc-ok)"
 
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
@@ -183,17 +183,16 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Temurin JDK
+      - name: Set up Temurin JDK 17 (stable for cloverage)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
       - name: Install Clojure CLI
         shell: bash
@@ -224,15 +223,8 @@ jobs:
       - name: Run cloverage
         shell: bash
         run: |
-          # cloverage occasionally crashes JVM 21 on GH runners after tests complete.
-          # Run best-effort and do not fail pipeline on crash.
-          set +e
+          set -e
           clojure -M:coverage
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "WARNING: cloverage failed (known JVM21 crash on GH runners); ignoring failure for now."
-          fi
-          exit 0
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
