@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- なし
+
+## [0.4.0] - 2025-12-10
+
 ### Added
 - DNS 集計 CLI `examples.dns-topn` / `examples.dns-qps`（EDN/JSONL/CSV、async/drop/cancel、qname punycode 正規化、SNI/ALPN 集計、empty-bucket 補完）。
 - TLS サンプル PCAP を追加（`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`）し、スモークテストを拡充。

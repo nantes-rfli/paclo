@@ -25,7 +25,7 @@ Paclo ライブラリの方向性・リリース計画・直近タスクをま�
 
 ---
 
-## 最新ステータス: v0.3 / P1 完了（2025-12-05）
+## 最新ステータス: v0.4 / P2 完了（2025-12-10）
 
 ### 目的（P1）
 
@@ -68,7 +68,8 @@ pcap を REPL・seq・EDN にそのまま流し込める「data-first / REPL 快
 - REPL 指標（小/中/大）を取得し README/ROADMAP に反映、ベースラインを最新化
 - examples 4 本のフォーマット/エラー整形を共通化し、`pcap-filter` JSONL メタ出力のスモークテストを追加
 - async オプションの opt-in 実装とスモークテストを整備し、CHANGELOG/README/ROADMAP を v0.3.0 内容に同期
-- CI は dns-ext smoke / cljdoc dry-run を含め green（2025-12-10 時点）。NVD スキャンは `NVD_API_TOKEN` 未設定のため未完了（ローカル実行で確認）。
+- CI は dns-ext smoke / cljdoc dry-run を含め green（2025-12-10 時点）。Dependency Audit（nvd-clojure）が
+  GA でクリティカルなし。`v0.4.0-rc` から `v0.4.0` をタグ発行。
 
 ---
 
@@ -86,7 +87,7 @@ pcap を REPL・seq・EDN にそのまま流し込める「data-first / REPL 快
 
 ---
 
-## v0.4 / P2 計画（DNS 集計ユースケース）
+## v0.4 / P2 完了（DNS 集計ユースケース）
 
 ### 目的（P2）
 
@@ -122,11 +123,12 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 ### マイルストン
 
 - Phase E (計画確定) — 2025-12-12: DNS 集計の指標と出力項目を固め、CLI コマンド仕様を決定。`:dns-ext` alias
-  の依存/起動確認を整備。 **状態: 完了 (2025-12-09 更新メモを完走)**
+  の依存/起動確認を整備。 **状態: 完了 (2025-12-09)**
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での
-  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-10: CI green / cljdoc dry-run / dns-topn smoke 反映済み、
+  CI（lint+tests+cljdoc）を green に。**状態: 完了 (2025-12-10: CI green / cljdoc dry-run / dns-topn smoke 反映、
   NVD は GA Dependency Audit でクリティカルなし)**
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
+  **状態: 完了 (2025-12-10: `v0.4.0-rc` → `v0.4.0` タグ発行)**
 
 ### Phase E メモ（2025-12-09 更新 / 完了）
 
