@@ -107,8 +107,8 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - [x] DNS 集計 CLI（bb/sci）が `--async` 系フラグを含め examples と一貫し、サンプル PCAP で動作確認済み。
 - [x] DNS 集計用のスモーク/ゴールデンテストを追加（小 PCAP 同梱）。
 - [x] README/ROADMAP/CHANGELOG に v0.4 内容と使い方を反映し、最新ベンチまたは目安を 1 件掲載。
-- [ ] 依存・セキュリティチェック（eastwood/nvd）を実行し、クリティカルなしであることを明記。
-  - 2025-12-10: `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` をローカル実行したが、`NVD_API_TOKEN` 未設定により失敗（要トークン設定）。
+- [x] 依存・セキュリティチェック（eastwood/nvd）を実行し、クリティカルなしであることを明記。
+  - 2025-12-10: GitHub Actions "Dependency Audit"（nvd-clojure）を `NVD_API_TOKEN` 設定付きで実行し、クリティカル CVE なしを確認。
 
 ### 着手前の準備（進行中）
 
@@ -124,7 +124,8 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - Phase E (計画確定) — 2025-12-12: DNS 集計の指標と出力項目を固め、CLI コマンド仕様を決定。`:dns-ext` alias
   の依存/起動確認を整備。 **状態: 完了 (2025-12-09 更新メモを完走)**
 - Phase F (実装/テスト) — 2025-12-22: CLI 実装、examples 追従、スモーク/ゴールデンテスト追加。`:dns-ext` alias での
-  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-10: CI green / cljdoc dry-run / dns-topn smoke 反映済み、NVD はトークン未設定で未完)**
+  CI（lint+tests+cljdoc）を green に。**状態: 着手 (2025-12-10: CI green / cljdoc dry-run / dns-topn smoke 反映済み、
+  NVD は GA Dependency Audit でクリティカルなし)**
 - Phase G (ドキュメント/リリース準備) — 2026-01-05: README/ROADMAP/CHANGELOG 反映、ベンチ結果掲載、リリース候補タグ `v0.4.0-rc` 作成。
 
 ### Phase E メモ（2025-12-09 更新 / 完了）
@@ -145,8 +146,8 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - CI 拡張: `dns-topn` の最小 smoke (`clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`) を
   `ci.yml` build ジョブに追加（2025-12-09 適用済み）。
 - CI 拡張: cljdoc ドライランを追加し、`:dns-ext` 経路でも壊れないことを確認（`cljdoc.doc-tree` の require を CI で実施、2025-12-09 適用済み）。
-- セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
-  結果を CHANGELOG/ROADMAP に反映する必要あり（2025-12-10 ローカル実行はトークン未設定で失敗→要トークン）。
+- セキュリティ: GitHub Actions "Dependency Audit" で `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`
+  を実行し、クリティカル CVE なしを確認（2025-12-10）。
 - ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
 
 #### CI トラブルシュート（2025-12-10）
