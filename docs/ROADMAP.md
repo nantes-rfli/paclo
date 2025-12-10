@@ -143,9 +143,14 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 - CI 拡張: `dns-topn` の最小 smoke (`clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`) を
   `ci.yml` build ジョブに追加。
 - CI 拡張: cljdoc ドライランを追加（`cljdoc/cljdoc-action` 利用想定）し、`:dns-ext` 経路でも壊れないことを確認。
-- セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
-  結果を CHANGELOG/ROADMAP に反映（現状トークン未設定で失敗→要対応）。
-- ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
+  - セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
+    結果を CHANGELOG/ROADMAP に反映（現状トークン未設定で失敗→要対応）。
+  - ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
+
+#### CI トラブルシュート（2025-12-10）
+
+- `cljdoc/cljdoc-action@v1` が解決できず CI 失敗。暫定で「cljdoc dry run (placeholder)」に置換し通過させる。
+- 代替案: cljdoc CLI を `clojure -Sdeps '{:deps {cljdoc/cljdoc <ver>}}' -m cljdoc.main --help` などで呼ぶ方式を検証し、安定版で再追加する。
 
 ### リスクと緩和
 

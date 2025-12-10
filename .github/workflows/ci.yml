@@ -116,11 +116,12 @@ jobs:
       - name: dns-ext smoke (dns-topn)
         run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
 
-      - name: cljdoc dry run
-        uses: cljdoc/cljdoc-action@v1
-        with:
-          projects: |
-            io.github.nantes-rfli/paclo
+      - name: cljdoc dry run (placeholder)
+        shell: bash
+        run: |
+          set -e
+          echo "cljdoc dry run is temporarily skipped (cljdoc/cljdoc-action unresolved)."
+          echo "Pending: replace with working cljdoc CLI once available."
 
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
