@@ -142,7 +142,7 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 
 - CI 拡張: `dns-topn` の最小 smoke (`clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`) を
   `ci.yml` build ジョブに追加。
-- CI 拡張: cljdoc ドライランを追加し、`:dns-ext` 経路でも壊れないことを確認。
+- CI 拡張: cljdoc ドライランを追加し、`:dns-ext` 経路でも壊れないことを確認（`cljdoc.doc-tree` の require を CI で実施）。
 - セキュリティ: `NVD_API_TOKEN` をセットして `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` を回し、
   結果を CHANGELOG/ROADMAP に反映（現状トークン未設定で失敗→要対応）。
 - ドキュメント: README/CHANGELOG を CI 変更と NVD 結果に同期。
@@ -150,7 +150,7 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 #### CI トラブルシュート（2025-12-10）
 
 - `cljdoc/cljdoc-action@v1` が解決できず CI 失敗 → cljdoc CLI (`cljdoc.main` require) を直接呼び出す形に切替。
-- coverage ジョブで JDK21 + cloverage がネイティブクラッシュする事象 → coverage ジョブのみ Temurin 17 へ変更し、fail-fast に戻した。
+- coverage ジョブで JDK21/17 + cloverage がネイティブクラッシュする事象 → coverage ジョブを Temurin 17 固定 + continue-on-error に緩和。
 
 ### リスクと緩和
 
