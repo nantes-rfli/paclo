@@ -4,6 +4,20 @@
             [clojure.java.shell :as sh]
             [clojure.string :as str]))
 
+(def ^:private path-sep (System/getProperty "path.separator"))
+
+(defn- classpath
+  "Return classpath string. When alias-arg is provided (e.g. \"-A:junit\"),
+   it is appended to the clojure -Spath invocation."
+  ([] (-> (sh/sh "clojure" "-Spath") :out str/trim))
+  ([alias-arg] (-> (sh/sh "clojure" alias-arg "-Spath") :out str/trim)))
+
+(defn- find-in-cp
+  "Find first classpath entry containing the given substring."
+  [cp substr]
+  (let [sep-regex (re-pattern (java.util.regex.Pattern/quote path-sep))]
+    (some #(when (str/includes? % substr) %) (str/split cp sep-regex))))
+
 (def lib 'io.github.nantes-rfli/paclo)
 (def version "0.2.0")
 (def class-dir "target/classes")
@@ -92,9 +106,14 @@
 (defn junit
   "Run JUnit Platform (Java tests). Assumes javac-test has been executed."
   [_]
-  (let [cp (-> (sh/sh "clojure" "-A:junit" "-Spath") :out str/trim)]
-    (b/process {:command-args ["java" "-cp" cp
-                               "org.junit.platform.console.ConsoleLauncher"
-                               "--scan-class-path" "target/test-classes"
+  (let [cp-base (classpath)
+        cp-junit (classpath "-A:junit")
+        console (or (find-in-cp cp-junit "junit-platform-console-standalone")
+                    (throw (ex-info "ConsoleLauncher jar not found on classpath" {})))
+        test-cp (str "target/test-classes" path-sep "target/classes" path-sep cp-base)]
+    (b/process {:command-args ["java"
+                               "-jar" console
+                               "--class-path" test-cp
+                               "--scan-class-path"
                                "--fail-if-no-tests"]
                 :inherit true})))

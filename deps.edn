@@ -47,9 +47,7 @@
                 :extra-deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}}
                 :main-opts   ["-m" "paclo.dev.jacoco-gate"]}
   :junit       {:extra-paths ["dev" "target/classes" "target/test-classes"]
-                :extra-deps  {org.junit.platform/junit-platform-console-standalone {:mvn/version "1.10.2"}
-                              org.junit.platform/junit-platform-launcher {:mvn/version "1.10.2"}
-                              org.junit.jupiter/junit-jupiter-engine     {:mvn/version "5.10.2"}}}
+                :extra-deps  {org.junit.platform/junit-platform-console-standalone {:mvn/version "1.10.2"}}}
   :nrepl       {:extra-deps  {nrepl/nrepl       {:mvn/version "1.5.1"}
                               cider/cider-nrepl {:mvn/version "0.58.0"}}
                 :main-opts   ["-m" "nrepl.cmdline"
