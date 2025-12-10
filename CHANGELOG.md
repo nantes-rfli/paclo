@@ -7,24 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- なし
+- None.
 
 ## [0.4.0] - 2025-12-10
 
 ### Added
-- DNS 集計 CLI `examples.dns-topn` / `examples.dns-qps`（EDN/JSONL/CSV、async/drop/cancel、qname punycode 正規化、SNI/ALPN 集計、empty-bucket 補完）。
-- TLS サンプル PCAP を追加（`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`）し、スモークテストを拡充。
-- DNS QPS ベンチ目安を README/ROADMAP に追記（dns-synth-small 10pkt, bucket=1000, decode?=true, ≈16.2ms）。
-- CI: build ジョブに dns-ext smoke（`examples.dns-topn`）と cljdoc CLI ドライランを追加。
-- CI: coverage ジョブを Temurin 17 + continue-on-error に設定し、cloverage ネイティブクラッシュを緩和。
+- DNS aggregation CLIs `examples.dns-topn` / `examples.dns-qps` (EDN/JSONL/CSV, async/drop/cancel, qname punycode normalization, SNI/ALPN aggregation, empty-bucket fill).
+- Added four TLS sample PCAPs (`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`) and expanded smoke tests.
+- Added DNS QPS benchmark reference to README/ROADMAP (dns-synth-small 10pkt, bucket=1000, decode?=true, ≈16.2ms).
+- CI: added dns-ext smoke (`examples.dns-topn`) and cljdoc CLI dry-run to the build job.
+- CI: set coverage job to Temurin 17 with continue-on-error to mitigate cloverage native crashes.
 
 ### Fixed
-- `dns-qps` に `--log-punycode-fail` を追加し、README/ヘルプと実装の不整合を解消。punycode decode 失敗を WARN として標準エラーに出力。
+- Added `--log-punycode-fail` to `dns-qps`, aligning README/help with implementation; punycode decode failures now log WARN to stderr.
 
 ### Notes
-- Eastwood は `-M:eastwood:dns-ext`（+ data.xml 追加）で完走。警告は boxed-math/performance/reflection のみ。
-- nvd-clojure は GitHub Actions `Dependency Audit` で `secrets.NVD_API_TOKEN` を用いて実行。ローカル再現は `NVD_API_TOKEN` を設定して `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`。
-- 2025-12-10 GitHub Actions "Dependency Audit"（nvd-clojure）を `NVD_API_TOKEN` 設定付きで実行し、クリティカル CVE なしを確認。
+- Eastwood passes via `-M:eastwood:dns-ext` (+ data.xml); warnings limited to boxed-math/performance/reflection.
+- nvd-clojure runs in GitHub Actions `Dependency Audit` using `secrets.NVD_API_TOKEN`; to reproduce locally set `NVD_API_TOKEN` and run `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`.
+- 2025-12-10: GitHub Actions "Dependency Audit" (nvd-clojure) completed with `NVD_API_TOKEN`, no critical CVEs.
 
 ## [0.3.0] - 2025-12-05
 
