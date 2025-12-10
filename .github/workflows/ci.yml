@@ -120,8 +120,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          clojure -M -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
-            -e "(require 'cljdoc.doc-tree) (println :cljdoc-loaded)"
+          clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
+            -M -e "(require 'cljdoc.doc-tree) (println :cljdoc-loaded)"
 
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
