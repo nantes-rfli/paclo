@@ -39,7 +39,7 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 ## 3. CI gates
 
-- [x] `CI` workflow が `main/master` 上で green（run: `22295071881`, 2026-02-23）
+- [x] `CI` workflow が `main/master` 上で green（run: `22295246018`, 2026-02-23）
 - [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす
@@ -81,12 +81,27 @@ git tag v1.0.0-rc
 git push origin v1.0.0-rc
 ```
 
-- [ ] タグ作成後、GitHub Releases 下書きを作成
-- [ ] リリースノートに migration link を含める
+- [x] タグ作成後、GitHub Releases 下書きを作成
+- [x] リリースノートに migration link を含める
 - [ ] cljdoc 反映を確認
+
+実施結果（2026-02-23）:
+
+- [x] タグ作成後、GitHub Releases 下書きを作成
+  - `v1.0.0-rc` (draft, prerelease): `https://github.com/nantes-rfli/paclo/releases/tag/untagged-9ee36cae8a3a2f602c7d`
+- [x] リリースノートに migration link を含める
+- [ ] cljdoc 反映を確認（公開反映待ち）
 
 ## 6. Post-tag verification
 
 - [ ] `deps.edn` の git/tag + sha でサンプルが再現できる
-- [ ] Quick Start がクリーン環境で動作する
-- [ ] 既知の制約（arm64 required 化前提など）をリリースノートで明示
+- [x] Quick Start がクリーン環境で動作する
+- [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示
+
+実施結果（2026-02-23）:
+
+- [ ] `deps.edn` の git/tag + sha でサンプルが再現できる
+  - `ClassNotFoundException: paclo.jnr.PcapHeader`（git 依存のみでは Java クラス未コンパイル）
+- [x] Quick Start がクリーン環境で動作する
+  - 手順: `git clone --branch v1.0.0-rc` → `clojure -T:build javac` → README 相当コマンド実行成功
+- [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示
