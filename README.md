@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD013 -->
 # Paclo
 
-[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)
-[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)
+[![cljdoc](https://cljdoc.org/badge/org.clojars.nanto/paclo)](https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT)
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.nanto/paclo.svg)](https://clojars.org/org.clojars.nanto/paclo)
 
 > ※ cljdoc / Clojars が 404 の場合、公開直後のインデックス待ちです（数分〜数十分かかることがあります）。
 
@@ -338,7 +338,7 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 
 ```edn
 {:deps
- {io.github.nantes-rfli/paclo
+ {org.clojars.nanto/paclo
  {:git/url "https://github.com/nantes-rfli/paclo.git"
    ;; 安定版を使う場合はタグを指定（v1.0.0）
    :git/tag "v1.0.0"}}}
@@ -393,8 +393,8 @@ clojure -X:deps prep
 
 ## Documentation / Badges
 
-- cljdoc: `[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)`
-- Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)`
+- cljdoc: `[![cljdoc](https://cljdoc.org/badge/org.clojars.nanto/paclo)](https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT)`
+- Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.nanto/paclo.svg)](https://clojars.org/org.clojars.nanto/paclo)`
 
 ---
 

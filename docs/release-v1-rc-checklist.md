@@ -113,7 +113,7 @@ git push origin v1.0.0-rc.1
 
 - `v1.0.0` release URL: `https://github.com/nantes-rfli/paclo/releases/tag/v1.0.0`
 - Clojars publish は `.github/workflows/publish.yml` で実行可能（必須 secrets: `CLOJARS_USERNAME`, `CLOJARS_PASSWORD`）
-- cljdoc: `https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT` は Clojars publish 後に確認継続
+- cljdoc: `https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT` は Clojars publish 後に確認継続
 
 実施結果（2026-02-23）:
 

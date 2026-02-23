@@ -69,7 +69,7 @@ jobs:
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "artifact=target/paclo-$version.jar" >> "$GITHUB_OUTPUT"
-          echo "pom=target/classes/META-INF/maven/io.github.nantes-rfli/paclo/pom.xml" >> "$GITHUB_OUTPUT"
+          echo "pom=target/classes/META-INF/maven/org.clojars.nanto/paclo/pom.xml" >> "$GITHUB_OUTPUT"
 
       - name: Build release artifact
         shell: bash
@@ -98,6 +98,6 @@ jobs:
 
       - name: Publish summary
         run: |
-          echo "Published io.github.nantes-rfli/paclo:${{ steps.vars.outputs.version }} to Clojars." >> "$GITHUB_STEP_SUMMARY"
-          echo "Clojars: https://clojars.org/io.github.nantes-rfli/paclo" >> "$GITHUB_STEP_SUMMARY"
-          echo "cljdoc (CURRENT): https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Published org.clojars.nanto/paclo:${{ steps.vars.outputs.version }} to Clojars." >> "$GITHUB_STEP_SUMMARY"
+          echo "Clojars: https://clojars.org/org.clojars.nanto/paclo" >> "$GITHUB_STEP_SUMMARY"
+          echo "cljdoc (CURRENT): https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT" >> "$GITHUB_STEP_SUMMARY"

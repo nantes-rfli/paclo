@@ -14,7 +14,7 @@ This page is the entry point to the documentation set.
 - v1.0.0-rc release checklist: ./release-v1-rc-checklist.md
 - Roadmap: ./ROADMAP.md
 - v1.0 API freeze draft (Phase H): ./v1-phase-h-freeze-draft.md
-- API on cljdoc: <https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT>
+- API on cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
 
 ## Common tasks
 

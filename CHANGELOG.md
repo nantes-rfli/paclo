@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `build.clj` now resolves version from `PACLO_VERSION`/tag context, writes Maven metadata (SCM/description/url), and adds a local `install` task.
+- Switched publish/cljdoc coordinates from `io.github.nantes-rfli/paclo` to `org.clojars.nanto/paclo`.
 
 ## [1.0.0] - 2026-02-23
 

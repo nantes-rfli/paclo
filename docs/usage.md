@@ -98,6 +98,6 @@ See `docs/extensions.md` for how to write your own hook (e.g., TLS SNI).
 
 ## Reference & further reading
 
-- API docs: <https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT>
+- API docs: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
 - Roadmap: ./ROADMAP.md
 - Decode extensions: ./extensions.md

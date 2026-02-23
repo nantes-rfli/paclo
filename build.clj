@@ -30,7 +30,7 @@
       (tagged-version)
       "1.0.0-SNAPSHOT"))
 
-(def lib 'io.github.nantes-rfli/paclo)
+(def lib 'org.clojars.nanto/paclo)
 (def version (resolve-version))
 (def class-dir "target/classes")
 (def test-class-dir "target/test-classes")
