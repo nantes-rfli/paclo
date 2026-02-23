@@ -39,7 +39,7 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 ## 3. CI gates
 
-- [x] `CI` workflow が `main/master` 上で green（run: `22296092152`, 2026-02-23）
+- [x] `CI` workflow が `main/master` 上で green（run: `22296353769`, 2026-02-23）
 - [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす
@@ -90,6 +90,8 @@ git push origin v1.0.0-rc.1
 - [x] タグ作成後、GitHub Releases 下書きを作成
   - `v1.0.0-rc` (draft, prerelease): `https://github.com/nantes-rfli/paclo/releases/tag/untagged-9ee36cae8a3a2f602c7d`
   - `v1.0.0-rc.1` (draft, prerelease): `https://github.com/nantes-rfli/paclo/releases/tag/untagged-76e380af67cd9531a365`
+- [x] `v1.0.0-rc.1` を publish（pre-release 公開）
+  - 公開 URL: `https://github.com/nantes-rfli/paclo/releases/tag/v1.0.0-rc.1`
 - [x] リリースノートに migration link を含める
 - [ ] cljdoc 反映を確認（公開反映待ち）
 
