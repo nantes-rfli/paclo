@@ -4,7 +4,7 @@
 [![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)
 [![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)
 
-> ※ Clojars 公開前は暫定表示です。公開後に自動で有効化されます。
+> ※ cljdoc / Clojars が 404 の場合、公開直後のインデックス待ちです（数分〜数十分かかることがあります）。
 
 Paclo is a Clojure library for packet capture (pcap) input/output and filtering.  
 It provides a Clojure-friendly API for reading, writing, and filtering packets with BPF DSL support.
@@ -331,8 +331,8 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 
 ## Install
 
-> まずは **Git 依存**で使えます（Clojars 配布は後日）。  
-> 安定化後に Clojars へ公開したら、ここに Clojars 用の記述を追記します。
+> 利用者向けには Git 依存を優先案内しています。  
+> Clojars 配布は `.github/workflows/publish.yml` で実行できます。
 
 ### deps.edn
 
@@ -349,6 +349,12 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 ```bash
 clojure -X:deps prep
 ```
+
+### Clojars publish (maintainers)
+
+- 実行: Git tag push（`v*`）または GitHub Actions の `Publish` workflow を手動実行
+- 必須 secrets: `CLOJARS_USERNAME`, `CLOJARS_PASSWORD`
+- 実体: `PACLO_VERSION=<version> clojure -T:build jar` で JAR/POM を生成後、`slipset/deps-deploy` で Clojars に deploy
 
 ### require 一文
 
@@ -385,9 +391,7 @@ clojure -X:deps prep
 
 ---
 
-## Documentation / Badges（準備）
-
-公開後に以下を掲示します（Clojars/cljdoc 公開時に URL を差し替え）
+## Documentation / Badges
 
 - cljdoc: `[![cljdoc](https://cljdoc.org/badge/io.github.nantes-rfli/paclo)](https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT)`
 - Clojars: `[![Clojars Project](https://img.shields.io/clojars/v/io.github.nantes-rfli/paclo.svg)](https://clojars.org/io.github.nantes-rfli/paclo)`

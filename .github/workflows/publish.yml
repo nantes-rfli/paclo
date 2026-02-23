@@ -1,0 +1,103 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without leading v (example: 1.0.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish-clojars:
+    if: github.repository == 'nantes-rfli/paclo'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Clojure CLI
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Resolve version
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "Invalid version: $version"
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "artifact=target/paclo-$version.jar" >> "$GITHUB_OUTPUT"
+          echo "pom=target/classes/META-INF/maven/io.github.nantes-rfli/paclo/pom.xml" >> "$GITHUB_OUTPUT"
+
+      - name: Build release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACLO_VERSION="${{ steps.vars.outputs.version }}" clojure -T:build jar
+          test -f "${{ steps.vars.outputs.artifact }}"
+          test -f "${{ steps.vars.outputs.pom }}"
+
+      - name: Publish to Clojars
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
+          PACLO_ARTIFACT: ${{ steps.vars.outputs.artifact }}
+          PACLO_POM_FILE: ${{ steps.vars.outputs.pom }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CLOJARS_USERNAME:-}" || -z "${CLOJARS_PASSWORD:-}" ]]; then
+            echo "CLOJARS_USERNAME/CLOJARS_PASSWORD secrets are required."
+            exit 1
+          fi
+
+          clojure -M:deps-deploy -e "(require '[deps-deploy.deps-deploy :as d]) (d/deploy {:installer :remote :artifact (System/getenv \"PACLO_ARTIFACT\") :pom-file (System/getenv \"PACLO_POM_FILE\") :sign-releases? false})"
+
+      - name: Publish summary
+        run: |
+          echo "Published io.github.nantes-rfli/paclo:${{ steps.vars.outputs.version }} to Clojars." >> "$GITHUB_STEP_SUMMARY"
+          echo "Clojars: https://clojars.org/io.github.nantes-rfli/paclo" >> "$GITHUB_STEP_SUMMARY"
+          echo "cljdoc (CURRENT): https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT" >> "$GITHUB_STEP_SUMMARY"

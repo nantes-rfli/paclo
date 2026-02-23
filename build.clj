@@ -18,12 +18,42 @@
   (let [sep-regex (re-pattern (java.util.regex.Pattern/quote path-sep))]
     (some #(when (str/includes? % substr) %) (str/split cp sep-regex))))
 
+(defn- tagged-version
+  "Return version from tag like v1.2.3 when running on a tag ref."
+  []
+  (let [ref-name (System/getenv "GITHUB_REF_NAME")]
+    (when (and ref-name (re-matches #"v\d+\.\d+\.\d+([-\.].+)?" ref-name))
+      (subs ref-name 1))))
+
+(defn- resolve-version []
+  (or (System/getenv "PACLO_VERSION")
+      (tagged-version)
+      "1.0.0-SNAPSHOT"))
+
 (def lib 'io.github.nantes-rfli/paclo)
-(def version "0.2.0")
+(def version (resolve-version))
 (def class-dir "target/classes")
 (def test-class-dir "target/test-classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
+
+(defn- pom-params []
+  {:basis basis
+   :lib lib
+   :version version
+   :src-dirs (filter #(.exists (io/file %)) ["src"])
+   :resource-dirs (filter #(.exists (io/file %)) ["resources"])
+   :scm {:url "https://github.com/nantes-rfli/paclo"
+         :connection "scm:git:https://github.com/nantes-rfli/paclo.git"
+         :developerConnection "scm:git:git@github.com:nantes-rfli/paclo.git"
+         :tag (str "v" version)}
+   :pom-data [[:description "Paclo is a Clojure library for packet capture (pcap) I/O and filtering."]
+              [:url "https://github.com/nantes-rfli/paclo"]]})
+
+(defn pom
+  "Generate pom.xml under target/maven/ for publishing tools."
+  [_]
+  (b/write-pom (assoc (pom-params) :target "target/maven")))
 
 (defn clean [_]
   (b/delete {:path "target"}))
@@ -41,11 +71,23 @@
               :class-dir class-dir
               :basis basis
               :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]}))
+  ;; Maven metadata を JAR に同梱（Clojars/cljdoc 向け）
+  (b/write-pom (assoc (pom-params) :class-dir class-dir))
   ;; Jar 作成
   (b/jar {:class-dir class-dir
           :jar-file jar-file
           :lib lib
           :version version}))
+
+(defn install
+  "Build and install jar/pom into local Maven repository (~/.m2)."
+  [_]
+  (jar nil)
+  (b/install {:basis basis
+              :lib lib
+              :version version
+              :jar-file jar-file
+              :class-dir class-dir}))
 
 (defn javac
   "Compile Java sources under src-java into target/classes."

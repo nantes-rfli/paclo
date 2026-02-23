@@ -286,7 +286,9 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
    `eligible_for_required_gate=false`）
 - [x] `deps.edn` の git/tag+sha 利用で Java クラス prep フローを整備
   （`deps.edn` に `:deps/prep-lib` を追加。`v1.0.0-rc.1` で `clojure -X:deps prep` 後に `require paclo.core` 成功）
-- [ ] cljdoc 反映確認（2026-02-23 時点は `cljdoc - Library not found`）
+- [x] Clojars publish workflow を追加（tag push / 手動 dispatch で deploy 可能）
+  （`.github/workflows/publish.yml`, `deps.edn :deps-deploy`, `build.clj` Maven metadata）
+- [ ] cljdoc 反映確認（Clojars 初回 publish 後のインデックス待ち）
 
 ### リスクと緩和（P3）
 

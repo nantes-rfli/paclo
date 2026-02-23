@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `.github/workflows/publish.yml` to publish tagged releases to Clojars (or manual dispatch), preparing cljdoc indexing.
+- Added `:deps-deploy` alias (`slipset/deps-deploy`) for Maven/Clojars deployment.
+
 ### Changed
-- No notable changes yet.
+- `build.clj` now resolves version from `PACLO_VERSION`/tag context, writes Maven metadata (SCM/description/url), and adds a local `install` task.
 
 ## [1.0.0] - 2026-02-23
 

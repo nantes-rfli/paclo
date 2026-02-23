@@ -19,6 +19,7 @@
   :csv         {:extra-deps  {org.clojure/data.csv {:mvn/version "1.1.0"}}}
   :build       {:deps        {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
                 :ns-default  build}
+  :deps-deploy {:extra-deps  {slipset/deps-deploy {:mvn/version "0.2.2"}}}
   :nvd         {:extra-deps  {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}}
                 :main-opts   ["-m" "nvd.task.check"]}
   :coverage    {:extra-paths ["test" "test/resources" "dev" "extensions/dns/src"]
