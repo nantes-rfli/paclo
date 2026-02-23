@@ -47,7 +47,12 @@
          :connection "scm:git:https://github.com/nantes-rfli/paclo.git"
          :developerConnection "scm:git:git@github.com:nantes-rfli/paclo.git"
          :tag (str "v" version)}
-   :pom-data [[:description "Paclo is a Clojure library for packet capture (pcap) I/O and filtering."]
+   :pom-data [[:licenses
+               [:license
+                [:name "MIT License"]
+                [:url "https://opensource.org/license/mit/"]
+                [:distribution "repo"]]]
+              [:description "Paclo is a Clojure library for packet capture (pcap) I/O and filtering."]
               [:url "https://github.com/nantes-rfli/paclo"]]})
 
 (defn pom

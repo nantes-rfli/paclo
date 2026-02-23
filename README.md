@@ -398,6 +398,12 @@ clojure -X:deps prep
 
 ---
 
+## License
+
+MIT
+
+---
+
 ## FAQ
 
 **Q. ライブキャプチャが Permission denied になります**  
