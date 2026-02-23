@@ -46,8 +46,12 @@
         (is (re-find #"frame too short" (get-in (second out) [:decode-error])))))))
 
 (deftest packets-invalid-filter-throws
-  (is (thrown? clojure.lang.ExceptionInfo
-               (core/packets {:filter {:bad true}}))))
+  (try
+    (core/packets {:filter {:bad true}})
+    (is false "must throw ex-info")
+    (catch clojure.lang.ExceptionInfo e
+      (is (= "invalid :filter" (ex-message e)))
+      (is (= {:filter {:bad true}} (ex-data e))))))
 
 (deftest write-pcap-forwards-opts
   (let [called (atom nil)]

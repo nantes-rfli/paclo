@@ -1,0 +1,180 @@
+name: Arm64 Promotion Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: "Days to inspect (default: 14)"
+        required: false
+        default: "14"
+      min_success_rate:
+        description: "Minimum arm64 success rate (default: 0.95)"
+        required: false
+        default: "0.95"
+      max_rerun_rate:
+        description: "Maximum rerun dependence rate (default: 0.05)"
+        required: false
+        default: "0.05"
+      max_duration_ratio:
+        description: "Maximum arm64/x64 duration ratio (default: 1.5)"
+        required: false
+        default: "1.5"
+      enforce:
+        description: "Fail workflow when thresholds are not met"
+        required: false
+        default: "false"
+  schedule:
+    - cron: "15 2 * * 1"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build arm64 promotion report
+        id: report
+        uses: actions/github-script@v7
+        env:
+          LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '14' }}
+          MIN_SUCCESS_RATE: ${{ github.event.inputs.min_success_rate || '0.95' }}
+          MAX_RERUN_RATE: ${{ github.event.inputs.max_rerun_rate || '0.05' }}
+          MAX_DURATION_RATIO: ${{ github.event.inputs.max_duration_ratio || '1.5' }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const lookbackDays = Number(process.env.LOOKBACK_DAYS || 14);
+            const minSuccessRate = Number(process.env.MIN_SUCCESS_RATE || 0.95);
+            const maxRerunRate = Number(process.env.MAX_RERUN_RATE || 0.05);
+            const maxDurationRatio = Number(process.env.MAX_DURATION_RATIO || 1.5);
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const cutoffMs = Date.now() - (lookbackDays * msPerDay);
+
+            const repoResp = await github.rest.repos.get({ owner, repo });
+            const defaultBranch = repoResp.data.default_branch;
+
+            const workflowsResp = await github.rest.actions.listRepoWorkflows({ owner, repo, per_page: 100 });
+            const ciWorkflow = workflowsResp.data.workflows.find((w) => w.path === ".github/workflows/ci.yml" || w.name === "CI");
+            if (!ciWorkflow) {
+              core.setFailed("CI workflow not found (.github/workflows/ci.yml).");
+              return;
+            }
+
+            const runs = [];
+            for (let page = 1; page <= 10; page++) {
+              const runResp = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: ciWorkflow.id,
+                branch: defaultBranch,
+                status: "completed",
+                per_page: 100,
+                page
+              });
+              const batch = runResp.data.workflow_runs;
+              if (batch.length === 0) break;
+
+              let stop = false;
+              for (const run of batch) {
+                const createdAtMs = new Date(run.created_at).getTime();
+                if (createdAtMs < cutoffMs) {
+                  stop = true;
+                  break;
+                }
+                runs.push(run);
+              }
+              if (stop || batch.length < 100) break;
+            }
+
+            function durationSeconds(job) {
+              if (!job || !job.started_at || !job.completed_at) return null;
+              const startMs = new Date(job.started_at).getTime();
+              const endMs = new Date(job.completed_at).getTime();
+              return Math.max(0, (endMs - startMs) / 1000.0);
+            }
+
+            const samples = [];
+            for (const run of runs) {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                owner,
+                repo,
+                run_id: run.id,
+                per_page: 100
+              });
+
+              const armJob = jobs.find((j) => j.name === "arm64-monitor");
+              if (!armJob) continue;
+
+              const linuxX64Job = jobs.find(
+                (j) => j.name.includes("compatibility-matrix") && j.name.includes("linux-jdk21")
+              );
+
+              samples.push({
+                runId: run.id,
+                createdAt: run.created_at,
+                runAttempt: run.run_attempt || 1,
+                armConclusion: armJob.conclusion || "unknown",
+                armDurationSec: durationSeconds(armJob),
+                x64DurationSec: durationSeconds(linuxX64Job)
+              });
+            }
+
+            const total = samples.length;
+            const successCount = samples.filter((s) => s.armConclusion === "success").length;
+            const successRate = total > 0 ? successCount / total : 0;
+            const rerunCount = samples.filter((s) => s.runAttempt > 1).length;
+            const rerunRate = total > 0 ? rerunCount / total : 0;
+
+            const ratios = samples
+              .filter((s) => s.armDurationSec && s.x64DurationSec && s.x64DurationSec > 0)
+              .map((s) => s.armDurationSec / s.x64DurationSec);
+            const maxRatio = ratios.length > 0 ? Math.max(...ratios) : null;
+
+            const createdAtMsList = samples.map((s) => new Date(s.createdAt).getTime());
+            const earliestMs = createdAtMsList.length > 0 ? Math.min(...createdAtMsList) : null;
+            const windowCovered = earliestMs !== null ? earliestMs <= cutoffMs : false;
+
+            const passWindow = windowCovered;
+            const passSuccess = successRate >= minSuccessRate;
+            const passRerun = rerunRate < maxRerunRate;
+            const passRatio = maxRatio !== null && maxRatio <= maxDurationRatio;
+            const eligible = passWindow && passSuccess && passRerun && passRatio;
+
+            core.setOutput("eligible", String(eligible));
+            core.setOutput("total", String(total));
+            core.setOutput("success_rate", successRate.toFixed(4));
+            core.setOutput("rerun_rate", rerunRate.toFixed(4));
+            core.setOutput("max_ratio", maxRatio === null ? "n/a" : maxRatio.toFixed(3));
+
+            const windowStatus = passWindow ? "pass" : "fail";
+            const successStatus = passSuccess ? "pass" : "fail";
+            const rerunStatus = passRerun ? "pass" : "fail";
+            const ratioStatus = passRatio ? "pass" : "fail";
+
+            await core.summary
+              .addHeading("arm64 promotion report")
+              .addRaw(`default branch: \`${defaultBranch}\`\n\n`)
+              .addRaw(`lookback days: **${lookbackDays}**\n\n`)
+              .addRaw(`samples (arm64-monitor): **${total}**\n\n`)
+              .addTable([
+                [{data: "metric", header: true}, {data: "value", header: true}, {data: "threshold", header: true}, {data: "status", header: true}],
+                ["window coverage", windowCovered ? "covered (>= lookback)" : "not covered", `${lookbackDays} days covered`, windowStatus],
+                ["success rate", successRate.toFixed(4), `>= ${minSuccessRate.toFixed(2)}`, successStatus],
+                ["rerun rate", rerunRate.toFixed(4), `< ${maxRerunRate.toFixed(2)}`, rerunStatus],
+                ["max duration ratio (arm64/x64)", maxRatio === null ? "n/a" : maxRatio.toFixed(3), `<= ${maxDurationRatio.toFixed(2)}`, ratioStatus],
+              ])
+              .addRaw(`\neligible for required-gate promotion: **${eligible}**\n`)
+              .write();
+
+            if (total === 0) {
+              core.warning("No arm64-monitor samples found in the requested lookback window.");
+            }
+
+      - name: Enforce thresholds (optional)
+        if: ${{ (github.event.inputs.enforce || 'false') == 'true' && steps.report.outputs.eligible != 'true' }}
+        run: |
+          echo "arm64 promotion thresholds are not satisfied."
+          exit 1

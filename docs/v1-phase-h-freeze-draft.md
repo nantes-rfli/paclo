@@ -150,6 +150,14 @@ Gap（Phase I で解消）:
 
 - arm64 軸はまだ必須ゲートに昇格していない
 
+arm64 必須ゲート化の判定基準（2026-02-23 確定）:
+
+- 連続 14 日以上、`arm64-monitor` が 95% 以上 success（workflow run 単位）
+- 同期間で flaky retry（rerun）依存が 5% 未満
+- 失敗原因が infra（runner/network）ではなくテスト実装起因の場合、修正 PR が 72 時間以内にマージされている
+- `clojure -M:test` / `dns-ext smoke` / `perf-gate` の arm64 実行時間が x86_64 比 1.5 倍以内
+- 昇格手順: `continue-on-error` を解除し、`compatibility-matrix` に arm64 required job を追加して 1 週間観測
+
 ---
 
 ## 6. 性能バジェット（決定）
@@ -187,6 +195,7 @@ Gap（Phase I で解消）:
 - [x] cljdoc 向け API 契約（引数・返却・例外）を同期（`docs/cljdoc-api-contract.md`）
 - [x] CI に互換性マトリクス準拠ジョブを追加（Linux/JDK21 + macOS/JDK17）
 - [x] 性能ゲート（mid-50k）を CI に追加（`clojure -M:perf-gate`）
-- [ ] arm64 監視ジョブの安定実績を取り、必須ゲート化の判定基準を確定
+- [x] arm64 必須ゲート化の判定基準を確定（成功率/flake率/時間比/昇格手順）
+- [ ] arm64 監視ジョブの安定実績（14日, success>=95%）を満たし required 化を実施
 - [x] CLI 出力スナップショットと終了コードテストを追加
   （`test/examples/cli_contract_test.clj`, `test/resources/cli_snapshots.edn`）

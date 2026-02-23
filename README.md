@@ -327,6 +327,7 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 
 - [docs/README.md](./docs/README.md) — Documentation index (user guide, extensions, roadmap)
 - [docs/cljdoc-api-contract.md](./docs/cljdoc-api-contract.md) — Public API contract synced for cljdoc/v1.0
+- [docs/migration-0.4-to-1.0.md](./docs/migration-0.4-to-1.0.md) — Migration checklist and compatibility notes for v1.0
 
 ## Install
 
@@ -339,9 +340,9 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 {:deps
  {io.github.nantes-rfli/paclo
  {:git/url "https://github.com/nantes-rfli/paclo.git"
-   ;; 安定版を使う場合はタグを指定（v0.3.0 リリース）
-   :git/tag "v0.3.0"
-   :git/sha "caf16e6b16d6cbd7f381fbf5bb85a0c1c4b5ee10"}}}
+   ;; 安定版を使う場合はタグを指定（v0.4.0 リリース）
+   :git/tag "v0.4.0"
+   :git/sha "bd969d4bab5431f2e0936bcc3ffc78871f21f5ee"}}}
 ````
 
 ### require 一文

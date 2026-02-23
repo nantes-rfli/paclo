@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- None.
+### Added
+- Added `docs/migration-0.4-to-1.0.md` with a migration checklist, compatibility policy, CLI exit-code contract, and deprecation timeline notes.
+- Added `docs/release-v1-rc-checklist.md` to standardize `v1.0.0-rc` release gates and tagging steps.
+- Added `.github/workflows/arm64-promotion-report.yml` to report arm64 required-gate promotion readiness (14-day window, success/rerun/duration thresholds).
+- Added `dev/script/arm64_promotion_report.sh` to compute the same arm64 promotion metrics locally via `gh` API.
+
+### Changed
+- Roadmap progress for v1.0 Phase I is now tracked with concrete items (BPF error contract tests, `invalid :filter` contract test, migration guide draft).
+- Docs index and README documentation links now include the 0.4 -> 1.0 migration guide.
+- Added arm64 required-gate promotion criteria to the v1 freeze draft (success/flake/perf thresholds and promotion procedure).
+- Updated README `deps.edn` install snippet from `v0.3.0` to `v0.4.0` tag/sha.
+
+### Tests
+- Strengthened BPF error-contract tests to assert `ex-message` and `ex-data` for unknown proto/op and unsupported forms.
+- Added explicit `core/packets` invalid-filter contract test (`ex-message` + `ex-data`).
 
 ## [0.4.0] - 2025-12-10
 

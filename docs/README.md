@@ -10,6 +10,8 @@ This page is the entry point to the documentation set.
 - Examples (CLI): ../README.md#run-the-examples
 - Decode extensions: ./extensions.md
 - Public API contract (cljdoc sync): ./cljdoc-api-contract.md
+- Migration guide (0.4 -> 1.0): ./migration-0.4-to-1.0.md
+- v1.0.0-rc release checklist: ./release-v1-rc-checklist.md
 - Roadmap: ./ROADMAP.md
 - v1.0 API freeze draft (Phase H): ./v1-phase-h-freeze-draft.md
 - API on cljdoc: <https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT>
@@ -29,5 +31,5 @@ This page is the entry point to the documentation set.
 
 ## Release info
 
-- Current stable tag: v0.3.0
+- Current stable tag: v0.4.0
 - deps.edn usage: README “Install” section
