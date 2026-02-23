@@ -22,7 +22,7 @@
   (when n (format "%,d" (long n))))
 
 (defn- mk-xf [counter]
-  ;; drop 小サイズフレームを例にした軽フィルタ。:bytes だけ残して write-pcap! へ渡す。
+  ;; Keep only write-pcap! fields while counting retained packets.
   (comp
    (filter #(>= (long (or (:caplen %) 0)) 60))
    (map (fn [m]

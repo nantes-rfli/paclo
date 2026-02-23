@@ -7,7 +7,7 @@
    [jnr.ffi.byref AbstractReference IntByReference PointerByReference]
    [paclo.jnr PcapLibrary]))
 
-;; テスト用の軽量スタブ群 -------------------------------------------------
+;; -------------------------------------------------------------
 
 (defn- set-ref! ^PointerByReference [^PointerByReference ref ^Pointer p]
   (let [f (.getDeclaredField AbstractReference "value")]
@@ -16,7 +16,7 @@
   ref)
 
 (defn- stub-lib
-  "PcapLibrary の簡易スタブ。必要な挙動のみ fns で上書きする。"
+  "Create a PcapLibrary test double with overridable function slots."
   [{:keys [lookupnet-fn dump-open-fn open-dead-fn next-ex-fn findalldevs-fn]}]
   (reify PcapLibrary
     (pcap_lookupnet [_ dev netp maskp err]
@@ -221,7 +221,7 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_findalldevs failed"
                           (p/list-devices)))))
 
-;; ここから新規追加テスト --------------------------------------------------
+;; -------------------------------------------------------------
 
 (deftest lookup-netmask-success-and-error
   (let [lib-ok  (stub-lib {:lookupnet-fn (fn [_dev _net mask _err]

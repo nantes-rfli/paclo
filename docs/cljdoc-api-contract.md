@@ -1,241 +1,126 @@
-# Public API Contract (for cljdoc / v1.0)
+# Public API Contract (v1.0)
 
-This page defines the library-level contract that is intended to stay stable at v1.0.
-It complements the function docstrings and provides one place for arguments, return shapes, and error behavior.
-
----
+This page defines the stable library contract for v1.0.
+It is intentionally compact and focused on user-facing namespaces.
 
 ## Scope
 
-Public API namespaces:
+Public namespaces:
 
 - `paclo.core`
 - `paclo.decode-ext`
 
-Internal namespaces (non-API surface):
+Internal namespaces (not covered by compatibility guarantees):
 
 - `paclo.pcap`
 - `paclo.parse`
 - `paclo.proto.*`
 
----
-
 ## `paclo.core`
 
 ### `bpf`
-
-Signature:
 
 ```clojure
 (bpf form)
 ```
 
-Input contract:
-
-- `nil` => returns `nil`
-- `string` => returns the same string
-- `keyword` => protocol keyword (`:udp`, `:tcp`, `:icmp`, `:icmp6`, `:arp`, `:ip`, `:ipv4`, `:ip6`, `:ipv6`)
-- `vector` => DSL form (`:and`, `:or`, `:not`, `:proto`, host/net/port operators)
-
-Output:
-
-- BPF filter string for libpcap
-
-Errors:
-
-- Throws `ex-info` for unsupported form/operator/keyword
-- May throw number parsing errors for invalid port inputs in range/port operators
-
----
+- Input: `nil`, string, protocol keyword, or DSL vector
+- Output: libpcap BPF filter string (or `nil`)
+- Errors: throws `ex-info` for unsupported form/operator/keyword
 
 ### `packets`
-
-Signature:
 
 ```clojure
 (packets opts)
 ```
 
-Core options:
-
-- Source:
-  - offline: `{:path "..."}`
-  - live: `{:device "..."}`
-- Filter:
-  - `:filter` accepts BPF string or BPF DSL (`keyword` / `vector`)
-- Decode:
-  - `:decode? true` annotates each packet with either `:decoded` or `:decode-error`
-- Stream transform:
-  - `:xform` accepts a transducer and is applied via `sequence`
-
-Passthrough options:
-
-- All additional capture options are passed through to `paclo.pcap/capture->seq`
-- Default stop conditions come from `capture->seq` defaults (`:max`, `:max-time-ms`, `:idle-max-ms`)
-
-Output:
-
-- Lazy sequence of packet maps
-
-Decoded packet behavior:
-
-- Parse success => `:decoded` map is attached
-- Parse failure => `:decode-error` string is attached
-- If `:decoded` is present, `paclo.decode-ext/apply!` is invoked
-
-Errors:
-
-- Throws `ex-info` when `:filter` has an unsupported type
-- Capture/open/filter errors from underlying pcap layer may propagate as exceptions
-
----
+- Input:
+  - source: `:path` (offline) or `:device` (live)
+  - `:filter`: BPF string / keyword / DSL vector
+  - optional `:decode?`, `:xform`, and additional capture options
+- Output: lazy sequence of packet maps
+- Decode behavior (`:decode? true`):
+  - success -> packet includes `:decoded`
+  - failure -> packet includes `:decode-error`
+  - when `:decoded` exists, `paclo.decode-ext/apply!` is invoked
+- Errors:
+  - throws `ex-info` for invalid `:filter` type
+  - libpcap open/filter/capture errors may propagate
 
 ### `write-pcap!`
-
-Signature:
 
 ```clojure
 (write-pcap! packets out-path)
 ```
 
-Input contract:
-
-- `packets` is a seq of:
-  - `byte-array`, or
-  - `{:bytes <byte-array> :sec <long> :usec <long>}` (timestamp keys optional)
-- `out-path` is required and must be non-blank
-
-Output:
-
-- Returns underlying writer result from `bytes-seq->pcap!` (successful side effect is PCAP file creation)
-
-Errors:
-
-- Throws `ex-info` when output path is missing/blank
-- Throws `ex-info` when packet map entries do not contain `:bytes`
-
----
+- Input:
+  - `packets`: seq of `byte-array` or `{:bytes ... :sec ... :usec ...}` maps
+  - `out-path`: non-blank output path
+- Output: writes PCAP file; returns writer result
+- Errors: throws `ex-info` for invalid/missing output path or invalid packet entry
 
 ### `list-devices`
-
-Signature:
 
 ```clojure
 (list-devices)
 ```
 
-Output:
+- Output: sequence like `{:name "en0" :desc "Wi-Fi"}`
+- Errors: runtime/libpcap errors may propagate
 
-- Sequence of maps like `{:name "en0" :desc "Wi-Fi"}`
-
-Errors:
-
-- May propagate environment/libpcap errors depending on runtime platform state
-
----
-
-### `-main` (repository convenience entrypoint)
-
-Signature:
+### `-main`
 
 ```clojure
 (-main & _)
 ```
 
-Behavior:
-
-- Prints guidance messages for common repo commands
-- This is not an application runtime API and is provided to keep `clojure -M:run` non-failing
-
----
+- Behavior: prints repository usage hints for `clojure -M:run`
+- Note: convenience entrypoint, not an application runtime API
 
 ## `paclo.decode-ext`
 
 ### `register!`
 
-Signature:
-
 ```clojure
 (register! k f)
 ```
 
-Input contract:
-
-- `k`: hook key (typically namespaced keyword)
-- `f`: `(fn [m] m')` where `m` is a packet map
-
-Behavior:
-
-- Registers hook in execution order
+- Registers hook function `(fn [m] m')` under key `k`
 - Re-registering the same key overwrites previous hook and moves it to tail
-
-Output:
-
 - Returns `k`
 
----
-
 ### `unregister!`
-
-Signature:
 
 ```clojure
 (unregister! k)
 ```
 
-Behavior:
-
-- Removes hook identified by key
-
-Output:
-
+- Removes hook by key
 - Returns `nil`
 
----
-
 ### `installed`
-
-Signature:
 
 ```clojure
 (installed)
 ```
 
-Output:
-
-- Sequence of installed hook keys in execution order
-
----
+- Returns installed hook keys in execution order
 
 ### `apply!`
-
-Signature:
 
 ```clojure
 (apply! m)
 ```
 
-Execution guard:
+- Applies hooks only when `m` is a map with `:decoded` and without `:decode-error`
+- Hook behavior:
+  - execution order = registration order
+  - hook exceptions are swallowed
+  - non-map hook return values are ignored
+- Returns updated (or original) packet map
 
-- Hooks are applied only when:
-  - `m` is a map
-  - `:decoded` exists
-  - `:decode-error` is absent
+## Stability notes
 
-Hook behavior:
-
-- Hooks run in registration order
-- Hook exceptions are swallowed (packet processing continues)
-- Non-map hook return values are ignored and previous map is kept
-
-Output:
-
-- Updated packet map (or original map if not applicable)
-
----
-
-## Stability Notes
-
-- The function names and behavior above are the v1.0 freeze target.
-- Additive options are allowed after v1.0 if they are backward compatible.
-- Internal namespace details are not covered by this contract.
+- Items above are the v1.0 compatibility baseline.
+- Backward-compatible additive changes are allowed in v1.x.
+- Internal namespace details are intentionally excluded from this contract.

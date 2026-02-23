@@ -29,7 +29,7 @@
     (println "Defaults: bpf='" default-bpf "', bucket-ms=" default-bucket-ms ", group=rcode, format=edn, async=off")
     (println "Groups : rcode | rrtype | qname | qname-suffix | client | server")
     (println "Format : edn | jsonl | csv")
-    (println "Tips   : '_' で位置引数をスキップ可。max-buckets でメモリ上限を守る。empty-per-key は行数が増えるので注意。warn-buckets-threshold で警告閾値を調整。")))
+    (println "Tips   : use '_' to skip optional args; tune max-buckets and empty-bucket flags for large files.")))
 
 (defn- parse-format [s]
   (let [f (keyword (or (when-not (ex/blank? s) s) (name default-format)))]
@@ -124,8 +124,8 @@
       nil)))
 
 (defn- pkt-ts-ms
-  "パケットのタイムスタンプをミリ秒で取得。ts-sec があれば優先。
-  ts-usec が絶対値（>1e12）っぽい場合は usec/1e3 で代用。"
+  "Resolve packet timestamp in milliseconds.
+  Prefer (:ts-sec, :ts-usec); fall back to :ts-usec-only values when needed."
   [pkt]
   (let [sec (get pkt :ts-sec)
         usec (get pkt :ts-usec)

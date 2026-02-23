@@ -21,7 +21,7 @@
 
 (def ETH-VLAN-8100 0x8100)  ;; 802.1Q
 (def ETH-VLAN-88A8 0x88A8)  ;; 802.1ad (QinQ outer)
-(def ETH-VLAN-9100 0x9100)  ;; 追加TPID（環境による）
+(def ETH-VLAN-9100 0x9100)  ;; Additional TPID seen on some environments
 (def ETH-VLAN-9200 0x9200)
 (def ^:private VLAN-TPIDs #{ETH-VLAN-8100 ETH-VLAN-88A8 ETH-VLAN-9100 ETH-VLAN-9200})
 
@@ -32,19 +32,17 @@
   (vector (u16 b) (u16 b) (u16 b) (u16 b)
           (u16 b) (u16 b) (u16 b) (u16 b)))
 
-(defn- ipv6-full-str [ws]                   ;; 非圧縮（既存の ipv6-addr と同等の見た目）
+(defn- ipv6-full-str [ws]                   ;; Uncompressed form (legacy-compatible output)
   (clojure.string/join ":" (map #(format "%x" %) ws)))
 
 (defn- ipv6-compress-str
-  "RFC5952に準拠した簡易圧縮: 0の最長連続（長さ>=2）を :: に。
-   先頭/末尾/全ゼロ も自然に処理。"
+  "Compress IPv6 words with a simple RFC5952-style rule.
+   The longest zero run (length >= 2) becomes `::`."
   [ws]
   (let [n (count ws)
-        ;; 最長0連続を探索（>=2のみ）
         [best-i best-len]
         (loop [i 0 cur-i nil cur-len (long 0) best-i nil best-len (long 0)]
           (if (= i n)
-            ;; ループ終了時、直前の連続が最長なら更新
             (let [[best-i ^long best-len]
                   (if (and cur-i (>= (long cur-len) 2) (> (long cur-len) (long best-len)))
                     [cur-i cur-len] [best-i best-len])]
@@ -57,7 +55,6 @@
                        (long (inc cur-len))
                        best-i (long best-len))
 
-                ;; 連続0が途切れた
                 :else
                 (let [[best-i ^long best-len]
                       (if (and cur-i (>= (long cur-len) 2) (> (long cur-len) (long best-len)))
@@ -74,31 +71,27 @@
           (empty? before)      (str "::" s-after)
           (empty? after)       (str s-before "::")
           :else                (str s-before "::" s-after)))
-      ;; 圧縮対象ナシ
       (clojure.string/join ":" (map #(Integer/toHexString (int %)) ws)))))
 
-;; 安全ヘルパ: 現在位置から len バイト分だけ読める ByteBuffer を作る
 (defn- limited-slice ^ByteBuffer [^ByteBuffer b ^long len]
   (when (and (<= 0 len) (<= len (.remaining b)))
     (doto (.duplicate b)
       (.limit (+ (.position b) len)))))
 
-;; 残りを byte[] でコピー（payloadを地味に見たい時用）
 (defn- remaining-bytes ^bytes [^ByteBuffer b]
   (let [dup (.duplicate b)
         arr (byte-array (.remaining dup))]
     (.get dup arr)
     arr))
 
-;; 残りバイト数（ByteBufferを消費せずに測る）
 (defn- remaining-len ^long [^ByteBuffer b]
   (.remaining (.duplicate b)))
 
 (defn- make-flow-key
-  "L3の src/dst と L4の src/dst port から5タプルマップを作る。
-   TCP/UDP以外はポートが無いので proto/ipだけの簡易キーにする。"
+  "Build a flow key from L3 src/dst and L4 ports.
+   For non-TCP/UDP traffic, build a protocol+IP key without ports."
   [{:keys [src dst protocol next-header]} l4]
-  (let [proto (long (or protocol next-header -1))]   ;; IPv4は :protocol, IPv6は :next-header
+  (let [proto (long (or protocol next-header -1))]   ;; IPv4 uses :protocol, IPv6 uses :next-header
     (case proto
       6  {:proto :tcp  :src-ip src :src-port (:src-port l4) :dst-ip dst :dst-port (:dst-port l4)}
       17 {:proto :udp  :src-ip src :src-port (:src-port l4) :dst-ip dst :dst-port (:dst-port l4)}
@@ -107,10 +100,6 @@
       {:proto proto :src-ip src :dst-ip dst})))
 
 ;; ------------------------------------------------------------
-;; IPv6 Options (HBH / Destination Options) の TLV 検証
-;; - 呼び出し時点で NextHdr/HdrExtLen の 2B は既に読み終えている前提
-;; - len バイト分のオプション領域を、Pad1/PadN/任意TLV として走査
-;; - 過走/途切れが無ければ true を返す
 ;; ------------------------------------------------------------
 (defn- valid-ipv6-options-tlv?
   [^ByteBuffer b ^long len]
@@ -121,18 +110,18 @@
         (let [t (u8 opt)]
           (if (= t 0) ;; Pad1 (1 byte)
             (recur)
-            (if (zero? (.remaining opt)) ;; 長さフィールドが読めない
+            (if (zero? (.remaining opt)) ;; Missing length byte
               false
               (let [l (u8 opt)]
-                (if (> l (.remaining opt)) ;; value が足りない（過走）
+                (if (> l (.remaining opt)) ;; Value would overrun buffer
                   false
                   (do
-                    (.position opt (+ (.position opt) l)) ;; value を飛ばす
+                    (.position opt (+ (.position opt) l)) ;; Skip value bytes
                     (recur)))))))))
     false))
 
 (defn- arp [^ByteBuffer b]
-  (when (<= 8 (.remaining b))                             ;; 最低限の固定部
+  (when (<= 8 (.remaining b))                             ;; Minimum fixed header size
     (let [_htype (u16 b) ptype (u16 b)
           hlen  (u8 b)  plen  (u8 b)
           oper  (u16 b)]
@@ -177,13 +166,11 @@
         dst (ipv4-addr b)]
     (when (> ihl 20)
       (.position b (+ (.position b) (- ihl 20))))
-    ;; ★ 追加: フラグメント解釈（DF=0x4000, MF=0x2000, offset=下位13bit）
     (let [mf? (pos? (bit-and flags-frag 0x2000))
-          frag-off (bit-and flags-frag 0x1FFF)         ;; 8オクテット単位
+          frag-off (bit-and flags-frag 0x1FFF)         ;; In 8-byte units
           frag? (or mf? (pos? frag-off))
           payload-len (max 0 (- total-len ihl))
           l4buf (or (limited-slice b payload-len) (.duplicate b))
-          ;; 非先頭フラグメントは L4 は解かない（安全）
           l4 (if (pos? frag-off)
                {:type :ipv4-fragment :offset frag-off :payload (remaining-bytes l4buf)}
                (l4-parse proto l4buf))]
@@ -192,7 +179,7 @@
        :id id :flags-frag flags-frag
        :ttl ttl :protocol proto :header-checksum hdr-csum
        :src src :dst dst
-       :frag? frag? :frag-offset (when frag? frag-off)       ;; ★ 追加
+       :frag? frag? :frag-offset (when frag? frag-off)       ;; Fragment metadata
        :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4)
        :l4 l4})))
 
@@ -201,17 +188,18 @@
     43  ;; Routing
     44  ;; Fragment
     60  ;; Destination Options
-    50  ;; ESP（長さ扱いが特殊だがここでは終端扱い）
+    50  ;; ESP (treated as terminal here)
     51}) ;; AH
 
 (defn- parse-ipv6-ext-chain!
-  "buf の position は IPv6 基本ヘッダ直後（= 最初の拡張 or L4 先頭）。
-   initial-nh は IPv6 基本ヘッダの Next Header。
-   返り値: {:final-nh nh, :buf dup, :frag? bool, :frag-offset int}
-   非フラグメント: extをすべてスキップして L4 先頭に position を合わせる
-   フラグメント:
-     - offset=0（先頭フラグメント）は Fragment ヘッダを読み飛ばし、次のNHへ進む
-     - offset>0（後続フラグメント）は L4 が欠けている可能性が高いので、:ipv6-fragment で返す"
+  "Parse IPv6 extension headers from `buf`.
+   `buf` starts right after the base IPv6 header.
+   Returns {:final-nh nh :buf dup :frag? bool :frag-offset int}.
+
+   Non-fragment packets skip all extension headers and land at the L4 start.
+   For fragments:
+   - offset=0: continue to next header
+   - offset>0: return early because L4 may be incomplete."
   [^java.nio.ByteBuffer buf initial-nh]
   (let [dup (.duplicate buf)]
     (loop [nh initial-nh
@@ -223,7 +211,6 @@
 
         (= nh 44) ;; Fragment
         (if (< (.remaining dup) 8)
-          ;; 拡張ヘッダが読み切れない → 打ち切り
           {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
           (let [next (bit-and 0xFF (.get dup)) ; Next Header
                 _    (.get dup)                ; Reserved
@@ -231,9 +218,7 @@
                 _ident (.getInt dup)
                 offset (bit-shift-right (bit-and offfl 0xFFF8) 3)]
             (if (zero? offset)
-              ;; 先頭フラグメント：続行
               (recur next true 0)
-              ;; 後続フラグメント：ここで終了（L4は解かず）
               {:final-nh next :buf dup :frag? true :frag-offset offset})))
 
         (= nh 51) ;; AH = NextHdr(1) + PayloadLen(1) + data((plen+2)*4 - 2)
@@ -242,15 +227,14 @@
           (let [next (bit-and 0xFF (.get dup))
                 plen (bit-and 0xFF (.get dup))
                 total (* (+ plen 2) 4)
-                skip (max 0 (- total 2))              ; 既に2B読了
+                skip (max 0 (- total 2))              ; First 2 bytes already consumed
                 adv  (min skip (.remaining dup))]
             (.position dup (+ (.position dup) adv))
             (if (< adv skip)
-              ;; 足りない → 打ち切り
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
               (recur next frag? frag-off))))
 
-        (= nh 50) ;; ESP はここで終端扱い（中は解さない）
+        (= nh 50) ;; ESP is terminal here (payload not decoded)
         {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}
 
         (ipv6-ext? nh)
@@ -258,37 +242,28 @@
           {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
           (let [next (bit-and 0xFF (.get dup))    ;; NextHdr
                 hlen (bit-and 0xFF (.get dup))    ;; HdrExtLen
-                total (* (+ hlen 1) 8)            ;; 総ヘッダ長
-                ;; 既に 2B 読了済み（NextHdr/HdrExtLen）なので、残オプション領域:
+                total (* (+ hlen 1) 8)            ;; Total extension header length
                 opt-len (max 0 (- total 2))]
             (cond
-              ;; 明確に足りない場合は打ち切り
               (> opt-len (.remaining dup))
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
 
-              ;; HBH / Dest は TLV を検証してから進める
               (or (= nh 0) (= nh 60))
               (if (valid-ipv6-options-tlv? dup opt-len)
                 (do
-                  ;; TLV 検証は limited-slice の中で消費しているだけなので、
-                  ;; 実体 dup の position を opt-len だけ前に送る
                   (.position dup (+ (.position dup) opt-len))
                   (recur next frag? frag-off))
-                ;; TLV が壊れている（途切れ/過走）
                 {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
 
-              ;; Routing(43) は TLV ではないので長さスキップのみ
               (= nh 43)
               (do
                 (.position dup (+ (.position dup) opt-len))
                 (recur next frag? frag-off))
 
-              ;; 万一ここに来たら（ESP/AH は上で拾っているはず）安全に打ち切り
               :else
               {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
 
         :else
-        ;; L4 に到達 
         {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}))))
 
 (defn- ipv6 [^ByteBuffer b]
@@ -299,12 +274,11 @@
         payload-len (u16 b)
         next-hdr (u8 b)
         hop-limit (u8 b)
-        ;; ここで8ワードを読み取り → 非圧縮/圧縮の両方を作る
         src-w (ipv6-addr-words b)
         dst-w (ipv6-addr-words b)
-        src   (ipv6-full-str src-w)          ;; 既存互換（非圧縮）
+        src   (ipv6-full-str src-w)          ;; Legacy-compatible (uncompressed)
         dst   (ipv6-full-str dst-w)
-        srcC  (ipv6-compress-str src-w)      ;; 新規（圧縮）
+        srcC  (ipv6-compress-str src-w)      ;; Compressed representation
         dstC  (ipv6-compress-str dst-w)
         l4buf (or (limited-slice b payload-len) (.duplicate b))
         {:keys [final-nh buf frag? frag-offset]}
@@ -318,7 +292,7 @@
      :version version :traffic-class tclass :flow-label flabel
      :payload-length payload-len :next-header final-nh :hop-limit hop-limit
      :src src :dst dst
-     :src-compact srcC :dst-compact dstC         ;; ★ 追加
+     :src-compact srcC :dst-compact dstC         ;; Additional compact fields
      :frag? frag? :frag-offset (when frag? frag-offset)
      :l4 l4
      :flow-key flow-key}))
@@ -341,7 +315,6 @@
         csum (u16 b)
         urgp (u16 b)
         hdr-len data-off
-        ;; 短縮フラグ（順序: U A P R S F）
         flags-str (apply str (keep (fn [[present ch]] (when present ch))
                                    [[urg \U] [ackf \A] [psh \P] [rst \R] [syn \S] [fin \F]]))]
     (when (> hdr-len 20)
@@ -357,7 +330,6 @@
      :payload (remaining-bytes b)}))
 
 (defn- udp-header [^ByteBuffer b]
-  ;; ★ 追加: 残量ガード（8B未満なら安全に諦める）
   (if (< (.remaining b) 8)
     {:type :unknown-l4 :reason :truncated-udp :data-len 0 :payload []}
     (let [src (u16 b)
@@ -567,21 +539,19 @@
     (maybe-attach-dns m)))
 
 (defn packet->clj
-  "bytes -> Clojure map
-   - Ethernet → VLAN タグ（0〜複数）をはぎ、最終 Ethertype で L3 を解釈
-   - L4は TCP/UDP/ICMPv4/ICMPv6 を簡易解析（payload付与）
-   - UDP:53 は最小DNS要約を :app に付与
-   返り値トップには :vlan-tags（あれば）を付与。"
+  "Decode bytes into a Clojure map.
+   - Parses Ethernet and strips 0..N VLAN tags
+   - Decodes minimal L3/L4 structures (IPv4/IPv6/ARP, TCP/UDP/ICMP)
+   - Adds minimal DNS summary under `:app` for UDP/53 traffic
+   - Adds `:vlan-tags` when tags exist"
   [^bytes bytes]
   (let [b (-> (ByteBuffer/wrap bytes) (.order ByteOrder/BIG_ENDIAN))
         dst (mac b) src (mac b)
         first-eth (u16 b)]
-    ;; VLAN タグをすべてはぐ（QinQ 対応）
     (loop [eth first-eth
            tags (transient [])]
       (if (VLAN-TPIDs eth)
         (if (< (.remaining b) 4)
-          ;; VLAN ヘッダ不足（TCI+次Ethertype で 4B必要）→ 安全に unknown を返却
           {:type :ethernet :src src :dst dst :eth eth
            :vlan-tags (persistent! tags)
            :l3 {:type :unknown-l3 :eth eth}}
@@ -592,7 +562,6 @@
                      :dei  (pos? (bit-and tci 0x1000))               ;; 1bit
                      :vid  (bit-and tci 0x0FFF)}]                    ;; 12bit
             (recur next-eth (conj! tags tag))))
-        ;; VLAN ではない → 最終 Ethertype が確定
         (let [final-eth eth
               vlan-tags (persistent! tags)]
           (cond

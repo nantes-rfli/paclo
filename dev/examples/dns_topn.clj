@@ -29,12 +29,12 @@
     (println "  clojure -M:dev:dns-ext -m examples.dns-topn <pcap> [<bpf>] [<topN>] [<group>] [<format>] [<metric>]"
              "[--punycode-to-unicode] [--log-punycode-fail] [--sni-bpf <bpf>] [--alpn-join]"
              "[--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS]")
-    (println "Defaults: bpf='" default-dns-bpf "' (group=sni 時は '" default-sni-bpf "'), topN=" default-topn ", group=rcode, format=edn, metric=count, async=off")
+    (println "Defaults: bpf='" default-dns-bpf "' (group=sni/alpn uses '" default-sni-bpf "'), topN=" default-topn ", group=rcode, format=edn, metric=count, async=off")
     (println "Groups  : rcode | rrtype | qname | qname-suffix | client | server | sni | alpn")
-    (println "        : alpn=ClientHello ALPN (default: first), --alpn-join で全てをカンマ結合")
+    (println "ALPN    : default emits first ALPN; --alpn-join emits comma-joined values")
     (println "Metric  : count | bytes")
     (println "Format  : edn | jsonl | csv")
-    (println "Tips    : '_' または空文字で省略可。async は長尺 PCAP で opt-in。SNI 集計は TLS BPF を使う。")))
+    (println "Tips    : use '_' to skip optional args; async is opt-in; for SNI/ALPN use TLS-oriented BPF.")))
 
 (defn- parse-format [s]
   (let [f (keyword (or (when-not (ex/blank? s) s) (name default-format)))]
@@ -43,7 +43,7 @@
 
 (defn- parse-flags
   "flags -> {:punycode? bool :sni-bpf str|nil :async-opts {...}}
-  未知フラグは usage エラー。"
+         Parse optional CLI flags."
   [flags]
   (loop [xs flags
          acc {:punycode? false
@@ -103,7 +103,7 @@
     (let [trimmed (-> q str/trim (str/replace #"\.$" "") str/lower-case)
           decoded (if (and puny? (str/starts-with? trimmed "xn--"))
                     (try
-                      ;; toUnicode で表示用変換、toASCII で検証（長すぎなどを検知）
+                      ;; Validate first via toASCII, then decode.
                       (let [_ (IDN/toASCII trimmed)]
                         (IDN/toUnicode trimmed))
                       (catch Exception e
@@ -187,10 +187,10 @@
                                                   :bytes (+ (long (or bytes 0)) (long (or (:caplen p) 0)))}))
                            (swap! total inc))))]
         (if-not async?
-          ;; ---------- 同期 ----------
+          ;; synchronous path
           (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
             (process! p))
-          ;; ---------- 非同期 ----------
+          ;; asynchronous path
           (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
                 buf (case async-mode
                       :dropping (async/dropping-buffer async-buffer)

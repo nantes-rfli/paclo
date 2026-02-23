@@ -1,11 +1,15 @@
-現在の方針（2025-12-04時点）
-- リポ分割は行わず、`:dns-ext` alias で DNS 拡張をオプション読み込みする。
-- JAR には DNS 拡張も同梱する（ライブラリ利用時は alias 不要）。
-- 将来、拡張が増えて肥大化した場合に外出しを再検討する。
+# DNS Extension Split Notes (2025-12-04)
 
-将来分割したくなった場合の簡易メモ
-- 新artifact: `io.github.paclo/paclo-proto-dns`
-- 移設対象: `extensions/dns/src/paclo/proto/dns_ext.clj`, `test/paclo/dns_ext_test.clj`, DNS用 test resources
-- paclo 側は optional dep として参照し、examples/dns-* はその alias/deps を前提にする
-- CI: clj -T:build test + cljdoc
-- 公開: Clojars 0.1.x
+## Decision
+Do not split DNS extension into a separate artifact before v1.0.0.
+
+## Rationale
+- Current package size does not justify artifact complexity.
+- Operational overhead (release, CI, dependency matrix) is higher than benefit.
+- Existing `:dns-ext` alias already provides optional loading behavior.
+
+## Revisit Trigger
+Re-evaluate split only if one of these happens:
+1. Extension dependency graph grows materially.
+2. Release cadence diverges between core and DNS extension.
+3. Users request independent versioning.

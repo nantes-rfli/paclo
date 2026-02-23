@@ -11,7 +11,7 @@ target/classes/# Tooling caches / REPL
 .lsp/*
 !.lsp/config.edn
 
-# Clojure build caches (念のため)
+# Clojure build caches (just in case)
 classes/
 
 # local scratch capture

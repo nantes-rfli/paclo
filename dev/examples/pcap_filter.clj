@@ -44,7 +44,7 @@
       (println "reading:" in)
       (println "writing:" out)
       (if-not async?
-        ;; ----- 同期（従来通り） -----
+        ;; synchronous path
         (let [in-seq   (into [] (core/packets {:path in* :filter bpf* :max Long/MAX_VALUE}))
               written  (core/write-pcap! (sequence xf in-seq) out)
               out-seq  (into [] (core/packets {:path out :max Long/MAX_VALUE}))
@@ -64,7 +64,7 @@
                     :drop-pct drop-pct}]
           (println "done. wrote packets =" written)
           (ex/emit fmt meta))
-        ;; ----- 非同期（背圧/キャンセル） -----
+        ;; asynchronous path (buffer, dropping, timeout-cancel)
         (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
               pkt-ch    (async/chan (async/buffer async-buffer) xf)
               reader    (async/thread

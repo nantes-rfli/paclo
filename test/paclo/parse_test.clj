@@ -4,7 +4,7 @@
    [paclo.parse :as parse]
    [paclo.test-util :as tu]))
 
-;; 1) IPv4/TCP（payload="hello"）
+;; 1) IPv4/TCP(payload="hello")
 (deftest ipv4-tcp-min-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
@@ -19,7 +19,7 @@
     (is (= :tcp (get-in m [:l3 :l4 :type])))
     (is (= 5 (get-in m [:l3 :l4 :data-len])))))
 
-;; 2) IPv4/UDP + 最小DNSヘッダ（16B）
+;; 2) IPv4/UDP + minimal DNS payload (16B)
 (deftest ipv4-udp-dns-min-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
@@ -34,7 +34,7 @@
     (is (= 59    (get-in m [:l3 :l4 :app :id])))
     (is (= 1     (get-in m [:l3 :l4 :app :qdcount])))))
 
-;; 3) ARP request（IPv4）
+;; 3) ARP request(IPv4)
 (deftest arp-request-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 11 22 33 44 55 08 06
@@ -47,7 +47,7 @@
     (is (= "192.168.1.100" (get-in m [:l3 :spa])))
     (is (= "192.168.1.1"   (get-in m [:l3 :tpa])))))
 
-;; 4) IPv6/UDP（payload=4B）
+;; 4) IPv6/UDP(payload=4B)
 (deftest ipv6-udp-min-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -61,7 +61,7 @@
     (is (= :udp  (get-in m [:l3 :l4 :type])))
     (is (= 4     (get-in m [:l3 :l4 :data-len])))))
 
-;; 5) IPv6 Hop-by-Hop → UDP へ到達できるか（PL=24, HBH=16, UDP=8）
+;; 5) IPv6 Hop-by-Hop -> UDP (PL=24, HBH=16, UDP=8)
 (deftest ipv6-hbh-udp-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -74,7 +74,7 @@
     (is (= :ipv6 (get-in m [:l3 :type])))
     (is (= :udp  (get-in m [:l3 :l4 :type])))))
 
-;; 6) IPv6 Fragment (offset>0) は L4を解さず :ipv6-fragment で返す
+;; 6) IPv6 non-first fragment should map to :ipv6-fragment
 (deftest ipv6-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -87,7 +87,7 @@
     (is (= true  (get-in m [:l3 :frag?])))
     (is (= :ipv6-fragment (get-in m [:l3 :l4 :type])))))
 
-;; HBH: PadN(12B)でオプション領域14Bを“ちょうど”埋めてUDPに到達
+;; HBH: PadN(12B) exact fit should still parse UDP
 (deftest ipv6-hbh-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -100,7 +100,7 @@
         m (parse/packet->clj pkt)]
     (is (= :udp (get-in m [:l3 :l4 :type])))))
 
-;; HBH: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
+;; HBH: malformed TLV length should become :unknown-l4
 (deftest ipv6-hbh-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -113,7 +113,7 @@
         m (parse/packet->clj pkt)]
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
 
-;; DestOpt: PadN(12B)でオプション領域14Bを“ちょうど”埋め、UDPに到達
+;; DestOpt: PadN(12B) exact fit should still parse UDP
 (deftest ipv6-destopt-udp-padn-exact-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -126,7 +126,7 @@
         m (parse/packet->clj pkt)]
     (is (= :udp (get-in m [:l3 :l4 :type])))))
 
-;; DestOpt: TLV過走（lenが残りを超える）→ 安全に上位へ進まず unknown-l4
+;; DestOpt: malformed TLV length should become :unknown-l4
 (deftest ipv6-destopt-bad-tlv-overrun-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -139,7 +139,7 @@
         m (parse/packet->clj pkt)]
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
 
-;; 先頭フラグメント(offset=0, M=1) + UDP(8B) → L4は正しくUDPに到達しつつ fragフラグは立つ
+;; First IPv6 fragment (offset=0, M=1) with full UDP header should parse UDP.
 (deftest ipv6-frag-first-udp-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -154,14 +154,14 @@
     (is (= 0     (get-in m [:l3 :frag-offset])))
     (is (= :udp  (get-in m [:l3 :l4 :type])))))
 
-;; フラグメントヘッダが8B未満で途切れ → 上位に進まず :unknown-l4
+;; Truncated IPv6 fragment header (7B) should become :unknown-l4.
 (deftest ipv6-frag-header-truncated-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
                60 00 00 00 00 07 2C 40
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01
                20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 02
-               11 00 00 00 00 00 00")          ; ← Fragmentヘッダを7Bで途切らせる
+               11 00 00 00 00 00 00")          ; <- Fragment header, 7 bytes (truncated)
         m (parse/packet->clj pkt)]
     (is (= :ipv6 (get-in m [:l3 :type])))
     (is (= :unknown-l4 (get-in m [:l3 :l4 :type])))))
@@ -200,7 +200,7 @@
     (is (= true  (:ra flags)))
     (is (= 3     (:rcode flags)))))
 
-;; IPv6/UDP で flow-key が :udp とポートを含む
+;; IPv6/UDP flow-key should keep :udp and ports.
 (deftest ipv6-udp-flow-key-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -217,7 +217,7 @@
     (is (= 4660 (:src-port fk)))
     (is (= 22136 (:dst-port fk)))))
 
-;; 非先頭フラグメント（L4ヘッダ無し）でも proto は載る（ここでは TCP）
+;; Non-first IPv6 fragment flow-key keeps protocol from next-header (TCP here).
 (deftest ipv6-frag-nonfirst-flow-key-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -230,11 +230,11 @@
     (is (= :tcp (:proto fk)))
     (is (= "2001:db8:0:0:0:0:0:1" (:src-ip fk)))
     (is (= "2001:db8:0:0:0:0:0:2" (:dst-ip fk)))
-    ;; ポートは無い（nil）ことを確認
+    ;; ports are unavailable for non-first fragments
     (is (nil? (:src-port fk)))
     (is (nil? (:dst-port fk)))))
 
-;; IPv6 圧縮表記（ゼロ連続を :: に）
+;; IPv6 compact form should use :: compression.
 (deftest ipv6-addr-compact-basic-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -244,14 +244,14 @@
                12 34 56 78 00 0C 00 00
                DE AD BE EF")
         m (parse/packet->clj pkt)]
-    ;; 既存の非圧縮は維持
+    ;; full expanded addresses
     (is (= "2001:db8:0:0:0:0:0:1" (get-in m [:l3 :src])))
     (is (= "2001:db8:0:0:0:0:0:2" (get-in m [:l3 :dst])))
-    ;; 新フィールドは圧縮
+    ;; compact addresses
     (is (= "2001:db8::1" (get-in m [:l3 :src-compact])))
     (is (= "2001:db8::2" (get-in m [:l3 :dst-compact])))))
 
-;; 全ゼロは :: になる
+;; all-zero IPv6 address compacts to ::
 (deftest ipv6-addr-compact-all-zero-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -263,7 +263,7 @@
     (is (= "::" (get-in m [:l3 :src-compact])))
     (is (= "::" (get-in m [:l3 :dst-compact])))))
 
-;; 802.1Q (0x8100) 単一タグ → IPv4 に到達し、:vlan-tags を付与
+;; 802.1Q (0x8100) VLAN tag should be parsed and IPv4 should still decode.
 (deftest ipv4-udp-vlan-single-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 81 00 00 64 08 00
@@ -280,7 +280,7 @@
     (is (= false (:dei tag)))
     (is (= :dns  (get-in m [:l3 :l4 :app :type])))))
 
-;; QinQ: 802.1ad(0x88A8, VID=200) の下に 802.1Q(0x8100, VID=100) → IPv6/UDP 到達
+;; QinQ (0x88A8 + 0x8100) should decode nested tags and IPv6/UDP payload.
 (deftest ipv6-udp-vlan-qinq-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 88 A8 00 C8 81 00 00 64 86 DD
@@ -300,7 +300,7 @@
     (is (= :udp (get-in m [:l3 :l4 :type])))
     (is (= 4     (get-in m [:l3 :l4 :data-len])))))
 
-;; TCP flags の短縮表記: 既存のIPv4/TCP最小テストは ACK+PSH（0x18） → "AP"
+;; TCP flags from ACK+PSH (0x18) should render as \"AP\".
 (deftest ipv4-tcp-flags-ap-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
@@ -311,7 +311,7 @@
     (is (= :tcp (get-in m [:l3 :l4 :type])))
     (is (= "AP" (get-in m [:l3 :l4 :flags-str])))))
 
-;; TCP flags: SYNのみ（0x02）→ "S"
+;; TCP flags SYN-only (0x02) should render as \"S\".
 (deftest ipv4-tcp-flags-syn-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
@@ -322,7 +322,7 @@
     (is (= :tcp (get-in m [:l3 :l4 :type])))
     (is (= "S" (get-in m [:l3 :l4 :flags-str])))))
 
-;; ICMPv4 Echo Request → type-name/summary を確認
+;; ICMPv4 Echo Request should expose type-name/summary.
 (deftest ipv4-icmp-echo-request-flags-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 11 22 33 44 55 08 00
@@ -335,7 +335,7 @@
     (is (= "echo-request" (:type-name l4)))
     (is (= "echo-request" (:summary l4)))))
 
-;; ICMPv6 Time Exceeded (code=0=hop-limit-exceeded) → type/code-name/summary を確認
+;; ICMPv6 Time Exceeded should expose type/code names and summary.
 (deftest ipv6-icmp6-time-exceeded-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
@@ -350,7 +350,7 @@
     (is (= "hop-limit-exceeded" (:code-name l4)))
     (is (= "time-exceeded/hop-limit-exceeded" (:summary l4)))))
 
-;; IPv4 先頭フラグメント（offset=0, MF=1）でも L4(UDP) に到達できる
+;; First IPv4 fragment (offset=0, MF=1) can still parse UDP header.
 (deftest ipv4-frag-first-udp-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
@@ -363,20 +363,20 @@
     (is (= 0     (get-in m [:l3 :frag-offset])))
     (is (= :udp  (get-in m [:l3 :l4 :type])))))
 
-;; IPv4 非先頭フラグメント（offset>0）は L4を解かず :ipv4-fragment で返す
+;; Non-first IPv4 fragment (offset>0) should map to :ipv4-fragment.
 (deftest ipv4-frag-nonfirst-test
   (let [pkt (tu/hex->bytes
              "00 11 22 33 44 55 66 77 88 99 AA BB 08 00
                45 00 00 18 00 02 00 01 40 11 00 00        ; total=24, id=2, flags+frag=0x0001(offset=1*8B), proto=UDP
                0A 00 00 01 0A 00 00 02
-               DE AD BE EF")                               ; 4Bだけ適当に
+               DE AD BE EF")                               ; 4B     
         m (parse/packet->clj pkt)]
     (is (= :ipv4 (get-in m [:l3 :type])))
     (is (= true  (get-in m [:l3 :frag?])))
     (is (= 1     (get-in m [:l3 :frag-offset])))
     (is (= :ipv4-fragment (get-in m [:l3 :l4 :type])))))
 
-;; DNS フラグ（クエリ）: QR=0, RD=1（0x0100）
+;; DNS query flags: QR=0, RD=1 (0x0100)
 (deftest ipv4-udp-dns-flags-query-app-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
@@ -392,7 +392,7 @@
     (is (= true (:rd? app)))
     (is (= false (:ra? app)))))
 
-;; DNS フラグ（レスポンス）: QR=1, RA=1, RD=1（0x8180）
+;; DNS response flags: QR=1, RA=1, RD=1 (0x8180)
 (deftest ipv4-udp-dns-flags-response-test
   (let [pkt (tu/hex->bytes
              "FF FF FF FF FF FF 00 00 00 00 00 01 08 00

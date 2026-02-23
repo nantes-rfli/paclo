@@ -51,7 +51,7 @@
     (.getAbsolutePath (io/file url))))
 
 (defn run-main
-  "例の -main を実行して stdout/err を取り出す。"
+  "Run -main and capture both stdout and stderr."
   [f & args]
   (let [err-w (java.io.StringWriter.)
         out (with-out-str
@@ -80,7 +80,7 @@
     (let [{:keys [out]} (run-main pcap-stats/-main sample)
           m (parse-first-edn out)]
       (is (map? m))
-      (is (= 4 (:packets m)))        ;; サンプルpcapの既知値
+      (is (= 4 (:packets m)))        ;; known packet count in sample
       (is (= 4 (get-in m [:proto :l4 :udp]))))))
 
 (deftest pcap-stats-jsonl-smoke
@@ -103,14 +103,14 @@
     (let [{:keys [out]} (run-main flow-topn/-main sample)
           v (parse-first-edn out)]
       (is (vector? v))
-      (is (= 4 (count v))))))     ;; サンプルpcapの既知値（4フロー）
+      (is (= 4 (count v))))))     ;; sample has 4 flow rows
 
 (deftest flow-topn-jsonl-smoke
   (testing "flow-topn emits JSONL per row"
     (let [{:keys [out]} (run-main flow-topn/-main sample "udp or tcp" "10" "unidir" "packets" "jsonl")
           lines (str/split-lines out)
           m (-> lines first (json/read-str :key-fn keyword))]
-      (is (<= 1 (count lines)))   ;; 小PCAPだと 2〜4 行想定
+      (is (<= 1 (count lines)))   ;; at least one row
       (is (map? m))
       (is (contains? m :flow)))))
 
@@ -132,12 +132,12 @@
 
 (deftest dns-rtt-smoke
   (testing "dns-rtt stats mode returns a sane map"
-    ;; pairs は片側欠損で 0 になりうるため、stats で健全性を確認する
-    ;; 引数順: <in> [bpf] [topN] [mode] [metric] [format]
+    ;; stats mode can output pairs=0 on some inputs.
+    ;; args: <in> [bpf] [topN] [mode] [metric] [format]
     (let [{:keys [out]} (run-main dns-rtt/-main sample "_" "_" "stats")
           m (parse-first-edn out)]
       (is (map? m))
-      ;; サンプルでは 1 以上が期待（将来PCAPが変わっても 0 以外であればOKにするのも可）
+      ;; at least one pair for the sample capture
       (is (<= 1 (:pairs m))))))
 
 (deftest dns-rtt-jsonl-smoke
@@ -178,7 +178,7 @@
       (is (.exists (File. tmp)))
       (is (map? meta))
       (is (= tmp (:out meta)))
-      (is (= (:in-packets meta) (:out-packets meta))))))  ;; フィルタなし=等数
+      (is (= (:in-packets meta) (:out-packets meta))))))  ;; no filter means unchanged count
 
 (deftest pcap-filter-jsonl-smoke
   (testing "pcap-filter writes JSONL meta when requested"
@@ -210,7 +210,7 @@
     (is (:async-cancelled? meta))
     (is (< (:out-packets meta) (:in-packets meta)))))
 
-;; ---------- dns-topn / dns-qps (v0.4 追加) ----------
+;; ---------- dns-topn / dns-qps ----------
 
 (deftest dns-topn-default-smoke
   (testing "dns-topn returns vector of rankings"

@@ -11,7 +11,7 @@
   (try
     (let [pcap (-> (java.io.File/createTempFile "paclo-dx" ".pcap")
                    .getAbsolutePath)
-          ;; IPv4/UDP/DNS 最小（既存 golden と同系）
+          ;; Minimal IPv4/UDP/DNS frame (same shape as golden tests).
           ipv4-udp-dns
           (tu/hex->bytes
            "FF FF FF FF FF FF 00 00 00 00 00 01 08 00
@@ -35,7 +35,7 @@
     (try
       (let [out (dx/apply! pkt)]
         (is (= :ok (get-in out [:decoded :note])))
-        ;; 非 map 戻り値は無視されるため元のキーは保持される
+        ;; Existing decoded map must remain intact.
         (is (= :udp (get-in out [:decoded :l3 :l4 :type]))))
       (finally
         (dx/unregister! ::annotate)
@@ -53,7 +53,7 @@
     (try
       (dx/apply! pkt)
       (is (= [:b :a2] @order))
-      ;; 他テストのフックが先頭に残っていても末尾順は保証される
+      ;; registration order is preserved
       (is (= [::b ::a] (vec (take-last 2 (dx/installed)))))
       (finally
         (dx/unregister! ::a)
@@ -62,14 +62,14 @@
 (deftest hooks-unregister-prunes-order
   (let [pkt {:decoded {:l3 {:l4 {:type :udp}}}}
         identity-hook (fn [m] m)]
-    ;; 保守のため既存を一旦クリア
+    ;; reset global hooks before this test
     (doseq [k (dx/installed)] (dx/unregister! k))
     (try
       (dx/register! ::a identity-hook)
       (dx/register! ::b identity-hook)
       (dx/unregister! ::a)
       (is (= [::b] (vec (dx/installed))))
-      ;; apply! が落ちないことも確認
+      ;; apply! should be no-op with identity hook
       (is (= pkt (dx/apply! pkt)))
       (finally
         (doseq [k (dx/installed)] (dx/unregister! k))))))
@@ -79,13 +79,13 @@
         hook   (fn [m] (swap! called inc) m)]
     (dx/register! ::count hook)
     (try
-      ;; :decoded が無い → スキップ
+      ;; missing :decoded -> skip hooks
       (is (= {:foo 1} (dx/apply! {:foo 1})))
       (is (= 0 @called))
-      ;; :decode-error がある → スキップ
+      ;; :decode-error present -> skip hooks
       (is (= {:decode-error "boom"} (dx/apply! {:decode-error "boom"})))
       (is (= 0 @called))
-      ;; 通常ケースでは hook が動く
+      ;; valid decoded payload -> hook runs once
       (is (= {:decoded {:l3 {:type :udp}}}
              (dx/apply! {:decoded {:l3 {:type :udp}}})))
       (is (= 1 @called))

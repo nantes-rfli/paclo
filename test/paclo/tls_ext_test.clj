@@ -36,7 +36,7 @@
     (is (= "example.com" (tls-ext/extract-sni ba)))))
 
 (deftest sni-nil-when-not-clienthello
-  ;; ContentType=23(アプリケーションデータ) → SNI は抽出されない
+  ;; ContentType=23 (application data) should not expose SNI.
   (let [hex "17 03 03 00 01 00"
         ba  (hex->bytes hex)]
     (is (nil? (tls-ext/extract-sni ba)))))
@@ -66,7 +66,7 @@
     (is (= {} (extract truncated)))))
 
 (deftest extract-tls-info-empty-when-sni-list-empty
-  ;; Extensions length present but SNI list length=0 ⇒ 安全に {} を返す
+  ;; Extensions exist but SNI list length=0 -> empty map.
   (let [hex "
     16 03 03 00 2f
     01 00 00 2b
@@ -83,7 +83,7 @@
     (is (= {} (extract (hex->bytes hex))))))
 
 (deftest extract-tls-info-sni-only-when-alpn-empty
-  ;; 既存フィクスチャを改変し、ALPN extension の長さを 0 にする
+  ;; Keep SNI when ALPN extension becomes empty.
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
         ba' (byte-array ba)]
     ;; extensions length 0x001d -> 0x001a (index 50-51)
@@ -98,7 +98,7 @@
       (is (nil? (:alpn info))))))
 
 (deftest extract-tls-info-alpn-extension-empty
-  ;; ALPN 拡張の長さフィールドを 0 にした場合も安全に SNI のみ残す
+  ;; ALPN extension length=0 should keep only SNI.
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
         ba' (byte-array ba)]
     ;; ALPN ext length => 0 (indices 72-73 hold ext type? Wait ext type at 72? Actually ALPN ext starts at 72)
@@ -112,7 +112,7 @@
       (is (nil? (:alpn info))))))
 
 (deftest extract-tls-info-alpn-list-length-zero
-  ;; ALPN extension exists but protocol list length=0 → ALPN省略扱い
+  ;; ALPN extension exists but protocol list length=0 -> ALPN    
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
         ba' (byte-array ba)]
     ;; ext len stays 0x0005, set protocol list len (at 76-77) to 0
@@ -125,9 +125,9 @@
       (is (nil? (:alpn info))))))
 
 (deftest extract-sni-fast-path-without-alpn
-  ;; 既存フィクスチャから ALPN 拡張を丸ごと削った版（長さも補正）
+  ;; Remove ALPN bytes to exercise SNI-only fast path.
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
-        ;; 元は81B。末尾の ALPN 拡張 9B を落として 72B にする。
+        ;; Original fixture is 81 bytes; cut to 72 bytes (without ALPN ext).
         short (byte-array 72)]
     (System/arraycopy ba 0 short 0 72)
     ;; record length 0x004c -> 0x0043 (handshake len 63 + header 4 = 67)
@@ -137,7 +137,7 @@
     (aset-byte short 6 (byte 0x00))
     (aset-byte short 7 (byte 0x00))
     (aset-byte short 8 (byte 0x3F))
-    ;; extensions length 0x001d -> 0x0014 (SNIのみ)
+    ;; extensions length 0x001d -> 0x0014 (SNI only)
     (aset-byte short 50 (byte 0x00))
     (aset-byte short 51 (byte 0x14))
     (let [info ((deref #'tls-ext/extract-tls-info) short)]

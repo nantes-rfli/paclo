@@ -5,7 +5,7 @@
 <module name="Checker">
   <property name="severity" value="warning"/>
   <module name="TreeWalker">
-    <!-- Minimal rules to avoid noise; expand later if必要 -->
+    <!-- Minimal rules to avoid noise; expand later if   -->
     <module name="WhitespaceAfter"/>
     <module name="WhitespaceAround"/>
     <module name="NoLineWrap"/>

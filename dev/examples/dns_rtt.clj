@@ -18,13 +18,13 @@
     (println)
     (println "Defaults:")
     (println "  <bpf-string> = 'udp and port 53'")
-    (println "  <topN>       = 50   (pairs/qstats の表示上限)")
+    (println "  <topN>       = 50 (used by pairs/qstats)")
     (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
-    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max  (qstats 並び替え; default: pairs)")
+    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max (qstats only; default: pairs)")
     (println "  <format>     = edn | jsonl (default: edn)")
-    (println "  <alert%>     = NXDOMAIN+SERVFAIL 率（例: 5 → 5%）")
-    (println "  --client/-c  <prefix>  例: 192.168.4.28  or  192.168.4.28:5")
-    (println "  --server/-s  <prefix>  例: 1.1.1.1       or  1.1.1.1:53")
+    (println "  <alert%>     = NXDOMAIN+SERVFAIL threshold (example: 5 -> 5%)")
+    (println "  --client/-c  <prefix>   : 192.168.4.28  or  192.168.4.28:5")
+    (println "  --server/-s  <prefix>   : 1.1.1.1       or  1.1.1.1:53")
     (println "  async        = opt-in (backpressure/drop/cancel). Defaults: buffer=1024, mode=buffer")
     (println "  Tips         = optional args can be skipped with '_' (e.g., '_' for <alert%>)")
     (println)
@@ -59,7 +59,8 @@
       (bit-or (bit-shift-left hi 8) lo))))
 
 (defn- parse-dns-header
-  "payload から {:id <u16> :qr? <bool>} を取り出す（失敗なら nil）"
+  "Parse DNS header fields from payload.
+  Returns {:id <u16> :qr? <bool>} or nil."
   [^bytes ba]
   (when (and ba (<= 12 (alength ba)))
     (let [id    (u16 ba 0)
@@ -70,7 +71,7 @@
 ;; -------- pairing key & pretty endpoints --------
 
 (defn- canon-key
-  "方向非依存キー：[id lo-end hi-end]。end は \"ip:port\" の文字列。"
+  "Canonical key for DNS transaction pairing: [id endpoint-a endpoint-b]."
   [m id]
   (let [a (endpoint m :src)
         b (endpoint m :dst)]
@@ -79,7 +80,7 @@
       [id b a])))
 
 (defn- classify-client-server
-  "見栄え用：53番が server。両方/どちらも53でないときは辞書順で安定化。"
+  "Classify client/server by port 53 when possible; otherwise use stable lexical order."
   [m]
   (let [sp (get-in m [:decoded :l3 :l4 :src-port])
         dp (get-in m [:decoded :l3 :l4 :dst-port])]
@@ -94,7 +95,7 @@
 ;; -------- stats helpers --------
 
 (defn- nearest-rank
-  "Nearest-rank percentile（pは0.0..100.0）"
+  "Nearest-rank percentile(p 0.0..100.0)"
   [sorted-xs p]
   (let [n (count sorted-xs)]
     (when (pos? n)
@@ -123,7 +124,7 @@
      :ratio  ratio}))
 
 (defn- summarize-qstats
-  "qnameごとの統計。返り値はベクタ：
+  "Summarize rows by qname. Output shape:
    [{:qname \"example.com\", :pairs 123, :with-rtt 100,
      :rtt {...}, :rcode {...}} ...]"
   [rows]
@@ -139,7 +140,7 @@
        vec))
 
 (defn- metric->keyfn
-  "qstats の並び替えキー生成。未知/欠損は -∞ 的に扱って下位へ。"
+  "Metric selector for qstats ranking. Missing values sort as negative infinity."
   [metric]
   (case metric
     :pairs     (fn [{:keys [pairs]}]     (long (or pairs 0)))
@@ -153,7 +154,7 @@
     (fn [{:keys [pairs]}] (long (or pairs 0)))))
 
 (defn- overall-error-rate
-  "rows から NXDOMAIN/SERVFAIL の合計率（0.0..1.0）と counts を返す。"
+  "Compute NXDOMAIN/SERVFAIL ratio and counts from rows."
   [rows]
   (let [pairs (max 1 (count rows))
         cnts  (frequencies (map #(or (:rcode %) :unknown) rows))
@@ -165,7 +166,7 @@
 ;; -------- option parsing --------
 
 (defn- parse-filters
-  "末尾オプションから --client/-c / --server/-s を抽出。"
+  "Parse endpoint prefix filters from --client/-c and --server/-s."
   [opts]
   (loop [m {:client nil :server nil}
          xs (seq opts)]
@@ -183,7 +184,7 @@
           (recur m (next xs)))))))
 
 (defn- drop-client-server-opts
-  "client/server オプションを取り除き、残りを返す（async 解析用）。"
+  "Remove client/server filter flags before passing args to async option parser."
   [opts]
   (loop [xs opts acc []]
     (if (empty? xs)
@@ -195,8 +196,8 @@
           :else (recur (rest xs) (conj acc a)))))))
 
 (defn- parse-positionals
-  "位置引数を左から [:bpf :topn :mode :metric :fmt :alert] に詰める。
-   '_' は未指定扱い。途中で '--' 始まりを見つけたら以降は :tail へ。"
+  "Parse positional arguments in order [:bpf :topn :mode :metric :fmt :alert].
+   '_' skips a positional; first option token starts :tail."
   [xs]
   (loop [order [:bpf :topn :mode :metric :fmt :alert]
          acc   {:bpf nil :topn nil :mode nil :metric nil :fmt nil :alert nil :tail []}
@@ -219,7 +220,7 @@
       (and (string? s) (str/starts-with? s prefix))))
 
 (defn- apply-endpoint-filters
-  "client/server の前方一致で rows をフィルタ。"
+  "Apply optional client/server prefix filters to computed rows."
   [{cf :client sf :server} rows]
   (if (and (nil? cf) (nil? sf))
     rows
@@ -234,15 +235,15 @@
 
 (defn -main
   "Compute DNS transaction RTTs by pairing queries with responses.
-   - 既定BPF: 'udp and port 53'
-   - ペアリング: ID + (src,dst) を辞書順で正規化したキー
-   - qname/qtype/rcode は best-effort（dns-ext を登録）
-   - mode=pairs : :rtt-ms 昇順のペア（Top-N）
-   - mode=stats : 全体のRTT統計とRCODE分布
-   - mode=qstats: qname別統計（Top-N、metric で並び替え）
+   - default BPF: 'udp and port 53'
+   - pairing key: DNS id + canonicalized endpoints
+   - qname/qtype/rcode come from dns-ext on best effort
+   - mode=pairs returns top-N rows by RTT ordering
+   - mode=stats returns aggregate RTT and RCODE stats
+   - mode=qstats returns per-qname aggregates
    - format=edn | jsonl
-   - alert%: NXDOMAIN+SERVFAIL が超えたら WARNING
-   - --client/--server: 端点の前方一致フィルタ（IP あるいは IP:PORT）"
+   - alert% emits warning when NXDOMAIN+SERVFAIL rate exceeds threshold
+   - --client/--server filter endpoint prefixes (IP or IP:PORT)"
   [& args]
   (let [[in & rest-args] args]
     (when (nil? in) (usage) (System/exit 1))
@@ -259,7 +260,7 @@
           _      (dns-ext/register!)]
       (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
       (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
-      ;; rows-all を構築（async 対応）
+      ;; Build rows, optionally via async ingestion.
       (let [rows-all
             (if-not async?
               (->> (core/packets {:path in
@@ -354,7 +355,7 @@
                                :async-dropped @dropped})))))
             rows (apply-endpoint-filters fopts rows-all)]
 
-        ;; アラート（フィルタ後 rows を対象）
+        ;; Optional error-rate alert.
         (when alert%
           (let [{:keys [rate counts]} (overall-error-rate rows)
                 pct (unchecked-multiply 100.0 (double rate))]

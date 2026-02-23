@@ -5,8 +5,8 @@ import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 
 /**
- * libpcap の pcap_t を安全に扱うための小さなラッパー。
- * AutoCloseable により try-with-resources で確実に close できる。
+ * Small AutoCloseable wrapper for a libpcap {@code pcap_t} pointer.
+ * Use with try-with-resources to ensure {@code pcap_close} is called.
  */
 public final class PcapHandle implements AutoCloseable {
   private static final int ERRBUF_SIZE = 256;
@@ -19,10 +19,11 @@ public final class PcapHandle implements AutoCloseable {
   }
 
   /**
-   * offline pcap を開く。失敗時は IllegalStateException を投げる。
+   * Open an offline pcap file.
    *
-   * @param path PCAP ファイルパス
+   * @param path PCAP file path
    * @return PcapHandle (AutoCloseable)
+   * @throws IllegalStateException when open fails
    */
   public static PcapHandle openOffline(String path) {
     Runtime rt = Runtime.getRuntime(PcapLibrary.INSTANCE);
@@ -36,7 +37,7 @@ public final class PcapHandle implements AutoCloseable {
   }
 
   /**
-   * libpcap の pcap_t ポインタをそのまま返す。
+   * Underlying libpcap pointer.
    *
    * @return pointer to pcap_t
    */

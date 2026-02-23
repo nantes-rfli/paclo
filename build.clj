@@ -65,20 +65,16 @@
 
 (defn jar [_]
   (clean nil)
-  ;; Clojure/リソースをコピー
   (let [src-dirs (filter #(.exists (io/file %))
                          ["src" "extensions/dns/src" "resources"])]
     (b/copy-dir {:src-dirs src-dirs
                  :target-dir class-dir}))
-  ;; ★ Java をコンパイル（src-java → target/classes）
   (when (.exists (java.io.File. "src-java"))
     (b/javac {:src-dirs ["src-java"]
               :class-dir class-dir
               :basis basis
               :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]}))
-  ;; Maven metadata を JAR に同梱（Clojars/cljdoc 向け）
   (b/write-pom (assoc (pom-params) :class-dir class-dir))
-  ;; Jar 作成
   (b/jar {:class-dir class-dir
           :jar-file jar-file
           :lib lib

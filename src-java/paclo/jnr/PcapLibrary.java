@@ -10,12 +10,12 @@ import paclo.jnr.BpfProgram;
 import paclo.jnr.PcapErrors;
 
 /**
- * jnr-ffi 経由で libpcap の主要 API を公開するインターフェース。
- * Clojure 側からも直接呼べるよう、静的メソッドで安全ヘルパーを提供する。
+ * jnr-ffi interface for the libpcap APIs used by Paclo.
+ * Includes small static helpers used from both Java and Clojure.
  */
 public interface PcapLibrary {
 
-  /** libpcap ローダ（Clojure側からも直接使えるようにしておく） */
+  /** Shared singleton loader. */
   PcapLibrary INSTANCE = LibraryLoader.create(PcapLibrary.class).load("pcap");
 
   // open/close
@@ -45,7 +45,7 @@ public interface PcapLibrary {
   void    pcap_close(Pointer pcap);
 
   /**
-   * dead pcap_t を作る（生成PCAP用）
+   * Create a dead capture handle (for writing PCAPs).
    * @param linktype DLT_* link type
    * @param snaplen snapshot length
    * @return pcap_t pointer
@@ -102,7 +102,7 @@ public interface PcapLibrary {
    */
   String  pcap_lib_version();
 
-  // 追加: dumper（pcap_dump_*）
+  // dumper (pcap_dump_*)
   /**
    * Open dumper.
    * @param pcap pcap_t
@@ -133,7 +133,7 @@ public interface PcapLibrary {
    */
   String pcap_geterr(Pointer pcap);
 
-  // 構造体ヘルパー（最小限）
+  // struct helpers (minimal mapping)
   /** Minimal pcap_if struct mapping. */
   public static final class PcapIf extends jnr.ffi.Struct {
     /** next interface */
@@ -173,7 +173,7 @@ public interface PcapLibrary {
    */
   int     pcap_lookupnet(String device, IntByReference netp, IntByReference maskp, Pointer errbuf);
 
-  // ===== BPF ヘルパー（利便性向上・例外で失敗がわかるように） =====
+  // ===== BPF convenience helpers =====
   /**
    * Compile filter and throw on error.
    * @param pcap handle

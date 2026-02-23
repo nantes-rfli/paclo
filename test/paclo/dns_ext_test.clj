@@ -81,11 +81,11 @@
   (is (nil? (decode-name (byte-array [5 1 2]) 0))))
 
 (deftest decode-name-returns-nil-when-offset-out-of-range
-  ;; start offset が長さを超えている場合は nil
+  ;; start offset              nil
   (is (nil? (decode-name (byte-array [0]) 5))))
 
 (deftest decode-name-detects-pointer-loop
-  ;; 圧縮ポインタが自己参照している場合は jumps リミットで nil を返す
+  ;;                    jumps       nil    
   (is (nil? (decode-name (byte-array [(unchecked-byte 0xC0) 0]) 0))))
 
 (deftest annotate-qname-qtype-handles-unknown-type

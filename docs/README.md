@@ -1,35 +1,29 @@
-# Paclo Docs Index
+# Paclo Docs
 
-Paclo is a Clojure library that makes PCAP I/O and BPF DSL easy to use from idiomatic Clojure code.
-This page is the entry point to the documentation set.
+This is the public documentation index for Paclo.
 
-## Quick links
+## Start here
 
-- User Guide: ./usage.md
-- Getting Started / Quick Start: ../README.md#quick-start
-- Examples (CLI): ../README.md#run-the-examples
-- Decode extensions: ./extensions.md
-- Public API contract (cljdoc sync): ./cljdoc-api-contract.md
-- Migration guide (0.4 -> 1.0): ./migration-0.4-to-1.0.md
-- v1.0.0-rc release checklist: ./release-v1-rc-checklist.md
-- Roadmap: ./ROADMAP.md
-- v1.0 API freeze draft (Phase H): ./v1-phase-h-freeze-draft.md
+- Getting started and install: `../README.md`
+- Usage guide: `./usage.md`
+- Decode extensions: `./extensions.md`
+- Public API contract (v1.0): `./cljdoc-api-contract.md`
+- Migration guide (0.4 -> 1.0): `./migration-0.4-to-1.0.md`
+- Roadmap and release status: `./ROADMAP.md`
 - API on cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
 
-## Common tasks
+## User-facing command references
 
-- Read PCAP with filter: ../README.md#quick-start (sample at dev/resources/fixtures/sample.pcap)
-- Write BPF DSL expressions: ../README.md#bpf-dsl-examples-extended
-- Write / transform PCAP (EDN/JSONL meta): ../README.md#pcap-filter-edn--jsonl-meta
-- Add decode hooks: ./extensions.md
+- CLI examples are documented in `../README.md` and `./usage.md`.
+- DNS extension examples use `-M:dev:dns-ext` in repository-local runs.
 
-## Development & verification
+## Development and verification
 
-- Run tests: `clj -M:test`
-- Compile Java sources (if present): `clojure -T:build javac`
-- Supported environments: see README “Compatibility Matrix (v1.0 target)”
+- Run tests: `clojure -M:test`
+- Run static checks: `clojure -M:eastwood` and `clj-kondo --lint src test dev`
+- Run performance gate: `clojure -M:perf-gate`
 
-## Release info
+## Notes
 
-- Current stable tag: v1.0.0
-- deps.edn usage: README “Install” section
+Some historical planning memos may remain in Japanese and are not part of the public API/usage docs.
+The files listed in "Start here" are the canonical, maintained user-facing set.

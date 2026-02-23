@@ -3,11 +3,11 @@
    [clojure.string :as str]))
 
 (defn hex->bytes ^bytes [^String s]
-  (let [no-line-comments (str/replace s #"(?m);.*$" "")     ;; 行内 ;コメントを削除
-        no-block-comments (str/replace no-line-comments #"(?s)/\*.*?\*/" "") ;; /* ... */ も一応対応
+  (let [no-line-comments (str/replace s #"(?m);.*$" "")     ;;    ;       
+        no-block-comments (str/replace no-line-comments #"(?s)/\*.*?\*/" "") ;; /* ... */      
         cleaned (-> no-block-comments
                     str/lower-case
-                    (str/replace #"[^0-9a-f]" ""))]         ;; 16進以外は全部削除
+                    (str/replace #"[^0-9a-f]" ""))]         ;; 16        
     (when (odd? (count cleaned))
       (throw (ex-info "Odd number of hex digits" {:len (count cleaned)})))
     (byte-array

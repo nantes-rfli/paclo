@@ -32,14 +32,14 @@
     (System/exit 3)))
 
 (defn parse-format
-  "fmt-str -> :edn/:jsonl（nil や \"_\" はデフォルトedn）。不正なら usage エラーを出して終了。"
+  "Parse output format. nil or \"_\" defaults to :edn."
   [fmt-str]
   (let [fmt (keyword (or (when-not (blank? fmt-str) fmt-str) "edn"))]
     (ensure-one-of! "format" fmt #{:edn :jsonl})
     fmt))
 
 (defn emit
-  "fmt = :edn | :jsonl。ベクタ/シーケンスは :jsonl で1行ずつ。"
+  "Emit data as EDN or JSONL. Sequential values are emitted one row per line in JSONL."
   [fmt data]
   (case fmt
     :jsonl (cond
@@ -49,9 +49,9 @@
     (println (pr-str data))))
 
 (defn parse-async-opts
-  "共通 async フラグのパーサ。
+  "Parse common async options.
   args -> {:async? bool :async-buffer long :async-mode :buffer|:dropping :async-timeout-ms long|nil}
-  defaults 省略時: buffer=1024, mode=:buffer"
+  defaults: buffer=1024, mode=:buffer"
   [args {:keys [default-buffer default-mode] :or {default-buffer 1024 default-mode :buffer}}]
   (loop [opts {:async? false
                :async-buffer default-buffer

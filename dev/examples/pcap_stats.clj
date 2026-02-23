@@ -13,11 +13,11 @@
     (println "Tips    : use \"_\" to skip an optional arg (e.g., '_' for <bpf>)")))
 
 (defn- fmt-ts
-  "マイクロ秒のエポックを ISO8601（UTC）文字列に。無ければ nil。"
+  "Convert microseconds-since-epoch to ISO8601 UTC. Returns nil when unavailable."
   [us]
   (when (number? us)
     (-> (long us)
-        (quot 1000)               ; μs → ms
+        (quot 1000)               ; us -> ms
         (java.time.Instant/ofEpochMilli)
         (.toString))))
 
@@ -69,7 +69,7 @@
           cmin (when (seq caplens) (apply min caplens))
           cmax (when (seq caplens) (apply max caplens))
           cavg (when (seq caplens) (double (/ (long (reduce + 0 caplens)) (long cnt))))
-          ;; タイムスタンプ（無ければ nil のまま）
+          ;; Keep only valid timestamp pairs.
           tlist (->> pkts
                      (map (fn [{:keys [sec usec]}]
                             (when (and sec usec)

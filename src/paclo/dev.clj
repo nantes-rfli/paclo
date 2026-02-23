@@ -1,10 +1,11 @@
 (ns paclo.dev
-  "REPLでの即席デバッグ/実験ヘルパ。
-   - (parse-hex s)       ; 16進文字列→パケットmap
-   - (summarize pktmap)  ; 要約表示
-   - (hexd pktmap)       ; :bytes を16進で表示（L2生データ）
+  "Quick REPL helpers for debugging and packet inspection.
 
-   例:
+   - (parse-hex s)      ; hex string -> packet map
+   - (summarize pktmap) ; print concise summary
+   - (hexd pktmap)      ; render :bytes as hex
+
+   Example:
    (-> HBH-OK parse-hex summarize)
    (-> HBH-BAD parse-hex summarize)"
   (:require
@@ -12,14 +13,14 @@
    [paclo.parse :as parse]
    [paclo.pcap :as pcap]))
 
-;; テストユーティリティに依存しない最小 hex→bytes
+;; Minimal hex parser without test utility dependencies.
 (defn hex->bytes ^bytes [^String s]
   (let [cleaned (-> s
                     str/lower-case
-                    ;; ; コメント / Cスタイル /* */ は行儀良く除去
+                    ;; Strip line comments and C-style blocks.
                     (str/replace #"(?m);.*$" "")
                     (str/replace #"(?s)/\*.*?\*/" "")
-                    ;; 16進以外を全部落とす
+                    ;; Keep only hex digits.
                     (str/replace #"[^0-9a-f]" ""))]
     (when (odd? (count cleaned))
       (throw (ex-info "Odd number of hex digits" {:len (count cleaned)})))
@@ -29,12 +30,12 @@
           (partition 2 cleaned)))))
 
 (defn parse-hex
-  "16進文字列 s をパースして packet map を返す。"
+  "Parse hex string `s` into a packet map."
   [^String s]
   (parse/packet->clj (hex->bytes s)))
 
 (defn- fmt-bytes
-  "byte[] を 'xx xx xx ...' の文字列へ"
+  "Render byte[] as a string like: xx xx xx ..."
   [^bytes bs]
   (->> bs
        (map (fn [b]
@@ -43,18 +44,18 @@
        (str/join " ")))
 
 (defn hexd
-  "packet map の :bytes を16進で表示（L2生データ）。戻り値は文字列。"
+  "Render packet map :bytes as hex. Returns a string."
   [pkt]
   (fmt-bytes (:bytes pkt)))
 
 (defn fragment-note
-  "L3マップにフラグメント情報があれば \"frag@<offset>\" を返す。"
+  "Return \"frag@<offset>\" when L3 fragment metadata is present."
   [l3]
   (when (:frag? l3)
     (str "frag@" (or (:frag-offset l3) 0))))
 
 (defn vlan-summary
-  "VLANタグのベクタを \"VLAN: [TPID=…] [TPID=…]\" 形式で連結。なければ nil。"
+  "Join VLAN tag maps into a single display string, or nil when no tags exist."
   [vlan-tags]
   (when (seq vlan-tags)
     (str "VLAN:"
@@ -63,7 +64,7 @@
               (apply str)))))
 
 (defn summarize
-  "要点だけサマリ出力（println）。戻り値は pkt そのもの（スレッディングしやすく）。"
+  "Print a compact summary and return the original packet map."
   [pkt]
   (let [{:keys [type l3 vlan-tags]} pkt
         l3t (:type l3)
@@ -103,7 +104,7 @@
     pkt))
 
 ;; ------------------------------------------------------------
-;; 実験用の最小ベクタ（HBH: 正常/異常）
+;; Minimal vectors for HBH experiments (valid/invalid)
 ;; ------------------------------------------------------------
 
 (def HBH-OK
@@ -116,7 +117,7 @@
    12 34 56 78 00 08 00 00")
 
 (def HBH-BAD-OVERRUN
-  "HBHのTLV長が過走（len=0x0Dで14B領域を1Bオーバー）→ 安全に上位へ進まず"
+  "HBH TLV length overrun (len=0x0D exceeds the 14B option area by 1 byte)."
   "00 11 22 33 44 55 66 77 88 99 AA BB 86 DD
    60 00 00 00 00 18 00 40
    20 01 0D B8 00 00 00 00 00 00 00 00 00 00 00 01

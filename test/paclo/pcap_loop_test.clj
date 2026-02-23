@@ -11,7 +11,7 @@
   (Memory/allocateDirect (jnr.ffi.Runtime/getSystemRuntime) n))
 
 (defn- make-hdr+dat
-  "固定の pcap_pkthdr とデータ領域を作る。"
+  "Create fixed pcap_pkthdr and payload pointers."
   [^bytes ba]
   (let [hdr (alloc-direct 24)
         dat (alloc-direct (long (max 1 (alength ba))))
@@ -24,7 +24,7 @@
     {:hdr hdr :dat dat}))
 
 (def ^:private fake-pcap
-  ;; breakloop で Pointer 型が要求されるので 1バイトのダミーメモリを使う
+  ;; breakloop expects a Pointer, so use 1-byte dummy memory.
   (alloc-direct 1))
 
 (defn- set-ref! ^PointerByReference [^PointerByReference ref ^Pointer p]
@@ -57,7 +57,7 @@
       nil)))
 
 (defn- fake-lib-open-live
-  "pcap_open_live が指定の pcap を返すフェイク lib。nil を返させたい場合は :pcap nil を渡す。"
+  "Fake PcapLibrary where pcap_open_live returns configured pcap (or nil)."
   [{:keys [pcap] :as opts}]
   (let [p (if (contains? opts :pcap) pcap fake-pcap)]
     {:lib
@@ -83,8 +83,8 @@
      :pcap p}))
 
 (defn- fake-lib
-  "rcs を順に返す pcap lib のフェイク。
-   rc=1 のときは hdr/dat をセットする。"
+  "Fake PcapLibrary returning `rcs` in sequence.
+   For rc=1, header/data refs are populated."
   [{:keys [rcs hdr dat break-calls]}]
   (let [rcs* (atom rcs)
         breaks (or break-calls (atom 0))
@@ -242,7 +242,7 @@
     (let [summary (pcap/run-live-n-summary! {} 2 (fn [_]) {})]
       (is (= 2 (:count summary)))
       (is (= :n (:stopped summary)))))
-  (with-redefs [pcap/run-live-n! (stub-run-live-n! 1)] ; 未達
+  (with-redefs [pcap/run-live-n! (stub-run-live-n! 1)] ; not reached target n
     (let [summary (pcap/run-live-n-summary! {} 2 (fn [_]) {})]
       (is (= 1 (:count summary)))
       (is (= :idle-or-eof (:stopped summary))))))

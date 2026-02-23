@@ -1,34 +1,27 @@
-# decode_ext API 安定化ドラフト（Phase B）
+# decode-ext API Plan (Phase B)
 
-目的: v0.3 で decode 拡張点を「破壊的変更なし」で安定化させ、DNS + TLS SNI 拡張を同一APIで運用できるようにする。
+## Goal
+Provide a stable post-decode hook API so optional protocol enrichers can be added without changing `paclo.core/packets`.
 
-## 非破壊ルール（互換性）
-- フック署名を現行の `m -> m'`（マップを返した場合のみ適用）から変更しない。
-- 呼び出し契約: `paclo.core/packets` が `{:decode? true}` のときのみ `decode-ext/apply!` を通す現在のフローを維持。
-- 登録 API (`register!` / `unregister!` / `installed`) の関数名と挙動を変えない。
-- 例外の握りつぶしポリシーを維持（hook 内例外はログ無しで無害化）し、今後は必要に応じて opt-in ロギングフラグを追加する方向で検討（デフォルトは現状維持）。
+## Design
+- Hook shape: `packet-map -> packet-map`.
+- Hooks run only when `:decoded` exists and `:decode-error` is absent.
+- Public operations: `register!`, `unregister!`, `installed`, `apply!`, `with-hooks`.
+- Invalid hook output (`nil` or non-map) is ignored.
+- Hook failures are swallowed by default; optional `:on-error` can receive diagnostics.
 
-## 仕様の明文化ポイント
-- "マップ以外は無視" をドキュメント化し、戻り値が `nil` / truthy でも map 以外なら適用しないことを明記。
-- フック実行順は登録順（現状の `dx/hooks` Vector）であり、同 key 登録は上書きになることを明示。
-- フック実行は `:decoded` が存在し `:decode-error` でないパケットに限定することを明示。
-- フックは副作用を伴っても良いが、戻り値のみが適用されることを明記。
+## Contract
+- Hook execution order follows registration order.
+- Re-registering the same key moves that key to the end.
+- `unregister!` removes both handler and order entry.
+- Base decode result must stay intact unless a hook explicitly updates fields.
 
-## API 追加/変更案（非破壊）
-- `dx/with-hooks`（候補）: 一時的に hook セットを差し替えて `packets` を流すユーティリティ（新関数追加は後方互換）。
-- `dx/apply!` に `{:on-error f}` オプションを後方互換で受け付ける余地を検討（デフォルト nil）。Phase B ではドキュメント草案のみ、実装は Phase C 以降に回す。
+## Current Status
+- API implemented in `paclo.decode-ext`.
+- DNS and TLS enrichers integrate through this API.
+- Core behavior covered by tests in `test/paclo/decode_ext_test.clj`.
 
-## エラーハンドリング方針
-- hook 内例外は握りつぶし: 既定の動作を維持。
-- 失敗パケットを識別する場合は、hook 側で `assoc` する形で記録する（例: `:decode-ext/error :tls-truncated`）。
-- 将来の opt-in ロギングの最低情報: hook key, ex-message, 先頭数バイトを16進で。PIIを含まない範囲で。
-
-## テスト方針
-- 既存 `paclo.proto.tls-ext` / `paclo.proto.dns-ext` をフックしても破壊的変更が無いことを確認するスモークテストを `test/paclo/decode_ext_api_test.clj` に追加予定。
-- プロパティ: hook が map 以外を返す場合に無害であること、例外を投げても落ちないこと、登録順が維持されることをチェック。
-
-## 今後の進め方（Phase B 内）
-1. 本ドラフトを ROADMAP にリンク（完了 2025-12-03）。
-2. `dx/with-hooks` の要否を決める（小さく入れる場合は dev のみで公開しない）。期限 2025-12-10。
-3. スモーク/プロパティテストを追加。期限 2025-12-12。
-4. ドキュメント（`docs/extensions.md`）に安定化注記を追記。期限 2025-12-12。
+## Next Actions
+1. Keep hook API as internal-stable until v1.0.0.
+2. Add one focused test for `with-hooks` nesting behavior.
+3. Keep docs in `docs/extensions.md` aligned with real behavior.

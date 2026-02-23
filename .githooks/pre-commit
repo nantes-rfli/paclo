@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# === 可変フラグ（必要に応じて環境変数で上書き可能） ===
-: "${SKIP_TESTS:=0}"    # 1 = テストを飛ばす
-: "${SKIP_FMT:=0}"      # 1 = 整形を飛ばす
-: "${SKIP_MD_LINT:=0}"  # 1 = markdownlint を飛ばす
+# === Optional flags (override via env vars) ===
+: "${SKIP_TESTS:=0}"    # 1 = skip tests
+: "${SKIP_FMT:=0}"      # 1 = skip formatting
+: "${SKIP_MD_LINT:=0}"  # 1 = skip markdown lint
 
 echo "[pre-commit] start"
 
-# 1) テスト
+# 1) tests
 if [ "$SKIP_TESTS" -ne 1 ]; then
   echo "[pre-commit] Running tests..."
   clj -M:test
@@ -16,7 +16,7 @@ else
   echo "[pre-commit] SKIP_TESTS=1 -> skip tests"
 fi
 
-# 2) 整形（clojure-lsp clean-ns & format）
+# 2) format (clojure-lsp clean-ns & format)
 if [ "$SKIP_FMT" -ne 1 ]; then
   echo "[pre-commit] Formatting via clojure-lsp..."
   dev/script/fmt.sh
@@ -43,7 +43,7 @@ else
   echo "[pre-commit] SKIP_KONDO=1 -> skip clj-kondo"
 fi
 
-# 5) 整形による差分などを自動ステージ
+# 5) stage updates created by format/lint
 git add -u
 
 echo "[pre-commit] done"

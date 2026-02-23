@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - DNS aggregation CLIs `examples.dns-topn` / `examples.dns-qps` (EDN/JSONL/CSV, async/drop/cancel, qname punycode normalization, SNI/ALPN aggregation, empty-bucket fill).
 - Added four TLS sample PCAPs (`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`) and expanded smoke tests.
-- Added DNS QPS benchmark reference to README/ROADMAP (dns-synth-small 10pkt, bucket=1000, decode?=true, ≈16.2ms).
+- Added DNS QPS benchmark reference to README/ROADMAP (dns-synth-small 10pkt, bucket=1000, decode?=true, ~16.2ms).
 - CI: added dns-ext smoke (`examples.dns-topn`) and cljdoc CLI dry-run to the build job.
 - CI: set coverage job to Temurin 17 with continue-on-error to mitigate cloverage native crashes.
 
@@ -76,17 +76,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REPL pipeline benchmark sample numbers for small / mid (50k) / large (100k) synthetic PCAPs.
 - Synthetic PCAP generator `make-synth-pcap` to reproduce benchmark inputs (count/caplen configurable).
 - Property test to assert decode_ext isolates exceptions yet keeps later hooks running.
-- decode_ext ガード（`:decoded` が無い/`:decode-error` がある場合は hook をスキップ）とカバレッジ追加。
-- `examples.pcap-filter` の JSONL メタ出力スモークテスト。
-- examples: `pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt` に opt-in の `--async`（背圧/ドロップ/タイムアウトデモ）を追加。
+- Added decode_ext guard coverage for packets without `:decoded` or with `:decode-error` (hooks are skipped).
+- Added JSONL metadata smoke test for `examples.pcap-filter`.
+- Added opt-in `--async` support to `pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt` (backpressure/drop/timeout demos).
 
 ### Docs
 - `docs/extensions.md` stability notes for decode_ext hooks (map-only apply, exception isolation, API compatibility).
 - Roadmap updated to reflect Phase B progress and outstanding tasks; mid-size REPL turnaround numbers added; proto-dns split draft added (`dev/proto-dns-split-plan.md`).
 - README REPL turnaround section now lists small/mid/large pipeline-bench samples.
-- Examples docs/help text aligned (`dns-summary` alias hint, `tls-sni-scan` formats/tips) に加え、EDN/JSONL 共通フラグと `_` スキップの説明を整理。
-- `docs/extensions.md` を v0.3 安定化注記に更新（適用条件ガードを明文化）。
-- README に async オプションの opt-in 用例と長尺 PCAP での背圧/ドロップ観察手順を追記（pcap-filter / flow-topn / pcap-stats / dns-rtt）。ROADMAP に core.async 進捗を反映。
+- Aligned examples docs/help text (`dns-summary` alias hint, `tls-sni-scan` formats/tips), including shared EDN/JSONL flags and `_` skip usage.
+- Updated `docs/extensions.md` with v0.3 stability notes and explicit hook guard conditions.
+- Added async opt-in examples and long-PCAP backpressure/drop observation steps to README (`pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt`) and synced ROADMAP core.async progress.
 
 ### Fixed
 - `examples.dns-summary` help text now references the required `:dns-ext` alias.

@@ -1,24 +1,22 @@
-# Decode extensions (post-decode hooks)
+# Decode Extensions (Post-Decode Hooks)
 
-`paclo.decode-ext` lets you annotate or transform decoded packets **right after decode** without
-breaking the base parser (`parse/packet->clj`). It is designed as an after-the-fact, pluggable hook
-layer.
+`paclo.decode-ext` lets you annotate or transform decoded packets immediately after decode,
+without changing the base parser (`parse/packet->clj`).
 
-## How it works
+## How hooks work
 
-- A hook is a function `m -> m'` where `m` is one packet map from `packets {:decode? true}`.
-- Exceptions are swallowed inside the hook runner, so a failing hook does not affect others.
-- Only map return values are applied; anything else is ignored.
-- Hooks run only when `:decoded` exists (they are skipped on `:decode-error` entries).
-- Hooks run in registration order; same key overwrites prior registration and moves to the tail.
+- A hook is a function `m -> m'` where `m` is a packet map from `(packets {:decode? true ...})`.
+- Hooks run only when `:decoded` exists and `:decode-error` is absent.
+- Hooks run in registration order.
+- Re-registering the same key overwrites the previous function and moves it to the tail.
+- Hook exceptions are swallowed; packet processing continues.
+- Only map return values are applied; non-map returns are ignored.
 
-### Stability notes (v0.3)
+## Stability notes (v1.0 contract)
 
-- API 互換性: hook 署名（`m -> m'`）と `register!` / `unregister!` / `installed` の挙動を v0.3 で固定。
-- 適用条件: `:decoded` が存在し、かつ `:decode-error` が無いパケットのみ hook を適用（防御的ガードを追加）。
-- 失敗耐性: hook 内例外は握りつぶし（ログ無し）。必要なら hook 側で明示的に処理するか、今後の opt-in ロギング（検討中）を利用。
-- 非 map 戻り値: map 以外は無視される（副作用は許容）。
-- 追加検討中: 一時的に hook セットを差し替えるユーティリティ `dx/with-hooks` を Phase C で検討。
+- Hook signature (`m -> m'`) is stable.
+- `register!`, `unregister!`, `installed`, and `apply!` behavior is part of the public API contract.
+- Hook failures are isolated by design.
 
 ```clojure
 (require '[paclo.decode-ext :as dx])
@@ -30,67 +28,61 @@ layer.
       m)))
 
 (dx/unregister! ::my-hook)
-(dx/installed)  ;; => (list of keys)
+(dx/installed)
 ```
 
-`paclo.core/packets` calls `decode-ext/apply!` when `{:decode? true}` is set, so every decoded
-packet passes through installed hooks.
+`paclo.core/packets` calls `decode-ext/apply!` when `:decode? true` is set, so every decoded packet
+passes through installed hooks.
 
-## Example: DNS summary
+## Example: DNS summary hook
 
 ```clojure
-(require '[paclo.proto.dns-ext :as dns-ext]) ; ← リポをcloneして動かすときは :dns-ext alias を付けてください
+(require '[paclo.proto.dns-ext :as dns-ext])
+
 (dns-ext/register!)
-;; adds [:l3 :l4 :app :summary] to DNS packets in :decoded
+;; Adds [:decoded :l3 :l4 :app :summary] to DNS packets
 ```
 
-CLI で DNS 拡張を使うときは `clojure -M:dev:dns-ext ...` のように `:dns-ext` alias を付けてください（リポ clone 時）。
-ライブラリとして利用する場合は paclo の JAR に DNS 拡張も含まれるので、そのまま `paclo.proto.dns-ext` を require すれば使えます。
+Repository-local CLI runs that use DNS extension should include `:dns-ext`:
 
-## Best practices
+```bash
+clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+```
 
-- Use namespaced keywords for hook keys (e.g. `:my.ns/hook`).
-- In REPL work, avoid accidental duplicate registration; same key overwrites.
-- Wrap fragile logic in `try` inside the hook if needed—framework already isolates failures, but
-  explicit handling makes intent clear.
+When Paclo is consumed as a dependency artifact, `paclo.proto.dns-ext` is included.
 
-## Example: TLS ClientHello SNI annotation
+## Example: TLS ClientHello SNI hook
 
-Extract SNI from TLS ClientHello on a best-effort basis and annotate `:decoded`.  
-Assumes a single TLS record within a single TCP segment (no stream reassembly).
+Extract SNI from TLS ClientHello on a best-effort basis (single-segment, no stream reassembly).
 
 ```clojure
-(require '[paclo.proto.tls-ext :as tls-ext])
+(require '[paclo.core :as core]
+         '[paclo.proto.tls-ext :as tls-ext])
 
 (tls-ext/register!)
-;; When a ClientHello fits in one record:
-;; [:decoded :l3 :l4 :app] gets
-;;   :type    => :tls
-;;   :sni     => "example.com"
-;;   :summary => "TLS ClientHello SNI=example.com"
 
-;; Minimal usage: pull only SNI + summary
 (into []
   (comp
     (filter #(= :tls (get-in % [:decoded :l3 :l4 :app :type])))
     (map #(select-keys (get-in % [:decoded :l3 :l4 :app]) [:sni :summary])))
-  (paclo.core/packets {:path "tls-sample.pcap"
-                       :filter "tcp and port 443"
-                       :decode? true}))
+  (core/packets {:path "tls-sample.pcap"
+                 :filter "tcp and port 443"
+                 :decode? true}))
 ```
 
-CLI 例（トップNの SNI を集計）:
+CLI example:
 
 ```bash
-# Top 50 SNI over port 443 (EDN)
-clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap
-
-# With BPF, topN=10, JSONL
-clojure -Srepro -M:dev -m examples.tls-sni-scan tls-sample.pcap 'tcp and port 443' 10 jsonl
+clojure -M:dev -m examples.tls-sni-scan tls-sample.pcap 'tcp and port 443' 10 jsonl
 ```
 
-### Notes / limitations
+## Best practices
 
-- ClientHello split across fragments/records is out of scope (best-effort only).
-- No SNI → nothing is added.
-- Hook runner is defensive: exceptions are swallowed and only map returns are applied.
+- Use namespaced keywords for hook keys (for example `:my.ns/hook`).
+- Keep hooks side-effect free unless explicitly intended.
+- If a hook has fragile external dependencies, handle failures inside the hook body.
+
+## Limitations
+
+- TLS SNI extraction is best-effort and does not perform TCP stream reassembly.
+- No SNI in ClientHello means no annotation is added.

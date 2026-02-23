@@ -7,5 +7,5 @@
   (lint/eastwood {:source-paths ["src" "dev" "extensions/dns/src"]
                   :test-paths   ["test"]
                   :linters      [:all]
-                  ;; キーワード表記の揺れは意図的に許容
+                  ;; Accept this naming style intentionally.
                   :exclude-linters [:keyword-typos :non-clojure-file]}))

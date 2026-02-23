@@ -10,7 +10,7 @@ import jnr.ffi.byref.PointerByReference;
 import org.junit.jupiter.api.Test;
 
 /**
- * オフライン PCAP を最低限読むスモークテスト。
+ * Basic integration test that opens a sample PCAP and reads one packet.
  */
 public class PcapOfflineTest {
 

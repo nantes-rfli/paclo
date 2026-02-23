@@ -26,7 +26,7 @@
   (when (and ba (<= 0 off) (<= 0 len) (<= (+ off len) (alength ba)))
     (String. ba off len java.nio.charset.StandardCharsets/UTF_8)))
 
-;; --- TLS ClientHello → SNI / ALPN --------------------------------------------
+;; --- TLS ClientHello -> SNI / ALPN --------------------------------------------
 
 (defn- parse-server-name [^bytes ba ^long lb ^long le]
   (loop [q lb]
@@ -82,8 +82,9 @@
       info)))
 
 (defn- extract-tls-info
-  "TLS ClientHello から SNI/ALPN を best-effort 抽出。
-   返り値例: {:sni \"example.com\" :alpn [\"h2\" \"http/1.1\"]}（キーは存在するものだけ）"
+  "Best-effort extraction of SNI/ALPN from a TLS ClientHello.
+   Example: {:sni \"example.com\" :alpn [\"h2\" \"http/1.1\"]}
+   Keys are present only when parsed."
   [^bytes ba]
   (try
     (or
@@ -117,7 +118,8 @@
     (catch Throwable _ {})))
 
 (defn extract-sni
-  "TLS ClientHello の SNI を best-effort で抽出。該当なし/解析失敗は nil。"
+  "Best-effort extraction of SNI from TLS ClientHello.
+   Returns nil when absent or parsing fails."
   ^String
   [^bytes ba]
   (:sni (extract-tls-info ba)))

@@ -5,7 +5,7 @@
 (defn- nanos->ms [n] (double (/ (long n) 1e6)))
 
 (defn- gen-bytes [n fill]
-  ;; ^byte 型ヒントは使わず、内部で byte キャストする
+  ;; Cast through byte to avoid reflection and keep intent explicit.
   (let [b (byte fill)]
     (byte-array (repeat n b))))
 
@@ -13,8 +13,8 @@
   "Synthetic micro-bench:
    - writes N packets (default: 100000) into a temp PCAP
    - reads them twice:
-       (a) plain         → count
-       (b) with :xform   → count
+       (a) plain         -> count
+       (b) with :xform   -> count
 
    Usage:
      clojure -M -m examples.bench [N]"
@@ -28,12 +28,12 @@
         data (take n (cycle [pkt60 pkt42]))]
     (println "Writing" n "packets to" tmp)
     (core/write-pcap! data tmp)
-    ;; (a) plain  — ※ 既定 :max=100 を上書き
+    ;; (a) plain read path
     (let [t0 (System/nanoTime)
           c1 (count (core/packets {:path tmp :max n}))
           t1 (- (System/nanoTime) t0)]
       (println "plain count =" c1 "elapsed(ms)=" (format "%.1f" (nanos->ms t1))))
-    ;; (b) with :xform — 同様に :max を指定
+    ;; (b) read path with :xform
     (let [xf (filter #(>= (long (:caplen %)) 60))
           t0 (System/nanoTime)
           c2 (count (core/packets {:path tmp :xform xf :max n}))

@@ -3,8 +3,8 @@ package paclo.jnr;
 import jnr.ffi.Pointer;
 
 /**
- * pcap_pkthdr を直接オフセットで読むための軽量ヘルパー。
- * macOS/64bit でのオフセットを前提とし、長さは unsigned として扱う。
+ * Offset-based helpers for reading fields from {@code struct pcap_pkthdr}.
+ * This mapping assumes the common 64-bit layout used by libpcap.
  */
 public final class PcapHeader {
   private PcapHeader() { }

@@ -8,15 +8,15 @@
 (deftest pcap-roundtrip
   (let [f    (File/createTempFile "paclo" ".pcap")
         path (.getAbsolutePath f)
-        ;; 60Bのダミーフレーム（Ethernet最小相当）
+        ;; Two 60-byte frames (Ethernet minimum).
         ba1  (byte-array (repeat 60 (byte 0)))
         ba2  (byte-array (repeat 60 (byte -1)))]
     (sut/write-pcap! [ba1 {:bytes ba2 :sec 1700000000 :usec 123456}] path)
-    ;; デコードなし: 2件読めること
+    ;; decode? false: only bytes are required
     (let [xs (vec (sut/packets {:path path}))]
       (is (= 2 (count xs)))
       (is (every? #(contains? % :bytes) xs)))
-    ;; デコードあり: 例外を出さず、:decoded か :decode-error のどちらかが付くこと
+    ;; decode? true: each packet has :decoded or :decode-error
     (let [xs (vec (sut/packets {:path path :decode? true}))]
       (is (= 2 (count xs)))
       (is (every? #(or (contains? % :decoded)
@@ -31,7 +31,7 @@
 
 (deftest packets-xform-filters-and-maps
   (let [pcap "target/xform-test.pcap"]
-    ;; 3パケット: 60B / 42B / 60B
+    ;; 3    : 60B / 42B / 60B
     (sut/write-pcap! [(byte-array (repeat 60 (byte 0)))
                       (byte-array (repeat 42 (byte 0)))
                       (byte-array (repeat 60 (byte 0)))]
@@ -59,21 +59,21 @@
   (is (= "src portrange 53-60" (sut/bpf [:src-port-range 53 60])))
   (is (= "dst portrange 8080-8088" (sut/bpf [:dst-port-range 8080 8088])))
 
-  ;; 論理と併用
+  ;; combined expression
   (is (= "(ip6) and (udp) and (dst portrange 8000-9000)"
          (sut/bpf [:and [:ipv6] [:udp] [:dst-port-range 8000 9000]])))
 
-  ;; not と組み合わせ（ユーザ要望例）
+  ;; not expression
   (is (= "(net 10.0.0.0/8) and (not (port 22))"
          (sut/bpf [:and [:net "10.0.0.0/8"] [:not [:port 22]]]))))
 
 (deftest bpf-dsl-error-cases
-  ;; フォーム型が不正
+  ;; unsupported form
   (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unsupported bpf form"
                         (sut/bpf 123)))
-  ;; 未知のトップレベルキーワード（実装により "unknown keyword" or "unknown proto keyword"） 
+  ;; unknown keyword / proto keyword
   (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown (proto )?keyword"
                         (sut/bpf :foo)))
-  ;; 未知の演算子
+  ;; unknown operator
   (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unknown op"
                         (sut/bpf [:huh 1 2 3]))))

@@ -2,17 +2,17 @@ package paclo.jnr;
 
 import jnr.ffi.Pointer;
 
-/** libpcap エラーメッセージの取得を一元化するヘルパー。 */
+/** Helpers for retrieving libpcap error messages safely. */
 public final class PcapErrors {
   private static final String NO_DETAIL = "(no detail)";
 
   private PcapErrors() { }
 
   /**
-   * pcap_geterr の結果を返す。例外安全で、失敗時は (no detail) を返す。
+   * Return pcap_geterr text. Never throws; returns {@code (no detail)} on failure.
    *
-   * @param pcap pcap_t ポインタ
-   * @return エラーメッセージまたは "(no detail)"
+   * @param pcap pcap_t pointer
+   * @return error message or {@code "(no detail)"}
    */
   public static String lastError(Pointer pcap) {
     if (pcap == null) {
@@ -27,10 +27,10 @@ public final class PcapErrors {
   }
 
   /**
-   * errbuf（pcap_open_offline などの第二引数）から文字列を取り出す。
+   * Return error text from an errbuf (e.g. second argument of pcap_open_offline).
    *
-   * @param errbuf エラーバッファ
-   * @return エラーメッセージまたは "(no detail)"
+   * @param errbuf error buffer pointer
+   * @return error message or {@code "(no detail)"}
    */
   public static String fromErrbuf(Pointer errbuf) {
     if (errbuf == null) {

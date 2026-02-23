@@ -23,7 +23,7 @@
    :dst (str dst-ip (when dst-port (str ":" dst-port)))})
 
 (defn- canon-fk
-  "双方向正規化（bidir=true）なら、(src, dst)を辞書順で並べ替えて片側に寄せる。"
+  "Canonicalize flow key for bidirectional mode."
   [{:keys [proto src-ip src-port dst-ip dst-port] :as fk} bidir?]
   (if-not bidir?
     fk
@@ -36,7 +36,7 @@
          :dst-ip src-ip :dst-port src-port}))))
 
 (defn- pkt->fk
-  "パケット m からフローキーを作る。mode=bidir の場合は canon-fk で正規化。"
+  "Build a flow key from a decoded packet."
   [m bidir?]
   (let [proto   (get-in m [:decoded :l3 :l4 :type])
         src-ip  (get-in m [:decoded :l3 :src])
@@ -67,7 +67,7 @@
             dropped (atom 0)
             cancelled? (atom false)]
         (if-not async?
-          ;; ---------- 同期 ----------
+          ;; synchronous path
           (let [pkts   (into [] (core/packets {:path in* :filter bpf :decode? true :max Long/MAX_VALUE}))
                 total* (count pkts)
                 counts* (reduce
@@ -95,7 +95,7 @@
               (println "flows=" (count rows)
                        " total-packets=" total*
                        " topN=" topN " mode=" (name mode) " metric=" (name metric))))
-          ;; ---------- 非同期 ----------
+          ;; asynchronous path
           (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
                 buf (case async-mode
                       :dropping (async/dropping-buffer async-buffer)
