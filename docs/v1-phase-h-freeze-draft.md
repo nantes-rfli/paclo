@@ -141,9 +141,9 @@ P3 目標（ROADMAP）:
 2026-02-23 時点の実装状況:
 
 - `deps.edn` の基準 Clojure は `1.12.1`
-- 互換性マトリクス用 CI ジョブで Linux/JDK21 と macOS-13/JDK17 を必須化
+- 互換性マトリクス用 CI ジョブで Linux/JDK21 と macOS-latest/JDK17 を必須化
 - JDK17 は互換性ジョブで必須、coverage ジョブでも追加検証
-- macOS 軸は `macos-13`（x86_64）で導入済み
+- macOS 軸は `macos-latest` で運用（runner 世代は GitHub 側で管理）
 - arm64 は `ubuntu-24.04-arm` で CI ジョブを導入済み（2026-02-23 に `continue-on-error` を解除して必須ゲート化）
 
 arm64 必須ゲート化の判定基準（2026-02-23 確定）:

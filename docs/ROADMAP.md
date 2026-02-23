@@ -184,7 +184,7 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 
 - [ ] コア API/CLI/BPF DSL の契約を README + cljdoc に明文化し、破壊的変更は P3 内で完了
 - [ ] 互換性マトリクス（JDK17/21、Clojure 1.12.x、babashka 1.12.x、macOS/Linux x86_64/arm64）を
-  README に掲載し、CI は初期セット（JDK17/macOS x86_64, JDK21/Linux x86_64）を必須で回す
+  README に掲載し、CI は初期セット（JDK17/macOS runner, JDK21/Linux x86_64）を必須で回す
 - [ ] 回帰セット: ゴールデン PCAP（小/中）+ property/quickcheck + async 経路スモーク +
   CLI 出力スナップショットを CI 常設、性能バジェット
   （mid-50k pcap decode?=true ≤ 1.0s をハード上限）を閾値化
@@ -207,7 +207,7 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 ### 互換性と品質ゲート
 
 - 互換性マトリクス宣言（JDK17/21、Clojure 1.12.x、bb 1.12.x、macOS/Linux x86_64/arm64）と
-  CI 軸を固定。初期は JDK17/macOS x86_64 + JDK21/Linux x86_64 を必須にし、arm64 は将来追加候補。
+  CI 軸を固定。初期は JDK17/macOS runner + JDK21/Linux x86_64 を必須にし、arm64 は将来追加候補。
 - 回帰セット常設（ゴールデン PCAP 小/中 + property/quickcheck + async スモーク + CLI スナップショット）。
 - 性能バジェットを CI で閾値化（mid-50k pcap decode?=true を
   warn=1.0s / fail=1.2s の二段階で運用）。

@@ -359,14 +359,14 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 | --- | --- | --- | --- |
 | Clojure | `1.12.x` | 互換性ジョブで必須（Linux/JDK21, macOS/JDK17） | `deps.edn` 基準は `1.12.1` |
 | JDK | `17`, `21` | 互換性ジョブで両方必須 | build/coverage でも追加検証 |
-| OS | macOS, Linux | 互換性ジョブで両方必須 | macOS は `macos-13`（x86_64） |
-| CPU | x86_64, arm64 | x86_64 は必須、arm64 は監視（非必須） | arm64 は `ubuntu-24.04-arm` で観測 |
+| OS | macOS, Linux | 互換性ジョブで両方必須 | macOS は `macos-latest` ラベルを使用 |
+| CPU | x86_64, arm64 | x86_64 は Linux 互換性ジョブで必須、arm64 は専用ジョブで required | arm64 は `ubuntu-24.04-arm` |
 | Babashka | `1.12.x` | CI で `bb --version` を実行 | CLI 補助スクリプト向け |
 | libpcap | システム標準版 | Linux CI は `libpcap-dev` 導入 | macOS は標準 `pcap` |
 
 - Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください。
 - 性能ゲートは `clojure -M:perf-gate` で実行し、`warn=1000ms / fail=1200ms` を初期閾値として運用します。
-- arm64 は段階導入です。まず CI で非必須監視し、安定したら必須ゲートへ昇格します。
+- Clojure deps キャッシュは `runner.arch` 分離で運用し、x64/arm64 間の復元混在を防止します。
 
 ---
 

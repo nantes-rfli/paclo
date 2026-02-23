@@ -58,9 +58,9 @@ jobs:
             ~/.m2
             ~/.gitlibs
             ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
       # --- Install lint/format tooling ---
       - name: Set up Clojure tooling (clj-kondo)
@@ -159,7 +159,7 @@ jobs:
             os: ubuntu-latest
             java-version: '21'
           - name: macos-x64-jdk17
-            os: macos-13
+            os: macos-latest
             java-version: '17'
 
     steps:
@@ -193,10 +193,10 @@ jobs:
             ~/.m2
             ~/.gitlibs
             ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ matrix.java-version }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ matrix.java-version }}-
-            cljdeps-${{ runner.os }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
@@ -250,10 +250,9 @@ jobs:
             ~/.m2
             ~/.gitlibs
             ~/.clojure
-          key: cljdeps-${{ runner.os }}-arm64-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-arm64-
-            cljdeps-${{ runner.os }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
@@ -302,9 +301,9 @@ jobs:
             ~/.m2
             ~/.gitlibs
             ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Eastwood lint
         shell: bash
@@ -341,9 +340,9 @@ jobs:
             ~/.m2
             ~/.gitlibs
             ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
