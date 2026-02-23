@@ -101,6 +101,18 @@ git push origin v1.0.0-rc.1
 - [x] Quick Start がクリーン環境で動作する
 - [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示
 
+## 7. v1.0.0 finalization
+
+- [x] `CHANGELOG.md` に `## [1.0.0] - 2026-02-23` を追加
+- [x] `v1.0.0` タグを作成して push
+- [x] `v1.0.0` Release を公開（latest）
+- [ ] cljdoc 公開反映を確認
+
+実施結果（2026-02-23）:
+
+- `v1.0.0` release URL: `https://github.com/nantes-rfli/paclo/releases/tag/v1.0.0`
+- cljdoc: `https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT` は `Library not found`（確認継続）
+
 実施結果（2026-02-23）:
 
 - [x] `deps.edn` の git/tag + sha でサンプルが再現できる
