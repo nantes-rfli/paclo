@@ -273,7 +273,9 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
   （`dev/script/arm64_promotion_report.sh 14 0.95 0.05 1.5`:
    `sample_count=7`, `window_covered=false`, `success_rate=0.714`, `max_duration_ratio=2.104`,
    `eligible_for_required_gate=false`）
-- [ ] `deps.edn` の git/tag+sha 直利用で Java クラス未コンパイル問題（`ClassNotFoundException: paclo.jnr.PcapHeader`）を解消
+- [x] `deps.edn` の git/tag+sha 利用で Java クラス prep フローを整備
+  （`deps.edn` に `:deps/prep-lib` を追加。`main` では `clojure -X:deps prep` 後に `require paclo.core` 成功。
+   `v1.0.0-rc` タグは修正前のため、次 RC タグで再検証）
 
 ### リスクと緩和（P3）
 

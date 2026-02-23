@@ -345,6 +345,12 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
    :git/sha "bd969d4bab5431f2e0936bcc3ffc78871f21f5ee"}}}
 ````
 
+初回に Java クラスの prep が必要な場合は、利用側プロジェクトで一度だけ以下を実行してください。
+
+```bash
+clojure -X:deps prep
+```
+
 ### require 一文
 
 ```clojure

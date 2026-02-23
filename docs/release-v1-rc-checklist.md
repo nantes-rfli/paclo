@@ -101,7 +101,8 @@ git push origin v1.0.0-rc
 実施結果（2026-02-23）:
 
 - [ ] `deps.edn` の git/tag + sha でサンプルが再現できる
-  - `ClassNotFoundException: paclo.jnr.PcapHeader`（git 依存のみでは Java クラス未コンパイル）
+  - `v1.0.0-rc` (`0ff30ec`) では `ClassNotFoundException: paclo.jnr.PcapHeader`
+  - 修正は `main` (`13c89f0`) で `:deps/prep-lib` 導入済み。次の RC タグで再検証する
 - [x] Quick Start がクリーン環境で動作する
   - 手順: `git clone --branch v1.0.0-rc` → `clojure -T:build javac` → README 相当コマンド実行成功
 - [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示

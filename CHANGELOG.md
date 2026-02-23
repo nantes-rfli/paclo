@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- No notable changes yet.
+- Added `:deps/prep-lib` (`build/javac`) to enable Java class preparation for git dependencies before use.
+- Updated install/release docs to require `clojure -X:deps prep` for first-time git dependency setup.
 
 ## [1.0.0-rc] - 2026-02-23
 
