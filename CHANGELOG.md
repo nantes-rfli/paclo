@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- No notable changes yet.
+
+## [1.0.0-rc] - 2026-02-23
+
 ### Added
 - Added `docs/migration-0.4-to-1.0.md` with a migration checklist, compatibility policy, CLI exit-code contract, and deprecation timeline notes.
 - Added `docs/release-v1-rc-checklist.md` to standardize `v1.0.0-rc` release gates and tagging steps.

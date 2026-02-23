@@ -7,7 +7,7 @@
 
 - [x] `docs/cljdoc-api-contract.md` が最新実装と一致している（確認日: 2026-02-23）
 - [x] `docs/migration-0.4-to-1.0.md` が最新の差分を反映している（確認日: 2026-02-23）
-- [ ] `CHANGELOG.md` に `1.0.0-rc` 向け差分を記載済み
+- [x] `CHANGELOG.md` に `1.0.0-rc` 向け差分を記載済み（追加日: 2026-02-23）
 - [x] `docs/ROADMAP.md` の P3 進捗が実態と一致している（更新日: 2026-02-23）
 
 ## 2. Local gates
@@ -39,7 +39,7 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 ## 3. CI gates
 
-- [x] `CI` workflow が `main/master` 上で green（run: `22293933934`, 2026-02-23）
+- [x] `CI` workflow が `main/master` 上で green（run: `22294860071`, 2026-02-23）
 - [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす
@@ -61,11 +61,17 @@ workflow: Arm64 Promotion Report
 inputs : lookback_days=14, min_success_rate=0.95, max_rerun_rate=0.05, max_duration_ratio=1.5, enforce=true
 ```
 
+直近ローカル集計（2026-02-23）:
+
+- `sample_count=7`, `window_covered=false`
+- `success_rate=0.714`, `rerun_rate=0.0`, `max_duration_ratio=2.104`
+- `eligible_for_required_gate=false`
+
 ## 4. Release artifacts
 
 - [x] README の公開 API / 互換性マトリクス / install 例が最新（確認日: 2026-02-23）
 - [x] docs index (`docs/README.md`) に必要ドキュメントリンクが揃っている（確認日: 2026-02-23）
-- [ ] `CHANGELOG.md` に `## [1.0.0-rc] - YYYY-MM-DD` を追加
+- [x] `CHANGELOG.md` に `## [1.0.0-rc] - YYYY-MM-DD` を追加（2026-02-23）
 - [ ] 必要なら ADR/設計メモを `docs/` に追記
 
 ## 5. Tagging and publish
