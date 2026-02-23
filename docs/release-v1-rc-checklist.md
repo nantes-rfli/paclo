@@ -39,7 +39,7 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 ## 3. CI gates
 
-- [x] `CI` workflow が `main/master` 上で green（run: `22295246018`, 2026-02-23）
+- [x] `CI` workflow が `main/master` 上で green（run: `22296092152`, 2026-02-23）
 - [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす
@@ -77,8 +77,8 @@ inputs : lookback_days=14, min_success_rate=0.95, max_rerun_rate=0.05, max_durat
 ## 5. Tagging and publish
 
 ```bash
-git tag v1.0.0-rc
-git push origin v1.0.0-rc
+git tag v1.0.0-rc.1
+git push origin v1.0.0-rc.1
 ```
 
 - [x] タグ作成後、GitHub Releases 下書きを作成
@@ -89,20 +89,21 @@ git push origin v1.0.0-rc
 
 - [x] タグ作成後、GitHub Releases 下書きを作成
   - `v1.0.0-rc` (draft, prerelease): `https://github.com/nantes-rfli/paclo/releases/tag/untagged-9ee36cae8a3a2f602c7d`
+  - `v1.0.0-rc.1` (draft, prerelease): `https://github.com/nantes-rfli/paclo/releases/tag/untagged-76e380af67cd9531a365`
 - [x] リリースノートに migration link を含める
 - [ ] cljdoc 反映を確認（公開反映待ち）
 
 ## 6. Post-tag verification
 
-- [ ] `deps.edn` の git/tag + sha でサンプルが再現できる
+- [x] `deps.edn` の git/tag + sha でサンプルが再現できる
 - [x] Quick Start がクリーン環境で動作する
 - [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示
 
 実施結果（2026-02-23）:
 
-- [ ] `deps.edn` の git/tag + sha でサンプルが再現できる
+- [x] `deps.edn` の git/tag + sha でサンプルが再現できる
   - `v1.0.0-rc` (`0ff30ec`) では `ClassNotFoundException: paclo.jnr.PcapHeader`
-  - 修正は `main` (`13c89f0`) で `:deps/prep-lib` 導入済み。次の RC タグで再検証する
+  - `v1.0.0-rc.1` (`92219f8`) では `clojure -X:deps prep` 後に `(require '[paclo.core :as core])` + `(core/bpf :udp)` が成功
 - [x] Quick Start がクリーン環境で動作する
-  - 手順: `git clone --branch v1.0.0-rc` → `clojure -T:build javac` → README 相当コマンド実行成功
+  - 手順: `git clone --branch v1.0.0-rc.1` → `clojure -T:build javac` → README 相当コマンド実行成功
 - [x] 既知の制約（arm64 required 化前提など）をリリースノートで明示

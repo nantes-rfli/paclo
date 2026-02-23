@@ -262,20 +262,23 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 - [x] arm64 昇格判定のローカル集計スクリプトを追加（`gh` API 経由）
   （`dev/script/arm64_promotion_report.sh`）
 - [x] 最新 CI / Dependency Audit の green を確認（`gh run list`）
-  （CI: `22295246018` success, Dependency Audit: `21812860426` success）
+  （CI: `22296092152` success, Dependency Audit: `21812860426` success）
 - [x] `CHANGELOG.md` に `## [1.0.0-rc] - 2026-02-23` を追加
   （`CHANGELOG.md`）
 - [x] `v1.0.0-rc` タグを作成して push
   （`git tag v1.0.0-rc`, `git push origin v1.0.0-rc`）
 - [x] `v1.0.0-rc` GitHub Release の下書き（pre-release）を作成し、migration link / known constraints を記載
   （`gh release create v1.0.0-rc --draft --prerelease`）
+- [x] `v1.0.0-rc.1` タグを作成して push（`git/tag+sha` 依存問題の修正版）
+  （`git tag v1.0.0-rc.1`, `git push origin v1.0.0-rc.1`）
+- [x] `v1.0.0-rc.1` GitHub Release の下書き（pre-release）を作成
+  （`gh release create v1.0.0-rc.1 --draft --prerelease`）
 - [x] arm64 promotion 判定を再計測し、基準未達を継続確認
   （`dev/script/arm64_promotion_report.sh 14 0.95 0.05 1.5`:
    `sample_count=7`, `window_covered=false`, `success_rate=0.714`, `max_duration_ratio=2.104`,
    `eligible_for_required_gate=false`）
 - [x] `deps.edn` の git/tag+sha 利用で Java クラス prep フローを整備
-  （`deps.edn` に `:deps/prep-lib` を追加。`main` では `clojure -X:deps prep` 後に `require paclo.core` 成功。
-   `v1.0.0-rc` タグは修正前のため、次 RC タグで再検証）
+  （`deps.edn` に `:deps/prep-lib` を追加。`v1.0.0-rc.1` で `clojure -X:deps prep` 後に `require paclo.core` 成功）
 
 ### リスクと緩和（P3）
 
