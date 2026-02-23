@@ -113,6 +113,12 @@ jobs:
       - name: Run unit tests
         run: clojure -M:test
 
+      - name: Performance gate (mid-50k decode path)
+        shell: bash
+        run: |
+          set -e
+          clojure -M:perf-gate
+
       - name: dns-ext smoke (dns-topn)
         run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
 
@@ -142,6 +148,132 @@ jobs:
         run: |
           set -e
           dev/script/mdlint.sh
+
+  compatibility-matrix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-jdk21
+            os: ubuntu-latest
+            java-version: '21'
+          - name: macos-x64-jdk17
+            os: macos-13
+            java-version: '17'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java-version }}
+
+      - name: Set up Clojure CLI
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install libpcap (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ matrix.java-version }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-${{ matrix.java-version }}-
+            cljdeps-${{ runner.os }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build jar || \
+          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          set -e
+          clojure -M:test
+
+      - name: dns-ext smoke (dns-topn)
+        shell: bash
+        run: |
+          set -e
+          clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+
+  arm64-monitor:
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Clojure CLI
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install libpcap
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-arm64-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-arm64-
+            cljdeps-${{ runner.os }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        shell: bash
+        run: |
+          set -e
+          clojure -T:build jar || \
+          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          set -e
+          clojure -M:test
+
+      - name: dns-ext smoke (dns-topn)
+        shell: bash
+        run: |
+          set -e
+          clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
 
   eastwood-lint:
     runs-on: ubuntu-latest

@@ -159,3 +159,13 @@
    返り値: [{:name \"en0\" :desc \"Wi-Fi\"} ...]"
   []
   (pcap/list-devices))
+
+(defn -main
+  "Repository-local convenience entrypoint.
+   Paclo is a library; use example commands for executable workflows."
+  [& _]
+  (println "Paclo is a Clojure library (no single standalone app entrypoint).")
+  (println "Try one of these commands:")
+  (println "  clojure -M:test")
+  (println "  clojure -M:dev -m examples.pcap-stats <in.pcap>")
+  (println "  clojure -M:dev:dns-ext -m examples.dns-topn <in.pcap>"))

@@ -311,9 +311,22 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 ;; => "(net 10.0.0.0/8) and (not (port 22))"
 ```
 
+## Public API Surface (v1.0 freeze target)
+
+v1.0 で後方互換を保証する公開面は、以下を基準にします。
+
+| Namespace | Public functions | Notes |
+| --- | --- | --- |
+| `paclo.core` | `bpf`, `packets`, `write-pcap!`, `list-devices` | メインの利用者向け API |
+| `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | decode 拡張フック API |
+
+- `paclo.pcap` / `paclo.parse` / `paclo.proto.*` は内部 namespace として扱います。
+- `clojure -M:run` はライブラリ利用ガイドを表示する補助エントリポイントです。
+
 ## Documentation
 
 - [docs/README.md](./docs/README.md) — Documentation index (user guide, extensions, roadmap)
+- [docs/cljdoc-api-contract.md](./docs/cljdoc-api-contract.md) — Public API contract synced for cljdoc/v1.0
 
 ## Install
 
@@ -339,13 +352,20 @@ clojure -Srepro -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 js
 
 ---
 
-## Supported Environments
+## Compatibility Matrix (v1.0 target)
 
-- OS: macOS（Intel/Apple Silicon で動作確認）、Ubuntu 22.04 x86_64（CIで libpcap-dev 導入）
-- JDK: Temurin/Oracle/OpenJDK 21+ 推奨
-- libpcap: システム標準（macOS 標準の `pcap`、Linux は `libpcap-dev` をインストール）
-- Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください（`target/classes` はクラスパスに含まれます）。
-- Babashka: 最新安定版に追従（現在 `bb --version` = 1.12.212 で確認）。CLI 例や今後の bb/sci スクリプトを動かすためにインストールしてください。アップデートは `bb upgrade` で行えます。
+| Layer | Supported | CI gate (2026-02-23) | Notes |
+| --- | --- | --- | --- |
+| Clojure | `1.12.x` | 互換性ジョブで必須（Linux/JDK21, macOS/JDK17） | `deps.edn` 基準は `1.12.1` |
+| JDK | `17`, `21` | 互換性ジョブで両方必須 | build/coverage でも追加検証 |
+| OS | macOS, Linux | 互換性ジョブで両方必須 | macOS は `macos-13`（x86_64） |
+| CPU | x86_64, arm64 | x86_64 は必須、arm64 は監視（非必須） | arm64 は `ubuntu-24.04-arm` で観測 |
+| Babashka | `1.12.x` | CI で `bb --version` を実行 | CLI 補助スクリプト向け |
+| libpcap | システム標準版 | Linux CI は `libpcap-dev` 導入 | macOS は標準 `pcap` |
+
+- Java ソースを変更したら `clojure -T:build javac` で `target/classes` を再生成してください。
+- 性能ゲートは `clojure -M:perf-gate` で実行し、`warn=1000ms / fail=1200ms` を初期閾値として運用します。
+- arm64 は段階導入です。まず CI で非必須監視し、安定したら必須ゲートへ昇格します。
 
 ---
 

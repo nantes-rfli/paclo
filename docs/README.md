@@ -9,7 +9,9 @@ This page is the entry point to the documentation set.
 - Getting Started / Quick Start: ../README.md#quick-start
 - Examples (CLI): ../README.md#run-the-examples
 - Decode extensions: ./extensions.md
+- Public API contract (cljdoc sync): ./cljdoc-api-contract.md
 - Roadmap: ./ROADMAP.md
+- v1.0 API freeze draft (Phase H): ./v1-phase-h-freeze-draft.md
 - API on cljdoc: <https://cljdoc.org/d/io.github.nantes-rfli/paclo/CURRENT>
 
 ## Common tasks

@@ -46,6 +46,8 @@
   :jacoco-gate {:extra-paths ["dev"]
                 :extra-deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}}
                 :main-opts   ["-m" "paclo.dev.jacoco-gate"]}
+  :perf-gate   {:extra-paths ["dev"]
+                :main-opts   ["-m" "paclo.dev.perf-gate"]}
   :junit       {:extra-paths ["dev" "target/classes" "target/test-classes"]
                 :extra-deps  {org.junit.platform/junit-platform-console-standalone {:mvn/version "1.10.2"}}}
   :nrepl       {:extra-deps  {nrepl/nrepl       {:mvn/version "1.5.1"}

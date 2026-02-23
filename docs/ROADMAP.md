@@ -20,7 +20,7 @@ Paclo ライブラリの方向性・リリース計画・直近タスクをま�
 - **v0.2 (完了)** — OSS-ready の土台: `:xform` 対応、BPF DSL 拡張、L2/L3/L4 最小デコード、Golden PCAP、CI 安定化、最低限の README/CHANGELOG。
 - **v0.3 (完了 / P1, 2025-12-05)** — 「Clojure らしい data-first 体験」を可視化。decode 拡張点の安定化、examples の一貫性、REPL ラウンドトリップの速さを示す
   （proto-dns は :dns-ext alias で提供継続）。
-- **v0.4 (計画 / P2)** — 「DNS 集計・軽量可観測」ユースケースにフォーカスし、学習/運用の両方ですぐ使える CLI と例を強化。
+- **v0.4 (完了 / P2, 2025-12-10)** — 「DNS 集計・軽量可観測」ユースケースにフォーカスし、学習/運用の両方ですぐ使える CLI と例を強化。
 - **v1.0 (計画 / P3)** — 破壊的変更を収束させ、コア責務を固定し安定宣言。
 
 ---
@@ -165,12 +165,78 @@ DNS トラフィックを EDN/JSONL/CSV へ即時集計し、軽量な可観測�
 
 ---
 
-## v1.0 に向けたスコープ確定（P3）
+## v1.0 / P3 着手計画（API 安定化・凍結）
 
-- コア責務: PCAP 入出力 + BPF + 遅延処理 + L2/L3/L4 最小デコード
-- 上位プロトコル・統計・可視化は別モジュールで提供
-- API 安定化宣言（Spec/malli 型ヒントは任意）
-- v1.0 タグ公開で破壊的変更を凍結
+### 目的（P3）
+
+paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互換に限定できる状態を作る。破壊的変更は P3 内で完了させ、以降は deprecation ポリシーに従う。
+
+### P3 スコープ
+
+- 必須: コア API/CLI/BPF DSL の安定化（`decode` / `decode-ext` / `xform` / CLI 共通フラグ / BPF DSL）、エラー/ログ契約の文書化
+- 必須: 互換性マトリクス確定（JDK/LTS、Clojure/bb バージョン、OS）、サポート方針とテスト対象を明記
+- 必須: 回帰セット常設（ゴールデン PCAP、property/quickcheck、性能バジェット、async 経路スモーク、CLI 出力スナップショット）を CI に組み込み
+- 必須: Migration ガイド作成（0.4→1.0 の破壊的変更一覧 / 代替手順 / deprecation タイムライン）
+- 任意: コアの malli/spec ヒントと cljdoc での型/契約閲覧性改善（コード本体は opt-in ヒント）
+- 非スコープ: 新規上位プロトコル追加、重い可視化/UI、ストリーミング基盤連携、依存を膨らませる新機能
+
+### P3 受け入れ条件（Done 定義）
+
+- [ ] コア API/CLI/BPF DSL の契約を README + cljdoc に明文化し、破壊的変更は P3 内で完了
+- [ ] 互換性マトリクス（JDK17/21、Clojure 1.12.x、babashka 1.12.x、macOS/Linux x86_64/arm64）を
+  README に掲載し、CI は初期セット（JDK17/macOS x86_64, JDK21/Linux x86_64）を必須で回す
+- [ ] 回帰セット: ゴールデン PCAP（小/中）+ property/quickcheck + async 経路スモーク +
+  CLI 出力スナップショットを CI 常設、性能バジェット
+  （mid-50k pcap decode?=true ≤ 1.0s をハード上限）を閾値化
+- [ ] セキュリティ/静的解析: eastwood / clj-kondo / nvd を定常実行し、クリティカル CVE なしを記録
+- [ ] リリース成果物: CHANGELOG 1.0.0、Migration Guide (0.4→1.0)、cljdoc 公開、`v1.0.0` タグ発行
+
+### ドキュメント計画（ユーザ導線を固定）
+
+- README: v1.0 向けに再構成（クイックスタート + 公開API早見表 + CLI 早見表 + BPF DSL ミニ表）。破壊的変更は入れず導線を整理。
+- cljdoc: 公開 API 詳細（シグネチャ、オプション、返却スキーマ、例外、BPF DSL 構文、CLI 出力スキーマ）を充実させ README からリンク。
+- docs/ 配下: 補足ドキュメントの置き場として維持。例: extensions.md、リリース手順、ベンチ記録、ADR、API 詳細の草案。
+- Migration Guide: 0.4→1.0 の差分と非推奨→削除のタイムラインを明文化。
+
+### 公開 API リスト確定（宣言する範囲）
+
+- ライブラリ: `paclo.core` の公開関数（decode / decode-ext / xform / 付随ヘルパ）とオプション・戻り値キーを固定。内部 NS は非公開明示。
+- CLI: 公式サポートコマンド（pcap-filter / pcap-stats / flow-topn / dns-qps / dns-topn）のフラグ・exit code・出力フィールドを固定。
+- BPF DSL: サポート構文・演算子セット・エラー挙動をリスト化し「公式仕様」として凍結。
+
+### 互換性と品質ゲート
+
+- 互換性マトリクス宣言（JDK17/21、Clojure 1.12.x、bb 1.12.x、macOS/Linux x86_64/arm64）と
+  CI 軸を固定。初期は JDK17/macOS x86_64 + JDK21/Linux x86_64 を必須にし、arm64 は将来追加候補。
+- 回帰セット常設（ゴールデン PCAP 小/中 + property/quickcheck + async スモーク + CLI スナップショット）。
+- 性能バジェットを CI で閾値化（mid-50k pcap decode?=true を
+  warn=1.0s / fail=1.2s の二段階で運用）。
+- セキュリティ/静的解析（nvd, eastwood, clj-kondo, cljdoc）をリリースゲートに組み込み。
+
+### マイルストン案
+
+- Phase H (API 凍結設計) — 日付未定（個人開発のため柔軟運用）。破壊的変更リスト確定、公開 API リスト草案、互換性マトリクスと性能バジェット決定。**状態: 完了 (2026-02-23)**
+- Phase I (回帰性・互換性強化) — 日付未定。回帰セット/CI 行列/性能バジェット実装、CLI/BPF エラー契約のテスト化。
+- Phase J (リリース準備) — 日付未定。README 再構成、cljdoc 詳細反映、Migration Guide、リリースゲート実行、`v1.0.0-rc` → `v1.0.0`。
+
+### Phase H 着手ログ（2026-02-23）
+
+- [x] 公開 API / CLI / BPF DSL / 互換性マトリクスの初期棚卸しを作成（`docs/v1-phase-h-freeze-draft.md`）
+- [x] 破壊的変更リストを確定（`docs/v1-phase-h-freeze-draft.md` に判断を記録）
+- [x] 互換性マトリクスの最終決定（Clojure 1.12.x を公式サポートとして固定）
+- [x] 互換性マトリクス準拠の CI ジョブを追加（Linux/JDK21 + macOS/JDK17）
+- [x] arm64 監視ジョブを追加（`ubuntu-24.04-arm`、非必須/`continue-on-error`）
+- [x] 性能バジェットの CI 閾値化方針を確定（warn=1.0s / fail=1.2s）
+- [x] `clojure -M:run` エラーを解消（`paclo.core/-main` を追加しガイド表示に統一）
+- [x] cljdoc 向け API 契約（引数・返却・例外）の同期ドラフトを追加（`docs/cljdoc-api-contract.md`）
+- [x] CLI 出力スナップショット/終了コードテストを追加
+  （`test/examples/cli_contract_test.clj`）
+
+### リスクと緩和（P3）
+
+- API 凍結漏れ: PR テンプレに契約チェックリストを追加し、公開 API 変更はレビュー必須。
+- 性能劣化: 性能バジェット逸脱で CI red、原因追跡を必須化。
+- 依存脆弱性: nvd をリリースゲートに据え、CVE 例外は ADR 化して合意の上でのみ許可。
 
 ---
 

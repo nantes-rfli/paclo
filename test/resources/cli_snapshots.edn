@@ -1,0 +1,40 @@
+{:pcap-stats
+ {:packets 4,
+  :bytes 438,
+  :caplen {:avg 109.5, :min 81, :max 178},
+  :proto {:l3 {:ipv4 4}, :l4 {:udp 4}},
+  :top
+  {:src
+   [{:key "10.0.0.1", :count 2}
+    {:key "1.1.1.1", :count 1}
+    {:key "8.8.8.8", :count 1}],
+   :dst
+   [{:key "10.0.0.1", :count 2}
+    {:key "1.1.1.1", :count 1}
+    {:key "8.8.8.8", :count 1}]}}
+ :flow-topn
+ [{:flow {:proto :udp, :src "10.0.0.1:57996", :dst "8.8.8.8:53"},
+   :packets 1,
+   :bytes 81}
+  {:flow {:proto :udp, :src "10.0.0.1:58555", :dst "1.1.1.1:53"},
+   :packets 1,
+   :bytes 82}
+  {:flow {:proto :udp, :src "1.1.1.1:53", :dst "10.0.0.1:58555"},
+   :packets 1,
+   :bytes 178}
+  {:flow {:proto :udp, :src "8.8.8.8:53", :dst "10.0.0.1:57996"},
+   :packets 1,
+   :bytes 97}]
+ :dns-topn [{:key :noerror, :count 4, :bytes 438, :pct 1.0}]
+ :dns-qps
+ [{:t 1756012568000, :key :noerror, :count 2, :bytes 260}
+  {:t 1756012572000, :key :noerror, :count 2, :bytes 178}]
+ :pcap-filter
+ {:in "dns-sample.pcap",
+  :filter nil,
+  :min-caplen nil,
+  :in-packets 4,
+  :out-packets 4,
+  :in-bytes 438,
+  :out-bytes 438,
+  :drop-pct 0.0}}
