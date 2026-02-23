@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-02-23
+
 ### Added
 - Added `.github/workflows/publish.yml` to publish tagged releases to Clojars (or manual dispatch), preparing cljdoc indexing.
 - Added `:deps-deploy` alias (`slipset/deps-deploy`) for Maven/Clojars deployment.
@@ -15,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `build.clj` now resolves version from `PACLO_VERSION`/tag context, writes Maven metadata (SCM/description/url), and adds a local `install` task.
 - Switched publish/cljdoc coordinates from `io.github.nantes-rfli/paclo` to `org.clojars.nanto/paclo`.
 - Added MIT license metadata to generated POM and added a repository `LICENSE` file.
+- Rewrote user-facing docs in English and clarified README/docs structure for Clojars/cljdoc readers.
+- Normalized docstrings/comments across source, examples, and tests for consistency.
 
 ## [1.0.0] - 2026-02-23
 

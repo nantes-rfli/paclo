@@ -13,6 +13,7 @@ It is intentionally concise and focuses on user-visible outcomes.
 - `v0.3` (completed, 2025-12-05): data-first UX improvements and decode extension stabilization
 - `v0.4` (completed, 2025-12-10): DNS observability tooling (`dns-topn`, `dns-qps`, async behavior)
 - `v1.0.0` (released, 2026-02-23): API freeze and stable release artifacts
+- `v1.0.1` (released, 2026-02-23): documentation and publication pipeline polish
 
 ## v1.0 completion status
 
@@ -22,6 +23,7 @@ Completed release artifacts:
 
 - [x] `v1.0.0-rc` and `v1.0.0-rc.1` tags/releases
 - [x] `v1.0.0` tag and GitHub Release (latest)
+- [x] `v1.0.1` patch release for docs/publication follow-up
 - [x] Clojars publish pipeline and release publication (`org.clojars.nanto/paclo`)
 - [x] cljdoc publication confirmed (`CURRENT` page and successful build)
 - [x] Migration guide (`docs/migration-0.4-to-1.0.md`)
