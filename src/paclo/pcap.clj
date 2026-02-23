@@ -224,7 +224,7 @@
 
 (defn ^:private bytes->ptr [^bytes ba]
   (let [^Pointer m (Memory/allocate rt (long (alength ba)))]
-    (.put m (long 0) ba (int 0) (int (alength ba)))
+    (.put m (long 0) ba 0 (alength ba))
     m))
 
 (defn ^:private mk-hdr
@@ -320,7 +320,7 @@
                 caplen (PcapHeader/caplen hdr)
                 len    (PcapHeader/len hdr)
                 arr    (byte-array (int caplen))]
-            (.get dat (long 0) arr (int 0) (int (alength arr)))
+            (.get dat (long 0) arr 0 (alength arr))
             (handler {:ts-sec ts-sec :ts-usec ts-usec
                       :caplen caplen :len len :bytes arr})
             (recur))
@@ -528,7 +528,7 @@
                        caplen (PcapHeader/caplen hdr)
                        len    (PcapHeader/len hdr)
                        arr    (byte-array (int caplen))]
-                   (.get dat (long 0) arr (int 0) (int (alength arr)))
+                   (.get dat (long 0) arr 0 (alength arr))
                    (handle {:ts-sec ts-sec :ts-usec ts-usec
                             :caplen caplen :len len :bytes arr})
                    (recur (unchecked-inc (long count)) 0))
@@ -563,7 +563,7 @@
        (let [hdr-ref (PointerByReference.)
              dat-ref (PointerByReference.)
              t0 (System/currentTimeMillis)
-             deadline (+ t0 (long duration-ms))
+             deadline (+ t0 duration-ms)
              idle-ms-target (long idle-max-ms)
              tick (long (or timeout-ms 100))
              handle (->pkt-handler handler)]
@@ -580,7 +580,7 @@
                        caplen (PcapHeader/caplen hdr)
                        len    (PcapHeader/len hdr)
                        arr    (byte-array (int caplen))]
-                   (.get dat (long 0) arr (int 0) (int (alength arr)))
+                   (.get dat (long 0) arr 0 (alength arr))
                    (handle {:ts-sec ts-sec :ts-usec ts-usec
                             :caplen caplen :len len :bytes arr})
                    (recur 0))
@@ -636,7 +636,7 @@
                       caplen (PcapHeader/caplen hdr)
                       len    (PcapHeader/len hdr)
                       arr    (byte-array (int caplen))
-                      _      (.get dat (long 0) arr (int 0) (int (alength arr)))
+                      _      (.get dat (long 0) arr 0 (alength arr))
                       pkt    {:ts-sec ts-sec :ts-usec ts-usec
                               :caplen caplen :len len :bytes arr}]
                   (handle pkt)
@@ -815,5 +815,5 @@
          wrapped (fn [pkt] (swap! cnt inc) (handler pkt))]
      (run-live-for-ms! opts duration-ms wrapped loop-opts)
      (let [elapsed (- (System/currentTimeMillis) t0)
-           stopped (if (>= elapsed (long duration-ms)) :time :idle-or-eof)]
+           stopped (if (>= elapsed duration-ms) :time :idle-or-eof)]
        {:count @cnt :duration-ms elapsed :stopped stopped}))))

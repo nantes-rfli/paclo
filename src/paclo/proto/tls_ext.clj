@@ -93,13 +93,13 @@
          (let [ct   (u8 ba 0)
                vmaj (u8 ba 1)
                rlen (u16 ba 3)]
-           (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (unchecked-add 5 (long rlen)) len))
+           (when (and (= 22 ct) (= 3 vmaj) (some? rlen) (<= (unchecked-add 5 rlen) len))
              (let [ho    5
                    htype (u8 ba ho)
                    hlen  (u24 ba (inc ho))
                    hb    (unchecked-add ho 4)
                    he    (unchecked-add hb (long (or hlen 0)))]
-               (when (and (= 1 htype) (some? hlen) (<= he (unchecked-add 5 (long rlen))) (<= (unchecked-add hb 35) len))
+               (when (and (= 1 htype) (some? hlen) (<= he (unchecked-add 5 rlen)) (<= (unchecked-add hb 35) len))
                  (let [p0       hb
                        p1       (unchecked-add p0 34) ;; 2 + 32
                        sid-len  (u8 ba p1)

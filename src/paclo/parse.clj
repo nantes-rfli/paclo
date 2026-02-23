@@ -59,7 +59,7 @@
                 (let [[best-i ^long best-len]
                       (if (and cur-i (>= (long cur-len) 2) (> (long cur-len) (long best-len)))
                         [cur-i cur-len] [best-i best-len])]
-                  (recur (inc i) nil (long 0) best-i (long best-len)))))))]
+                  (recur (inc i) nil (long 0) best-i best-len))))))]
     (if (>= (long best-len) 2)
       (let [before (subvec ws 0 best-i)
             after  (subvec ws (unchecked-add (long best-i) (long best-len)) n)

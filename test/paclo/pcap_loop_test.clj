@@ -18,9 +18,9 @@
         len (alength ba)]
     (.putLong hdr (long 0) (long 123))   ;; tv_sec
     (.putLong hdr (long 8) (long 456))   ;; tv_usec
-    (.putInt  hdr (long 16) (int len))   ;; caplen
-    (.putInt  hdr (long 20) (int len))   ;; len
-    (.put dat (long 0) ba (int 0) (int len))
+    (.putInt  hdr (long 16) len)   ;; caplen
+    (.putInt  hdr (long 20) len)   ;; len
+    (.put dat (long 0) ba 0 len)
     {:hdr hdr :dat dat}))
 
 (def ^:private fake-pcap
@@ -48,12 +48,12 @@
   (reify clojure.lang.IFn$OLOOO
     (invokePrim [_ _opts _dur handler _loop-opts]
       (dotimes [_ call-count] (handler {}))
-      (when (pos? sleep-ms) (Thread/sleep (long sleep-ms)))
+      (when (pos? sleep-ms) (Thread/sleep sleep-ms))
       nil)
     clojure.lang.IFn
     (invoke [_ _opts _dur handler _loop-opts]
       (dotimes [_ call-count] (handler {}))
-      (when (pos? sleep-ms) (Thread/sleep (long sleep-ms)))
+      (when (pos? sleep-ms) (Thread/sleep sleep-ms))
       nil)))
 
 (defn- fake-lib-open-live

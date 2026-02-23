@@ -208,7 +208,7 @@
                                  (when (seq rows)
                                    (let [min-t (:t (first rows))
                                          max-t (:t (peek rows))
-                                         step (long bucket-ms)
+                                         step bucket-ms
                                          filled (transient [])]
                                      (loop [t min-t xs rows]
                                        (let [t-long (long t)
@@ -225,7 +225,7 @@
                 (when (seq rows)
                   (let [min-t (:t (first rows))
                         max-t (:t (peek rows))
-                        step (long bucket-ms)
+                        step bucket-ms
                         keys (set (map :key rows))
                         lookup (into {} (map (fn [m] [[(:t m) (:key m)] m]) rows))
                         bucket-count (unchecked-inc (quot (- (long max-t) (long min-t)) step))
