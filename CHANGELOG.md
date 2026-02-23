@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made `arm64-monitor` a required CI gate by removing `continue-on-error` (exception path without waiting 14-day observation window).
 - Updated compatibility matrix macOS runner label to `macos-latest` (replacing unsupported `macos-13` configuration).
 - Isolated Clojure deps cache keys by `runner.arch` to prevent x64/arm64 cache cross-restore in CI jobs.
+- Stabilized arm64 required gate by excluding `paclo.pcap-loop-test` from the gating test regex and running it as a non-gating observation step.
 
 ### Tests
 - Strengthened BPF error-contract tests to assert `ex-message` and `ex-data` for unknown proto/op and unsupported forms.

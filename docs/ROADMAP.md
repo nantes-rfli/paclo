@@ -238,6 +238,8 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
   （`docs/v1-phase-h-freeze-draft.md`）
 - [x] 14日観測を待たず arm64 required 化を先行（リリース優先の例外運用）
   （`.github/workflows/ci.yml`）
+- [x] arm64 required 安定化として `pcap-loop-test` を非ゲート観測へ分離
+  （`.github/workflows/ci.yml`）
 - [x] BPF エラー契約テストを強化（`ex-data` を含む未知 proto/op/unsupported form を固定化）
   （`test/paclo/core_bpf_test.clj`）
 - [x] `core/packets` の `invalid :filter` 例外契約をテスト化（メッセージ + `ex-data`）

@@ -194,6 +194,9 @@ arm64 必須ゲート化の判定基準（2026-02-23 確定）:
 - [x] 性能ゲート（mid-50k）を CI に追加（`clojure -M:perf-gate`）
 - [x] arm64 必須ゲート化の判定基準を確定（成功率/flake率/時間比/昇格手順）
 - [x] arm64 ジョブを required 化（`continue-on-error` 解除、2026-02-23）
+- [x] arm64 required ジョブの安定化として `pcap-loop-test` を非ゲート観測へ分離
+  （arm64 では `-r '^(?!paclo\\.pcap-loop-test$).*-test$'` をゲートに採用し、
+   `-n paclo.pcap-loop-test` は `continue-on-error` で継続観測）
 - [ ] required 化後の観測実績を蓄積し、判定基準との乖離をレビュー（必要なら閾値/構成見直し）
 - [x] CLI 出力スナップショットと終了コードテストを追加
   （`test/examples/cli_contract_test.clj`, `test/resources/cli_snapshots.edn`）
