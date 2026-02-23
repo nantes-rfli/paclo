@@ -39,7 +39,7 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 ## 3. CI gates
 
-- [x] `CI` workflow が `main/master` 上で green（run: `22294860071`, 2026-02-23）
+- [x] `CI` workflow が `main/master` 上で green（run: `22295071881`, 2026-02-23）
 - [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす

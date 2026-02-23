@@ -262,7 +262,7 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 - [x] arm64 昇格判定のローカル集計スクリプトを追加（`gh` API 経由）
   （`dev/script/arm64_promotion_report.sh`）
 - [x] 最新 CI / Dependency Audit の green を確認（`gh run list`）
-  （CI: `22294860071` success, Dependency Audit: `21812860426` success）
+  （CI: `22295071881` success, Dependency Audit: `21812860426` success）
 - [x] `CHANGELOG.md` に `## [1.0.0-rc] - 2026-02-23` を追加
   （`CHANGELOG.md`）
 - [ ] arm64 promotion 判定を再計測し、基準未達を継続確認
