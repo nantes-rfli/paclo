@@ -288,7 +288,8 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
   （`deps.edn` に `:deps/prep-lib` を追加。`v1.0.0-rc.1` で `clojure -X:deps prep` 後に `require paclo.core` 成功）
 - [x] Clojars publish workflow を追加（tag push / 手動 dispatch で deploy 可能）
   （`.github/workflows/publish.yml`, `deps.edn :deps-deploy`, `build.clj` Maven metadata）
-- [ ] cljdoc 反映確認（Clojars 初回 publish 後のインデックス待ち）
+- [x] cljdoc 反映確認（`org.clojars.nanto/paclo` として公開）
+  （`https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT`, build: `https://cljdoc.org/builds/99557`）
 
 ### リスクと緩和（P3）
 
