@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - No notable changes yet.
 
+## [1.0.0] - 2026-02-23
+
+### Changed
+- Promoted `v1.0.0-rc.1` to stable `v1.0.0`.
+- Kept the v1 API/CLI/BPF contracts, compatibility matrix, and CI gates established during RC.
+
 ## [1.0.0-rc.1] - 2026-02-23
 
 ### Changed

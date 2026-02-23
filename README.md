@@ -340,9 +340,8 @@ v1.0 で後方互換を保証する公開面は、以下を基準にします。
 {:deps
  {io.github.nantes-rfli/paclo
  {:git/url "https://github.com/nantes-rfli/paclo.git"
-   ;; 安定版を使う場合はタグを指定（v0.4.0 リリース）
-   :git/tag "v0.4.0"
-   :git/sha "bd969d4bab5431f2e0936bcc3ffc78871f21f5ee"}}}
+   ;; 安定版を使う場合はタグを指定（v1.0.0）
+   :git/tag "v1.0.0"}}}
 ````
 
 初回に Java クラスの prep が必要な場合は、利用側プロジェクトで一度だけ以下を実行してください。
