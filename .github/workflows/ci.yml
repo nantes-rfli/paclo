@@ -265,16 +265,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          # arm64 runnerで不安定な native crash を回避するため
-          # pcap-loop-test は別ステップ（non-gating）で観測する
-          clojure -M:test -r '^(?!paclo\.pcap-loop-test$).*-test$'
-
-      - name: Run pcap-loop-test on arm64 (non-gating)
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -e
-          clojure -M:test -n paclo.pcap-loop-test
+          clojure -M:test
 
       - name: dns-ext smoke (dns-topn)
         shell: bash

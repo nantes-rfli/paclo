@@ -4,15 +4,17 @@
    [paclo.pcap :as pcap])
   (:import
    [jnr.ffi Memory Pointer]
-   [jnr.ffi.byref AbstractReference PointerByReference]
+   [jnr.ffi.byref PointerByReference]
    [paclo.jnr PcapLibrary]))
+
+(defn- alloc-direct ^Pointer [^long n]
+  (Memory/allocateDirect (jnr.ffi.Runtime/getSystemRuntime) n))
 
 (defn- make-hdr+dat
   "固定の pcap_pkthdr とデータ領域を作る。"
   [^bytes ba]
-  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
-        hdr (Memory/allocate rt 24)
-        dat (Memory/allocate rt (long (alength ba)))
+  (let [hdr (alloc-direct 24)
+        dat (alloc-direct (long (max 1 (alength ba))))
         len (alength ba)]
     (.putLong hdr (long 0) (long 123))   ;; tv_sec
     (.putLong hdr (long 8) (long 456))   ;; tv_usec
@@ -23,12 +25,13 @@
 
 (def ^:private fake-pcap
   ;; breakloop で Pointer 型が要求されるので 1バイトのダミーメモリを使う
-  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1))
+  (alloc-direct 1))
 
 (defn- set-ref! ^PointerByReference [^PointerByReference ref ^Pointer p]
-  (let [f (.getDeclaredField AbstractReference "value")]
-    (.setAccessible f true)
-    (.set f ref p))
+  (let [rt (jnr.ffi.Runtime/getSystemRuntime)
+        slot (alloc-direct (long (.nativeSize ref rt)))]
+    (.putPointer slot (long 0) p)
+    (.fromNative ref rt slot (long 0)))
   ref)
 
 (defn- stub-run-live-n! [call-count]
@@ -85,8 +88,8 @@
   [{:keys [rcs hdr dat break-calls]}]
   (let [rcs* (atom rcs)
         breaks (or break-calls (atom 0))
-        hdr' (or hdr (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 24))
-        dat' (or dat (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 0))]
+        hdr' (or hdr (alloc-direct 24))
+        dat' (or dat (alloc-direct 1))]
     {:lib
      (reify PcapLibrary
        (pcap_next_ex [_ _ hdr-ref dat-ref]
@@ -196,13 +199,18 @@
               (pcap_geterr [_ _] "")
               (pcap_findalldevs [_ _ _] 0)
               (pcap_freealldevs [_ _] nil)
-              (pcap_lookupnet [_ _ _ _ _] 0))]
+              (pcap_lookupnet [_ _ _ _ _] 0))
+        closed? (atom false)]
     (with-redefs [pcap/lib lib
-                  pcap/open-offline (fn [& _] fake-pcap)]
+                  pcap/open-offline (fn [& _] fake-pcap)
+                  pcap/close! (fn [_]
+                                (Thread/sleep 20)
+                                (reset! closed? true))]
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"capture->seq background error"
                             (dorun (pcap/capture->seq {:path "dummy"
                                                        :error-mode :throw
-                                                       :max 1 :max-time-ms 10 :idle-max-ms 5})))))))
+                                                       :max 1 :max-time-ms 10 :idle-max-ms 5}))))
+      (is (true? @closed?)))))
 
 (deftest capture->seq-respects-queue-cap
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
@@ -240,12 +248,12 @@
       (is (= :idle-or-eof (:stopped summary))))))
 
 (deftest run-live-for-ms-summary-distinguishes-timeout
-  (with-redefs [pcap/run-live-for-ms! (stub-run-live-for-ms! 1 2)]
+  (with-redefs [pcap/run-live-for-ms! (stub-run-live-for-ms! 1 20)]
     (let [summary (pcap/run-live-for-ms-summary! {} 1 (fn [_]) {})]
       (is (= 1 (:count summary)))
       (is (= :time (:stopped summary)))))
   (with-redefs [pcap/run-live-for-ms! (stub-run-live-for-ms! 1 0)]
-    (let [summary (pcap/run-live-for-ms-summary! {} 1000 (fn [_]) {})]
+    (let [summary (pcap/run-live-for-ms-summary! {} 60000 (fn [_]) {})]
       (is (= 1 (:count summary)))
       (is (= :idle-or-eof (:stopped summary))))))
 

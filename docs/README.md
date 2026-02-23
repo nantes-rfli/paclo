@@ -27,7 +27,7 @@ This page is the entry point to the documentation set.
 
 - Run tests: `clj -M:test`
 - Compile Java sources (if present): `clojure -T:build javac`
-- Supported environments: see README “Supported Environments”
+- Supported environments: see README “Compatibility Matrix (v1.0 target)”
 
 ## Release info
 

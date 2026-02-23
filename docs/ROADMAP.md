@@ -182,13 +182,13 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 
 ### P3 受け入れ条件（Done 定義）
 
-- [ ] コア API/CLI/BPF DSL の契約を README + cljdoc に明文化し、破壊的変更は P3 内で完了
-- [ ] 互換性マトリクス（JDK17/21、Clojure 1.12.x、babashka 1.12.x、macOS/Linux x86_64/arm64）を
+- [x] コア API/CLI/BPF DSL の契約を README + cljdoc に明文化し、破壊的変更は P3 内で完了
+- [x] 互換性マトリクス（JDK17/21、Clojure 1.12.x、babashka 1.12.x、macOS/Linux x86_64/arm64）を
   README に掲載し、CI は初期セット（JDK17/macOS runner, JDK21/Linux x86_64）を必須で回す
-- [ ] 回帰セット: ゴールデン PCAP（小/中）+ property/quickcheck + async 経路スモーク +
+- [x] 回帰セット: ゴールデン PCAP（小/中）+ property/quickcheck + async 経路スモーク +
   CLI 出力スナップショットを CI 常設、性能バジェット
   （mid-50k pcap decode?=true ≤ 1.0s をハード上限）を閾値化
-- [ ] セキュリティ/静的解析: eastwood / clj-kondo / nvd を定常実行し、クリティカル CVE なしを記録
+- [x] セキュリティ/静的解析: eastwood / clj-kondo / nvd を定常実行し、クリティカル CVE なしを記録
 - [ ] リリース成果物: CHANGELOG 1.0.0、Migration Guide (0.4→1.0)、cljdoc 公開、`v1.0.0` タグ発行
 
 ### ドキュメント計画（ユーザ導線を固定）
@@ -240,6 +240,9 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
   （`.github/workflows/ci.yml`）
 - [x] arm64 required 安定化として `pcap-loop-test` を非ゲート観測へ分離
   （`.github/workflows/ci.yml`）
+- [x] `pcap-loop-test` の `PointerByReference` 反射代入を除去し、
+  arm64 required の unit tests を `clojure -M:test` に再統合
+  （`.github/workflows/ci.yml`, `test/paclo/pcap_loop_test.clj`）
 - [x] BPF エラー契約テストを強化（`ex-data` を含む未知 proto/op/unsupported form を固定化）
   （`test/paclo/core_bpf_test.clj`）
 - [x] `core/packets` の `invalid :filter` 例外契約をテスト化（メッセージ + `ex-data`）
@@ -251,10 +254,15 @@ paclo-core の責務と API を 1.0 で凍結し、以後の変更を後方互�
 
 - [x] `v1.0.0-rc` リリースチェックリストの初版を追加（ローカルゲート/CIゲート/タグ手順）
   （`docs/release-v1-rc-checklist.md`）
+- [x] `v1.0.0-rc` ローカルゲートを実行し全コマンド成功を確認
+  （`clojure -M:test`, `clojure -M:eastwood`, `clj-kondo --lint src test dev`, `clojure -M:perf-gate`,
+   `clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap`, `cljdoc.doc-tree` load）
 - [x] arm64 昇格判定の定期レポート workflow を追加（`workflow_dispatch` + weekly schedule）
   （`.github/workflows/arm64-promotion-report.yml`）
 - [x] arm64 昇格判定のローカル集計スクリプトを追加（`gh` API 経由）
   （`dev/script/arm64_promotion_report.sh`）
+- [x] 最新 CI / Dependency Audit の green を確認（`gh run list`）
+  （CI: `22293933934` success, Dependency Audit: `21812860426` success）
 
 ### リスクと緩和（P3）
 

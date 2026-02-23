@@ -770,23 +770,29 @@
             (open-offline path))]
     ;; バックグラウンドでキャプチャしてキューに流す
     (future
-      (try
-        (when filter
-          (if device
-            (set-bpf-on-device! h device filter)
-            (set-bpf! h filter)))
-        (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
-                       (fn [pkt]
-                         (.put q pkt)
-                         ;; ★ 任意条件で即停止
-                         (when (and stop? (stop? pkt))
-                           (breakloop! h))))
-        (catch Throwable ex
-          (when on-error (try (on-error ex) (catch Throwable _)))
-          (.put q (make-error-item ex)))
-        (finally
-          (.put q sentinel)
-          (close! h))))
+      (let [captured-error (atom nil)]
+        (try
+          (when filter
+            (if device
+              (set-bpf-on-device! h device filter)
+              (set-bpf! h filter)))
+          (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
+                         (fn [pkt]
+                           (.put q pkt)
+                           ;; ★ 任意条件で即停止
+                           (when (and stop? (stop? pkt))
+                             (breakloop! h))))
+          (catch Throwable ex
+            (when on-error (try (on-error ex) (catch Throwable _)))
+            (reset! captured-error ex))
+          (finally
+            (try
+              (close! h)
+              (catch Throwable ex
+                (when on-error (try (on-error ex) (catch Throwable _)))))
+            (when-let [ex @captured-error]
+              (.put q (make-error-item ex)))
+            (.put q sentinel)))))
     ;; lazy-seq を返す
     (letfn [(drain []
               (lazy-seq

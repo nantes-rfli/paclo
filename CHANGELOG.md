@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated compatibility matrix macOS runner label to `macos-latest` (replacing unsupported `macos-13` configuration).
 - Isolated Clojure deps cache keys by `runner.arch` to prevent x64/arm64 cache cross-restore in CI jobs.
 - Stabilized arm64 required gate by excluding `paclo.pcap-loop-test` from the gating test regex and running it as a non-gating observation step.
+- Re-integrated `paclo.pcap-loop-test` into arm64 required unit tests after removing reflection-based `PointerByReference` mutation in tests.
+- Recorded `v1.0.0-rc` local gate execution results in the release checklist and updated P3 acceptance progress in ROADMAP.
 
 ### Tests
 - Strengthened BPF error-contract tests to assert `ex-message` and `ex-data` for unknown proto/op and unsupported forms.

@@ -5,10 +5,10 @@
 
 ## 1. Preconditions
 
-- [ ] `docs/cljdoc-api-contract.md` が最新実装と一致している
-- [ ] `docs/migration-0.4-to-1.0.md` が最新の差分を反映している
+- [x] `docs/cljdoc-api-contract.md` が最新実装と一致している（確認日: 2026-02-23）
+- [x] `docs/migration-0.4-to-1.0.md` が最新の差分を反映している（確認日: 2026-02-23）
 - [ ] `CHANGELOG.md` に `1.0.0-rc` 向け差分を記載済み
-- [ ] `docs/ROADMAP.md` の P3 進捗が実態と一致している
+- [x] `docs/ROADMAP.md` の P3 進捗が実態と一致している（更新日: 2026-02-23）
 
 ## 2. Local gates
 
@@ -25,14 +25,22 @@ clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' -M -e
 
 確認項目:
 
-- [ ] 全コマンドが成功
-- [ ] `perf-gate` が warn/fail 閾値を超えていない
-- [ ] CLI スモークの出力/終了コード契約に差分がない
+- [x] 全コマンドが成功（実行日: 2026-02-23）
+- [x] `perf-gate` が warn/fail 閾値を超えていない（679.6ms / warn=1000ms / fail=1200ms）
+- [x] CLI スモークの出力/終了コード契約に差分がない
+
+直近実行ログ（2026-02-23, local）:
+
+- `clojure -M:test` => 185 tests / 504 assertions / 0 failures / 0 errors
+- `clojure -M:eastwood` => Warnings 12 / Exceptions 0（exit 0）
+- `clj-kondo --lint src test dev` => errors 0 / warnings 0
+- `clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap` => success
+- `clojure -Sdeps ... cljdoc.doc-tree` => `:cljdoc-loaded`
 
 ## 3. CI gates
 
-- [ ] `CI` workflow が `main/master` 上で green
-- [ ] `Dependency Audit`（nvd-clojure）が green、critical CVE なし
+- [x] `CI` workflow が `main/master` 上で green（run: `22293933934`, 2026-02-23）
+- [x] `Dependency Audit`（nvd-clojure）が green、critical CVE なし（run: `21812860426`, 2026-02-09）
 - [ ] `arm64-monitor` が継続的に成功
 - [ ] `Arm64 Promotion Report` が基準を満たす
   - 14日 coverage
@@ -55,8 +63,8 @@ inputs : lookback_days=14, min_success_rate=0.95, max_rerun_rate=0.05, max_durat
 
 ## 4. Release artifacts
 
-- [ ] README の公開 API / 互換性マトリクス / install 例が最新
-- [ ] docs index (`docs/README.md`) に必要ドキュメントリンクが揃っている
+- [x] README の公開 API / 互換性マトリクス / install 例が最新（確認日: 2026-02-23）
+- [x] docs index (`docs/README.md`) に必要ドキュメントリンクが揃っている（確認日: 2026-02-23）
 - [ ] `CHANGELOG.md` に `## [1.0.0-rc] - YYYY-MM-DD` を追加
 - [ ] 必要なら ADR/設計メモを `docs/` に追記
 
