@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs index and README documentation links now include the 0.4 -> 1.0 migration guide.
 - Added arm64 required-gate promotion criteria to the v1 freeze draft (success/flake/perf thresholds and promotion procedure).
 - Updated README `deps.edn` install snippet from `v0.3.0` to `v0.4.0` tag/sha.
+- Made `arm64-monitor` a required CI gate by removing `continue-on-error` (exception path without waiting 14-day observation window).
 
 ### Tests
 - Strengthened BPF error-contract tests to assert `ex-message` and `ex-data` for unknown proto/op and unsupported forms.

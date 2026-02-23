@@ -219,7 +219,6 @@ jobs:
 
   arm64-monitor:
     runs-on: ubuntu-24.04-arm
-    continue-on-error: true
 
     steps:
       - name: Checkout

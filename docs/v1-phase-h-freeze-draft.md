@@ -144,11 +144,7 @@ P3 目標（ROADMAP）:
 - 互換性マトリクス用 CI ジョブで Linux/JDK21 と macOS-13/JDK17 を必須化
 - JDK17 は互換性ジョブで必須、coverage ジョブでも追加検証
 - macOS 軸は `macos-13`（x86_64）で導入済み
-- arm64 は `ubuntu-24.04-arm` で非必須監視ジョブを導入済み
-
-Gap（Phase I で解消）:
-
-- arm64 軸はまだ必須ゲートに昇格していない
+- arm64 は `ubuntu-24.04-arm` で CI ジョブを導入済み（2026-02-23 に `continue-on-error` を解除して必須ゲート化）
 
 arm64 必須ゲート化の判定基準（2026-02-23 確定）:
 
@@ -157,6 +153,7 @@ arm64 必須ゲート化の判定基準（2026-02-23 確定）:
 - 失敗原因が infra（runner/network）ではなくテスト実装起因の場合、修正 PR が 72 時間以内にマージされている
 - `clojure -M:test` / `dns-ext smoke` / `perf-gate` の arm64 実行時間が x86_64 比 1.5 倍以内
 - 昇格手順: `continue-on-error` を解除し、`compatibility-matrix` に arm64 required job を追加して 1 週間観測
+- 例外運用（2026-02-23）: リリース優先で 14 日観測を待たず `arm64-monitor` を required 化。観測継続し、基準未達が続く場合は閾値/構成を再調整する
 
 ---
 
@@ -196,6 +193,7 @@ arm64 必須ゲート化の判定基準（2026-02-23 確定）:
 - [x] CI に互換性マトリクス準拠ジョブを追加（Linux/JDK21 + macOS/JDK17）
 - [x] 性能ゲート（mid-50k）を CI に追加（`clojure -M:perf-gate`）
 - [x] arm64 必須ゲート化の判定基準を確定（成功率/flake率/時間比/昇格手順）
-- [ ] arm64 監視ジョブの安定実績（14日, success>=95%）を満たし required 化を実施
+- [x] arm64 ジョブを required 化（`continue-on-error` 解除、2026-02-23）
+- [ ] required 化後の観測実績を蓄積し、判定基準との乖離をレビュー（必要なら閾値/構成見直し）
 - [x] CLI 出力スナップショットと終了コードテストを追加
   （`test/examples/cli_contract_test.clj`, `test/resources/cli_snapshots.edn`）
