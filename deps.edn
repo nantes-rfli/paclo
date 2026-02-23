@@ -1,4 +1,7 @@
 {:paths ["src" "src-java" "target/classes"]
+ :deps/prep-lib {:alias :build
+                 :fn javac
+                 :ensure "target/classes"}
  :deps  {org.clojure/clojure                  {:mvn/version "1.12.1"}
          org.clojure/core.async               {:mvn/version "1.6.681"}
          com.github.jnr/jnr-ffi               {:mvn/version "2.2.14"}
