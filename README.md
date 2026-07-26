@@ -53,6 +53,36 @@ clojure -X:deps prep
      doall)
 ```
 
+For synchronous large-PCAP reduction without an intermediate lazy sequence:
+
+```clojure
+(core/reduce-packets
+ {:path "large.pcap"
+  :decode? true
+  :max Long/MAX_VALUE
+  :max-time-ms 3600000
+  :xform (keep #(get-in % [:decoded :l3 :flow-key]))}
+ (fn [counts flow] (update counts flow (fnil inc 0)))
+ {})
+```
+
+For a flat low-allocation flow projection, use explicit flow mode. IPv4
+addresses are unsigned longs and IPv6 addresses are two-long vectors:
+
+```clojure
+(core/reduce-packets
+ {:path "large.pcap"
+  :decode-mode :flow
+  :max Long/MAX_VALUE
+  :max-time-ms 3600000}
+ (fn [counts flow]
+   (update counts
+           (select-keys flow
+                        [:src-ip :dst-ip :protocol :src-port :dst-port])
+           (fnil inc 0)))
+ {})
+```
+
 ## Run examples
 
 Development examples are under `dev/examples` and loaded with `:dev`.
@@ -144,7 +174,7 @@ For full argument tables and behavior details, see `docs/usage.md`.
 
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
-| `paclo.core` | `bpf`, `packets`, `write-pcap!`, `list-devices` | User-facing API |
+| `paclo.core` | `bpf`, `packets`, `reduce-packets`, `write-pcap!`, `list-devices` | User-facing API |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`) are not part of the compatibility contract.
@@ -180,6 +210,17 @@ clojure -M:perf-gate
 
 Current thresholds: `warn=1000ms`, `fail=1200ms`.
 
+The phase-1 runner measures offline stages independently and supports
+loopback-live capture with libpcap drop counters:
+
+```bash
+clojure -M:perf --mode offline --profile quick --output target/perf-quick
+clojure -M:perf --mode live --profile quick --device lo0 --output target/perf-live-quick
+```
+
+It writes schema-versioned EDN and JSON results. See
+`docs/performance.md` for profiles, metrics, and platform caveats.
+
 ## Security scan (NVD)
 
 CI runs `Dependency Audit` with `NVD_API_TOKEN`.
@@ -198,6 +239,7 @@ NVD_API_TOKEN=<token> clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:de
 - Public API contract: `docs/cljdoc-api-contract.md`
 - Migration guide: `docs/migration-0.4-to-1.0.md`
 - Roadmap: `docs/ROADMAP.md`
+- Performance measurement: `docs/performance.md`
 
 ## Maintainer notes
 

@@ -7,6 +7,8 @@ For installation and CLI entry examples, start from `README.md`.
 
 - `paclo.core` is the user-facing API.
 - `packets` returns lazy packet maps from a file (`:path`) or device (`:device`).
+- `reduce-packets` synchronously folds large or live captures without an
+  intermediate sequence.
 - `bpf` converts a small Clojure DSL to BPF strings.
 - `write-pcap!` writes byte records back to a PCAP file.
 - Optional decode hooks (`paclo.decode-ext`) annotate decoded packets.
@@ -34,6 +36,24 @@ For installation and CLI entry examples, start from `README.md`.
      (take 10)
      doall)
 ```
+
+## Synchronous reduction
+
+```clojure
+(core/reduce-packets
+ {:path "large.pcap"
+  :decode? true
+  :max Long/MAX_VALUE
+  :max-time-ms 3600000
+  :xform (keep #(get-in % [:decoded :l3 :flow-key]))}
+ (fn [counts flow]
+   (update counts flow (fnil inc 0)))
+ {})
+```
+
+The reducer may return `(reduced value)` to stop capture immediately. This
+path avoids the producer future, blocking queue, and lazy-seq nodes used by
+`packets`; use `packets` when interactive lazy consumption is more useful.
 
 ## Write PCAP
 
@@ -89,7 +109,8 @@ Use `README.md` as the command index, and use this guide for API behavior.
 
 - Use BPF for coarse filtering as early as possible.
 - Use `:xform` transducers in `packets` for early map/filter and lower allocation.
-- For large traces, prefer `transduce` or bounded realization over full materialization.
+- For large traces, use `reduce-packets` to fuse transformation and reduction
+  without full materialization.
 
 ## References
 
