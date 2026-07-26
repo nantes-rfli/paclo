@@ -36,16 +36,21 @@
     (throw (ex-info (str label " must be true or false")
                     {:label label :value value}))))
 
-(defn- reduce-packets [packets]
-  (reduce
-   (fn [{:keys [packets bytes decode-errors] :as result} packet]
-     (assoc result
-            :packets (unchecked-inc (long packets))
-            :bytes (+ (long bytes) (long (:caplen packet)))
-            :decode-errors (+ (long decode-errors)
-                              (if (contains? packet :decode-error) 1 0))))
-   {:packets 0 :bytes 0 :decode-errors 0}
-   packets))
+(defn- reduce-packets
+  ([packets]
+   (reduce-packets packets 0))
+  ([packets consumer-delay-ns]
+   (reduce
+    (fn [{:keys [packets bytes decode-errors] :as result} packet]
+      (when (pos? (long consumer-delay-ns))
+        (LockSupport/parkNanos (long consumer-delay-ns)))
+      (assoc result
+             :packets (unchecked-inc (long packets))
+             :bytes (+ (long bytes) (long (:caplen packet)))
+             :decode-errors (+ (long decode-errors)
+                               (if (contains? packet :decode-error) 1 0))))
+    {:packets 0 :bytes 0 :decode-errors 0}
+    packets)))
 
 (defn- offline-opts [path count]
   ;; capture->seq has a safe interactive default of ten seconds. Reference and
@@ -190,61 +195,150 @@
                     (Thread/onSpinWait)))
                 (recur sent')))))))))
 
+(defn- sender-tasks
+  [{:keys [source port target-pps duration-ms frame-size senders]}]
+  (if (= source :external)
+    []
+    (let [target-pps (long target-pps)
+          senders (long senders)
+          duration-ms (long duration-ms)
+          frame-size (long frame-size)
+          base-rate (quot target-pps senders)
+          remainder (mod target-pps senders)]
+      (vec
+       (for [index (range senders)]
+         (future
+           ;; Give both queue and direct capture paths time to activate.
+           (Thread/sleep 100)
+           (send-udp! {:port port
+                       :target-pps (+ base-rate
+                                      (if (< (long index) remainder) 1 0))
+                       :duration-ms duration-ms
+                       :payload-bytes (max 1 (- frame-size 28))})))))))
+
+(defn- live-reducer [consumer-delay-ns]
+  (fn [{:keys [packets bytes decode-errors] :as result} packet]
+    (when (pos? (long consumer-delay-ns))
+      (LockSupport/parkNanos (long consumer-delay-ns)))
+    (assoc result
+           :packets (unchecked-inc (long packets))
+           :bytes (+ (long bytes) (long (:caplen packet)))
+           :decode-errors (+ (long decode-errors)
+                             (if (contains? packet :decode-error) 1 0)))))
+
 (defn- live-run
-  [{:keys [device port target-pps duration-ms frame-size decode? senders
-           buffer-size immediate?]}]
-  (let [stats (atom nil)
+  [{:keys [device port target-pps duration-ms decode? source engine filter
+           snaplen queue-cap queue-mode consumer-delay-ns
+           buffer-size immediate?]
+    :as config}]
+  (let [duration-ms (long duration-ms)
+        target-pps (long target-pps)
+        stats (atom nil)
+        queue-stats (atom nil)
         errors (atom [])
+        filter* (or filter
+                    (when (= source :loopback)
+                      (str "udp dst port " port)))
         opts (cond-> {:device device
-                      :filter (str "udp dst port " port)
+                      :filter filter*
                       :decode? decode?
+                      :snaplen snaplen
                       :max Long/MAX_VALUE
-                      :max-time-ms (+ duration-ms 1000)
-                      :idle-max-ms 250
+                      :max-time-ms (if (= source :external)
+                                     duration-ms
+                                     (+ duration-ms 1000))
+                      :idle-max-ms (if (= source :external)
+                                     (+ duration-ms 100)
+                                     250)
                       :timeout-ms 10
                       :on-stats #(reset! stats %)
                       :on-error #(swap! errors conj
                                         (or (.getMessage ^Throwable %) (str %)))}
                buffer-size (assoc :buffer-size buffer-size)
-               (some? immediate?) (assoc :immediate? immediate?))
-        packets (core/packets opts)
-        base-rate (quot target-pps senders)
-        remainder (mod target-pps senders)
-        sender-tasks
-        (vec
-         (for [index (range senders)]
-           (future
-             (Thread/sleep 50)
-             (send-udp! {:port port
-                         :target-pps (+ base-rate
-                                        (if (< index remainder) 1 0))
-                         :duration-ms duration-ms
-                         :payload-bytes (max 1 (- frame-size 28))}))))
-        result (reduce-packets packets)
-        sent (reduce + (map deref sender-tasks))
+               (some? immediate?) (assoc :immediate? immediate?)
+               (= engine :queue)
+               (assoc :queue-cap queue-cap
+                      :queue-mode queue-mode
+                      :on-queue-stats #(reset! queue-stats %)))
+        [result senders]
+        (case engine
+          :queue
+          (let [packets (core/packets opts)
+                tasks (sender-tasks config)]
+            [(reduce-packets packets consumer-delay-ns) tasks])
+
+          :direct
+          (let [tasks (sender-tasks config)]
+            [(core/reduce-packets
+              opts
+              (live-reducer consumer-delay-ns)
+              {:packets 0 :bytes 0 :decode-errors 0})
+             tasks]))
+        sent (long (reduce + 0 (map deref senders)))
         capture @stats
+        queue (or @queue-stats
+                  {:mode :direct
+                   :capacity 0
+                   :enqueued (:packets result)
+                   :dropped 0
+                   :blocked-events 0
+                   :blocked-ns 0
+                   :max-depth 0})
         received (long (or (:received capture) 0))
-        dropped (long (or (:dropped capture) 0))
+        kernel-dropped (long (or (:dropped capture) 0))
         interface-dropped (long (or (:interface-dropped capture) 0))
-        capture-total (+ received dropped)
+        capture-total (+ received kernel-dropped)
+        queue-enqueued (long (or (:enqueued queue) 0))
+        queue-dropped (long (or (:dropped queue) 0))
+        queue-total (+ queue-enqueued queue-dropped)
+        consumer-processed (long (:packets result))
+        consumer-gap (max 0 (- queue-enqueued consumer-processed))
+        send-loss (max 0 (- sent consumer-processed))
         duration-seconds (/ (double duration-ms) 1000.0)]
     (merge result
            {:sent sent
-            :realized-send-pps (/ (double sent) duration-seconds)
-            :processed-vs-sent-rate (if (pos? sent)
-                                      (/ (double (:packets result))
-                                         (double sent))
-                                      0.0)
+            :realized-send-pps (when (pos? sent)
+                                 (/ (double sent) duration-seconds))
+            :sustained-processed-pps
+            (/ (double consumer-processed) duration-seconds)
+            :processed-vs-sent-rate
+            (when (pos? sent)
+              (/ (double consumer-processed) (double sent)))
+            :send-loss-rate
+            (when (pos? sent)
+              (/ (double send-loss) (double sent)))
             :kernel-drop-rate (if (pos? capture-total)
-                                (/ (double dropped)
+                                (/ (double kernel-dropped)
                                    (double capture-total))
                                 0.0)
             :interface-drop-rate (if (pos? capture-total)
                                    (/ (double interface-dropped)
                                       (double capture-total))
                                    0.0)
+            :queue-drop-rate (if (pos? queue-total)
+                               (/ (double queue-dropped)
+                                  (double queue-total))
+                               0.0)
+            :consumer-gap-rate (if (pos? queue-enqueued)
+                                 (/ (double consumer-gap)
+                                    (double queue-enqueued))
+                                 0.0)
             :target-pps target-pps
+            :source source
+            :engine engine
             :capture-stats capture
+            :queue-stats queue
+            :stage-counts
+            {:sent sent
+             :capture-received received
+             :capture-delivered queue-total
+             :kernel-dropped kernel-dropped
+             :interface-dropped interface-dropped
+             :queue-enqueued queue-enqueued
+             :queue-dropped queue-dropped
+             :consumer-processed consumer-processed
+             :consumer-gap consumer-gap
+             :send-loss send-loss}
             :capture-errors @errors})))
 
 (defn- run-measured
@@ -276,12 +370,30 @@
         runs (parse-long! (:runs opts) "runs")
         scenario-config
         (case scenario
-          :live-raw {}
-          :live-raw-buffered {:buffer-size (* 16 1024 1024)
+          :live-raw {:engine :queue}
+          :live-raw-buffered {:engine :queue
+                              :buffer-size (* 16 1024 1024)
                               :immediate? false}
-          :live-raw-immediate {:buffer-size (* 16 1024 1024)
+          :live-raw-immediate {:engine :queue
+                               :buffer-size (* 16 1024 1024)
                                :immediate? true}
-          :live-full {:decode? true}
+          :live-full {:engine :queue :decode? true}
+          :live-sync-raw {:engine :direct
+                          :buffer-size (* 16 1024 1024)
+                          :immediate? true}
+          :live-dropping-raw {:engine :queue
+                              :queue-mode :dropping
+                              :buffer-size (* 16 1024 1024)
+                              :immediate? true}
+          :live-sync-full {:engine :direct
+                           :decode? true
+                           :buffer-size (* 16 1024 1024)
+                           :immediate? true}
+          :live-dropping-full {:engine :queue
+                               :decode? true
+                               :queue-mode :dropping
+                               :buffer-size (* 16 1024 1024)
+                               :immediate? true}
           (throw (ex-info "unknown live scenario" {:scenario scenario})))
         config (merge
                 {:device (:device opts)
@@ -290,22 +402,59 @@
                  :duration-ms (parse-long! (:duration-ms opts) "duration-ms")
                  :frame-size (parse-long! (:frame-size opts) "frame-size")
                  :senders (parse-long! (or (:senders opts) "1") "senders")
-                 :decode? false}
+                 :source (keyword (or (:source opts) "loopback"))
+                 :engine :queue
+                 :decode? false
+                 :snaplen 65536
+                 :queue-cap 1024
+                 :queue-mode :blocking
+                 :consumer-delay-ns 0}
                 scenario-config
                 (cond-> {}
+                  (:filter opts) (assoc :filter (:filter opts))
+                  (:snaplen opts)
+                  (assoc :snaplen (parse-long! (:snaplen opts) "snaplen"))
+                  (:queue-cap opts)
+                  (assoc :queue-cap
+                         (parse-long! (:queue-cap opts) "queue-cap"))
+                  (:queue-mode opts)
+                  (assoc :queue-mode (keyword (:queue-mode opts)))
+                  (:consumer-delay-ns opts)
+                  (assoc :consumer-delay-ns
+                         (parse-long! (:consumer-delay-ns opts)
+                                      "consumer-delay-ns"))
                   (:buffer-size opts)
                   (assoc :buffer-size
                          (parse-long! (:buffer-size opts) "buffer-size"))
                   (:immediate opts)
                   (assoc :immediate?
                          (parse-boolean! (:immediate opts) "immediate"))))]
+    (when-not (contains? #{:loopback :external} (:source config))
+      (throw (ex-info "source must be loopback or external"
+                      {:source (:source config)})))
+    (when-not (contains? #{:queue :direct} (:engine config))
+      (throw (ex-info "engine must be queue or direct"
+                      {:engine (:engine config)})))
+    (when-not (contains? #{:blocking :dropping} (:queue-mode config))
+      (throw (ex-info "queue-mode must be blocking or dropping"
+                      {:queue-mode (:queue-mode config)})))
     (when-not (pos? (long (:senders config)))
       (throw (ex-info "senders must be positive"
                       {:senders (:senders config)})))
-    (when (> (long (:senders config)) (long (:target-pps config)))
+    (when (and (= :loopback (:source config))
+               (> (long (:senders config)) (long (:target-pps config))))
       (throw (ex-info "senders cannot exceed target-pps"
                       {:senders (:senders config)
                        :target-pps (:target-pps config)})))
+    (when-not (<= 1 (long (:snaplen config)) 65536)
+      (throw (ex-info "snaplen must be between 1 and 65536"
+                      {:snaplen (:snaplen config)})))
+    (when-not (pos? (long (:queue-cap config)))
+      (throw (ex-info "queue-cap must be positive"
+                      {:queue-cap (:queue-cap config)})))
+    (when (neg? (long (:consumer-delay-ns config)))
+      (throw (ex-info "consumer-delay-ns cannot be negative"
+                      {:consumer-delay-ns (:consumer-delay-ns config)})))
     (merge
      {:mode :live
       :scenario scenario

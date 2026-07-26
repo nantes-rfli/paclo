@@ -125,7 +125,11 @@
   [runs]
   (let [metric-keys [:elapsed-ns :packets-per-sec :mb-per-sec :ns-per-packet
                      :allocated-bytes :allocated-bytes-per-packet
-                     :gc-count :gc-time-ms :heap-peak-bytes :process-cpu-ns]]
+                     :gc-count :gc-time-ms :heap-peak-bytes :process-cpu-ns
+                     :realized-send-pps :sustained-processed-pps
+                     :processed-vs-sent-rate :send-loss-rate
+                     :kernel-drop-rate :interface-drop-rate
+                     :queue-drop-rate :consumer-gap-rate]]
     (into {}
           (keep
            (fn [metric]

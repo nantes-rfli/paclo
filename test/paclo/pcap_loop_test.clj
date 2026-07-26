@@ -224,6 +224,65 @@
         (is (= [42 42 42] (map #(aget ^bytes % 0) (map :bytes pkts))))
         (is (= 1 @breaks))))))
 
+(deftest capture->seq-reports-blocking-queue-stats
+  (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
+        {:keys [lib]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})
+        stats (promise)]
+    (with-redefs [pcap/lib lib
+                  pcap/open-offline (fn [& _] fake-pcap)]
+      (is (= 3
+             (count
+              (pcap/capture->seq
+               {:path "dummy"
+                :queue-cap 2
+                :queue-mode :blocking
+                :on-queue-stats #(deliver stats %)
+                :max 10 :max-time-ms 50 :idle-max-ms 20}))))
+      (is (= {:mode :blocking
+              :capacity 2
+              :enqueued 3
+              :dropped 0}
+             (select-keys @stats
+                          [:mode :capacity :enqueued :dropped])))
+      (is (<= 1 (:max-depth @stats) 2))
+      (is (<= 0 (:blocked-events @stats)))
+      (is (<= 0 (:blocked-ns @stats))))))
+
+(deftest capture->seq-dropping-mode-reports-paclo-drops
+  (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [7]))
+        {:keys [lib]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})
+        stats (promise)]
+    (with-redefs [pcap/lib lib
+                  pcap/open-offline (fn [& _] fake-pcap)]
+      (let [packets (pcap/capture->seq
+                     {:path "dummy"
+                      :queue-cap 1
+                      :queue-mode :dropping
+                      :on-queue-stats #(deliver stats %)
+                      :max 10 :max-time-ms 50 :idle-max-ms 20})]
+        ;; Wait until the producer fills the queue and drops the remaining
+        ;; packets before allowing the lazy consumer to drain it.
+        (is (map? (deref stats 1000 nil)))
+        (is (= 1 (count packets)))
+        (is (= {:mode :dropping
+                :capacity 1
+                :enqueued 1
+                :dropped 2
+                :blocked-events 0
+                :blocked-ns 0
+                :max-depth 1}
+               @stats))))))
+
+(deftest capture->seq-validates-queue-options
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #"queue-mode"
+                        (pcap/capture->seq
+                         {:path "dummy" :queue-mode :unknown})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #"queue-cap"
+                        (pcap/capture->seq
+                         {:path "dummy" :queue-cap 0}))))
+
 (deftest capture->seq-stop?-with-queue-cap
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [7]))
         {:keys [lib]} (fake-lib {:rcs [1 1 1] :hdr hdr :dat dat})

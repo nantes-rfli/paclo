@@ -218,8 +218,10 @@ clojure -M:perf --mode offline --profile quick --output target/perf-quick
 clojure -M:perf --mode live --profile quick --device lo0 --output target/perf-live-quick
 ```
 
-It writes schema-versioned EDN and JSON results. See
-`docs/performance.md` for profiles, metrics, and platform caveats.
+The live runner compares direct, bounded-blocking, and bounded-dropping paths
+and reports sender, libpcap, queue, and consumer stages separately. It writes
+schema-versioned EDN and JSON results. See `docs/performance.md` for profiles,
+external-generator measurement, metrics, and platform caveats.
 
 ## Security scan (NVD)
 

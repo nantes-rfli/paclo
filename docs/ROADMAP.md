@@ -56,7 +56,7 @@ the preceding measurement gate provides evidence for the next change.
 2. [x] Compare the queue/lazy-seq path with a synchronous reducing path.
 3. [x] Add opt-in flow projection and reduce allocation.
 4. [x] Profile the parser and adopt only evidence-backed compatible changes.
-5. [ ] Tune live capture buffers and report drop location.
+5. [x] Tune live capture buffers and report drop location.
 6. [ ] Consider borrowed buffers, batching, parallel decode, or mmap only if the
    earlier phases do not meet the documented throughput targets.
 
@@ -75,8 +75,16 @@ scope.
 The first 60-second buffered-immediate `lo0` probe sustained approximately
 369k processed pps with zero reported kernel or interface drops and about
 67 MB peak heap. The local UDP generator, rather than capture, limited this
-probe, so real-NIC and separate-host tests are still needed to find the true
+probe. Phase 5 added direct, bounded-blocking, and bounded-dropping comparison
+profiles; sender, libpcap, queue, and consumer stage counters; a 0.1%
+sustainability classifier; and an external-generator profile for real-NIC or
+separate-host tests. Controlled overload now distinguishes queue drops from
+blocking backpressure. Real-NIC measurements are still needed to find the true
 maximum.
+
+Phase 6 remains a post-v1.1 conditional investigation. Borrowed buffers,
+batching, parallel decode, and mmap should be attempted only when a measured
+workload remains below target after the compatible Phase 1-5 paths.
 
 ## Notes
 

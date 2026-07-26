@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added opt-in numeric `:decode-mode :flow` projection to `reduce-packets`.
 - Added opt-in live capture buffer and immediate-mode configuration using
   libpcap's create/activate API.
+- Added live sender, libpcap, paclo queue, and consumer stage metrics with a
+  0.1% sustainability classifier and per-scenario maximum passing result.
+- Added direct, bounded-blocking, and bounded-dropping live benchmark
+  comparisons plus an external-generator profile for real-NIC measurement.
+- Added opt-in `:queue-mode :dropping` and final `:on-queue-stats` counters to
+  the lazy packet sequence.
 
 ### Changed
 - CI now runs a non-thresholded 50k performance smoke and uploads its results.
@@ -24,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compatible full-decode allocation without changing packet maps.
 - Migrated `flow-topn` to the synchronous numeric flow projection and an
   internally mutable accumulator while preserving its EDN/JSONL output contract.
+- Advanced performance result files to schema version 2 for staged live
+  metrics.
 
 ## [1.0.1] - 2026-02-23
 
