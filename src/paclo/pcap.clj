@@ -6,7 +6,12 @@
    [java.util.concurrent LinkedBlockingQueue]
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref IntByReference PointerByReference]
-   [paclo.jnr PcapHeader PcapLibrary]))
+   [paclo.jnr
+    PcapConfigLibrary
+    PcapHeader
+    PcapLibrary
+    PcapStat
+    PcapStatsLibrary]))
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib
@@ -15,8 +20,22 @@
         loader  (LibraryLoader/create PcapLibrary)]
     (.load loader libname)))
 
+(def ^:private ^PcapStatsLibrary stats-lib
+  (let [os      (.. System (getProperty "os.name") toLowerCase)
+        libname (if (.contains os "win") "wpcap" "pcap")
+        loader  (LibraryLoader/create PcapStatsLibrary)]
+    (.load loader libname)))
+
+(def ^:private ^PcapConfigLibrary config-lib
+  (let [os      (.. System (getProperty "os.name") toLowerCase)
+        libname (if (.contains os "win") "wpcap" "pcap")
+        loader  (LibraryLoader/create PcapConfigLibrary)]
+    (.load loader libname)))
+
 ;; --- constants (use before any functions) ---
 (def ^:const PCAP_ERRBUF_SIZE 256)
+
+(declare close!)
 
 (defn ^:private lookup-netmask
   "Resolve netmask from a device name. Returns 0 on lookup failure."
@@ -94,15 +113,81 @@
        (apply-filter! pcap opts)
        pcap))))
 
+(defn- config-error!
+  [^Pointer pcap phase rc]
+  (when (neg? (long rc))
+    (throw (ex-info (str (name phase) " failed")
+                    {:phase phase
+                     :rc rc
+                     :err (try (.pcap_geterr lib pcap)
+                               (catch Throwable _ nil))}))))
+
+(defn- open-live-configured
+  [{:keys [device snaplen promiscuous? timeout-ms buffer-size immediate?]}]
+  (let [^Pointer err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+        handle (.pcap_create config-lib device err)]
+    (when (nil? handle)
+      (throw (ex-info "pcap_create failed"
+                      {:device device
+                       :err (.getString err (long 0))})))
+    (try
+      (config-error! handle :pcap-set-snaplen
+                     (.pcap_set_snaplen config-lib handle (int snaplen)))
+      (config-error! handle :pcap-set-promisc
+                     (.pcap_set_promisc config-lib
+                                        handle
+                                        (if promiscuous? 1 0)))
+      (config-error! handle :pcap-set-timeout
+                     (.pcap_set_timeout config-lib handle (int timeout-ms)))
+      (when buffer-size
+        (config-error! handle :pcap-set-buffer-size
+                       (.pcap_set_buffer_size config-lib
+                                              handle
+                                              (int buffer-size))))
+      (when (some? immediate?)
+        (config-error! handle :pcap-set-immediate-mode
+                       (.pcap_set_immediate_mode config-lib
+                                                 handle
+                                                 (if immediate? 1 0))))
+      (config-error! handle :pcap-activate
+                     (.pcap_activate config-lib handle))
+      handle
+      (catch UnsatisfiedLinkError error
+        (close! handle)
+        (throw (ex-info
+                "configured live capture is unsupported by installed libpcap"
+                {:device device
+                 :reason :unsupported-live-configuration}
+                error)))
+      (catch Throwable error
+        (close! handle)
+        (throw error)))))
+
 (defn open-live
-  [{:keys [device snaplen promiscuous? timeout-ms netmask]
+  [{:keys [device snaplen promiscuous? timeout-ms netmask
+           buffer-size immediate?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10}
     :as   opts}]
   (when-not (valid-device? device)
     (throw (ex-info "open-live requires non-blank :device" {:device device})))
-  (let [^Pointer err    (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
+  (when (and buffer-size
+             (not (and (integer? buffer-size)
+                       (<= 1 (long buffer-size) Integer/MAX_VALUE))))
+    (throw (ex-info ":buffer-size must be an integer between 1 and 2147483647"
+                    {:buffer-size buffer-size})))
+  (when-not (or (nil? immediate?) (instance? Boolean immediate?))
+    (throw (ex-info ":immediate? must be boolean"
+                    {:immediate? immediate?})))
+  (let [^Pointer err (Memory/allocate rt (long PCAP_ERRBUF_SIZE))
         promisc (if promiscuous? 1 0)
-        pcap    (.pcap_open_live lib device snaplen promisc timeout-ms err)]
+        configured? (or buffer-size (some? immediate?))
+        pcap (if configured?
+               (open-live-configured
+                (assoc opts
+                       :snaplen snaplen
+                       :promiscuous? promiscuous?
+                       :timeout-ms timeout-ms))
+               (.pcap_open_live lib device snaplen promisc timeout-ms err))]
     (when (nil? pcap)
       (throw (ex-info "pcap_open_live failed"
                       {:device device :err (.getString ^Pointer err (long 0))})))
@@ -111,6 +196,26 @@
       (apply-filter! pcap opts*))))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
+
+(defn capture-stats
+  "Return portable libpcap counters for a live capture handle.
+
+   The counters are cumulative for the handle:
+   `:received`, `:dropped`, and `:interface-dropped`.
+   Throws `ex-info` when libpcap cannot provide statistics."
+  [^Pointer pcap]
+  (let [^Pointer stats (Memory/allocateDirect rt (long PcapStat/BUFFER_BYTES))
+        rc (.pcap_stats stats-lib pcap stats)]
+    (when (neg? rc)
+      (throw (ex-info "pcap_stats failed"
+                      {:phase :capture-stats
+                       :rc rc
+                       :err (when pcap
+                              (try (.pcap_geterr lib pcap)
+                                   (catch Throwable _ nil)))})))
+    {:received (PcapStat/received stats)
+     :dropped (PcapStat/dropped stats)
+     :interface-dropped (PcapStat/interfaceDropped stats)}))
 
 ;; ------------------------------------------------------------
 ;; with-pcap / with-dumper / with-live / with-offline
@@ -707,10 +812,78 @@
 ;; -----------------------------------------
 ;; -----------------------------------------
 
+(defn reduce-capture
+  "Synchronously reduce live or offline packets without a queue or lazy seq.
+
+   This is an internal primitive. It accepts the same source, filtering,
+   stopping, error, and final-statistics options as `capture->seq`. The
+   reducing function may return `reduced` for immediate early termination."
+  [{:keys [device path filter snaplen promiscuous? timeout-ms
+           buffer-size immediate?
+           max max-time-ms idle-max-ms on-error error-mode on-stats stop?]
+    :or   {snaplen 65536 promiscuous? true timeout-ms 10
+           error-mode :throw}}
+   rf
+   init]
+  (let [default-max 100
+        default-max-time-ms 10000
+        default-idle-max-ms 3000
+        _ (when (and device path)
+            (throw (ex-info "reduce-capture takes either :device or :path, not both"
+                            {:device device :path path})))
+        _ (when-not (or (valid-device? device) (valid-path? path))
+            (throw (ex-info "reduce-capture requires either :device or :path"
+                            {:device device :path path})))
+        max (or max default-max)
+        max-time-ms (or max-time-ms default-max-time-ms)
+        idle-max-ms (or idle-max-ms default-idle-max-ms)
+        result (volatile! init)
+        handle (if device
+                 (open-live {:device device
+                             :snaplen snaplen
+                             :promiscuous? promiscuous?
+                             :timeout-ms timeout-ms
+                             :buffer-size buffer-size
+                             :immediate? immediate?})
+                 (open-offline path))]
+    (try
+      (when filter
+        (if device
+          (set-bpf-on-device! handle device filter)
+          (set-bpf! handle filter)))
+      (try
+        (loop-n-or-ms!
+         handle
+         {:n max
+          :ms max-time-ms
+          :idle-max-ms idle-max-ms
+          :timeout-ms timeout-ms
+          :stop? (fn [packet]
+                   (or (reduced? @result)
+                       (and stop? (stop? packet))))}
+         (fn [packet]
+           (vreset! result (rf (unreduced @result) packet))))
+        (catch Throwable ex
+          (when on-error
+            (try (on-error ex) (catch Throwable _)))
+          (when-not (= error-mode :pass)
+            (throw ex))))
+      (unreduced @result)
+      (finally
+        (when (and device on-stats)
+          (try
+            (on-stats (capture-stats handle))
+            (catch Throwable ex
+              (when on-error
+                (try (on-error ex) (catch Throwable _))))))
+        (close! handle)))))
+
 (defn capture->seq
   "High-level API that returns packets as a lazy sequence.
    opts:
    - live:    {:device \"en1\" :filter \"tcp\" :snaplen 65536 :promiscuous? true :timeout-ms 10}
+       :buffer-size <bytes>     ; opt-in pcap_create buffer size
+       :immediate? <boolean>    ; opt-in immediate delivery
    - offline: {:path \"sample.pcap\" :filter \"...\"}
    - shared stop conditions (safe defaults when omitted):
        :max <int>               ; max packet count (default 100)
@@ -721,12 +894,15 @@
    - error handling:
        :on-error (fn [throwable])   ; optional callback on background thread errors
        :error-mode :throw|:pass     ; default :throw, :pass skips background errors
+   - live diagnostics:
+       :on-stats (fn [stats])       ; optional callback with final pcap_stats counters
    - stop hook:
        :stop? (fn [pkt] boolean)    ; stop immediately when true (breakloop!)
 
    Returns a lazy seq of packet maps."
   [{:keys [device path filter snaplen promiscuous? timeout-ms
-           max max-time-ms idle-max-ms queue-cap on-error error-mode stop?]
+           buffer-size immediate?
+           max max-time-ms idle-max-ms queue-cap on-error error-mode on-stats stop?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10
            error-mode :throw}}]
   (let [default-max 100
@@ -746,7 +922,12 @@
         make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
         ;; open
         h (if device
-            (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})
+            (open-live {:device device
+                        :snaplen snaplen
+                        :promiscuous? promiscuous?
+                        :timeout-ms timeout-ms
+                        :buffer-size buffer-size
+                        :immediate? immediate?})
             (open-offline path))]
     (future
       (let [captured-error (atom nil)]
@@ -764,6 +945,11 @@
             (when on-error (try (on-error ex) (catch Throwable _)))
             (reset! captured-error ex))
           (finally
+            (when (and device on-stats)
+              (try
+                (on-stats (capture-stats h))
+                (catch Throwable ex
+                  (when on-error (try (on-error ex) (catch Throwable _))))))
             (try
               (close! h)
               (catch Throwable ex

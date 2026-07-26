@@ -5,7 +5,7 @@
   (:import
    [jnr.ffi Memory Pointer]
    [jnr.ffi.byref PointerByReference]
-   [paclo.jnr PcapLibrary]))
+   [paclo.jnr PcapConfigLibrary PcapLibrary]))
 
 (defn- alloc-direct ^Pointer [^long n]
   (Memory/allocateDirect (jnr.ffi.Runtime/getSystemRuntime) n))
@@ -282,3 +282,105 @@
     (with-redefs [pcap/lib lib]
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_live failed"
                             (pcap/open-live {:device "en0"}))))))
+
+(deftest open-live-configured-applies-options-before-activation
+  (let [calls (atom [])
+        handle (alloc-direct 1)
+        configured-lib
+        (reify PcapConfigLibrary
+          (pcap_create [_ device _]
+            (swap! calls conj [:create device])
+            handle)
+          (pcap_set_snaplen [_ _ value]
+            (swap! calls conj [:snaplen value])
+            0)
+          (pcap_set_promisc [_ _ value]
+            (swap! calls conj [:promisc value])
+            0)
+          (pcap_set_timeout [_ _ value]
+            (swap! calls conj [:timeout value])
+            0)
+          (pcap_set_buffer_size [_ _ value]
+            (swap! calls conj [:buffer-size value])
+            0)
+          (pcap_set_immediate_mode [_ _ value]
+            (swap! calls conj [:immediate value])
+            0)
+          (pcap_activate [_ _]
+            (swap! calls conj [:activate])
+            0))]
+    (with-redefs [pcap/config-lib configured-lib
+                  pcap/lookup-netmask (constantly 0)
+                  pcap/apply-filter! (fn [h _] h)]
+      (is (= handle
+             (pcap/open-live {:device "en0"
+                              :snaplen 2048
+                              :promiscuous? false
+                              :timeout-ms 25
+                              :buffer-size 16777216
+                              :immediate? true}))))
+    (is (= [[:create "en0"]
+            [:snaplen 2048]
+            [:promisc 0]
+            [:timeout 25]
+            [:buffer-size 16777216]
+            [:immediate 1]
+            [:activate]]
+           @calls))))
+
+(deftest open-live-configured-closes-handle-on-configuration-error
+  (let [handle (alloc-direct 1)
+        closed (atom [])
+        configured-lib
+        (reify PcapConfigLibrary
+          (pcap_create [_ _ _] handle)
+          (pcap_set_snaplen [_ _ _] -1)
+          (pcap_set_promisc [_ _ _] 0)
+          (pcap_set_timeout [_ _ _] 0)
+          (pcap_set_buffer_size [_ _ _] 0)
+          (pcap_set_immediate_mode [_ _ _] 0)
+          (pcap_activate [_ _] 0))]
+    (with-redefs [pcap/config-lib configured-lib
+                  pcap/close! #(swap! closed conj %)]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"pcap-set-snaplen failed"
+                            (pcap/open-live {:device "en0"
+                                             :buffer-size 4096}))))
+    (is (= [handle] @closed))))
+
+(deftest open-live-configured-reports-missing-libpcap-capability
+  (let [handle (alloc-direct 1)
+        closed (atom [])
+        configured-lib
+        (reify PcapConfigLibrary
+          (pcap_create [_ _ _] handle)
+          (pcap_set_snaplen [_ _ _]
+            (throw (UnsatisfiedLinkError. "missing symbol")))
+          (pcap_set_promisc [_ _ _] 0)
+          (pcap_set_timeout [_ _ _] 0)
+          (pcap_set_buffer_size [_ _ _] 0)
+          (pcap_set_immediate_mode [_ _ _] 0)
+          (pcap_activate [_ _] 0))]
+    (with-redefs [pcap/config-lib configured-lib
+                  pcap/close! #(swap! closed conj %)]
+      (try
+        (pcap/open-live {:device "en0" :buffer-size 4096})
+        (is false "expected unsupported capability error")
+        (catch clojure.lang.ExceptionInfo error
+          (is (= :unsupported-live-configuration
+                 (:reason (ex-data error)))))))
+    (is (= [handle] @closed))))
+
+(deftest open-live-rejects-invalid-buffer-size
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #":buffer-size must be an integer"
+                        (pcap/open-live {:device "en0"
+                                         :buffer-size 0})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #":buffer-size must be an integer"
+                        (pcap/open-live {:device "en0"
+                                         :buffer-size (inc Integer/MAX_VALUE)})))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #":immediate[?] must be boolean"
+                        (pcap/open-live {:device "en0"
+                                         :immediate? :yes}))))

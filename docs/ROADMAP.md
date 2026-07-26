@@ -47,6 +47,37 @@ Completed release artifacts:
 - [ ] Continue documentation polish for user-facing pages and examples
 - [ ] Add optional integrations only as opt-in aliases (no heavy default dependencies)
 
+## Performance track
+
+The performance track preserves the v1 data-first API and advances only when
+the preceding measurement gate provides evidence for the next change.
+
+1. [x] Establish reproducible offline and loopback-live baselines.
+2. [x] Compare the queue/lazy-seq path with a synchronous reducing path.
+3. [x] Add opt-in flow projection and reduce allocation.
+4. [x] Profile the parser and adopt only evidence-backed compatible changes.
+5. [ ] Tune live capture buffers and report drop location.
+6. [ ] Consider borrowed buffers, batching, parallel decode, or mmap only if the
+   earlier phases do not meet the documented throughput targets.
+
+North-star targets on the reference Mac are 1.5M pps raw read, 1M pps flow
+projection, 200k pps compatible full decode, and a continuously improving
+60-second live rate below 0.1% drop. Phase-1 measurements may revise these
+targets when the reason and baseline are documented.
+
+The first reference run reached all three offline targets: 1.58M pps raw,
+1.02M pps flow projection, and 299k pps compatible full decode. Parser
+profiling did not justify replacing the compatible parser with a second
+offset-based implementation. Phase 5 therefore remains focused on sustained
+live drop behavior; phase 6 stays conditional rather than becoming default
+scope.
+
+The first 60-second buffered-immediate `lo0` probe sustained approximately
+369k processed pps with zero reported kernel or interface drops and about
+67 MB peak heap. The local UDP generator, rather than capture, limited this
+probe, so real-NIC and separate-host tests are still needed to find the true
+maximum.
+
 ## Notes
 
 - Public user docs are maintained in English (`README.md`, `docs/README.md`, `docs/usage.md`, `docs/extensions.md`).

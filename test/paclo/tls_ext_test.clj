@@ -31,6 +31,11 @@
           02 68 32
   ")
 
+(deftest nilable-byte-readers-handle-truncated-input
+  (is (nil? ((deref #'tls-ext/u8) (byte-array 0) 0)))
+  (is (nil? ((deref #'tls-ext/u16) (byte-array 1) 0)))
+  (is (nil? ((deref #'tls-ext/u24) (byte-array 2) 0))))
+
 (deftest sni-extracts-example-dot-com
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)]
     (is (= "example.com" (tls-ext/extract-sni ba)))))

@@ -8,10 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (none)
+- Added a phase-1 offline/live performance runner with deterministic PCAP
+  generation, isolated JVM scenarios, EDN/JSON results, and JVM metrics.
+- Added internal portable `pcap_stats` counters and loopback-live load
+  measurement.
+- Added `paclo.core/reduce-packets` for synchronous transducer-aware reduction
+  without the producer queue or an intermediate lazy sequence.
+- Added opt-in numeric `:decode-mode :flow` projection to `reduce-packets`.
+- Added opt-in live capture buffer and immediate-mode configuration using
+  libpcap's create/activate API.
 
 ### Changed
-- (none)
+- CI now runs a non-thresholded 50k performance smoke and uploads its results.
+- Replaced hot-path address `format` calls with dedicated conversions, reducing
+  compatible full-decode allocation without changing packet maps.
 
 ## [1.0.1] - 2026-02-23
 

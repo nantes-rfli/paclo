@@ -47,6 +47,31 @@ Internal namespaces (not covered by compatibility guarantees):
   - throws `ex-info` for invalid `:filter` type
   - libpcap open/filter/capture errors may propagate
 
+### `reduce-packets` (unreleased)
+
+```clojure
+(reduce-packets opts rf init)
+```
+
+- Input:
+  - the same source, filter, decode, transducer, and stopping options as
+    `packets`
+  - optional `:decode-mode :flow` for a flat low-allocation flow projection
+  - a reducing function and initial accumulator
+- Output: the completed accumulator
+- Behavior:
+  - reads and reduces synchronously without a queue or intermediate lazy seq
+  - fuses `:xform` into the reducing function
+  - honors `reduced` for immediate early termination
+  - preserves the compatible `:decode? true` result and extension behavior
+  - flow mode returns capture metadata plus numeric source/destination IP,
+    protocol, and ports; IPv4 addresses are unsigned longs and IPv6 addresses
+    are `[high-long low-long]`
+  - `:decode?` and `:decode-mode` cannot be combined
+- Errors:
+  - throws `ex-info` for invalid `:filter` type
+  - honors `:error-mode :throw|:pass` and `:on-error`
+
 ### `write-pcap!`
 
 ```clojure

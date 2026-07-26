@@ -6,6 +6,7 @@ This is the public documentation index for Paclo.
 
 - Getting started and install: `../README.md`
 - Usage guide: `./usage.md`
+- Performance measurement: `./performance.md`
 - Decode extensions: `./extensions.md`
 - Public API contract (v1.0): `./cljdoc-api-contract.md`
 - Migration guide (0.4 -> 1.0): `./migration-0.4-to-1.0.md`
@@ -22,6 +23,7 @@ This is the public documentation index for Paclo.
 - Run tests: `clojure -M:test`
 - Run static checks: `clojure -M:eastwood` and `clj-kondo --lint src test dev`
 - Run performance gate: `clojure -M:perf-gate`
+- Run measurement smoke: `clojure -M:perf --mode offline --profile quick`
 
 ## Notes
 

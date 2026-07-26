@@ -50,6 +50,11 @@
       (throw (ex-info "tls-sni-alpn-h3mix-sample.pcap not found on classpath" {})))
     (.getAbsolutePath (io/file url))))
 
+(deftest nilable-dns-readers-handle-missing-data
+  (is (nil? ((deref #'dns-rtt/u8) (byte-array 0) 0)))
+  (is (nil? ((deref #'dns-rtt/u16) (byte-array 1) 0)))
+  (is (nil? ((deref #'dns-qps/pkt-ts-ms) {}))))
+
 (defn run-main
   "Run -main and capture both stdout and stderr."
   [f & args]

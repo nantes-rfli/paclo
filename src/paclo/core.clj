@@ -3,11 +3,13 @@
 
   Main entry points:
   - `packets` for live/offline capture as lazy sequences
+  - `reduce-packets` for synchronous, low-allocation reduction
   - `bpf` for BPF DSL -> string conversion
   - `write-pcap!` for writing packet byte sequences"
   (:require
    [clojure.string :as str]
    [paclo.decode-ext :as decode-ext]
+   [paclo.flow :as flow]
    [paclo.parse :as parse]
    [paclo.pcap  :as pcap]))
 
@@ -93,6 +95,37 @@
     (catch Throwable e
       {:ok false :error (or (.getMessage e) (str e))})))
 
+(defn ^:private decode-packet
+  [m]
+  (let [ba ^bytes (:bytes m)]
+    (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
+      (let [{:keys [ok value error]} (decode-result ba)
+            m' (cond-> m
+                 ok       (assoc :decoded value)
+                 (not ok) (assoc :decode-error error))]
+        (if (contains? m' :decoded)
+          (decode-ext/apply! m')
+          m'))
+      (assoc m :decode-error
+             (str "frame too short: " (when ba (alength ba)) " bytes")))))
+
+(defn ^:private normalize-filter [filter]
+  (cond
+    (string? filter) filter
+    (or (keyword? filter) (vector? filter)) (bpf filter)
+    (nil? filter) nil
+    :else (throw (ex-info "invalid :filter" {:filter filter}))))
+
+(defn ^:private flow-packet [packet]
+  (try
+    (flow/project-packet packet)
+    (catch Throwable error
+      {:ts-sec (:ts-sec packet)
+       :ts-usec (:ts-usec packet)
+       :caplen (:caplen packet)
+       :len (:len packet)
+       :decode-error (or (.getMessage error) (str error))})))
+
 (defn ^:private apply-xform
   "Apply transducer `xf` with `sequence` when present; otherwise return `s`."
   [s xf]
@@ -109,29 +142,45 @@
 
   Throws `ex-info` when `:filter` has an unsupported type."
   [{:keys [filter decode? xform] :as opts}]
-  (let [filter* (cond
-                  (string? filter) filter
-                  (or (keyword? filter) (vector? filter)) (bpf filter)
-                  (nil? filter) nil
-                  :else (throw (ex-info "invalid :filter" {:filter filter})))
+  (let [filter* (normalize-filter filter)
         opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
         base    (pcap/capture->seq opts*)
         stream  (if decode?
-                  (map (fn [m]
-                         (let [ba ^bytes (:bytes m)]
-                           (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
-                             (let [{:keys [ok value error]} (decode-result ba)
-                                   m' (cond-> m
-                                        ok       (assoc :decoded value)
-                                        (not ok) (assoc :decode-error error))]
-                               ;; Run post-decode hooks only for successfully decoded packets.
-                               (if (contains? m' :decoded)
-                                 (decode-ext/apply! m')
-                                 m'))
-                             (assoc m :decode-error (str "frame too short: " (when ba (alength ba)) " bytes")))))
-                       base)
+                  (map decode-packet base)
                   base)]
     (apply-xform stream xform)))
+
+(defn reduce-packets
+  "Synchronously reduce live or offline packets without an intermediate seq.
+
+   `(reduce-packets opts rf init)` accepts the same source, BPF, decode,
+   transducer, stopping, and error options as `packets`. The transducer in
+   `:xform` is fused into the reducing function. Returning `reduced` from `rf`
+   stops capture immediately."
+  [{:keys [filter decode? decode-mode xform] :as opts} rf init]
+  (when (and decode? decode-mode)
+    (throw (ex-info ":decode? and :decode-mode cannot be combined"
+                    {:decode? decode? :decode-mode decode-mode})))
+  (when-not (contains? #{nil :flow} decode-mode)
+    (throw (ex-info "unsupported :decode-mode"
+                    {:decode-mode decode-mode})))
+  (let [filter* (normalize-filter filter)
+        opts* (cond-> opts (some? filter*) (assoc :filter filter*))
+        complete-rf (completing rf)
+        transformed-rf (if xform (xform complete-rf) complete-rf)
+        step-rf (cond
+                  (= decode-mode :flow)
+                  (fn [acc packet]
+                    (transformed-rf acc (flow-packet packet)))
+
+                  decode?
+                  (fn [acc packet]
+                    (transformed-rf acc (decode-packet packet)))
+
+                  :else
+                  transformed-rf)
+        result (pcap/reduce-capture opts* step-rf init)]
+    (transformed-rf result)))
 
 ;; Writer
 (defn write-pcap!
