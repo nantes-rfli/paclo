@@ -5,16 +5,16 @@
 
 ;; --- tiny byte helpers -------------------------------------------------------
 
-(defn- u8  ^long [^bytes ba ^long i]
+(defn- u8 [^bytes ba ^long i]
   (when (and ba (<= 0 i) (< i (alength ba)))
     (bit-and 0xFF (aget ba i))))
 
-(defn- u16 ^long [^bytes ba ^long i]
+(defn- u16 [^bytes ba ^long i]
   (when-let [hi (u8 ba i)]
     (when-let [lo (u8 ba (inc i))]
       (bit-or (bit-shift-left hi 8) lo))))
 
-(defn- u24 ^long [^bytes ba ^long i]
+(defn- u24 [^bytes ba ^long i]
   (when-let [a (u8 ba i)]
     (when-let [b (u8 ba (inc i))]
       (when-let [c (u8 ba (+ i 2))]

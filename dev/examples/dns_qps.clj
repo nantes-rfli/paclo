@@ -129,11 +129,11 @@
   [pkt]
   (let [sec (get pkt :ts-sec)
         usec (get pkt :ts-usec)
-        ^double base (cond
-                       (number? sec) (+ (double sec) (/ (double (mod (long (or usec 0)) 1000000)) 1e6))
-                       (and (number? usec) (> (double usec) 1e12)) (/ (double usec) 1e6)
-                       (number? usec) (/ (double usec) 1e6)
-                       :else nil)]
+        base (cond
+               (number? sec) (+ (double sec) (/ (double (mod (long (or usec 0)) 1000000)) 1e6))
+               (and (number? usec) (> (double usec) 1e12)) (/ (double usec) 1e6)
+               (number? usec) (/ (double usec) 1e6)
+               :else nil)]
     (when base
       (long (Math/floor (* base 1000.0))))))
 
