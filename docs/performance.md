@@ -128,6 +128,22 @@ zero. Peak heap was approximately 67 MB. This establishes a zero-drop floor,
 not the maximum sustainable rate, because the local generator did not realize
 its one-million-pps target.
 
+## `flow-topn` fast-path adoption
+
+A local acceptance probe ran the synchronous `flow-topn` CLI against the same
+one-million-packet, 64-byte UDP reference file. The timed region excluded JVM
+startup and namespace loading:
+
+| Implementation | Elapsed | Packets/sec |
+| --- | ---: | ---: |
+| Compatible full decode plus materialized packet vector | 8.514 s | 117,459 |
+| Synchronous numeric projection plus direct aggregation | 1.463 s | 683,673 |
+
+This is a 5.82x throughput improvement and removes the intermediate vector
+containing every packet. It is an acceptance probe rather than a five-run
+reference median. The normalized EDN/JSONL contract and synchronous/async smoke
+tests remain unchanged.
+
 ## Optimization gates
 
 The first candidate is a synchronous reducing path. It should only be promoted
