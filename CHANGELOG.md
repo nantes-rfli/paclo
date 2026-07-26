@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI now runs a non-thresholded 50k performance smoke and uploads its results.
 - Replaced hot-path address `format` calls with dedicated conversions, reducing
   compatible full-decode allocation without changing packet maps.
+- Migrated `flow-topn` to the synchronous numeric flow projection and an
+  internally mutable accumulator while preserving its EDN/JSONL output contract.
 
 ## [1.0.1] - 2026-02-23
 
