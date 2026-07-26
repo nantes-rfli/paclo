@@ -11,9 +11,22 @@
 (defn- u16 ^long [^ByteBuffer b] (bit-and (.getShort b) 0xFFFF))
 (defn- u32 ^long [^ByteBuffer b] (bit-and (.getInt b) 0xFFFFFFFF))
 
+(def ^:private hex-digits "0123456789abcdef")
+
 (defn- mac [^ByteBuffer b]
-  (format "%02x:%02x:%02x:%02x:%02x:%02x"
-          (u8 b) (u8 b) (u8 b) (u8 b) (u8 b) (u8 b)))
+  (let [result (char-array 17)]
+    (dotimes [index 6]
+      (let [value (u8 b)
+            output (* index 3)]
+        (aset-char result output
+                   (.charAt ^String hex-digits
+                            (int (bit-shift-right value 4))))
+        (aset-char result (inc output)
+                   (.charAt ^String hex-digits
+                            (int (bit-and value 0x0f))))
+        (when (< index 5)
+          (aset-char result (+ output 2) \:))))
+    (String. result)))
 
 (def ETH-IPv4 0x0800)
 (def ETH-IPv6 0x86DD)
@@ -26,14 +39,14 @@
 (def ^:private VLAN-TPIDs #{ETH-VLAN-8100 ETH-VLAN-88A8 ETH-VLAN-9100 ETH-VLAN-9200})
 
 (defn- ipv4-addr [^ByteBuffer b]
-  (format "%d.%d.%d.%d" (u8 b) (u8 b) (u8 b) (u8 b)))
+  (str (u8 b) "." (u8 b) "." (u8 b) "." (u8 b)))
 
 (defn- ipv6-addr-words ^clojure.lang.IPersistentVector [^ByteBuffer b]
   (vector (u16 b) (u16 b) (u16 b) (u16 b)
           (u16 b) (u16 b) (u16 b) (u16 b)))
 
 (defn- ipv6-full-str [ws]                   ;; Uncompressed form (legacy-compatible output)
-  (clojure.string/join ":" (map #(format "%x" %) ws)))
+  (clojure.string/join ":" (map #(Integer/toHexString (int %)) ws)))
 
 (defn- ipv6-compress-str
   "Compress IPv6 words with a simple RFC5952-style rule.
