@@ -119,6 +119,20 @@ jobs:
           set -e
           clojure -M:perf-gate
 
+      - name: Performance measurement smoke
+        shell: bash
+        run: |
+          set -e
+          clojure -M:perf --mode offline --profile quick --output target/perf-quick
+
+      - name: Upload performance measurement
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-quick-${{ github.run_id }}
+          path: target/perf-quick/results.*
+          if-no-files-found: warn
+
       - name: dns-ext smoke (dns-topn)
         run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
 
