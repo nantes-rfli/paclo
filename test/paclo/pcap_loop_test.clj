@@ -256,21 +256,21 @@
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [packets (pcap/capture->seq
                      {:path "dummy"
-                      :queue-cap 1
+                      :queue-cap 2
                       :queue-mode :dropping
                       :on-queue-stats #(deliver stats %)
                       :max 10 :max-time-ms 50 :idle-max-ms 20})]
         ;; Wait until the producer fills the queue and drops the remaining
         ;; packets before allowing the lazy consumer to drain it.
         (is (map? (deref stats 1000 nil)))
-        (is (= 1 (count packets)))
+        (is (= 2 (count packets)))
         (is (= {:mode :dropping
-                :capacity 1
-                :enqueued 1
-                :dropped 2
+                :capacity 2
+                :enqueued 2
+                :dropped 1
                 :blocked-events 0
                 :blocked-ns 0
-                :max-depth 1}
+                :max-depth 2}
                @stats))))))
 
 (deftest capture->seq-validates-queue-options

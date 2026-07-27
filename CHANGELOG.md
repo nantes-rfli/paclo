@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Preserved `nil` from truncated DNS and TLS byte readers instead of applying
   primitive return coercion to missing data.
+- Made live queue high-water and backpressure metrics race-safe when consumers
+  drain immediately or producers encounter a full bounded queue.
 
 ## [1.0.1] - 2026-02-23
 

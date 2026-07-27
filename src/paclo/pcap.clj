@@ -938,9 +938,13 @@
         max-depth   (AtomicInteger.)
         sentinel    ::end-of-capture
         make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
-        update-max-depth!
-        (fn []
-          (let [depth (.size q)]
+        record-max-depth!
+        (fn [known-depth]
+          ;; Queue consumers may drain an item between offer/put and size.
+          ;; Preserve the depth proven by the enqueue result while also
+          ;; recording a larger concurrently sampled depth when available.
+          (let [depth (int (Math/max (long known-depth)
+                                     (long (.size q))))]
             (loop [observed (.get max-depth)]
               (when (and (< observed depth)
                          (not (.compareAndSet max-depth observed depth)))
@@ -952,23 +956,31 @@
             (if (.offer q packet)
               (do
                 (.increment enqueued)
-                (update-max-depth!)
+                (record-max-depth! 1)
                 true)
               (do
+                ;; A failed offer to this bounded queue proves it was full.
+                (record-max-depth! cap)
                 (.increment dropped)
                 false))
 
             :blocking
-            (let [full? (zero? (.remainingCapacity q))
-                  started (when full? (System/nanoTime))]
-              (.put q packet)
-              (when full?
+            (if (.offer q packet)
+              (do
+                (.increment enqueued)
+                (record-max-depth! 1)
+                true)
+              (let [started (System/nanoTime)]
+                ;; The failed offer is an atomic observation that the queue
+                ;; reached capacity; put then preserves blocking semantics.
+                (record-max-depth! cap)
+                (.put q packet)
                 (.increment blocked)
                 (.add blocked-ns
-                      (- (System/nanoTime) (long started))))
-              (.increment enqueued)
-              (update-max-depth!)
-              true)))
+                      (- (System/nanoTime) started))
+                (.increment enqueued)
+                (record-max-depth! 1)
+                true))))
         queue-snapshot
         (fn []
           {:mode queue-mode
