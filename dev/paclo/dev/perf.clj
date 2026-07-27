@@ -1,5 +1,5 @@
 (ns paclo.dev.perf
-  "Phase-1 performance runner for offline and loopback-live benchmarks."
+  "Offline and staged live-capture performance runner."
   (:require
    [clojure.data.json :as json]
    [clojure.edn :as edn]
@@ -17,7 +17,20 @@
    :write-pipeline])
 
 (def ^:private live-scenarios
-  [:live-raw :live-raw-buffered :live-raw-immediate :live-full])
+  [:live-raw
+   :live-raw-buffered
+   :live-raw-immediate
+   :live-full
+   :live-sync-raw
+   :live-dropping-raw
+   :live-sync-full
+   :live-dropping-full])
+
+(def ^:private stress-live-scenarios
+  [:live-sync-raw :live-dropping-raw
+   :live-sync-full :live-dropping-full])
+
+(def ^:private ^:const live-drop-threshold 0.001)
 
 (def ^:private live-profiles
   {:quick {:rates [10000]
@@ -39,8 +52,15 @@
   (println "                   [--profile quick|reference|stress]")
   (println "                   [--output target/perf]")
   (println "                   [--device lo0] [--port 39053]")
+  (println "                   [--source loopback|external] [--filter BPF]")
+  (println "                   [--scenarios name,...] [--rates pps,...]")
+  (println "                   [--duration-ms MS] [--warmups N] [--runs N]")
+  (println "                   [--frame-size BYTES] [--snaplen BYTES]")
+  (println "                   [--queue-cap N] [--queue-mode blocking|dropping]")
+  (println "                   [--consumer-delay-ns NS]")
   (println)
-  (println "The default is the offline quick profile."))
+  (println "The default is the offline quick profile.")
+  (println "Use source=external with one selected scenario for a real-NIC/manual probe."))
 
 (defn- parse-args [args]
   (loop [opts {:mode :offline
@@ -60,22 +80,78 @@
           "--output" (recur (assoc opts :output value) more)
           "--device" (recur (assoc opts :device value) more)
           "--port" (recur (assoc opts :port (Long/parseLong value)) more)
+          "--source" (recur (assoc opts :source (keyword value)) more)
+          "--filter" (recur (assoc opts :filter value) more)
+          "--scenarios" (recur (assoc opts :scenarios value) more)
+          "--rates" (recur (assoc opts :rates value) more)
+          "--duration-ms" (recur (assoc opts :duration-ms
+                                        (Long/parseLong value)) more)
+          "--warmups" (recur (assoc opts :warmups
+                                    (Long/parseLong value)) more)
+          "--runs" (recur (assoc opts :runs (Long/parseLong value)) more)
+          "--frame-size" (recur (assoc opts :frame-size
+                                       (Long/parseLong value)) more)
+          "--snaplen" (recur (assoc opts :snaplen
+                                    (Long/parseLong value)) more)
+          "--queue-cap" (recur (assoc opts :queue-cap
+                                      (Long/parseLong value)) more)
+          "--queue-mode" (recur (assoc opts :queue-mode
+                                       (keyword value)) more)
+          "--consumer-delay-ns"
+          (recur (assoc opts :consumer-delay-ns
+                        (Long/parseLong value)) more)
           (throw (ex-info "unknown or incomplete argument"
                           {:remaining remaining})))))))
 
-(defn- validate-opts! [{:keys [mode profile port]}]
+(defn- comma-keywords [value]
+  (when value
+    (mapv keyword (remove str/blank? (str/split value #",")))))
+
+(defn- comma-longs [value]
+  (when value
+    (mapv #(Long/parseLong %) (remove str/blank? (str/split value #",")))))
+
+(defn- validate-opts!
+  [{:keys [mode profile port source scenarios rates duration-ms warmups runs
+           frame-size snaplen queue-cap queue-mode consumer-delay-ns]}]
   (when-not (contains? #{:offline :live :all} mode)
     (throw (ex-info "mode must be offline, live, or all" {:mode mode})))
   (when-not (contains? data/profiles profile)
     (throw (ex-info "unknown profile" {:profile profile})))
   (when-not (<= 1 (long port) 65535)
-    (throw (ex-info "port must be between 1 and 65535" {:port port}))))
+    (throw (ex-info "port must be between 1 and 65535" {:port port})))
+  (when-not (contains? #{:loopback :external} (or source :loopback))
+    (throw (ex-info "source must be loopback or external" {:source source})))
+  (when-let [selected (comma-keywords scenarios)]
+    (when-let [unknown (seq (remove (set live-scenarios) selected))]
+      (throw (ex-info "unknown live scenario" {:scenarios unknown}))))
+  (when-let [selected-rates (comma-longs rates)]
+    (when (or (empty? selected-rates)
+              (some #(not (pos? (long %))) selected-rates))
+      (throw (ex-info "rates must contain positive integers"
+                      {:rates selected-rates}))))
+  (doseq [[label value] [[:duration-ms duration-ms]
+                         [:runs runs]
+                         [:frame-size frame-size]
+                         [:snaplen snaplen]
+                         [:queue-cap queue-cap]]]
+    (when (and value (not (pos? (long value))))
+      (throw (ex-info (str (name label) " must be positive")
+                      {label value}))))
+  (when (and warmups (neg? (long warmups)))
+    (throw (ex-info "warmups cannot be negative" {:warmups warmups})))
+  (when (and consumer-delay-ns (neg? (long consumer-delay-ns)))
+    (throw (ex-info "consumer-delay-ns cannot be negative"
+                    {:consumer-delay-ns consumer-delay-ns})))
+  (when-not (contains? #{:blocking :dropping} (or queue-mode :blocking))
+    (throw (ex-info "queue-mode must be blocking or dropping"
+                    {:queue-mode queue-mode}))))
 
 (defn- worker!
   [arguments]
   (let [{:keys [exit out err]}
         (apply shell/sh "clojure" "-M:perf-worker" arguments)]
-    (when-not (zero? exit)
+    (when-not (zero? (long exit))
       (throw (ex-info "performance worker failed"
                       {:arguments arguments
                        :exit exit
@@ -112,12 +188,67 @@
   [result]
   (doseq [run (:runs result)]
     (when (or (seq (:capture-errors run))
-              (nil? (:capture-stats run)))
+              (nil? (:capture-stats run))
+              (nil? (:queue-stats run))
+              (nil? (:stage-counts run))
+              (not= (long (get-in run [:stage-counts :queue-enqueued]))
+                    (long (get-in run [:stage-counts :consumer-processed]))))
       (throw (ex-info "live benchmark did not collect clean capture statistics"
                       {:scenario (:scenario result)
                        :capture-errors (:capture-errors run)
-                       :capture-stats (:capture-stats run)}))))
+                       :capture-stats (:capture-stats run)
+                       :queue-stats (:queue-stats run)
+                       :stage-counts (:stage-counts run)}))))
   result)
+
+(defn- sustainable-run?
+  [run]
+  (let [threshold (double live-drop-threshold)]
+    (and (empty? (:capture-errors run))
+         (or (nil? (:send-loss-rate run))
+             (<= (double (:send-loss-rate run)) threshold))
+         (every? #(<= (double (or (% run) 0.0)) threshold)
+                 [:kernel-drop-rate
+                  :interface-drop-rate
+                  :queue-drop-rate
+                  :consumer-gap-rate]))))
+
+(defn- annotate-sustainability
+  [result]
+  (let [runs (:runs result)
+        passing (filter sustainable-run? runs)
+        processed-rates (keep :sustained-processed-pps passing)]
+    (assoc result
+           :sustainability
+           {:drop-threshold live-drop-threshold
+            :passing-runs (count passing)
+            :total-runs (count runs)
+            :all-runs-pass? (= (count passing) (count runs))
+            :max-passing-processed-pps
+            (when (seq processed-rates) (apply max processed-rates))})))
+
+(defn- max-sustainable-by-scenario
+  [results]
+  (into {}
+        (keep
+         (fn [[scenario candidates]]
+           (when-let [best
+                      (->> candidates
+                           (filter #(get-in % [:sustainability :all-runs-pass?]))
+                           (sort-by #(or (get-in % [:summary
+                                                    :sustained-processed-pps
+                                                    :median])
+                                         0.0)
+                                    >)
+                           first)]
+             [scenario
+              {:target-pps (get-in best [:config :target-pps])
+               :processed-pps
+               (get-in best [:summary :sustained-processed-pps :median])
+               :realized-send-pps
+               (get-in best [:summary :realized-send-pps :median])
+               :source (get-in best [:config :source])}]))
+         (group-by :scenario results))))
 
 (defn- offline-results!
   [{:keys [profile output]}]
@@ -144,31 +275,76 @@
                     "--runs" (str runs)])
           config))))))
 
+(defn- worker-live-args
+  [{:keys [device port source filter frame-size snaplen queue-cap queue-mode
+           consumer-delay-ns]}
+   {:keys [scenario rate duration-ms warmups runs senders]}]
+  (cond-> ["--mode" "live"
+           "--scenario" (name scenario)
+           "--device" device
+           "--port" (str port)
+           "--source" (name source)
+           "--target-pps" (str rate)
+           "--duration-ms" (str duration-ms)
+           "--frame-size" (str frame-size)
+           "--snaplen" (str snaplen)
+           "--queue-cap" (str queue-cap)
+           "--consumer-delay-ns" (str consumer-delay-ns)
+           "--senders" (str senders)
+           "--warmups" (str warmups)
+           "--runs" (str runs)]
+    filter (conj "--filter" filter)
+    queue-mode (conj "--queue-mode" (name queue-mode))))
+
 (defn- live-results!
-  [{:keys [profile device port]}]
-  (let [{:keys [rates duration-ms warmups runs]} (get live-profiles profile)]
+  [{:keys [profile device port source filter scenarios rates
+           duration-ms warmups runs frame-size snaplen queue-cap queue-mode
+           consumer-delay-ns]}]
+  (let [profile-config (get live-profiles profile)
+        source (or source :loopback)
+        rates (if (= source :external)
+                [0]
+                (or (comma-longs rates) (:rates profile-config)))
+        scenarios (or (comma-keywords scenarios)
+                      (if (= profile :stress)
+                        stress-live-scenarios
+                        live-scenarios))
+        duration-ms (or duration-ms (:duration-ms profile-config))
+        warmups (if (some? warmups) warmups (:warmups profile-config))
+        runs (or runs (:runs profile-config))
+        worker-config {:device device
+                       :port port
+                       :source source
+                       :filter filter
+                       :frame-size (or frame-size 64)
+                       :snaplen (or snaplen 65536)
+                       :queue-cap (or queue-cap 1024)
+                       :queue-mode queue-mode
+                       :consumer-delay-ns (or consumer-delay-ns 0)}]
     (vec
      (for [rate rates
-           scenario live-scenarios
+           scenario scenarios
            :let [senders (min 8
-                              (max 1
-                                   (long
-                                    (Math/ceil
-                                     (/ (double rate) 100000.0)))))]]
+                              (if (= source :external)
+                                1
+                                (max 1
+                                     (long
+                                      (Math/ceil
+                                       (/ (double rate) 100000.0))))))]]
        (do
          (println "[perf] live" device (name scenario)
+                  "source=" (name source)
                   "target-pps=" rate "senders=" senders)
-         (validate-live-result!
-          (worker! ["--mode" "live"
-                    "--scenario" (name scenario)
-                    "--device" device
-                    "--port" (str port)
-                    "--target-pps" (str rate)
-                    "--duration-ms" (str duration-ms)
-                    "--frame-size" "64"
-                    "--senders" (str senders)
-                    "--warmups" (str warmups)
-                    "--runs" (str runs)])))))))
+         (-> (worker! (worker-live-args
+                       worker-config
+                       {:scenario scenario
+                        :rate rate
+                        :duration-ms duration-ms
+                        :warmups warmups
+                        :runs runs
+                        :senders senders}))
+             validate-live-result!
+             annotate-sustainability))))))
 
 (defn- json-key [value]
   (if (keyword? value) (name value) (str value)))
@@ -186,13 +362,17 @@
 (defn run-benchmarks!
   [{:keys [mode profile output] :as opts}]
   (validate-opts! opts)
-  (let [result {:schema-version 1
+  (let [live-results (when (#{:live :all} mode)
+                       (live-results! opts))
+        result {:schema-version 2
                 :created-at (str (Instant/now))
                 :profile profile
                 :offline (when (#{:offline :all} mode)
                            (offline-results! opts))
-                :live (when (#{:live :all} mode)
-                        (live-results! opts))}
+                :live live-results
+                :max-sustainable-by-scenario
+                (when live-results
+                  (max-sustainable-by-scenario live-results))}
         paths (write-results! output result)]
     (println "[perf] wrote" (:edn paths))
     (println "[perf] wrote" (:json paths))

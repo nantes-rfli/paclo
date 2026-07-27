@@ -4,6 +4,7 @@
    [clojure.string :as str])
   (:import
    [java.util.concurrent LinkedBlockingQueue]
+   [java.util.concurrent.atomic AtomicInteger LongAdder]
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref IntByReference PointerByReference]
    [paclo.jnr
@@ -891,6 +892,8 @@
        :idle-max-ms <int>       ; max continuous idle time (default 3000)
    - internal queue:
        :queue-cap <int>         ; producer -> consumer buffer (default 1024)
+       :queue-mode :blocking|:dropping ; default :blocking
+       :on-queue-stats (fn [stats])    ; optional final queue counters
    - error handling:
        :on-error (fn [throwable])   ; optional callback on background thread errors
        :error-mode :throw|:pass     ; default :throw, :pass skips background errors
@@ -902,9 +905,10 @@
    Returns a lazy seq of packet maps."
   [{:keys [device path filter snaplen promiscuous? timeout-ms
            buffer-size immediate?
-           max max-time-ms idle-max-ms queue-cap on-error error-mode on-stats stop?]
+           max max-time-ms idle-max-ms queue-cap queue-mode
+           on-error error-mode on-stats on-queue-stats stop?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10
-           error-mode :throw}}]
+           error-mode :throw queue-mode :blocking}}]
   (let [default-max 100
         default-max-time-ms 10000
         default-idle-max-ms 3000
@@ -913,13 +917,67 @@
             (throw (ex-info "capture->seq takes either :device or :path, not both" {:device device :path path})))
         _ (when-not (or (valid-device? device) (valid-path? path))
             (throw (ex-info "capture->seq requires either :device or :path" {:device device :path path})))
+        _ (when-not (contains? #{:blocking :dropping} queue-mode)
+            (throw (ex-info ":queue-mode must be :blocking or :dropping"
+                            {:queue-mode queue-mode})))
+        _ (when-not (and (integer? (or queue-cap default-queue-cap))
+                         (<= 1
+                             (long (or queue-cap default-queue-cap))
+                             Integer/MAX_VALUE))
+            (throw (ex-info ":queue-cap must be an integer between 1 and 2147483647"
+                            {:queue-cap queue-cap})))
         max         (or max default-max)
         max-time-ms (or max-time-ms default-max-time-ms)
         idle-max-ms (or idle-max-ms default-idle-max-ms)
         cap         (int (or queue-cap default-queue-cap))
         q           (LinkedBlockingQueue. cap)
+        enqueued    (LongAdder.)
+        dropped     (LongAdder.)
+        blocked     (LongAdder.)
+        blocked-ns  (LongAdder.)
+        max-depth   (AtomicInteger.)
         sentinel    ::end-of-capture
         make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
+        update-max-depth!
+        (fn []
+          (let [depth (.size q)]
+            (loop [observed (.get max-depth)]
+              (when (and (< observed depth)
+                         (not (.compareAndSet max-depth observed depth)))
+                (recur (.get max-depth))))))
+        enqueue-packet!
+        (fn [packet]
+          (case queue-mode
+            :dropping
+            (if (.offer q packet)
+              (do
+                (.increment enqueued)
+                (update-max-depth!)
+                true)
+              (do
+                (.increment dropped)
+                false))
+
+            :blocking
+            (let [full? (zero? (.remainingCapacity q))
+                  started (when full? (System/nanoTime))]
+              (.put q packet)
+              (when full?
+                (.increment blocked)
+                (.add blocked-ns
+                      (- (System/nanoTime) (long started))))
+              (.increment enqueued)
+              (update-max-depth!)
+              true)))
+        queue-snapshot
+        (fn []
+          {:mode queue-mode
+           :capacity cap
+           :enqueued (.sum enqueued)
+           :dropped (.sum dropped)
+           :blocked-events (.sum blocked)
+           :blocked-ns (.sum blocked-ns)
+           :max-depth (.get max-depth)})
         ;; open
         h (if device
             (open-live {:device device
@@ -938,7 +996,7 @@
               (set-bpf! h filter)))
           (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
                          (fn [pkt]
-                           (.put q pkt)
+                           (enqueue-packet! pkt)
                            (when (and stop? (stop? pkt))
                              (breakloop! h))))
           (catch Throwable ex
@@ -948,6 +1006,11 @@
             (when (and device on-stats)
               (try
                 (on-stats (capture-stats h))
+                (catch Throwable ex
+                  (when on-error (try (on-error ex) (catch Throwable _))))))
+            (when on-queue-stats
+              (try
+                (on-queue-stats (queue-snapshot))
                 (catch Throwable ex
                   (when on-error (try (on-error ex) (catch Throwable _))))))
             (try

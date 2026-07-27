@@ -1,7 +1,7 @@
 # Performance measurement
 
-Paclo separates performance measurement from optimization. The phase-1
-runner establishes reproducible offline and loopback-live baselines before a
+Paclo separates performance measurement from optimization. The runner
+establishes reproducible offline and staged live-capture baselines before a
 fast path becomes part of the public API.
 
 ## Profiles
@@ -50,12 +50,16 @@ clojure -M:perf \
   --output target/perf-live-quick
 ```
 
-The runner sends dedicated UDP traffic to the selected port and measures raw
-and fully decoded capture. It also compares the legacy live-open path with
-explicit 16 MiB buffered and buffered-immediate paths. Reference runs sweep
-target rates from 10k to 1M packets per second. The load generator adds one
-sender thread per target 100k pps, capped at eight, and reports the realized
-aggregate send count.
+The runner sends dedicated UDP traffic to the selected port and compares:
+
+- the legacy, explicitly buffered, and buffered-immediate queue paths
+- synchronous raw and full-decode reduction without an intermediate queue
+- bounded dropping raw and full-decode queues
+
+Reference runs sweep target rates from 10k to 1M packets per second. The load
+generator adds one sender thread per target 100k pps, capped at eight, and
+reports the realized aggregate send count. Use `--scenarios`, `--rates`,
+`--duration-ms`, `--warmups`, and `--runs` to create a smaller comparison.
 
 The portable `pcap_stats` counters are recorded as `received`, `dropped`, and
 `interface-dropped`. These counters have platform-specific semantics. In
@@ -64,9 +68,20 @@ packet per sent datagram. Compare the same device and operating system across
 revisions rather than treating sender and `received` counts as universally
 identical.
 
-Live results include realized sender pps, processed/sent ratio, kernel drop
-rate, and interface drop rate. The buffered paths use the inactive-handle
-`pcap_create` API and remain explicit opt-ins:
+Live results report each observable stage separately:
+
+```text
+sender -> libpcap/kernel -> paclo queue -> consumer
+```
+
+The counters include sent, capture received, capture delivered, kernel and
+interface drops, queue enqueued and dropped, consumer processed and gap,
+queue blocking events/time, and maximum queue depth. Internal loopback runs
+also calculate sender-to-consumer loss. A run is sustainable when every
+applicable loss/drop rate is at most 0.1%.
+
+The buffered paths use the inactive-handle `pcap_create` API and remain
+explicit opt-ins:
 
 ```clojure
 (core/packets {:device "en0"
@@ -76,13 +91,43 @@ rate, and interface drop rate. The buffered paths use the inactive-handle
 
 Omitting both keys preserves the existing `pcap_open_live` behavior.
 
+The lazy sequence retains its bounded blocking queue by default. A dropping
+queue is an explicit overload policy:
+
+```clojure
+(core/packets {:device "en0"
+               :queue-cap 4096
+               :queue-mode :dropping
+               :on-queue-stats println})
+```
+
+`on-queue-stats` receives final queue counters. Dropped packets are not
+returned to the consumer.
+
+For a real NIC or a separate traffic generator, disable the built-in sender
+and provide the relevant BPF explicitly:
+
+```bash
+clojure -M:perf \
+  --mode live \
+  --profile reference \
+  --source external \
+  --device en0 \
+  --filter "udp dst port 39053" \
+  --scenarios live-sync-raw \
+  --duration-ms 60000 \
+  --warmups 0 \
+  --runs 1 \
+  --output target/perf-live-en0
+```
+
 Live capture may require OS permission to open the capture device. It is not a
 required CI performance threshold.
 
 ## Results
 
 The output directory contains `results.edn` and `results.json`, both with
-schema version `1`. Each measured run records:
+schema version `2`. Each measured run records:
 
 - packets/sec, MB/sec, and ns/packet
 - processed packet and byte counts
@@ -92,6 +137,11 @@ schema version `1`. Each measured run records:
 - peak memory-pool usage
 - process CPU time
 - Git, OS, architecture, JDK, Clojure, libpcap, and JVM metadata
+
+Live output additionally includes `stage-counts`, `queue-stats`,
+`sustainability`, and the highest passing result observed for each scenario.
+Schema version 2 is not intended to be read as schema version 1 without an
+explicit compatibility layer.
 
 The reference profile reports median, minimum, and maximum values. The current
 CI job checks that the quick profile completes and reports consistent counts;
@@ -127,6 +177,27 @@ eight sender threads. The generator realized 369,234 pps, Paclo processed
 zero. Peak heap was approximately 67 MB. This establishes a zero-drop floor,
 not the maximum sustainable rate, because the local generator did not realize
 its one-million-pps target.
+
+## Phase-5 live baseline
+
+A three-second comparison on the same Intel reference Mac exercised
+synchronous, bounded-blocking, and bounded-dropping raw paths at requested
+rates of 100k, 250k, and 500k pps. At the highest request, the local generator
+realized and Paclo processed approximately 257k, 265k, and 266k pps
+respectively. All observable loss/drop counters remained zero. These are
+generator-limited zero-drop floors, not maximum capture rates.
+
+A controlled overload probe used a 64-entry queue and a 100 microsecond
+consumer delay at a realized 50k pps:
+
+| Queue policy | Processed | Queue drops | Blocking events | Blocking time |
+| --- | ---: | ---: | ---: | ---: |
+| blocking | 14,248 | 0 | 14,152 | 1.793 s |
+| dropping | 7,815 | 42,185 | 0 | 0 s |
+
+The blocking case processed only 28.5% of sent traffic despite zero reported
+kernel and queue drops. This is why loopback sustainability also checks
+sender-to-consumer loss instead of relying only on libpcap drop counters.
 
 ## `flow-topn` fast-path adoption
 

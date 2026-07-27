@@ -139,6 +139,8 @@
   - `:filter`: BPF string, protocol keyword, or BPF DSL vector
   - `:decode?`: when true, add `:decoded` or `:decode-error` to each packet map
   - `:xform`: transducer applied to output stream via `sequence`
+  - live queue: `:queue-cap`, opt-in `:queue-mode :dropping`, and
+    `:on-queue-stats`
 
   Throws `ex-info` when `:filter` has an unsupported type."
   [{:keys [filter decode? xform] :as opts}]

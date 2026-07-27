@@ -55,6 +55,20 @@ The reducer may return `(reduced value)` to stop capture immediately. This
 path avoids the producer future, blocking queue, and lazy-seq nodes used by
 `packets`; use `packets` when interactive lazy consumption is more useful.
 
+For live overload experiments, `packets` also accepts a bounded dropping
+queue. Blocking remains the default and preserves existing behavior:
+
+```clojure
+(core/packets
+ {:device "en0"
+  :queue-cap 4096
+  :queue-mode :dropping
+  :on-queue-stats println})
+```
+
+The callback receives final enqueued, dropped, blocking, and maximum-depth
+counters. A dropping queue never returns dropped packets to the consumer.
+
 ## Write PCAP
 
 ```clojure
