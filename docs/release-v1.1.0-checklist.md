@@ -39,11 +39,11 @@ grep -F "<version>1.1.0</version>" \
 
 ## 3. CI and publish dry-run
 
-- [ ] the release-preparation PR is green on every required CI job
+- [x] the release-preparation PR is green on every required CI job
 - [x] the latest dependency-audit run has no release-blocking finding
-- [ ] the release-preparation PR is merged to `main`
-- [ ] the publish workflow dry-run succeeds on the exact `main` commit
-- [ ] the dry-run artifact contains the `1.1.0` jar and POM
+- [x] the release-preparation PR is merged to `main`
+- [x] the publish workflow dry-run succeeds on the exact `main` commit
+- [x] the dry-run artifact contains the `1.1.0` jar and POM
 
 After merging the preparation PR, run:
 
@@ -67,6 +67,10 @@ Recorded preparation results on 2026-07-27:
 - release jar/POM: `1.1.0` coordinates and public namespaces verified
 - Dependency Audit: successful
   ([run 30229618446](https://github.com/nantes-rfli/paclo/actions/runs/30229618446))
+- release-preparation CI: successful
+  ([run 30231852757](https://github.com/nantes-rfli/paclo/actions/runs/30231852757))
+- publish dry-run on `e04e2dc`: successful
+  ([run 30235197389](https://github.com/nantes-rfli/paclo/actions/runs/30235197389))
 
 ## 4. Tag and publish
 
@@ -99,12 +103,25 @@ released coordinates are immutable and cannot be overwritten.
 
 ## 5. Release verification
 
-- [ ] Clojars shows `org.clojars.nanto/paclo:1.1.0`
-- [ ] cljdoc builds and serves version `1.1.0`
-- [ ] a clean consumer project resolves the Clojars coordinate
-- [ ] the Git tag resolves to the release-preparation commit
-- [ ] the GitHub Release is published as the latest stable release
-- [ ] the roadmap release status is updated from candidate to released
+- [x] Clojars shows `org.clojars.nanto/paclo:1.1.0`
+- [x] cljdoc builds and serves version `1.1.0`
+- [x] a clean consumer project resolves the Clojars coordinate
+- [x] the Git tag resolves to the release-preparation commit
+- [x] the GitHub Release is published as the latest stable release
+- [x] the roadmap release status is updated from candidate to released
+
+Recorded release results on 2026-07-27:
+
+- tagged commit: `e04e2dc882af572fdfcc642271d5864505b246bb`
+- Clojars publication: successful
+  ([run 30235324243](https://github.com/nantes-rfli/paclo/actions/runs/30235324243))
+- clean consumer resolution: downloaded the `1.1.0` POM and JAR and loaded
+  `paclo.core/reduce-packets`
+- cljdoc: build `108392` completed with eight namespaces and the
+  [v1.1.0 documentation](https://cljdoc.org/d/org.clojars.nanto/paclo/1.1.0)
+  serves successfully
+- GitHub Release:
+  [v1.1.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.1.0)
 
 After Clojars succeeds, create the GitHub Release:
 

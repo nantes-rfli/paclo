@@ -14,7 +14,7 @@ It is intentionally concise and focuses on user-visible outcomes.
 - `v0.4` (completed, 2025-12-10): DNS observability tooling (`dns-topn`, `dns-qps`, async behavior)
 - `v1.0.0` (released, 2026-02-23): API freeze and stable release artifacts
 - `v1.0.1` (released, 2026-02-23): documentation and publication pipeline polish
-- `v1.1.0` (release candidate, 2026-07-27): measured high-throughput paths and
+- `v1.1.0` (released, 2026-07-27): measured high-throughput paths and
   staged live-capture observability
 
 ## v1.0 completion status
@@ -57,8 +57,8 @@ Completed release artifacts:
 - [x] `flow-topn` migration to the numeric fast path
 - [x] Live direct/blocking/dropping comparison and staged drop metrics
 - [x] v1.1 public API contract, changelog, and release metadata prepared
-- [ ] Publish `v1.1.0` to Clojars and verify cljdoc
-- [ ] Publish the `v1.1.0` GitHub Release
+- [x] Publish `v1.1.0` to Clojars and verify cljdoc
+- [x] Publish the `v1.1.0` GitHub Release
 
 ## Performance track
 
