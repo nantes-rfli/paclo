@@ -1,6 +1,6 @@
-# Public API Contract (v1.0)
+# Public API Contract (v1.x)
 
-This page defines the stable library contract for v1.0.
+This page defines the stable library contract for v1.x.
 It is intentionally compact and focused on user-facing namespaces.
 
 ## Scope
@@ -38,6 +38,9 @@ Internal namespaces (not covered by compatibility guarantees):
   - source: `:path` (offline) or `:device` (live)
   - `:filter`: BPF string / keyword / DSL vector
   - optional `:decode?`, `:xform`, and additional capture options
+  - live queues remain bounded and blocking by default; opt-in
+    `:queue-mode :dropping` may be combined with `:queue-cap` and
+    `:on-queue-stats`
 - Output: lazy sequence of packet maps
 - Decode behavior (`:decode? true`):
   - success -> packet includes `:decoded`
@@ -47,7 +50,7 @@ Internal namespaces (not covered by compatibility guarantees):
   - throws `ex-info` for invalid `:filter` type
   - libpcap open/filter/capture errors may propagate
 
-### `reduce-packets` (unreleased)
+### `reduce-packets`
 
 ```clojure
 (reduce-packets opts rf init)
@@ -146,6 +149,6 @@ Internal namespaces (not covered by compatibility guarantees):
 
 ## Stability notes
 
-- Items above are the v1.0 compatibility baseline.
+- Items above are the v1.x compatibility baseline.
 - Backward-compatible additive changes are allowed in v1.x.
 - Internal namespace details are intentionally excluded from this contract.
