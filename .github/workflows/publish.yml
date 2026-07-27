@@ -10,6 +10,11 @@ on:
         description: 'Version without leading v (example: 1.0.0)'
         required: true
         type: string
+      dry_run:
+        description: 'Validate and build without publishing to Clojars'
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -22,10 +27,13 @@ jobs:
   publish-clojars:
     if: github.repository == 'nantes-rfli/paclo'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Temurin JDK
         uses: actions/setup-java@v4
@@ -52,17 +60,19 @@ jobs:
 
       - name: Resolve version
         id: vars
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            version="${{ inputs.version }}"
+            version="$DISPATCH_VERSION"
           else
             version="${GITHUB_REF_NAME#v}"
           fi
 
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid version: $version"
             exit 1
           fi
@@ -70,6 +80,46 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "artifact=target/paclo-$version.jar" >> "$GITHUB_OUTPUT"
           echo "pom=target/classes/META-INF/maven/org.clojars.nanto/paclo/pom.xml" >> "$GITHUB_OUTPUT"
+
+      - name: Verify release source and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          main_sha="$(git rev-parse origin/main)"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${GITHUB_SHA}" != "$main_sha" ]]; then
+              echo "Manual releases must run from the current main commit."
+              echo "workflow sha: ${GITHUB_SHA}"
+              echo "origin/main:  $main_sha"
+              exit 1
+            fi
+          else
+            tag_sha="$(git rev-list -n 1 "${GITHUB_REF_NAME}")"
+            if [[ "$tag_sha" != "${GITHUB_SHA}" ]]; then
+              echo "Tag ${GITHUB_REF_NAME} does not resolve to ${GITHUB_SHA}."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+              echo "Tagged commit must be contained in origin/main."
+              exit 1
+            fi
+          fi
+
+          if ! grep -Fq "## [${{ steps.vars.outputs.version }}] - " CHANGELOG.md; then
+            echo "CHANGELOG.md has no dated section for ${{ steps.vars.outputs.version }}."
+            exit 1
+          fi
+
+      - name: Run release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          clojure -T:build javac
+          clojure -M:test
+          clojure -M:perf-gate
 
       - name: Build release artifact
         shell: bash
@@ -79,7 +129,17 @@ jobs:
           test -f "${{ steps.vars.outputs.artifact }}"
           test -f "${{ steps.vars.outputs.pom }}"
 
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: paclo-${{ steps.vars.outputs.version }}
+          path: |
+            ${{ steps.vars.outputs.artifact }}
+            ${{ steps.vars.outputs.pom }}
+          if-no-files-found: error
+
       - name: Publish to Clojars
+        if: github.event_name == 'push' || inputs.dry_run == false
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
@@ -97,7 +157,14 @@ jobs:
           clojure -M:deps-deploy -e "(require '[deps-deploy.deps-deploy :as d]) (d/deploy {:installer :remote :artifact (System/getenv \"PACLO_ARTIFACT\") :pom-file (System/getenv \"PACLO_POM_FILE\") :sign-releases? false})"
 
       - name: Publish summary
+        if: github.event_name == 'push' || inputs.dry_run == false
         run: |
           echo "Published org.clojars.nanto/paclo:${{ steps.vars.outputs.version }} to Clojars." >> "$GITHUB_STEP_SUMMARY"
           echo "Clojars: https://clojars.org/org.clojars.nanto/paclo" >> "$GITHUB_STEP_SUMMARY"
           echo "cljdoc (CURRENT): https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry-run summary
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: |
+          echo "Validated v${{ steps.vars.outputs.version }} without publishing." >> "$GITHUB_STEP_SUMMARY"
+          echo "Inspect the uploaded jar and POM before tagging." >> "$GITHUB_STEP_SUMMARY"

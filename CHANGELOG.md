@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-27
+
 ### Added
 - Added a phase-1 offline/live performance runner with deterministic PCAP
   generation, isolated JVM scenarios, EDN/JSON results, and JVM metrics.
@@ -32,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   internally mutable accumulator while preserving its EDN/JSONL output contract.
 - Advanced performance result files to schema version 2 for staged live
   metrics.
+- Hardened release publication with main/tag provenance checks, release gates,
+  uploaded candidate artifacts, and a non-publishing manual dry-run.
+
+### Fixed
+- Preserved `nil` from truncated DNS and TLS byte readers instead of applying
+  primitive return coercion to missing data.
 
 ## [1.0.1] - 2026-02-23
 

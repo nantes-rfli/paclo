@@ -22,13 +22,14 @@
   "Return version from tag like v1.2.3 when running on a tag ref."
   []
   (let [ref-name (System/getenv "GITHUB_REF_NAME")]
-    (when (and ref-name (re-matches #"v\d+\.\d+\.\d+([-\.].+)?" ref-name))
+    (when (and ref-name
+               (re-matches #"v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?" ref-name))
       (subs ref-name 1))))
 
 (defn- resolve-version []
   (or (System/getenv "PACLO_VERSION")
       (tagged-version)
-      "1.0.0-SNAPSHOT"))
+      "1.1.0-SNAPSHOT"))
 
 (def lib 'org.clojars.nanto/paclo)
 (def version (resolve-version))
