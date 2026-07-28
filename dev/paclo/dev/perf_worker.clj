@@ -229,7 +229,7 @@
 (defn- live-run
   [{:keys [device port target-pps duration-ms decode? source engine filter
            snaplen queue-cap queue-mode consumer-delay-ns
-           buffer-size immediate?]
+           buffer-size immediate? expected-packets]
     :as config}]
   (let [duration-ms (long duration-ms)
         target-pps (long target-pps)
@@ -274,7 +274,13 @@
               (live-reducer consumer-delay-ns)
               {:packets 0 :bytes 0 :decode-errors 0})
              tasks]))
-        sent (long (reduce + 0 (map deref senders)))
+        sent-source (cond
+                      (not= source :external) :internal-observed
+                      expected-packets :external-expected
+                      :else :unavailable)
+        sent (if (= sent-source :external-expected)
+               (long expected-packets)
+               (long (reduce + 0 (map deref senders))))
         capture @stats
         queue (or @queue-stats
                   {:mode :direct
@@ -297,7 +303,9 @@
         duration-seconds (/ (double duration-ms) 1000.0)]
     (merge result
            {:sent sent
-            :realized-send-pps (when (pos? sent)
+            :sent-source sent-source
+            :realized-send-pps (when (and (= sent-source :internal-observed)
+                                          (pos? sent))
                                  (/ (double sent) duration-seconds))
             :sustained-processed-pps
             (/ (double consumer-processed) duration-seconds)
@@ -423,6 +431,10 @@
                   (assoc :consumer-delay-ns
                          (parse-long! (:consumer-delay-ns opts)
                                       "consumer-delay-ns"))
+                  (:expected-packets opts)
+                  (assoc :expected-packets
+                         (parse-long! (:expected-packets opts)
+                                      "expected-packets"))
                   (:buffer-size opts)
                   (assoc :buffer-size
                          (parse-long! (:buffer-size opts) "buffer-size"))
@@ -446,6 +458,15 @@
       (throw (ex-info "senders cannot exceed target-pps"
                       {:senders (:senders config)
                        :target-pps (:target-pps config)})))
+    (when (and (:expected-packets config)
+               (not= :external (:source config)))
+      (throw (ex-info "expected-packets requires source=external"
+                      {:source (:source config)
+                       :expected-packets (:expected-packets config)})))
+    (when (and (:expected-packets config)
+               (not (pos? (long (:expected-packets config)))))
+      (throw (ex-info "expected-packets must be positive"
+                      {:expected-packets (:expected-packets config)})))
     (when-not (<= 1 (long (:snaplen config)) 65536)
       (throw (ex-info "snaplen must be between 1 and 65536"
                       {:snaplen (:snaplen config)})))

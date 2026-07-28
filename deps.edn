@@ -54,6 +54,9 @@
                 :main-opts   ["-m" "paclo.dev.perf-gate"]}
   :perf        {:extra-paths ["dev"]
                 :main-opts   ["-m" "paclo.dev.perf"]}
+  :perf-generator
+  {:extra-paths ["dev"]
+   :main-opts   ["-m" "paclo.dev.perf-generator"]}
   :perf-worker {:extra-paths ["dev"]
                 :main-opts   ["-m" "paclo.dev.perf-worker"]}
   :junit       {:extra-paths ["dev" "target/classes" "target/test-classes"]

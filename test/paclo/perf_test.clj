@@ -3,6 +3,7 @@
    [clojure.test :refer [deftest is testing]]
    [paclo.dev.perf :as perf]
    [paclo.dev.perf-data :as data]
+   [paclo.dev.perf-generator :as generator]
    [paclo.dev.perf-metrics :as metrics]
    [paclo.parse :as parse]
    [paclo.pcap :as pcap])
@@ -76,6 +77,7 @@
   (let [sustainable? (deref #'perf/sustainable-run?)
         annotate (deref #'perf/annotate-sustainability)
         clean {:capture-errors []
+               :sent-source :internal-observed
                :send-loss-rate 0.0005
                :kernel-drop-rate 0.0
                :interface-drop-rate 0.0
@@ -89,11 +91,63 @@
     (is (false? (sustainable? queue-drop)))
     (is (false? (sustainable? send-loss)))
     (is (= {:drop-threshold 0.001
+            :end-to-end? true
             :passing-runs 1
             :total-runs 2
             :all-runs-pass? false
             :max-passing-processed-pps 250000.0}
            (:sustainability result)))))
+
+(deftest external-live-sustainability-requires-a-send-count
+  (let [sustainable? (deref #'perf/sustainable-run?)
+        annotate (deref #'perf/annotate-sustainability)
+        capture-only {:capture-errors []
+                      :sent-source :unavailable
+                      :send-loss-rate nil
+                      :kernel-drop-rate 0.0
+                      :interface-drop-rate 0.0
+                      :queue-drop-rate 0.0
+                      :consumer-gap-rate 0.0
+                      :sustained-processed-pps 100000.0}
+        measured (assoc capture-only
+                        :sent-source :external-expected
+                        :send-loss-rate 0.0005)]
+    (is (false? (sustainable? capture-only)))
+    (is (true? (sustainable? measured)))
+    (is (false? (get-in (annotate {:runs [capture-only]})
+                        [:sustainability :end-to-end?])))
+    (is (true? (get-in (annotate {:runs [measured]})
+                       [:sustainability :end-to-end?])))))
+
+(deftest external-expected-count-requires-one-coordinated-run
+  (let [validate! (deref #'perf/validate-external-run-shape!)]
+    (is (nil? (validate! 15000000 [:live-sync-raw] 0 1)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"requires one scenario"
+                          (validate! 15000000
+                                     [:live-sync-raw :live-sync-full]
+                                     0
+                                     1)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"requires one scenario"
+                          (validate! 15000000 [:live-sync-raw] 1 1)))
+    (is (nil? (validate! nil [:live-sync-raw :live-sync-full] 1 5)))))
+
+(deftest external-expected-count-requires-an-offered-rate
+  (let [validate! (deref #'perf/validate-opts!)
+        valid {:mode :live
+               :profile :quick
+               :port 39053
+               :source :external
+               :rates "250000"
+               :expected-packets 15000000}]
+    (is (nil? (validate! valid)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"requires an external offered rate"
+                          (validate! (dissoc valid :rates))))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"requires source=external"
+                          (validate! (assoc valid :source :loopback))))))
 
 (deftest live-summary-selects-fastest-sustainable-result
   (let [summarize (deref #'perf/max-sustainable-by-scenario)
@@ -111,6 +165,32 @@
             :realized-send-pps 500000
             :source :loopback}
            (:live-sync-raw summary)))))
+
+(deftest generator-splits-an-exact-packet-count
+  (let [split-counts (deref #'generator/split-counts)]
+    (is (= [4 3 3] (split-counts 10 3)))
+    (is (= 1000 (reduce + (split-counts 1000 8))))
+    (is (every? pos? (split-counts 5 5)))))
+
+(deftest generator-validates-exact-count-options
+  (let [validate! (deref #'generator/validate-opts!)
+        valid {:host "192.0.2.10"
+               :packets 1000
+               :rate 100000
+               :port 39053
+               :frame-size 64
+               :senders 2
+               :start-delay-ms 0}]
+    (is (nil? (validate! valid)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"host is required"
+                          (validate! (assoc valid :host ""))))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"senders cannot exceed packets"
+                          (validate! (assoc valid :packets 1 :senders 2))))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"start-delay-ms cannot be negative"
+                          (validate! (assoc valid :start-delay-ms -1))))))
 
 (deftest capture-stats-reads-portable-counters
   (with-redefs [pcap/stats-lib
