@@ -104,8 +104,13 @@ queue is an explicit overload policy:
 `on-queue-stats` receives final queue counters. Dropped packets are not
 returned to the consumer.
 
-For a real NIC or a separate traffic generator, disable the built-in sender
-and provide the relevant BPF explicitly:
+## Real-NIC measurement
+
+For a real NIC, run the receiver and the exact-count generator on separate
+hosts. Choose an offered rate, duration, and packet count before the run. For
+example, 250,000 pps for 60 seconds is exactly 15,000,000 packets.
+
+Start the receiver first:
 
 ```bash
 clojure -M:perf \
@@ -115,11 +120,44 @@ clojure -M:perf \
   --device en0 \
   --filter "udp dst port 39053" \
   --scenarios live-sync-raw \
-  --duration-ms 60000 \
+  --rates 250000 \
+  --expected-packets 15000000 \
+  --duration-ms 75000 \
   --warmups 0 \
   --runs 1 \
   --output target/perf-live-en0
 ```
+
+Then start the sender on the other host, replacing the destination address:
+
+```bash
+clojure -M:perf-generator \
+  --host 192.0.2.10 \
+  --port 39053 \
+  --packets 15000000 \
+  --rate 250000 \
+  --frame-size 64 \
+  --senders 4 \
+  --start-delay-ms 10000
+```
+
+The generator exits unsuccessfully if it cannot complete every send and emits
+an EDN report containing the exact sent count, elapsed time, and realized pps.
+Keep that report with the receiver's `results.edn` and `results.json`.
+`--start-delay-ms` gives the receiver JVM time to open and activate libpcap;
+increase it on slower hosts and include the delay in the receiver duration.
+
+`--expected-packets` marks the receiver result as `:external-expected` and
+enables sender-to-consumer loss in the same 0.1% sustainability decision used
+for loopback runs. To avoid accidentally reusing one generator run across
+multiple captures, this mode requires exactly one scenario, zero warm-ups, and
+one measured run. Without `--expected-packets`, external capture remains
+capture-pipeline-only and cannot pass the end-to-end sustainability gate.
+
+The receiver duration should include enough lead time to start the remote
+generator. Use the offered rate and the generator's realized rate to describe
+load; receiver `sustained-processed-pps` uses the full capture duration and
+therefore includes that lead time.
 
 Live capture may require OS permission to open the capture device. It is not a
 required CI performance threshold.

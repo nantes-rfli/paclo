@@ -58,6 +58,7 @@
   (println "                   [--frame-size BYTES] [--snaplen BYTES]")
   (println "                   [--queue-cap N] [--queue-mode blocking|dropping]")
   (println "                   [--consumer-delay-ns NS]")
+  (println "                   [--expected-packets N]")
   (println)
   (println "The default is the offline quick profile.")
   (println "Use source=external with one selected scenario for a real-NIC/manual probe."))
@@ -100,6 +101,9 @@
           "--consumer-delay-ns"
           (recur (assoc opts :consumer-delay-ns
                         (Long/parseLong value)) more)
+          "--expected-packets"
+          (recur (assoc opts :expected-packets
+                        (Long/parseLong value)) more)
           (throw (ex-info "unknown or incomplete argument"
                           {:remaining remaining})))))))
 
@@ -113,7 +117,8 @@
 
 (defn- validate-opts!
   [{:keys [mode profile port source scenarios rates duration-ms warmups runs
-           frame-size snaplen queue-cap queue-mode consumer-delay-ns]}]
+           frame-size snaplen queue-cap queue-mode consumer-delay-ns
+           expected-packets]}]
   (when-not (contains? #{:offline :live :all} mode)
     (throw (ex-info "mode must be offline, live, or all" {:mode mode})))
   (when-not (contains? data/profiles profile)
@@ -143,6 +148,15 @@
   (when (and consumer-delay-ns (neg? (long consumer-delay-ns)))
     (throw (ex-info "consumer-delay-ns cannot be negative"
                     {:consumer-delay-ns consumer-delay-ns})))
+  (when (and expected-packets (not (pos? (long expected-packets))))
+    (throw (ex-info "expected-packets must be positive"
+                    {:expected-packets expected-packets})))
+  (when (and expected-packets (not= :external (or source :loopback)))
+    (throw (ex-info "expected-packets requires source=external"
+                    {:source source :expected-packets expected-packets})))
+  (when (and expected-packets (nil? rates))
+    (throw (ex-info "expected-packets requires an external offered rate"
+                    {:expected-packets expected-packets})))
   (when-not (contains? #{:blocking :dropping} (or queue-mode :blocking))
     (throw (ex-info "queue-mode must be blocking or dropping"
                     {:queue-mode queue-mode}))))
@@ -201,10 +215,16 @@
                        :stage-counts (:stage-counts run)}))))
   result)
 
+(defn- send-count-available?
+  [run]
+  (contains? #{:internal-observed :external-expected}
+             (:sent-source run)))
+
 (defn- sustainable-run?
   [run]
   (let [threshold (double live-drop-threshold)]
     (and (empty? (:capture-errors run))
+         (send-count-available? run)
          (or (nil? (:send-loss-rate run))
              (<= (double (:send-loss-rate run)) threshold))
          (every? #(<= (double (or (% run) 0.0)) threshold)
@@ -217,10 +237,12 @@
   [result]
   (let [runs (:runs result)
         passing (filter sustainable-run? runs)
-        processed-rates (keep :sustained-processed-pps passing)]
+        processed-rates (keep :sustained-processed-pps passing)
+        end-to-end? (every? send-count-available? runs)]
     (assoc result
            :sustainability
            {:drop-threshold live-drop-threshold
+            :end-to-end? end-to-end?
             :passing-runs (count passing)
             :total-runs (count runs)
             :all-runs-pass? (= (count passing) (count runs))
@@ -277,7 +299,7 @@
 
 (defn- worker-live-args
   [{:keys [device port source filter frame-size snaplen queue-cap queue-mode
-           consumer-delay-ns]}
+           consumer-delay-ns expected-packets]}
    {:keys [scenario rate duration-ms warmups runs senders]}]
   (cond-> ["--mode" "live"
            "--scenario" (name scenario)
@@ -294,16 +316,27 @@
            "--warmups" (str warmups)
            "--runs" (str runs)]
     filter (conj "--filter" filter)
-    queue-mode (conj "--queue-mode" (name queue-mode))))
+    queue-mode (conj "--queue-mode" (name queue-mode))
+    expected-packets (conj "--expected-packets" (str expected-packets))))
+
+(defn- validate-external-run-shape!
+  [expected-packets scenarios warmups runs]
+  (when (and expected-packets
+             (or (not= 0 (long warmups))
+                 (not= 1 (long runs))
+                 (not= 1 (count scenarios))))
+    (throw (ex-info
+            "external expected-packets requires one scenario, no warm-up, and one run"
+            {:scenarios scenarios :warmups warmups :runs runs}))))
 
 (defn- live-results!
   [{:keys [profile device port source filter scenarios rates
            duration-ms warmups runs frame-size snaplen queue-cap queue-mode
-           consumer-delay-ns]}]
+           consumer-delay-ns expected-packets]}]
   (let [profile-config (get live-profiles profile)
         source (or source :loopback)
         rates (if (= source :external)
-                [0]
+                (or (comma-longs rates) [0])
                 (or (comma-longs rates) (:rates profile-config)))
         scenarios (or (comma-keywords scenarios)
                       (if (= profile :stress)
@@ -320,7 +353,9 @@
                        :snaplen (or snaplen 65536)
                        :queue-cap (or queue-cap 1024)
                        :queue-mode queue-mode
+                       :expected-packets expected-packets
                        :consumer-delay-ns (or consumer-delay-ns 0)}]
+    (validate-external-run-shape! expected-packets scenarios warmups runs)
     (vec
      (for [rate rates
            scenario scenarios
