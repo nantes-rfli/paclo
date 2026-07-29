@@ -128,6 +128,8 @@ clojure -M:perf \
   --output target/perf-live-en0
 ```
 
+Wait until the receiver prints `[perf] capture ready`. This signal is emitted
+only after the worker JVM has opened libpcap and installed the BPF filter.
 Then start the sender on the other host, replacing the destination address:
 
 ```bash
@@ -137,15 +139,16 @@ clojure -M:perf-generator \
   --packets 15000000 \
   --rate 250000 \
   --frame-size 64 \
-  --senders 4 \
-  --start-delay-ms 10000
+  --senders 4
 ```
 
 The generator exits unsuccessfully if it cannot complete every send and emits
 an EDN report containing the exact sent count, elapsed time, and realized pps.
 Keep that report with the receiver's `results.edn` and `results.json`.
-`--start-delay-ms` gives the receiver JVM time to open and activate libpcap;
-increase it on slower hosts and include the delay in the receiver duration.
+`--start-delay-ms` remains available for scripted coordination, but it is a
+sender-side delay rather than a readiness check. Prefer the receiver's
+explicit ready signal for manual runs. Include any intentional lead time in
+the receiver duration.
 
 `--expected-packets` marks the receiver result as `:external-expected` and
 enables sender-to-consumer loss in the same 0.1% sustainability decision used
@@ -236,6 +239,31 @@ consumer delay at a realized 50k pps:
 The blocking case processed only 28.5% of sent traffic despite zero reported
 kernel and queue drops. This is why loopback sustainability also checks
 sender-to-consumer loss instead of relying only on libpcap drop counters.
+
+### Separate-host real-NIC probe
+
+A separate Ubuntu 24.04 generator (`192.168.4.70`, wired 1 GbE) sent 64-byte
+UDP frames to the Intel reference Mac (`192.168.4.28`, `en1` Wi-Fi). Each
+reference probe sent for 15 seconds after capture readiness:
+
+| Offered rate | Sent | Processed | End-to-end loss | Result |
+| ---: | ---: | ---: | ---: | --- |
+| 1,000 pps | 15,000 | 15,000 | 0% | pass |
+| 5,000 pps | 75,000 | 75,000 | 0% | pass |
+| 7,500 pps | 112,500 | 112,500 | 0% | pass |
+| 8,750 pps | 131,250 | 129,433 | 1.384% | fail |
+| 10,000 pps | 150,000 | 149,308 | 0.461% | fail |
+
+The 60-second stress confirmation at 7,500 pps processed 449,991 of 450,000
+datagrams (0.002% end-to-end loss), with zero reported kernel, interface,
+queue, or consumer-gap drops. Peak heap was approximately 66.5 MB; seven GC
+collections consumed 5 ms.
+
+This establishes 7,500 pps as a sustained end-to-end floor for this particular
+wired-to-Wi-Fi path, not Paclo's capture ceiling. The non-monotonic loss at
+8,750 and 10,000 pps, combined with zero internal drop counters, indicates
+path variability. A wired-to-wired run is still required for a real-NIC
+capture limit comparable to the loopback baseline.
 
 ## `flow-topn` fast-path adoption
 

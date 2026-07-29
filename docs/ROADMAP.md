@@ -92,8 +92,13 @@ probe. Phase 5 added direct, bounded-blocking, and bounded-dropping comparison
 profiles; sender, libpcap, queue, and consumer stage counters; a 0.1%
 sustainability classifier; and an external-generator profile for real-NIC or
 separate-host tests. Controlled overload now distinguishes queue drops from
-blocking backpressure. Real-NIC measurements are still needed to find the true
-maximum.
+blocking backpressure.
+
+The first separate-host probe used an Ubuntu 24.04 wired sender and the Intel
+Mac's Wi-Fi interface. It sustained 7,500 pps for 60 seconds at 0.002%
+end-to-end loss with no observable Paclo drop. This validates the external
+measurement path but remains network-path limited; a wired-to-wired run is
+still needed to find the real-NIC capture maximum.
 
 Phase 6 remains a post-v1.1 conditional investigation. Borrowed buffers,
 batching, parallel decode, and mmap should be attempted only when a measured

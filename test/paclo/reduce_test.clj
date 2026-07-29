@@ -92,9 +92,13 @@
 
 (deftest reduce-capture-closes-and-honors-stop
   (let [closed (atom 0)
-        stopped (atom 0)]
+        stopped (atom 0)
+        ready (atom 0)
+        setup-events (atom [])]
     (with-redefs [pcap/open-offline (fn [_] :handle)
-                  pcap/set-bpf! (fn [& _] true)
+                  pcap/set-bpf! (fn [& _]
+                                  (swap! setup-events conj :filter)
+                                  true)
                   pcap/close! (fn [_] (swap! closed inc))
                   pcap/loop-n-or-ms!
                   (fn [_ config handler]
@@ -108,10 +112,16 @@
       (is (= 3
              (pcap/reduce-capture
               {:path "dummy"
+               :filter "udp"
+               :on-ready #(do
+                            (swap! ready inc)
+                            (swap! setup-events conj :ready))
                :stop? #(= 2 (:caplen %))}
               (fn [acc packet] (+ acc (:caplen packet)))
               0)))
       (is (= 1 @stopped))
+      (is (= 1 @ready))
+      (is (= [:filter :ready] @setup-events))
       (is (= 1 @closed)))))
 
 (deftest reduce-capture-error-mode-pass-returns-last-accumulator

@@ -145,17 +145,20 @@
 
 (deftest capture->seq-collects-packets-and-stops
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [9 9]))
-        {:keys [lib breaks]} (fake-lib {:rcs [1 1 -2] :hdr hdr :dat dat})]
+        {:keys [lib breaks]} (fake-lib {:rcs [1 1 -2] :hdr hdr :dat dat})
+        ready (atom 0)]
     (with-redefs [pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)
                   pcap/open-live (fn [& _] fake-pcap)]
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
+                                            :on-ready #(swap! ready inc)
                                             :max 5
                                             :max-time-ms 50
                                             :timeout-ms 10
                                             :idle-max-ms 20}))]
         (is (= 2 (count pkts)))
         (is (= [9 9] (map #(aget ^bytes % 0) (map :bytes pkts))))
+        (is (= 1 @ready))
         (is (= 1 @breaks))))))
 
 (deftest capture->seq-passes-errors-when-requested

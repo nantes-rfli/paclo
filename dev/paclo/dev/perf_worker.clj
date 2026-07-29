@@ -229,7 +229,7 @@
 (defn- live-run
   [{:keys [device port target-pps duration-ms decode? source engine filter
            snaplen queue-cap queue-mode consumer-delay-ns
-           buffer-size immediate? expected-packets]
+           buffer-size immediate? expected-packets ready-file]
     :as config}]
   (let [duration-ms (long duration-ms)
         target-pps (long target-pps)
@@ -251,6 +251,8 @@
                                      (+ duration-ms 100)
                                      250)
                       :timeout-ms 10
+                      :on-ready (when ready-file
+                                  #(spit ready-file "ready\n"))
                       :on-stats #(reset! stats %)
                       :on-error #(swap! errors conj
                                         (or (.getMessage ^Throwable %) (str %)))}
@@ -419,6 +421,8 @@
                  :consumer-delay-ns 0}
                 scenario-config
                 (cond-> {}
+                  (:ready-file opts)
+                  (assoc :ready-file (:ready-file opts))
                   (:filter opts) (assoc :filter (:filter opts))
                   (:snaplen opts)
                   (assoc :snaplen (parse-long! (:snaplen opts) "snaplen"))
