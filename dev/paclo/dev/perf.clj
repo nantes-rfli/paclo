@@ -162,23 +162,52 @@
                     {:queue-mode queue-mode}))))
 
 (defn- worker!
-  [arguments]
-  (let [{:keys [exit out err]}
-        (apply shell/sh "clojure" "-M:perf-worker" arguments)]
-    (when-not (zero? (long exit))
-      (throw (ex-info "performance worker failed"
-                      {:arguments arguments
-                       :exit exit
-                       :stderr err
-                       :stdout out})))
-    (try
-      (edn/read-string (str/trim out))
-      (catch Throwable cause
-        (throw (ex-info "performance worker returned invalid EDN"
-                        {:arguments arguments
-                         :stdout out
-                         :stderr err}
-                        cause))))))
+  ([arguments]
+   (worker! arguments false))
+  ([arguments signal-ready?]
+   (let [ready-file (when signal-ready?
+                      (java.io.File/createTempFile
+                       "paclo-perf-ready-" ".signal"))
+         _ (when (and ready-file (not (.delete ready-file)))
+             (throw (ex-info "cannot initialize capture readiness signal"
+                             {:path (.getAbsolutePath ready-file)})))
+         arguments (cond-> arguments
+                     ready-file
+                     (conj "--ready-file" (.getAbsolutePath ready-file)))
+         task (future
+                (apply shell/sh "clojure" "-M:perf-worker" arguments))]
+     (try
+       (when ready-file
+         (loop []
+           (cond
+             (.isFile ready-file)
+             (println "[perf] capture ready")
+
+             (realized? task)
+             nil
+
+             :else
+             (do
+               (Thread/sleep 10)
+               (recur)))))
+       (let [{:keys [exit out err]} @task]
+         (when-not (zero? (long exit))
+           (throw (ex-info "performance worker failed"
+                           {:arguments arguments
+                            :exit exit
+                            :stderr err
+                            :stdout out})))
+         (try
+           (edn/read-string (str/trim out))
+           (catch Throwable cause
+             (throw (ex-info "performance worker returned invalid EDN"
+                             {:arguments arguments
+                              :stdout out
+                              :stderr err}
+                             cause)))))
+       (finally
+         (when ready-file
+           (.delete ready-file)))))))
 
 (defn- validate-offline-result!
   [result config]
@@ -377,7 +406,8 @@
                         :duration-ms duration-ms
                         :warmups warmups
                         :runs runs
-                        :senders senders}))
+                        :senders senders})
+                      (= source :external))
              validate-live-result!
              annotate-sustainability))))))
 

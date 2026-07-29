@@ -1,5 +1,6 @@
 (ns paclo.perf-test
   (:require
+   [clojure.java.shell :as shell]
    [clojure.test :refer [deftest is testing]]
    [paclo.dev.perf :as perf]
    [paclo.dev.perf-data :as data]
@@ -148,6 +149,23 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
                           #"requires source=external"
                           (validate! (assoc valid :source :loopback))))))
+
+(deftest external-worker-signals-capture-readiness
+  (let [worker! (deref #'perf/worker!)
+        ready-path (atom nil)]
+    (with-redefs [shell/sh
+                  (fn [& arguments]
+                    (let [arguments (vec arguments)
+                          ready-index (.indexOf ^java.util.List arguments
+                                                "--ready-file")
+                          path (nth arguments (inc ready-index))]
+                      (reset! ready-path path)
+                      (spit path "ready\n")
+                      {:exit 0 :out "{:mode :live}" :err ""}))]
+      (is (= {:mode :live}
+             (worker! ["--mode" "live"] true)))
+      (is (string? @ready-path))
+      (is (false? (.exists (java.io.File. ^String @ready-path)))))))
 
 (deftest live-summary-selects-fastest-sustainable-result
   (let [summarize (deref #'perf/max-sustainable-by-scenario)

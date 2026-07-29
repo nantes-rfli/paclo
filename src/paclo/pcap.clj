@@ -821,7 +821,7 @@
    reducing function may return `reduced` for immediate early termination."
   [{:keys [device path filter snaplen promiscuous? timeout-ms
            buffer-size immediate?
-           max max-time-ms idle-max-ms on-error error-mode on-stats stop?]
+           max max-time-ms idle-max-ms on-error error-mode on-ready on-stats stop?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10
            error-mode :throw}}
    rf
@@ -852,6 +852,8 @@
         (if device
           (set-bpf-on-device! handle device filter)
           (set-bpf! handle filter)))
+      (when on-ready
+        (on-ready))
       (try
         (loop-n-or-ms!
          handle
@@ -898,6 +900,7 @@
        :on-error (fn [throwable])   ; optional callback on background thread errors
        :error-mode :throw|:pass     ; default :throw, :pass skips background errors
    - live diagnostics:
+       :on-ready (fn [])            ; optional callback after open/filter setup
        :on-stats (fn [stats])       ; optional callback with final pcap_stats counters
    - stop hook:
        :stop? (fn [pkt] boolean)    ; stop immediately when true (breakloop!)
@@ -906,7 +909,7 @@
   [{:keys [device path filter snaplen promiscuous? timeout-ms
            buffer-size immediate?
            max max-time-ms idle-max-ms queue-cap queue-mode
-           on-error error-mode on-stats on-queue-stats stop?]
+           on-error error-mode on-ready on-stats on-queue-stats stop?]
     :or   {snaplen 65536 promiscuous? true timeout-ms 10
            error-mode :throw queue-mode :blocking}}]
   (let [default-max 100
@@ -1006,6 +1009,8 @@
             (if device
               (set-bpf-on-device! h device filter)
               (set-bpf! h filter)))
+          (when on-ready
+            (on-ready))
           (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
                          (fn [pkt]
                            (enqueue-packet! pkt)
