@@ -53,6 +53,7 @@ clojure -M:perf \
 The runner sends dedicated UDP traffic to the selected port and compares:
 
 - the legacy, explicitly buffered, and buffered-immediate queue paths
+- managed single-consumer raw and full-decode capture paths
 - synchronous raw and full-decode reduction without an intermediate queue
 - bounded dropping raw and full-decode queues
 
@@ -280,6 +281,66 @@ This is a 5.82x throughput improvement and removes the intermediate vector
 containing every packet. It is an acceptance probe rather than a five-run
 reference median. The normalized EDN/JSONL contract and synchronous/async smoke
 tests remain unchanged.
+
+## v1.2 managed-capture smoke
+
+The initial v1.2 implementation smoke ran the managed raw and compatible
+full-decode paths on macOS loopback at an offered 1,000 pps for one second:
+
+| Scenario | Sent | Processed | Queue drops | Decode errors | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| managed raw | 1,000 | 1,000 | 0 | 0 | pass |
+| managed full decode | 1,000 | 1,000 | 0 | 0 | pass |
+
+Both scenarios met the 0.1% sustainability rule with no observed end-to-end,
+kernel, interface, queue, or consumer-gap loss. Environment: macOS 15.4.1,
+Intel x86_64, JDK 21, and libpcap 1.10.1. This is an implementation smoke, not
+the reference or sustained acceptance result.
+
+### Managed separate-host real-NIC acceptance probe
+
+The v1.2 acceptance probe reused the Ubuntu 24.04 wired sender
+(`192.168.4.70`, `enp8s0`) and Intel reference Mac receiver
+(`192.168.4.28`, `en1` Wi-Fi). The receiver used a 16 MiB immediate capture
+buffer, a 1,024-entry blocking managed queue, and the
+`udp dst port 39053` BPF filter. Every sender run began only after the receiver
+reported capture readiness.
+
+The one-second raw and full-decode smoke runs each processed all 1,000 sent
+datagrams with no observed internal drop or decode error. Longer 15-second
+probes produced:
+
+| Scenario | Offered rate | Sent | Processed | End-to-end loss | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| managed raw | 1,000 pps | 15,000 | 15,000 | 0% | pass |
+| managed raw | 5,000 pps | 75,000 | 74,758 | 0.323% | fail |
+| managed raw | 7,500 pps | 112,500 | 112,341 | 0.141% | fail |
+| managed full decode, first probe | 1,000 pps | 15,000 | 11,296 | 24.693% | fail |
+| managed full decode, repeat | 1,000 pps | 15,000 | 15,000 | 0% | pass |
+| managed full decode | 5,000 pps | 75,000 | 74,791 | 0.279% | fail |
+| managed full decode | 7,500 pps | 112,500 | 98,194 | 12.716% | fail |
+
+All of these probes reported zero kernel, interface, queue, and consumer-gap
+drops. Full decode also reported zero decode errors. The pass/fail reversals
+at the same 1,000 pps load and the absence of an internal drop location make
+this a path-variability observation rather than evidence of a managed queue or
+decoder limit.
+
+The common passing rate, 1,000 pps, was then exercised for 60 seconds:
+
+| Scenario | Sent | Processed | End-to-end loss | Maximum queue depth | Peak heap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| managed raw | 60,000 | 56,707 | 5.488% | 32 | 66.8 MB |
+| managed full decode | 60,000 | 56,159 | 6.402% | 197 | 62.7 MB |
+
+These sustained probes also reported zero kernel, interface, queue, and
+consumer-gap drops. Raw performed one GC in 1 ms; full decode performed five
+GCs in 4 ms. The bounded queue depths, stable heap peaks, and absence of
+consumer gaps validate the managed lifecycle under a 60-second real-NIC run,
+but the wired-to-Wi-Fi path did not re-establish a 0.1% end-to-end sustained
+floor. The earlier v1.1 result remains a historical observation, not a
+repeatable current guarantee. A wired-to-wired probe is still required before
+attributing a real-NIC throughput ceiling to Paclo.
 
 ## Optimization gates
 

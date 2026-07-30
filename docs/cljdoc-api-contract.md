@@ -75,6 +75,55 @@ Internal namespaces (not covered by compatibility guarantees):
   - throws `ex-info` for invalid `:filter` type
   - honors `:error-mode :throw|:pass` and `:on-error`
 
+### `reduce-packets-report`
+
+```clojure
+(reduce-packets-report opts rf init)
+```
+
+- Input and processing behavior match `reduce-packets`
+- Output: `{:result completed-accumulator :stats execution-stats}`
+- Statistics:
+  - data-only, schema-versioned map
+  - includes source, timing, packet counts, stop reason, and error description
+  - `:queue` is `nil` because synchronous reduction has no producer queue
+  - live capture includes final portable libpcap counters when available
+- Stop reasons include `:max-packets`, `:max-time`, `:idle-timeout`,
+  `:predicate`, `:reduced`, `:eof`, and `:error`
+
+### Managed capture
+
+```clojure
+(start-capture opts)
+(capture-packets capture)
+(stop-capture! capture)
+(capture-stats capture)
+```
+
+- `start-capture`:
+  - accepts a live `:device` or offline `:path` plus the compatible filter,
+    decode, transducer, stopping, queue, and error options
+  - opens the source and installs BPF synchronously
+  - returns an opaque `java.io.Closeable` handle intended for `with-open`
+- `capture-packets`:
+  - returns one lazy, single-consumer packet stream
+  - may be called only once per managed capture
+  - must be consumed within the capture's `with-open` scope
+- `stop-capture!`:
+  - asynchronously requests capture termination
+  - is idempotent and safe to call from another thread
+- closing the handle:
+  - requests termination, abandons queued values, waits for the producer, and
+    releases the libpcap handle
+  - is idempotent
+- `capture-stats`:
+  - returns a data-only schema-versioned snapshot during execution or after
+    close
+  - includes live packet/queue counts while running and final libpcap counters
+    after termination
+- Managed capture has exactly one packet consumer. Multiple subscribers,
+  pub/sub, and consumer-specific queues are outside the v1.2 contract.
+
 ### `write-pcap!`
 
 ```clojure

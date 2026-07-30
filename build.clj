@@ -29,7 +29,7 @@
 (defn- resolve-version []
   (or (System/getenv "PACLO_VERSION")
       (tagged-version)
-      "1.1.0-SNAPSHOT"))
+      "1.2.0-SNAPSHOT"))
 
 (def lib 'org.clojars.nanto/paclo)
 (def version (resolve-version))
@@ -129,7 +129,7 @@
                 :basis basis})))
 
 (defn javadoc
-  "Generate Javadoc for src-java into target/javadoc." 
+  "Generate Javadoc for src-java into target/javadoc."
   [_]
   (let [cp (-> (sh/sh "clojure" "-Spath") :out str/trim)]
     (b/process {:command-args ["javadoc"
