@@ -165,7 +165,7 @@
 
 (def ^:private scenarios
   [{:id :direct
-   :run (fn [_ count] (direct-run count))}
+    :run (fn [_ count] (direct-run count))}
    {:id :jdk-array-single
     :run (fn [_ count] (single-branch-run :jdk-array count))}
    {:id :jdk-linked-single

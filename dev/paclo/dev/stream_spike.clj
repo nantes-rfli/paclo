@@ -207,7 +207,7 @@
               (reset! (:stop-reason branch) reason)
               (-close-buffer! (:buffer branch))
               (.add ^LongAdder
-                    (:abandoned branch)
+               (:abandoned branch)
                     (long (-abandon! (:buffer branch))))
               (when (and (= :running @(:state runtime))
                          (no-open-branches? runtime)
@@ -230,7 +230,7 @@
       (when (:blocked? result)
         (.increment ^LongAdder (:blocked-events branch))
         (.add ^LongAdder
-              (:blocked-ns branch)
+         (:blocked-ns branch)
               (long (:blocked-ns result))))
       (case (:status result)
         :enqueued
@@ -238,14 +238,14 @@
           (.increment ^LongAdder (:enqueued branch))
           (let [depth (long (-depth (:buffer branch)))]
             (update-max! ^AtomicInteger
-                         (:max-depth branch)
+             (:max-depth branch)
                          (if (pos? depth) depth 1))))
 
         :dropped
         (do
           (.increment ^LongAdder (:dropped branch))
           (update-max! ^AtomicInteger
-                       (:max-depth branch)
+           (:max-depth branch)
                        (:capacity branch)))
 
         :cancelled
