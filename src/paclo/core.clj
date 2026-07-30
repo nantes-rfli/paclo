@@ -3,6 +3,7 @@
 
   Main entry points:
   - `packets` for live/offline capture as lazy sequences
+  - `packet-xf` for composable packet decoding and flow projection
   - `reduce-packets` for synchronous, low-allocation reduction
   - `reduce-packets-report` for synchronous results plus execution statistics
   - `start-capture` for explicitly managed capture lifecycles
@@ -146,12 +147,32 @@
     (throw (ex-info "unsupported :decode-mode"
                     {:decode-mode decode-mode}))))
 
-(defn ^:private transform-packet
-  [{:keys [decode? decode-mode]} packet]
+(defn packet-xf
+  "Return a transducer that applies Paclo's packet transformation contract.
+
+   Options:
+   - `:decode? true` performs the compatible full decode
+   - `:decode-mode :flow` projects packets to flat, numeric flow maps
+
+   The two options are mutually exclusive. Decode failures are returned as
+   packet maps containing `:decode-error`."
+  [{:keys [decode? decode-mode] :as opts}]
+  (validate-decode-opts opts)
   (cond
-    (= decode-mode :flow) (flow-packet packet)
-    decode? (decode-packet packet)
-    :else packet))
+    (= decode-mode :flow) (map flow-packet)
+    decode? (map decode-packet)
+    :else identity))
+
+(defn ^:private packet-pipeline-xf
+  "Compose Paclo's packet transform before subsequent transducers.
+
+   Return nil for the raw pass-through path so capture reduction retains its
+   existing zero-wrapper fast path."
+  [{:keys [decode? decode-mode] :as opts} & xforms]
+  (let [decode-xf (packet-xf opts)
+        xforms* (remove nil? xforms)]
+    (when (or decode? decode-mode (seq xforms*))
+      (apply comp decode-xf xforms*))))
 
 (defn ^:private normalized-opts
   [{:keys [filter] :as opts}]
@@ -166,19 +187,17 @@
   - source: `:path` (offline) or `:device` (live)
   - `:filter`: BPF string, protocol keyword, or BPF DSL vector
   - `:decode?`: when true, add `:decoded` or `:decode-error` to each packet map
+  - `:decode-mode :flow`: project packets to flat, numeric flow maps
   - `:xform`: transducer applied to output stream via `sequence`
   - live queue: `:queue-cap`, opt-in `:queue-mode :dropping`, and
     `:on-queue-stats`
 
   Throws `ex-info` when `:filter` has an unsupported type."
-  [{:keys [filter decode? xform] :as opts}]
-  (let [filter* (normalize-filter filter)
-        opts*   (cond-> opts (some? filter*) (assoc :filter filter*))
-        base    (pcap/capture->seq opts*)
-        stream  (if decode?
-                  (map decode-packet base)
-                  base)]
-    (apply-xform stream xform)))
+  [{:keys [xform] :as opts}]
+  (let [opts* (normalized-opts opts)
+        stream-xf (packet-pipeline-xf opts* xform)
+        base (pcap/capture->seq opts*)]
+    (apply-xform base stream-xf)))
 
 (defn reduce-packets
   "Synchronously reduce live or offline packets without an intermediate seq.
@@ -187,22 +206,14 @@
    transducer, stopping, and error options as `packets`. The transducer in
    `:xform` is fused into the reducing function. Returning `reduced` from `rf`
    stops capture immediately."
-  [{:keys [decode? decode-mode xform] :as opts} rf init]
+  [{:keys [xform] :as opts} rf init]
   (let [opts* (normalized-opts opts)
         complete-rf (completing rf)
-        transformed-rf (if xform (xform complete-rf) complete-rf)
-        step-rf (cond
-                  (= decode-mode :flow)
-                  (fn [acc packet]
-                    (transformed-rf acc (flow-packet packet)))
-
-                  decode?
-                  (fn [acc packet]
-                    (transformed-rf acc (decode-packet packet)))
-
-                  :else
-                  transformed-rf)
-        result (pcap/reduce-capture opts* step-rf init)]
+        stream-xf (packet-pipeline-xf opts* xform)
+        transformed-rf (if stream-xf
+                         (stream-xf complete-rf)
+                         complete-rf)
+        result (pcap/reduce-capture opts* transformed-rf init)]
     (transformed-rf result)))
 
 (defn reduce-packets-report
@@ -215,15 +226,16 @@
   (let [opts* (normalized-opts opts)
         decode-errors (LongAdder.)
         complete-rf (completing rf)
-        transformed-rf (if xform (xform complete-rf) complete-rf)
-        step-rf
-        (fn [acc packet]
-          (let [packet* (transform-packet opts* packet)]
-            (when (:decode-error packet*)
-              (.increment decode-errors))
-            (transformed-rf acc packet*)))
+        stats-xf
+        (map
+         (fn [packet]
+           (when (:decode-error packet)
+             (.increment decode-errors))
+           packet))
+        stream-xf (packet-pipeline-xf opts* stats-xf xform)
+        transformed-rf (stream-xf complete-rf)
         {:keys [result stats]}
-        (pcap/reduce-capture-report opts* step-rf init)]
+        (pcap/reduce-capture-report opts* transformed-rf init)]
     {:result (transformed-rf result)
      :stats (assoc-in stats
                       [:packets :decode-errors]
@@ -266,16 +278,17 @@
         opts (.-opts managed-capture)
         processed (.-processed managed-capture)
         decode-errors (.-decode-errors managed-capture)
-        stream
+        stats-xf
         (map
          (fn [packet]
-           (let [packet* (transform-packet opts packet)]
-             (.increment ^LongAdder processed)
-             (when (:decode-error packet*)
-               (.increment ^LongAdder decode-errors))
-             packet*))
-         (capture/packet-seq (.-managed managed-capture)))]
-    (apply-xform stream (:xform opts))))
+           (.increment ^LongAdder processed)
+           (when (:decode-error packet)
+             (.increment ^LongAdder decode-errors))
+           packet))
+        xform (:xform opts)
+        stream-xf (packet-pipeline-xf opts stats-xf xform)]
+    (sequence stream-xf
+              (capture/packet-seq (.-managed managed-capture)))))
 
 (defn stop-capture!
   "Request asynchronous, idempotent termination of a managed capture."
