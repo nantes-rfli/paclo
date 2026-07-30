@@ -52,7 +52,7 @@ Recorded local results on 2026-07-30:
 
 ## 3. CI and publish dry-run
 
-- [ ] the release-preparation PR is green on every required CI job
+- [x] the release-preparation PR is green on every required CI job
 - [x] the latest dependency-audit run has no release-blocking finding
 - [ ] the release-preparation PR is merged to `main`
 - [ ] the publish workflow dry-run succeeds on the exact `main` commit
@@ -72,6 +72,8 @@ and the release build. It does not contact Clojars.
 
 Recorded validation results on 2026-07-30:
 
+- release-preparation CI: successful
+  ([run 30532048720](https://github.com/nantes-rfli/paclo/actions/runs/30532048720))
 - Dependency Audit on post-implementation `main`: successful
   ([run 30531457081](https://github.com/nantes-rfli/paclo/actions/runs/30531457081))
 
