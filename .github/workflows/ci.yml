@@ -172,13 +172,32 @@ jobs:
           - name: linux-jdk21
             os: ubuntu-latest
             java-version: '21'
-          - name: macos-x64-jdk17
+            expected-os: Linux
+            expected-arch: X64
+          - name: macos-arm64-jdk17
             os: macos-latest
             java-version: '17'
+            expected-os: macOS
+            expected-arch: ARM64
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify compatibility environment
+        shell: bash
+        env:
+          ACTUAL_RUNNER_OS: ${{ runner.os }}
+          ACTUAL_RUNNER_ARCH: ${{ runner.arch }}
+          EXPECTED_RUNNER_OS: ${{ matrix.expected-os }}
+          EXPECTED_RUNNER_ARCH: ${{ matrix.expected-arch }}
+        run: |
+          set -euo pipefail
+          echo "runner.os=${ACTUAL_RUNNER_OS}"
+          echo "runner.arch=${ACTUAL_RUNNER_ARCH}"
+          echo "uname=$(uname -sm)"
+          test "${ACTUAL_RUNNER_OS}" = "${EXPECTED_RUNNER_OS}"
+          test "${ACTUAL_RUNNER_ARCH}" = "${EXPECTED_RUNNER_ARCH}"
 
       - name: Set up Temurin JDK
         uses: actions/setup-java@v4
@@ -237,6 +256,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify arm64 environment
+        shell: bash
+        env:
+          ACTUAL_RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          set -euo pipefail
+          echo "runner.arch=${ACTUAL_RUNNER_ARCH}"
+          echo "uname=$(uname -sm)"
+          test "${ACTUAL_RUNNER_ARCH}" = "ARM64"
 
       - name: Set up Temurin JDK
         uses: actions/setup-java@v4

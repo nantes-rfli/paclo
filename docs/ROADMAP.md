@@ -16,6 +16,8 @@ It is intentionally concise and focuses on user-visible outcomes.
 - `v1.0.1` (released, 2026-02-23): documentation and publication pipeline polish
 - `v1.1.0` (released, 2026-07-27): measured high-throughput paths and
   staged live-capture observability
+- `v1.2.0` (in development): controlled capture execution, synchronous
+  reports, and managed single-consumer capture lifecycles
 
 ## v1.0 completion status
 
@@ -60,6 +62,23 @@ Completed release artifacts:
 - [x] Publish `v1.1.0` to Clojars and verify cljdoc
 - [x] Publish the `v1.1.0` GitHub Release
 
+## v1.2 release status
+
+- [x] Define a schema-versioned execution statistics contract
+- [x] Add synchronous result-plus-statistics reduction
+- [x] Add an opaque, Closeable managed capture handle
+- [x] Add explicit idempotent stop and single-consumer packet delivery
+- [x] Make shutdown independent of queue capacity
+- [x] Add lifecycle, early-reduction, and full-queue regression tests
+- [x] Add managed-capture performance scenarios
+- [x] Run loopback and separate-host real-NIC acceptance probes
+- [ ] Complete static, compatibility, packaging, and publication gates
+- [ ] Publish `v1.2.0` to Clojars and verify cljdoc
+
+The v1.2 scope intentionally excludes multiple consumers, pub/sub, dynamic
+BPF replacement, pause/resume, borrowed buffers, batching, parallel decode,
+mmap, and PCAPNG. These capabilities require separate evidence and contracts.
+
 ## Performance track
 
 The performance track preserves the v1 data-first API and advances only when
@@ -99,6 +118,15 @@ Mac's Wi-Fi interface. It sustained 7,500 pps for 60 seconds at 0.002%
 end-to-end loss with no observable Paclo drop. This validates the external
 measurement path but remains network-path limited; a wired-to-wired run is
 still needed to find the real-NIC capture maximum.
+
+The v1.2 managed-capture probe reused that path. Raw and full-decode managed
+captures each processed an exact 15,000-packet run at 1,000 pps, but repeated
+15- and 60-second results varied substantially despite zero observable
+kernel, interface, queue, consumer-gap, or decode drops. The 60-second runs
+kept bounded queue depths and approximately 63-67 MB peak heap. This validates
+the managed lifecycle and records the required real-NIC observation, while
+confirming that the current wired-to-Wi-Fi path cannot provide a repeatable
+end-to-end throughput floor.
 
 Phase 6 remains a post-v1.1 conditional investigation. Borrowed buffers,
 batching, parallel decode, and mmap should be attempted only when a measured

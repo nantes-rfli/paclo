@@ -258,7 +258,7 @@
                                         (or (.getMessage ^Throwable %) (str %)))}
                buffer-size (assoc :buffer-size buffer-size)
                (some? immediate?) (assoc :immediate? immediate?)
-               (= engine :queue)
+               (contains? #{:queue :managed} engine)
                (assoc :queue-cap queue-cap
                       :queue-mode queue-mode
                       :on-queue-stats #(reset! queue-stats %)))
@@ -275,7 +275,22 @@
               opts
               (live-reducer consumer-delay-ns)
               {:packets 0 :bytes 0 :decode-errors 0})
-             tasks]))
+             tasks])
+
+          :managed
+          (let [capture (core/start-capture opts)
+                tasks (sender-tasks config)
+                result
+                (try
+                  (reduce-packets
+                   (core/capture-packets capture)
+                   consumer-delay-ns)
+                  (finally
+                    (.close ^java.io.Closeable capture)))
+                snapshot (core/capture-stats capture)]
+            (reset! stats (:pcap snapshot))
+            (reset! queue-stats (:queue snapshot))
+            [result tasks]))
         sent-source (cond
                       (not= source :external) :internal-observed
                       expected-packets :external-expected
@@ -387,6 +402,9 @@
           :live-raw-immediate {:engine :queue
                                :buffer-size (* 16 1024 1024)
                                :immediate? true}
+          :live-managed-raw {:engine :managed
+                             :buffer-size (* 16 1024 1024)
+                             :immediate? true}
           :live-full {:engine :queue :decode? true}
           :live-sync-raw {:engine :direct
                           :buffer-size (* 16 1024 1024)
@@ -399,6 +417,10 @@
                            :decode? true
                            :buffer-size (* 16 1024 1024)
                            :immediate? true}
+          :live-managed-full {:engine :managed
+                              :decode? true
+                              :buffer-size (* 16 1024 1024)
+                              :immediate? true}
           :live-dropping-full {:engine :queue
                                :decode? true
                                :queue-mode :dropping
@@ -448,8 +470,8 @@
     (when-not (contains? #{:loopback :external} (:source config))
       (throw (ex-info "source must be loopback or external"
                       {:source (:source config)})))
-    (when-not (contains? #{:queue :direct} (:engine config))
-      (throw (ex-info "engine must be queue or direct"
+    (when-not (contains? #{:queue :direct :managed} (:engine config))
+      (throw (ex-info "engine must be queue, direct, or managed"
                       {:engine (:engine config)})))
     (when-not (contains? #{:blocking :dropping} (:queue-mode config))
       (throw (ex-info "queue-mode must be blocking or dropping"

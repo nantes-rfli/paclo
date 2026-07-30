@@ -813,12 +813,19 @@
 ;; -----------------------------------------
 ;; -----------------------------------------
 
-(defn reduce-capture
-  "Synchronously reduce live or offline packets without a queue or lazy seq.
+(defn- throwable->data [^Throwable error]
+  {:class (.getName (class error))
+   :message (or (.getMessage error) (str error))})
 
-   This is an internal primitive. It accepts the same source, filtering,
-   stopping, error, and final-statistics options as `capture->seq`. The
-   reducing function may return `reduced` for immediate early termination."
+(defn- capture-source [{:keys [device path]}]
+  (if device
+    {:type :device :name device}
+    {:type :path :path (.getAbsolutePath (io/file path))}))
+
+(defn reduce-capture-report
+  "Synchronously reduce packets and return both the accumulator and execution
+   statistics. This is the internal reporting primitive behind the public
+   `paclo.core/reduce-packets-report` API."
   [{:keys [device path filter snaplen promiscuous? timeout-ms
            buffer-size immediate?
            max max-time-ms idle-max-ms on-error error-mode on-ready on-stats stop?]
@@ -838,7 +845,12 @@
         max (or max default-max)
         max-time-ms (or max-time-ms default-max-time-ms)
         idle-max-ms (or idle-max-ms default-idle-max-ms)
+        started-at-ms (System/currentTimeMillis)
         result (volatile! init)
+        captured (LongAdder.)
+        stop-reason (atom nil)
+        failure (atom nil)
+        final-pcap-stats (atom nil)
         handle (if device
                  (open-live {:device device
                              :snaplen snaplen
@@ -862,24 +874,68 @@
           :idle-max-ms idle-max-ms
           :timeout-ms timeout-ms
           :stop? (fn [packet]
-                   (or (reduced? @result)
-                       (and stop? (stop? packet))))}
+                   (cond
+                     (reduced? @result)
+                     (do (compare-and-set! stop-reason nil :reduced) true)
+
+                     (and stop? (stop? packet))
+                     (do (compare-and-set! stop-reason nil :predicate) true)
+
+                     :else false))}
          (fn [packet]
-           (vreset! result (rf (unreduced @result) packet))))
+           (.increment captured)
+           (let [next-result (rf (unreduced @result) packet)]
+             (vreset! result next-result)
+             (when (reduced? next-result)
+               (compare-and-set! stop-reason nil :reduced)))))
         (catch Throwable ex
+          (reset! failure ex)
+          (reset! stop-reason :error)
           (when on-error
             (try (on-error ex) (catch Throwable _)))
           (when-not (= error-mode :pass)
             (throw ex))))
-      (unreduced @result)
+      (when device
+        (try
+          (let [stats (capture-stats handle)]
+            (reset! final-pcap-stats stats)
+            (when on-stats
+              (on-stats stats)))
+          (catch Throwable ex
+            (when on-error
+              (try (on-error ex) (catch Throwable _))))))
+      (let [elapsed-ms (- (System/currentTimeMillis) started-at-ms)
+            count* (.sum captured)
+            reason (or @stop-reason
+                       (when (>= (long count*) (long max)) :max-packets)
+                       (when (>= (long elapsed-ms) (long max-time-ms))
+                         :max-time)
+                       (if device :idle-timeout :eof))]
+        (reset! stop-reason reason)
+        {:result (unreduced @result)
+         :stats
+         {:schema-version 1
+          :state (if @failure :failed :closed)
+          :source (capture-source {:device device :path path})
+          :timing {:started-at-ms started-at-ms
+                   :elapsed-ms elapsed-ms}
+          :packets {:captured count*
+                    :processed count*}
+          :queue nil
+          :pcap @final-pcap-stats
+          :stop-reason reason
+          :error (some-> @failure throwable->data)}})
       (finally
-        (when (and device on-stats)
-          (try
-            (on-stats (capture-stats handle))
-            (catch Throwable ex
-              (when on-error
-                (try (on-error ex) (catch Throwable _))))))
         (close! handle)))))
+
+(defn reduce-capture
+  "Synchronously reduce live or offline packets without a queue or lazy seq.
+
+   This is an internal primitive. It accepts the same source, filtering,
+   stopping, error, and final-statistics options as `capture->seq`. The
+   reducing function may return `reduced` for immediate early termination."
+  [opts rf init]
+  (:result (reduce-capture-report opts rf init)))
 
 (defn capture->seq
   "High-level API that returns packets as a lazy sequence.

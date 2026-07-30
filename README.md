@@ -14,7 +14,7 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - Stable release: `v1.1.0` (published on July 27, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Roadmap status: v1.1.0 release complete (see `docs/ROADMAP.md`)
+- Roadmap status: v1.2.0 in development (see `docs/ROADMAP.md`)
 
 ## Install
 
@@ -81,6 +81,43 @@ addresses are unsigned longs and IPv6 addresses are two-long vectors:
                         [:src-ip :dst-ip :protocol :src-port :dst-port])
            (fnil inc 0)))
  {})
+```
+
+For synchronous processing with data-only execution statistics:
+
+```clojure
+(core/reduce-packets-report
+ {:path "large.pcap"
+  :decode-mode :flow
+  :max Long/MAX_VALUE
+  :max-time-ms 3600000}
+ (fn [counts flow]
+   (update counts
+           (select-keys flow
+                        [:src-ip :dst-ip :protocol :src-port :dst-port])
+           (fnil inc 0)))
+ {})
+;; => {:result {...}
+;;     :stats {:schema-version 1
+;;             :state :closed
+;;             :stop-reason :eof
+;;             ...}}
+```
+
+For long-running or externally stopped capture, own a managed capture with
+`with-open`. Packet delivery is single-consumer:
+
+```clojure
+(with-open [capture
+            (core/start-capture
+             {:device "en0"
+              :filter [:and :udp [:port 53]]
+              :queue-cap 4096
+              :queue-mode :dropping
+              :max Long/MAX_VALUE
+              :max-time-ms 3600000})]
+  (run! process-packet (core/capture-packets capture))
+  (core/capture-stats capture))
 ```
 
 ## Run examples
@@ -170,25 +207,29 @@ clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl
 
 For full argument tables and behavior details, see `docs/usage.md`.
 
-## Public API surface (v1.0)
+## Public API surface (v1.x)
 
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
-| `paclo.core` | `bpf`, `packets`, `reduce-packets`, `write-pcap!`, `list-devices` | User-facing API |
+| `paclo.core` | `bpf`, `packets`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`) are not part of the compatibility contract.
 
 ## Compatibility matrix
 
-| Layer | Supported | CI gate status (2026-02-23) | Notes |
+| Layer | Supported | CI gate status (2026-07-30) | Notes |
 | --- | --- | --- | --- |
 | Clojure | `1.12.x` | Required | Baseline in `deps.edn` is `1.12.1` |
-| JDK | `17`, `21` | Required | Compatibility jobs run both |
+| JDK | `17`, `21` | Required | Representative compatibility jobs cover both |
 | OS | macOS, Linux | Required | `macos-latest` and Linux runners |
-| CPU | x86_64, arm64 | Required | arm64 runner: `ubuntu-24.04-arm` |
+| CPU | x86_64, arm64 | Required | Runner architecture is asserted before tests |
 | Babashka | `1.12.x` | Checked | CI validates `bb --version` |
 | libpcap | System package | Checked | Linux uses `libpcap-dev`; macOS uses system `pcap` |
+
+The representative matrix is Linux x86_64/JDK 21, macOS arm64/JDK 17, and
+Linux arm64/JDK 21. The architecture assertions prevent floating runner labels
+from silently changing the coverage represented by a job name.
 
 ## Performance baselines
 

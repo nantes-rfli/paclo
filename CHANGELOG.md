@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added an exact-count UDP generator and external expected-packet accounting
   for reproducible end-to-end real-NIC live-capture measurements.
+- Added `paclo.core/reduce-packets-report` for synchronous results plus
+  schema-versioned execution statistics and explicit stop reasons.
+- Added single-consumer managed captures through `start-capture`,
+  `capture-packets`, `stop-capture!`, and `capture-stats`.
+
+### Changed
+- Unified synchronous and managed capture reporting around data-only source,
+  timing, packet, queue, libpcap, stop-reason, and error fields.
+- Advanced the local development version to `1.2.0-SNAPSHOT`.
+
+### Fixed
+- Managed capture shutdown no longer depends on inserting a terminal marker
+  into a full blocking queue; explicit close unblocks the producer and
+  deterministically releases the libpcap handle.
 
 ## [1.1.0] - 2026-07-27
 

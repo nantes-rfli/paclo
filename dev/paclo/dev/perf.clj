@@ -20,10 +20,12 @@
   [:live-raw
    :live-raw-buffered
    :live-raw-immediate
+   :live-managed-raw
    :live-full
    :live-sync-raw
    :live-dropping-raw
    :live-sync-full
+   :live-managed-full
    :live-dropping-full])
 
 (def ^:private stress-live-scenarios
