@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `paclo.core/packet-xf` for composing compatible full decode or numeric
   flow projection with standard Clojure transducers.
+- Added a core.async-backed internal bounded fan-out runtime with reducible,
+  seqable, closeable branches and data-only distribution statistics.
 
 ### Changed
 - Unified packet transformation across lazy sequences, synchronous reduction,
