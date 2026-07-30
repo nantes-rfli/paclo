@@ -16,7 +16,7 @@ It is intentionally concise and focuses on user-visible outcomes.
 - `v1.0.1` (released, 2026-02-23): documentation and publication pipeline polish
 - `v1.1.0` (released, 2026-07-27): measured high-throughput paths and
   staged live-capture observability
-- `v1.2.0` (release validation): controlled capture execution, synchronous
+- `v1.2.0` (released, 2026-07-30): controlled capture execution, synchronous
   reports, and managed single-consumer capture lifecycles
 
 ## v1.0 completion status
@@ -73,8 +73,8 @@ Completed release artifacts:
 - [x] Add managed-capture performance scenarios
 - [x] Run loopback and separate-host real-NIC acceptance probes
 - [x] Complete static, compatibility, and packaging gates
-- [ ] Complete the publication dry-run
-- [ ] Publish `v1.2.0` to Clojars and verify cljdoc
+- [x] Complete the publication dry-run
+- [x] Publish `v1.2.0` to Clojars and verify cljdoc
 
 The v1.2 scope intentionally excludes multiple consumers, pub/sub, dynamic
 BPF replacement, pause/resume, borrowed buffers, batching, parallel decode,

@@ -11,11 +11,10 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 ## Project status
 
-- Release candidate: `v1.2.0` (publication pending)
-- Stable release: `v1.1.0` (published on July 27, 2026)
+- Stable release: `v1.2.0` (published on July 30, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Roadmap status: v1.2.0 release validation (see `docs/ROADMAP.md`)
+- Roadmap status: v1.2.0 released (see `docs/ROADMAP.md`)
 
 ## Install
 
