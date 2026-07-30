@@ -15,6 +15,7 @@
 (def ^:private default-close-timeout-ms 5000)
 
 (deftype ^:private Box [value])
+(deftype ^:private BlockedResult [status ^long blocked-ns])
 
 (defprotocol ^:private BufferOps
   (-enqueue! [buffer mode boxed stop?])
@@ -27,21 +28,21 @@
   BufferOps
   (-enqueue! [_ mode boxed _]
     (if @closed?
-      {:status :cancelled}
+      :cancelled
       (case mode
         :dropping
         (if (async/offer! channel boxed)
-          {:status :enqueued}
-          {:status :dropped})
+          :enqueued
+          :dropped)
 
         :blocking
         (if (async/offer! channel boxed)
-          {:status :enqueued}
+          :enqueued
           (let [started (System/nanoTime)
                 accepted? (async/>!! channel boxed)]
-            {:status (if accepted? :enqueued :cancelled)
-             :blocked? true
-             :blocked-ns (- (System/nanoTime) started)})))))
+            (BlockedResult.
+             (if accepted? :enqueued :cancelled)
+             (- (System/nanoTime) started)))))))
 
   (-take! [_]
     (async/<!! channel))
@@ -113,7 +114,7 @@
   nil)
 
 (defn- no-open-branches? [runtime]
-  (not-any? branch-open? (vals (:branches runtime))))
+  (zero? (.get ^AtomicInteger (:open-branches runtime))))
 
 (defn- branch-terminal-state [reason]
   (case reason
@@ -137,30 +138,37 @@
               (.add ^LongAdder
                (:abandoned branch-state*)
                     (long (-abandon! (:buffer branch-state*))))
-              (when (and (= :running @(:state runtime))
-                         (no-open-branches? runtime)
+              (let [open-count
+                    (.decrementAndGet
+                     ^AtomicInteger (:open-branches runtime))]
+                (when (and (zero? open-count)
+                           (= :running @(:state runtime))
                          (compare-and-set! (:stop-reason runtime)
                                            nil
                                            :no-branches))
-                (reset! (:state runtime) :stopping)
-                (invoke-cancel! runtime))
+                  (reset! (:state runtime) :stopping)
+                  (invoke-cancel! runtime)))
               nil)
             (recur)))))))
 
-(defn- record-delivery! [runtime branch-state* value]
+(defn- record-delivery! [runtime branch-state* boxed]
   (when (branch-open? branch-state*)
     (.increment ^LongAdder (:offered branch-state*))
     (let [result (-enqueue! (:buffer branch-state*)
                             (:mode branch-state*)
-                            (Box. value)
+                            boxed
                             #(or (some? @(:stop-reason runtime))
-                                 (not (branch-open? branch-state*))))]
-      (when (:blocked? result)
+                                 (not (branch-open? branch-state*))))
+          blocked? (instance? BlockedResult result)
+          status (if blocked?
+                   (.-status ^BlockedResult result)
+                   result)]
+      (when blocked?
         (.increment ^LongAdder (:blocked-events branch-state*))
         (.add ^LongAdder
          (:blocked-ns branch-state*)
-              (long (:blocked-ns result))))
-      (case (:status result)
+              (.-blocked-ns ^BlockedResult result)))
+      (case status
         :enqueued
         (do
           (.increment ^LongAdder (:enqueued branch-state*))
@@ -180,7 +188,7 @@
         (.increment ^LongAdder (:cancelled branch-state*))
 
         (throw (ex-info "unknown stream enqueue result"
-                        {:result result
+                        {:result status
                          :branch (:id branch-state*)}))))))
 
 (defn- finish-runtime! [runtime reason error]
@@ -195,6 +203,14 @@
     (when (branch-open? branch-state*)
       (-close! (:buffer branch-state*))))
   nil)
+
+(defn- deliver-to-branches! [runtime boxed]
+  (let [branches ^objects (:branch-array runtime)
+        branch-count (alength branches)]
+    (loop [index 0]
+      (when (< index branch-count)
+        (record-delivery! runtime (aget branches index) boxed)
+        (recur (unchecked-inc index))))))
 
 (defn- dispatch! [runtime]
   (try
@@ -214,10 +230,9 @@
               :source-exhausted
 
               :else
-              (let [value (first remaining)]
+              (let [boxed (Box. (first remaining))]
                 (.increment ^LongAdder (:source-received runtime))
-                (doseq [branch-state* (vals (:branches runtime))]
-                  (record-delivery! runtime branch-state* value))
+                (deliver-to-branches! runtime boxed)
                 (recur (next remaining)))))]
       (finish-runtime! runtime reason nil))
     (catch Throwable error
@@ -389,15 +404,18 @@
      (throw (ex-info ":close-timeout-ms must be a positive integer"
                      {:close-timeout-ms close-timeout-ms})))
    (let [configs (validate-branches branches)
+         branch-states
+         (reduce-kv
+          (fn [result id config]
+            (assoc result id (branch-state id config)))
+          {}
+          configs)
          runtime
          {:source source
           :backend :core-async
-          :branches
-          (reduce-kv
-           (fn [result id config]
-             (assoc result id (branch-state id config)))
-           {}
-           configs)
+          :branches branch-states
+          :branch-array (object-array (vals branch-states))
+          :open-branches (AtomicInteger. (count branch-states))
           :state (atom :running)
           :stop-reason (atom nil)
           :error (atom nil)
