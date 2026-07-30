@@ -12,6 +12,7 @@ This is the public documentation index for Paclo.
 - Migration guide (0.4 -> 1.0): `./migration-0.4-to-1.0.md`
 - Roadmap and release status: `./ROADMAP.md`
 - v1.2.0 implementation plan: `./release-v1.2.0-plan.md`
+- v1.2.0 release checklist: `./release-v1.2.0-checklist.md`
 - v1.1.0 release checklist: `./release-v1.1.0-checklist.md`
 - API on cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
 
