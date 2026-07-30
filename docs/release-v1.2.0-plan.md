@@ -106,4 +106,4 @@ Unavailable observations use `nil`; they are not reported as zero.
 - [x] Loopback acceptance result
 - [x] Separate-host real-NIC acceptance result
 - [x] Full static/compatibility/package gates
-- [ ] Release metadata, tag, Clojars, GitHub Release, and cljdoc verification
+- [x] Release metadata, tag, Clojars, GitHub Release, and cljdoc verification

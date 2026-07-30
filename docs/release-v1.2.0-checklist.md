@@ -54,9 +54,9 @@ Recorded local results on 2026-07-30:
 
 - [x] the release-preparation PR is green on every required CI job
 - [x] the latest dependency-audit run has no release-blocking finding
-- [ ] the release-preparation PR is merged to `main`
-- [ ] the publish workflow dry-run succeeds on the exact `main` commit
-- [ ] the dry-run artifact contains the `1.2.0` jar and POM
+- [x] the release-preparation PR is merged to `main`
+- [x] the publish workflow dry-run succeeds on the exact `main` commit
+- [x] the dry-run artifact contains the `1.2.0` jar and POM
 
 After merging the preparation PR, run:
 
@@ -76,6 +76,13 @@ Recorded validation results on 2026-07-30:
   ([run 30532048720](https://github.com/nantes-rfli/paclo/actions/runs/30532048720))
 - Dependency Audit on post-implementation `main`: successful
   ([run 30531457081](https://github.com/nantes-rfli/paclo/actions/runs/30531457081))
+- merged release commit: `3dfcabd8eee4845d7aed8708604cb4466f5d802a`
+- post-merge `main` CI: successful
+  ([run 30536370620](https://github.com/nantes-rfli/paclo/actions/runs/30536370620))
+- publish dry-run: successful
+  ([run 30536443063](https://github.com/nantes-rfli/paclo/actions/runs/30536443063))
+- dry-run artifact: `paclo-1.2.0.jar` and POM verified; jar SHA-256
+  `55a8689e34d21a0f84770c9905c4f1a50faceefbf2cdcfc7406bf582e0667d00`
 
 ## 4. Tag and publish
 
@@ -106,14 +113,20 @@ gh workflow run publish.yml \
 Do not use the recovery path after Clojars reports a successful publication;
 released coordinates are immutable and cannot be overwritten.
 
+Recorded publication results on 2026-07-30:
+
+- tagged commit: `3dfcabd8eee4845d7aed8708604cb4466f5d802a`
+- Clojars publication: successful
+  ([run 30538425161](https://github.com/nantes-rfli/paclo/actions/runs/30538425161))
+
 ## 5. Release verification
 
-- [ ] Clojars shows `org.clojars.nanto/paclo:1.2.0`
-- [ ] cljdoc builds and serves version `1.2.0`
-- [ ] a clean consumer project resolves the Clojars coordinate
-- [ ] the Git tag resolves to the release-preparation commit
-- [ ] the GitHub Release is published as the latest stable release
-- [ ] the roadmap release status is updated from candidate to released
+- [x] Clojars shows `org.clojars.nanto/paclo:1.2.0`
+- [x] cljdoc builds and serves version `1.2.0`
+- [x] a clean consumer project resolves the Clojars coordinate
+- [x] the Git tag resolves to the release-preparation commit
+- [x] the GitHub Release is published as the latest stable release
+- [x] the roadmap release status is updated from candidate to released
 
 After Clojars succeeds, create the GitHub Release:
 
@@ -123,6 +136,16 @@ gh release create v1.2.0 \
   --title v1.2.0 \
   --generate-notes
 ```
+
+Recorded release results on 2026-07-30:
+
+- clean consumer resolution downloaded the `1.2.0` POM and JAR from Clojars
+  and loaded `reduce-packets-report` and `start-capture`
+- cljdoc build `108741` completed with nine namespaces, and the
+  [v1.2.0 API](https://cljdoc.org/d/org.clojars.nanto/paclo/1.2.0/api/paclo.core)
+  includes all managed-capture functions
+- GitHub Release:
+  [v1.2.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.2.0)
 
 If a release defect is discovered, do not move the tag or replace the Clojars
 artifact. Correct it with a new patch release.
