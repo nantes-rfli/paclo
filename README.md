@@ -11,10 +11,11 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 ## Project status
 
+- Release candidate: `v1.2.0` (publication pending)
 - Stable release: `v1.1.0` (published on July 27, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Roadmap status: v1.2.0 in development (see `docs/ROADMAP.md`)
+- Roadmap status: v1.2.0 release validation (see `docs/ROADMAP.md`)
 
 ## Install
 
@@ -22,7 +23,7 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 ```edn
 {:deps
- {org.clojars.nanto/paclo {:mvn/version "1.1.0"}}}
+ {org.clojars.nanto/paclo {:mvn/version "1.2.0"}}}
 ```
 
 ### deps.edn (Git tag)
@@ -31,7 +32,7 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 {:deps
  {org.clojars.nanto/paclo
   {:git/url "https://github.com/nantes-rfli/paclo.git"
-   :git/tag "v1.1.0"}}}
+   :git/tag "v1.2.0"}}}
 ```
 
 If your environment requires Java class prep for git dependencies, run once in your consumer project:
@@ -285,6 +286,8 @@ NVD_API_TOKEN=<token> clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:de
 - Migration guide: `docs/migration-0.4-to-1.0.md`
 - Roadmap: `docs/ROADMAP.md`
 - Performance measurement: `docs/performance.md`
+- v1.2.0 implementation plan: `docs/release-v1.2.0-plan.md`
+- v1.2.0 release checklist: `docs/release-v1.2.0-checklist.md`
 - v1.1.0 release checklist: `docs/release-v1.1.0-checklist.md`
 
 ## Maintainer notes
