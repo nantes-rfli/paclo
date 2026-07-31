@@ -14,11 +14,11 @@
 (def ^:private default-buffer-cap 1024)
 (def ^:private default-close-timeout-ms 5000)
 
-(deftype ^:private Box [value])
 (deftype ^:private BlockedResult [status ^long blocked-ns])
+(def ^:private nil-value (Object.))
 
 (defprotocol ^:private BufferOps
-  (-enqueue! [buffer mode boxed stop?])
+  (-enqueue! [buffer mode boxed])
   (-take! [buffer])
   (-close! [buffer])
   (-abandon! [buffer])
@@ -26,7 +26,7 @@
 
 (deftype ^:private AsyncBuffer [channel buffer closed?]
   BufferOps
-  (-enqueue! [_ mode boxed _]
+  (-enqueue! [_ mode boxed]
     (if @closed?
       :cancelled
       (case mode
@@ -143,22 +143,20 @@
                      ^AtomicInteger (:open-branches runtime))]
                 (when (and (zero? open-count)
                            (= :running @(:state runtime))
-                         (compare-and-set! (:stop-reason runtime)
-                                           nil
-                                           :no-branches))
+                           (compare-and-set! (:stop-reason runtime)
+                                             nil
+                                             :no-branches))
                   (reset! (:state runtime) :stopping)
                   (invoke-cancel! runtime)))
               nil)
             (recur)))))))
 
-(defn- record-delivery! [runtime branch-state* boxed]
+(defn- record-delivery! [branch-state* boxed]
   (when (branch-open? branch-state*)
     (.increment ^LongAdder (:offered branch-state*))
     (let [result (-enqueue! (:buffer branch-state*)
                             (:mode branch-state*)
-                            boxed
-                            #(or (some? @(:stop-reason runtime))
-                                 (not (branch-open? branch-state*))))
+                            boxed)
           blocked? (instance? BlockedResult result)
           status (if blocked?
                    (.-status ^BlockedResult result)
@@ -209,13 +207,18 @@
         branch-count (alength branches)]
     (loop [index 0]
       (when (< index branch-count)
-        (record-delivery! runtime (aget branches index) boxed)
+        (record-delivery! (aget branches index) boxed)
         (recur (unchecked-inc index))))))
+
+(defn- take-source! [runtime]
+  (let [source @(:source runtime)]
+    (reset! (:source runtime) nil)
+    source))
 
 (defn- dispatch! [runtime]
   (try
     (let [reason
-          (loop [remaining (seq (:source runtime))]
+          (loop [remaining (seq (take-source! runtime))]
             (cond
               (some? @(:stop-reason runtime))
               @(:stop-reason runtime)
@@ -230,9 +233,10 @@
               :source-exhausted
 
               :else
-              (let [boxed (Box. (first remaining))]
+              (let [value (first remaining)
+                    item (if (nil? value) nil-value value)]
                 (.increment ^LongAdder (:source-received runtime))
-                (deliver-to-branches! runtime boxed)
+                (deliver-to-branches! runtime item)
                 (recur (next remaining)))))]
       (finish-runtime! runtime reason nil))
     (catch Throwable error
@@ -292,10 +296,11 @@
   (claim-consumer! branch-state*)
   (letfn [(drain []
             (lazy-seq
-             (if-let [^Box boxed (-take! (:buffer branch-state*))]
+             (if-let [item (-take! (:buffer branch-state*))]
                (do
                  (.increment ^LongAdder (:delivered branch-state*))
-                 (cons (.-value boxed) (drain)))
+                 (cons (when-not (identical? nil-value item) item)
+                       (drain)))
                (do
                  (finish-branch-drain! runtime branch-state*)
                  nil))))]
@@ -311,10 +316,11 @@
   (claim-consumer! branch-state*)
   (try
     (loop [acc init]
-      (if-let [^Box boxed (-take! (:buffer branch-state*))]
+      (if-let [item (-take! (:buffer branch-state*))]
         (do
           (.increment ^LongAdder (:delivered branch-state*))
-          (let [next-acc (rf acc (.-value boxed))]
+          (let [value (when-not (identical? nil-value item) item)
+                next-acc (rf acc value)]
             (if (reduced? next-acc)
               (do
                 (close-branch-state! runtime branch-state* :reduced)
@@ -411,7 +417,7 @@
           {}
           configs)
          runtime
-         {:source source
+         {:source (atom source)
           :backend :core-async
           :branches branch-states
           :branch-array (object-array (vals branch-states))

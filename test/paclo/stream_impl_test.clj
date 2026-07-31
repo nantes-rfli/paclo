@@ -1,9 +1,11 @@
 (ns paclo.stream-impl-test
   (:require
+   [clojure.edn :as edn]
    [clojure.test :refer [deftest is]]
    [paclo.stream.impl :as stream])
   (:import
-   [java.io Closeable]))
+   [java.io Closeable]
+   [java.lang.ref WeakReference]))
 
 (defn- config
   ([mode]
@@ -46,6 +48,29 @@
     (is (<= 0 (:max-depth buffer) (:capacity buffer)))
     (when (= :blocking (:mode buffer))
       (is (zero? dropped)))))
+
+(defn- marker-stream []
+  (let [marker (Object.)
+        marker-ref (WeakReference. marker)
+        fanout (stream/start
+                (lazy-seq (cons marker (range 10000)))
+                {:values (config :blocking 32)})]
+    {:fanout fanout
+     :values (stream/branch fanout :values)
+     :marker-ref marker-ref}))
+
+(defn- slow-count [values]
+  (reduce
+   (fn [^long count _]
+     (when (zero? (bit-and count 255))
+       (Thread/sleep 1))
+     (unchecked-inc count))
+   0
+   values))
+
+(defn- non-decreasing? [values]
+  (or (empty? values)
+      (apply <= values)))
 
 (deftest start-validates-the-internal-contract
   (is (thrown-with-msg?
@@ -127,6 +152,73 @@
         (doseq [id [:left :right]]
           (is (= :completed (get-in stats [:branches id :state])))
           (assert-branch-invariants (get-in stats [:branches id])))))))
+
+(deftest consumed-lazy-source-head-is-not-retained
+  (let [{:keys [fanout values marker-ref]} (marker-stream)]
+    (try
+      (is (= 10001
+             (reduce
+              (fn [^long count _]
+                (unchecked-inc count))
+              0
+              values)))
+      (is (true? (stream/await! fanout)))
+      (is (true?
+           (eventually
+            2000
+            #(do
+               (System/gc)
+               (nil? (.get ^WeakReference marker-ref))))))
+      (finally
+        (.close ^Closeable values)
+        (.close ^Closeable fanout)))))
+
+(deftest running-stats-snapshots-are-data-and-monotonic
+  (with-open [^Closeable fanout
+              (stream/start
+               (range 20000)
+               {:left (config :blocking 32)
+                :right (config :blocking 32)})
+              ^Closeable left (stream/branch fanout :left)
+              ^Closeable right (stream/branch fanout :right)]
+    (let [left-task (future (slow-count left))
+          right-task (future (slow-count right))
+          snapshots
+          (loop [result []]
+            (let [snapshot (stream/stats fanout)
+                  result* (conj result snapshot)]
+              (if (and (realized? left-task) (realized? right-task))
+                result*
+                (do
+                  (Thread/sleep 1)
+                  (recur result*)))))
+          paths [[:source :received]
+                 [:branches :left :offered]
+                 [:branches :left :enqueued]
+                 [:branches :left :delivered]
+                 [:branches :right :offered]
+                 [:branches :right :enqueued]
+                 [:branches :right :delivered]]]
+      (is (= 20000 @left-task @right-task))
+      (is (< 5 (count snapshots)))
+      (is (every? #(= % (edn/read-string (pr-str %))) snapshots))
+      (doseq [path paths]
+        (is (non-decreasing? (map #(get-in % path) snapshots))))
+      (is
+       (every?
+        (fn [snapshot]
+          (every?
+           (fn [id]
+             (let [{:keys [depth max-depth capacity]}
+                   (get-in snapshot [:branches id :buffer])]
+               (and (<= 0 depth capacity)
+                    (<= 0 max-depth capacity))))
+           [:left :right]))
+        snapshots))
+      (let [final-stats (stream/stats fanout)]
+        (doseq [id [:left :right]]
+          (assert-branch-invariants
+           (get-in final-stats [:branches id])))))))
 
 (deftest branch-handle-and-consumer-have-single-ownership
   (with-open [^Closeable fanout
