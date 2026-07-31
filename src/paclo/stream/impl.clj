@@ -5,7 +5,8 @@
   public compatibility contract. Public stream functions will wrap these
   operations only after the v1.3 performance and lifecycle gates pass."
   (:require
-   [clojure.core.async :as async])
+   [clojure.core.async :as async]
+   [clojure.core.async.impl.protocols :as async.impl])
   (:import
    [clojure.lang IReduceInit Seqable]
    [java.io Closeable]
@@ -16,6 +17,34 @@
 
 (deftype ^:private BlockedResult [status ^long blocked-ns])
 (def ^:private nil-value (Object.))
+(def ^:private false-value (Object.))
+(def ^:private not-ready (Object.))
+;; Public offer!/poll! allocate a stateless handler for every packet. Reusing
+;; the same immediate handler keeps the selected core.async channel semantics
+;; while leaving blocking fallbacks to >!!/<!!.
+(def ^:private immediate-handler
+  (async/fn-handler (fn [_]) false))
+
+(defn- offer-immediate! [channel value]
+  (when-let [result (async.impl/put! channel value immediate-handler)]
+    @result))
+
+(defn- poll-immediate! [channel]
+  (if-let [result (async.impl/take! channel immediate-handler)]
+    @result
+    not-ready))
+
+(defn- encode-value [value]
+  (cond
+    (nil? value) nil-value
+    (false? value) false-value
+    :else value))
+
+(defn- decode-value [value]
+  (cond
+    (identical? nil-value value) nil
+    (identical? false-value value) false
+    :else value))
 
 (defprotocol ^:private BufferOps
   (-enqueue! [buffer mode boxed])
@@ -31,12 +60,12 @@
       :cancelled
       (case mode
         :dropping
-        (if (async/offer! channel boxed)
+        (if (offer-immediate! channel boxed)
           :enqueued
           :dropped)
 
         :blocking
-        (if (async/offer! channel boxed)
+        (if (offer-immediate! channel boxed)
           :enqueued
           (let [started (System/nanoTime)
                 accepted? (async/>!! channel boxed)]
@@ -45,7 +74,10 @@
              (- (System/nanoTime) started)))))))
 
   (-take! [_]
-    (async/<!! channel))
+    (let [item (poll-immediate! channel)]
+      (if (identical? not-ready item)
+        (async/<!! channel)
+        item)))
 
   (-close! [_]
     (when (compare-and-set! closed? false true)
@@ -54,9 +86,11 @@
 
   (-abandon! [_]
     (loop [abandoned 0]
-      (if (some? (async/poll! channel))
-        (recur (unchecked-inc abandoned))
-        abandoned)))
+      (let [item (poll-immediate! channel)]
+        (if (and (not (identical? not-ready item))
+                 (some? item))
+          (recur (unchecked-inc abandoned))
+          abandoned))))
 
   (-depth [_]
     (count buffer)))
@@ -233,8 +267,7 @@
               :source-exhausted
 
               :else
-              (let [value (first remaining)
-                    item (if (nil? value) nil-value value)]
+              (let [item (encode-value (first remaining))]
                 (.increment ^LongAdder (:source-received runtime))
                 (deliver-to-branches! runtime item)
                 (recur (next remaining)))))]
@@ -299,8 +332,7 @@
              (if-let [item (-take! (:buffer branch-state*))]
                (do
                  (.increment ^LongAdder (:delivered branch-state*))
-                 (cons (when-not (identical? nil-value item) item)
-                       (drain)))
+                 (cons (decode-value item) (drain)))
                (do
                  (finish-branch-drain! runtime branch-state*)
                  nil))))]
@@ -319,7 +351,7 @@
       (if-let [item (-take! (:buffer branch-state*))]
         (do
           (.increment ^LongAdder (:delivered branch-state*))
-          (let [value (when-not (identical? nil-value item) item)
+          (let [value (decode-value item)
                 next-acc (rf acc value)]
             (if (reduced? next-acc)
               (do

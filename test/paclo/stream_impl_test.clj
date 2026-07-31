@@ -110,11 +110,11 @@
 (deftest branches-compose-with-seq-reduce-and-transduce
   (with-open [^Closeable fanout
               (stream/start
-               [nil :a nil :b]
+               [nil false :a nil :b]
                {:values (config :blocking)})
               ^Closeable values
               (stream/branch fanout :values)]
-    (is (= [nil :a nil :b] (vec values)))
+    (is (= [nil false :a nil :b] (vec values)))
     (is (true? (stream/await! fanout)))
     (assert-branch-invariants
      (get-in (stream/stats fanout) [:branches :values])))
