@@ -62,11 +62,11 @@ Recorded local results on 2026-08-01:
 
 ## 3. CI and publish dry-run
 
-- [ ] the release-preparation PR is green on every required CI job
+- [x] the release-preparation PR is green on every required CI job
 - [x] the latest dependency-audit run has no release-blocking finding
-- [ ] the release-preparation PR is merged to `main`
-- [ ] the publish workflow dry-run succeeds on the exact `main` commit
-- [ ] the dry-run artifact contains the `1.3.0` jar and POM
+- [x] the release-preparation PR is merged to `main`
+- [x] the publish workflow dry-run succeeds on the exact `main` commit
+- [x] the dry-run artifact contains the `1.3.0` jar and POM
 
 After merging the preparation PR, run:
 
@@ -85,6 +85,14 @@ Recorded pre-release audit result on 2026-08-01:
 - latest Dependency Audit: successful
   ([run 30531457081](https://github.com/nantes-rfli/paclo/actions/runs/30531457081));
   v1.3 adds no dependency
+- release-preparation CI: successful
+  ([run 30685082830](https://github.com/nantes-rfli/paclo/actions/runs/30685082830))
+- merged release commit: `623220872b7abfe53ae52acf31000036906375ee`
+- publish dry-run: successful
+  ([run 30685465835](https://github.com/nantes-rfli/paclo/actions/runs/30685465835))
+- dry-run JAR/POM: `1.3.0` coordinates and `paclo.stream` verified; JAR
+  SHA-256
+  `2e0e62f70ec3f6c6d8e8476c4822a2be73ac126044ab036b4106df306145ab14`
 
 ## 4. Tag and publish
 
@@ -115,14 +123,23 @@ gh workflow run publish.yml \
 Do not use the recovery path after Clojars reports a successful publication;
 released coordinates are immutable and cannot be overwritten.
 
+Recorded publication result on 2026-08-01:
+
+- tagged commit: `623220872b7abfe53ae52acf31000036906375ee`
+- Clojars publication: successful
+  ([run 30687829044](https://github.com/nantes-rfli/paclo/actions/runs/30687829044))
+- published JAR SHA-256:
+  `65a98348320ad905939e72fbf825b57111d704057698718863487edd22797a1b`
+  (workflow artifact and Clojars download match)
+
 ## 5. Release verification
 
-- [ ] Clojars shows `org.clojars.nanto/paclo:1.3.0`
-- [ ] cljdoc builds and serves version `1.3.0`
-- [ ] a clean consumer project resolves the Clojars coordinate
-- [ ] the Git tag resolves to the release-preparation commit
-- [ ] the GitHub Release is published as the latest stable release
-- [ ] the README and roadmap status are updated from candidate to released
+- [x] Clojars shows `org.clojars.nanto/paclo:1.3.0`
+- [x] cljdoc builds and serves version `1.3.0`
+- [x] a clean consumer project resolves the Clojars coordinate
+- [x] the Git tag resolves to the release-preparation commit
+- [x] the GitHub Release is published as the latest stable release
+- [x] the README and roadmap status are updated from candidate to released
 
 After Clojars succeeds, create the GitHub Release:
 
@@ -137,3 +154,14 @@ Verify that a clean consumer can require `paclo.stream` and resolve the public
 `fan-out`, `branch`, and `stats` vars. If a release defect is discovered, do
 not move the tag or replace the Clojars artifact. Correct it with a new patch
 release.
+
+Recorded verification results on 2026-08-01:
+
+- clean consumer resolution downloaded the `1.3.0` POM and JAR from Clojars
+  and loaded `paclo.stream/fan-out`, `branch`, and `stats`
+- cljdoc build
+  [108984](https://cljdoc.org/builds/108984) successfully imported 11
+  namespaces, including the
+  [paclo.stream API](https://cljdoc.org/d/org.clojars.nanto/paclo/1.3.0/api/paclo.stream)
+- GitHub Release:
+  [v1.3.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.3.0)

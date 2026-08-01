@@ -18,7 +18,7 @@ It is intentionally concise and focuses on user-visible outcomes.
   staged live-capture observability
 - `v1.2.0` (released, 2026-07-30): controlled capture execution, synchronous
   reports, and managed single-consumer capture lifecycles
-- `v1.3.0` (release candidate, 2026-08-01): composable packet transforms and
+- `v1.3.0` (released, 2026-08-01): composable packet transforms and
   bounded, observable multi-consumer fan-out
 
 ## v1.0 completion status
@@ -92,8 +92,8 @@ mmap, and PCAPNG. These capabilities require separate evidence and contracts.
 - [x] Prove slow-branch isolation, bounded heap, and source-head release
 - [x] Pass the Linux/macOS, JDK 17/21, arm64, lint, coverage, and package gates
 - [x] Clear the historical live floor with a separate-JVM Linux probe
-- [ ] Complete the publication dry-run on the release commit
-- [ ] Publish `v1.3.0` to Clojars and verify cljdoc
+- [x] Complete the publication dry-run on the release commit
+- [x] Publish `v1.3.0` to Clojars and verify cljdoc
 
 The v1.3 public surface remains deliberately small. It does not expose the
 core.async backend, dynamically add or remove branches, or make a branch
