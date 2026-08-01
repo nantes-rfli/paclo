@@ -7,6 +7,9 @@ import jnr.ffi.Pointer;
  * This mapping assumes the common 64-bit layout used by libpcap.
  */
 public final class PcapHeader {
+  private static final boolean DARWIN =
+      System.getProperty("os.name", "").startsWith("Mac");
+
   private PcapHeader() { }
 
   /**
@@ -20,13 +23,17 @@ public final class PcapHeader {
   }
 
   /**
-   * timeval.tv_usec (8 bytes)
+   * timeval.tv_usec (8 bytes on Linux, 4 bytes on Darwin)
    *
    * @param hdr pcap_pkthdr pointer
    * @return microseconds part of timestamp
    */
   public static long tv_usec(Pointer hdr) {
-    return hdr.getLong(8);
+    /*
+     * Darwin defines suseconds_t as int32 and pads struct timeval to 16 bytes.
+     * Reading a long there includes uninitialized padding in the upper bits.
+     */
+    return DARWIN ? hdr.getInt(8) : hdr.getLong(8);
   }
 
   /**

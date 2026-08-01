@@ -15,6 +15,10 @@ class PcapHeaderTest {
 
     hdr.putLong(0, 1234L);
     hdr.putLong(8, 5678L);
+    if (System.getProperty("os.name", "").startsWith("Mac")) {
+      // Darwin pads its 32-bit suseconds_t before caplen.
+      hdr.putInt(12, 0x7f7f7f7f);
+    }
     hdr.putInt(16, 0x01020304);
     hdr.putInt(20, 0x05060708);
 

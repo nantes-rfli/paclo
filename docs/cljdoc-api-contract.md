@@ -8,6 +8,7 @@ It is intentionally compact and focused on user-facing namespaces.
 Public namespaces:
 
 - `paclo.core`
+- `paclo.stream`
 - `paclo.decode-ext`
 
 Internal namespaces (not covered by compatibility guarantees):
@@ -15,6 +16,7 @@ Internal namespaces (not covered by compatibility guarantees):
 - `paclo.pcap`
 - `paclo.parse`
 - `paclo.proto.*`
+- `paclo.stream.impl`
 
 ## `paclo.core`
 
@@ -121,8 +123,8 @@ Internal namespaces (not covered by compatibility guarantees):
     close
   - includes live packet/queue counts while running and final libpcap counters
     after termination
-- Managed capture has exactly one packet consumer. Multiple subscribers,
-  pub/sub, and consumer-specific queues are outside the v1.2 contract.
+- Managed capture has exactly one direct packet consumer. Compose that stream
+  with `paclo.stream/fan-out` when multiple bounded consumers are required.
 
 ### `write-pcap!`
 
@@ -153,6 +155,51 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - Behavior: prints repository usage hints for `clojure -M:run`
 - Note: convenience entrypoint, not an application runtime API
+
+## `paclo.stream`
+
+### `fan-out`
+
+```clojure
+(fan-out source branches)
+(fan-out source branches opts)
+```
+
+- `source` must be seqable
+- `branches` must contain at least two keyword IDs
+- every branch config requires `:buffer-mode :blocking|:dropping`
+- `:buffer-cap` is a positive integer and defaults to 1024
+- optional `:cancel!` releases an externally waiting source during shutdown
+- optional `:close-timeout-ms` bounds dispatcher shutdown
+- returns an opaque `java.io.Closeable` handle intended for `with-open`
+- preserves source order within each branch and shares value references rather
+  than copying values
+
+### `branch`
+
+```clojure
+(branch fanout branch-id)
+```
+
+- returns an opaque `Seqable`, `IReduceInit`, and `java.io.Closeable` handle
+- each branch ID may be acquired once and drained by one consumer
+- supports `seq`, `reduce`, and `transduce`
+- closing one branch does not close sibling branches
+- `:blocking` avoids branch-local drop but may backpressure all branches
+- `:dropping` isolates a slow branch by dropping new values when its buffer is
+  full
+
+### `stats`
+
+```clojure
+(stats fanout)
+```
+
+- returns a data-only schema-version 1 snapshot during or after execution
+- records source receipt; branch offer, enqueue, delivery, drop, cancellation,
+  and abandonment; buffer depth and backpressure; lifecycle and error fields
+- does not include capture/libpcap statistics or application business metrics
+- terminal snapshots remain available after close
 
 ## `paclo.decode-ext`
 

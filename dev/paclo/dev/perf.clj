@@ -26,6 +26,8 @@
    :live-dropping-raw
    :live-sync-full
    :live-managed-full
+   :live-managed-fanout-dual
+   :live-managed-fanout-slow-dropping
    :live-dropping-full])
 
 (def ^:private stress-live-scenarios
@@ -59,6 +61,7 @@
   (println "                   [--duration-ms MS] [--warmups N] [--runs N]")
   (println "                   [--frame-size BYTES] [--snaplen BYTES]")
   (println "                   [--queue-cap N] [--queue-mode blocking|dropping]")
+  (println "                   [--branch-cap N] [--slow-cap N]")
   (println "                   [--consumer-delay-ns NS]")
   (println "                   [--expected-packets N]")
   (println)
@@ -100,6 +103,10 @@
                                       (Long/parseLong value)) more)
           "--queue-mode" (recur (assoc opts :queue-mode
                                        (keyword value)) more)
+          "--branch-cap" (recur (assoc opts :branch-cap
+                                       (Long/parseLong value)) more)
+          "--slow-cap" (recur (assoc opts :slow-cap
+                                     (Long/parseLong value)) more)
           "--consumer-delay-ns"
           (recur (assoc opts :consumer-delay-ns
                         (Long/parseLong value)) more)
@@ -119,7 +126,8 @@
 
 (defn- validate-opts!
   [{:keys [mode profile port source scenarios rates duration-ms warmups runs
-           frame-size snaplen queue-cap queue-mode consumer-delay-ns
+           frame-size snaplen queue-cap queue-mode branch-cap slow-cap
+           consumer-delay-ns
            expected-packets]}]
   (when-not (contains? #{:offline :live :all} mode)
     (throw (ex-info "mode must be offline, live, or all" {:mode mode})))
@@ -141,7 +149,9 @@
                          [:runs runs]
                          [:frame-size frame-size]
                          [:snaplen snaplen]
-                         [:queue-cap queue-cap]]]
+                         [:queue-cap queue-cap]
+                         [:branch-cap branch-cap]
+                         [:slow-cap slow-cap]]]
     (when (and value (not (pos? (long value))))
       (throw (ex-info (str (name label) " must be positive")
                       {label value}))))
@@ -330,7 +340,7 @@
 
 (defn- worker-live-args
   [{:keys [device port source filter frame-size snaplen queue-cap queue-mode
-           consumer-delay-ns expected-packets]}
+           branch-cap slow-cap consumer-delay-ns expected-packets]}
    {:keys [scenario rate duration-ms warmups runs senders]}]
   (cond-> ["--mode" "live"
            "--scenario" (name scenario)
@@ -348,6 +358,8 @@
            "--runs" (str runs)]
     filter (conj "--filter" filter)
     queue-mode (conj "--queue-mode" (name queue-mode))
+    branch-cap (conj "--branch-cap" (str branch-cap))
+    slow-cap (conj "--slow-cap" (str slow-cap))
     expected-packets (conj "--expected-packets" (str expected-packets))))
 
 (defn- validate-external-run-shape!
@@ -363,7 +375,7 @@
 (defn- live-results!
   [{:keys [profile device port source filter scenarios rates
            duration-ms warmups runs frame-size snaplen queue-cap queue-mode
-           consumer-delay-ns expected-packets]}]
+           branch-cap slow-cap consumer-delay-ns expected-packets]}]
   (let [profile-config (get live-profiles profile)
         source (or source :loopback)
         rates (if (= source :external)
@@ -384,6 +396,8 @@
                        :snaplen (or snaplen 65536)
                        :queue-cap (or queue-cap 1024)
                        :queue-mode queue-mode
+                       :branch-cap (or branch-cap 4096)
+                       :slow-cap (or slow-cap 64)
                        :expected-packets expected-packets
                        :consumer-delay-ns (or consumer-delay-ns 0)}]
     (validate-external-run-shape! expected-packets scenarios warmups runs)

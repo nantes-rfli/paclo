@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `paclo.core/packet-xf` for composing compatible full decode or numeric
+  flow projection with standard Clojure transducers.
+- Added public `paclo.stream/fan-out`, `branch`, and `stats` for backend-neutral
+  bounded distribution through reducible, seqable, closeable branches.
+- Added branch-local blocking/dropping policies and schema-versioned data-only
+  distribution, buffer, backpressure, lifecycle, and error statistics.
+
+### Changed
+- Unified packet transformation across lazy sequences, synchronous reduction,
+  reduction reports, and managed captures through `packet-xf`.
+- Added `:decode-mode :flow` support to `paclo.core/packets`.
+- External exact-count live benchmarks now stop capture at the expected packet
+  count instead of relying only on a duration timeout.
+
+### Fixed
+- Read macOS `timeval.tv_usec` using its 32-bit Darwin ABI width instead of
+  including the adjacent struct padding in packet timestamps.
+- Released the fan-out dispatcher's reference to the lazy source head so long
+  bounded streams do not retain every realized tail.
+
 ## [1.2.0] - 2026-07-30
 
 ### Added

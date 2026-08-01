@@ -4,7 +4,8 @@
    [clojure.java.io :as io]
    [paclo.core :as core]
    [paclo.dev.perf-metrics :as metrics]
-   [paclo.pcap :as pcap])
+   [paclo.pcap :as pcap]
+   [paclo.stream.impl :as stream])
   (:import
    [java.net DatagramPacket DatagramSocket InetAddress]
    [java.util HashMap]
@@ -216,6 +217,12 @@
                        :duration-ms duration-ms
                        :payload-bytes (max 1 (- frame-size 28))})))))))
 
+(defn- live-capture-max
+  [source expected-packets]
+  (if (and (= source :external) expected-packets)
+    (long expected-packets)
+    Long/MAX_VALUE))
+
 (defn- live-reducer [consumer-delay-ns]
   (fn [{:keys [packets bytes decode-errors] :as result} packet]
     (when (pos? (long consumer-delay-ns))
@@ -225,6 +232,60 @@
            :bytes (+ (long bytes) (long (:caplen packet)))
            :decode-errors (+ (long decode-errors)
                              (if (contains? packet :decode-error) 1 0)))))
+
+(defn- fanout-branch-config
+  [{:keys [fanout-mode branch-cap slow-cap]}]
+  (case fanout-mode
+    :dual
+    {:left {:buffer-mode :blocking :buffer-cap branch-cap}
+     :right {:buffer-mode :blocking :buffer-cap branch-cap}}
+
+    :slow-dropping
+    {:fast {:buffer-mode :blocking :buffer-cap branch-cap}
+     :slow {:buffer-mode :dropping :buffer-cap slow-cap}}))
+
+(defn- fanout-live-run
+  [capture config]
+  (let [{:keys [fanout-mode consumer-delay-ns]} config
+        fanout
+        (stream/start
+         (core/capture-packets capture)
+         (fanout-branch-config config)
+         {:cancel! #(core/stop-capture! capture)})]
+    (try
+      (case fanout-mode
+        :dual
+        (let [left (stream/branch fanout :left)
+              right (stream/branch fanout :right)
+              left-task (future (reduce-packets left consumer-delay-ns))
+              right-task (future (reduce-packets right consumer-delay-ns))
+              left-result @left-task
+              right-result @right-task]
+          (when-not (= (:packets left-result) (:packets right-result))
+            (throw (ex-info "fan-out blocking branches diverged"
+                            {:left (:packets left-result)
+                             :right (:packets right-result)})))
+          (assoc left-result
+                 :left-count (:packets left-result)
+                 :right-count (:packets right-result)
+                 :stream-stats (stream/stats fanout)))
+
+        :slow-dropping
+        (let [fast (stream/branch fanout :fast)
+              slow (stream/branch fanout :slow)
+              fast-result (reduce-packets fast consumer-delay-ns)]
+          (when-not (stream/await! fanout)
+            (throw (ex-info "fan-out dispatcher timed out" {})))
+          (let [slow-result (reduce-packets slow)
+                stream-stats (stream/stats fanout)]
+            (assoc fast-result
+                   :fast-count (:packets fast-result)
+                   :slow-count (:packets slow-result)
+                   :slow-dropped
+                   (get-in stream-stats [:branches :slow :dropped])
+                   :stream-stats stream-stats))))
+      (finally
+        (.close ^java.io.Closeable fanout)))))
 
 (defn- live-run
   [{:keys [device port target-pps duration-ms decode? source engine filter
@@ -243,7 +304,7 @@
                       :filter filter*
                       :decode? decode?
                       :snaplen snaplen
-                      :max Long/MAX_VALUE
+                      :max (live-capture-max source expected-packets)
                       :max-time-ms (if (= source :external)
                                      duration-ms
                                      (+ duration-ms 1000))
@@ -258,7 +319,7 @@
                                         (or (.getMessage ^Throwable %) (str %)))}
                buffer-size (assoc :buffer-size buffer-size)
                (some? immediate?) (assoc :immediate? immediate?)
-               (contains? #{:queue :managed} engine)
+               (contains? #{:queue :managed :fanout} engine)
                (assoc :queue-cap queue-cap
                       :queue-mode queue-mode
                       :on-queue-stats #(reset! queue-stats %)))
@@ -285,6 +346,19 @@
                   (reduce-packets
                    (core/capture-packets capture)
                    consumer-delay-ns)
+                  (finally
+                    (.close ^java.io.Closeable capture)))
+                snapshot (core/capture-stats capture)]
+            (reset! stats (:pcap snapshot))
+            (reset! queue-stats (:queue snapshot))
+            [result tasks])
+
+          :fanout
+          (let [capture (core/start-capture opts)
+                tasks (sender-tasks config)
+                result
+                (try
+                  (fanout-live-run capture config)
                   (finally
                     (.close ^java.io.Closeable capture)))
                 snapshot (core/capture-stats capture)]
@@ -421,6 +495,16 @@
                               :decode? true
                               :buffer-size (* 16 1024 1024)
                               :immediate? true}
+          :live-managed-fanout-dual
+          {:engine :fanout
+           :fanout-mode :dual
+           :buffer-size (* 16 1024 1024)
+           :immediate? true}
+          :live-managed-fanout-slow-dropping
+          {:engine :fanout
+           :fanout-mode :slow-dropping
+           :buffer-size (* 16 1024 1024)
+           :immediate? true}
           :live-dropping-full {:engine :queue
                                :decode? true
                                :queue-mode :dropping
@@ -440,6 +524,8 @@
                  :snaplen 65536
                  :queue-cap 1024
                  :queue-mode :blocking
+                 :branch-cap 4096
+                 :slow-cap 64
                  :consumer-delay-ns 0}
                 scenario-config
                 (cond-> {}
@@ -453,6 +539,12 @@
                          (parse-long! (:queue-cap opts) "queue-cap"))
                   (:queue-mode opts)
                   (assoc :queue-mode (keyword (:queue-mode opts)))
+                  (:branch-cap opts)
+                  (assoc :branch-cap
+                         (parse-long! (:branch-cap opts) "branch-cap"))
+                  (:slow-cap opts)
+                  (assoc :slow-cap
+                         (parse-long! (:slow-cap opts) "slow-cap"))
                   (:consumer-delay-ns opts)
                   (assoc :consumer-delay-ns
                          (parse-long! (:consumer-delay-ns opts)
@@ -470,8 +562,8 @@
     (when-not (contains? #{:loopback :external} (:source config))
       (throw (ex-info "source must be loopback or external"
                       {:source (:source config)})))
-    (when-not (contains? #{:queue :direct :managed} (:engine config))
-      (throw (ex-info "engine must be queue, direct, or managed"
+    (when-not (contains? #{:queue :direct :managed :fanout} (:engine config))
+      (throw (ex-info "engine must be queue, direct, managed, or fanout"
                       {:engine (:engine config)})))
     (when-not (contains? #{:blocking :dropping} (:queue-mode config))
       (throw (ex-info "queue-mode must be blocking or dropping"
@@ -499,6 +591,12 @@
     (when-not (pos? (long (:queue-cap config)))
       (throw (ex-info "queue-cap must be positive"
                       {:queue-cap (:queue-cap config)})))
+    (when-not (pos? (long (:branch-cap config)))
+      (throw (ex-info "branch-cap must be positive"
+                      {:branch-cap (:branch-cap config)})))
+    (when-not (pos? (long (:slow-cap config)))
+      (throw (ex-info "slow-cap must be positive"
+                      {:slow-cap (:slow-cap config)})))
     (when (neg? (long (:consumer-delay-ns config)))
       (throw (ex-info "consumer-delay-ns cannot be negative"
                       {:consumer-delay-ns (:consumer-delay-ns config)})))
