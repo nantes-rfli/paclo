@@ -1,9 +1,8 @@
 (ns paclo.stream.impl
   "Internal bounded fan-out runtime.
 
-  This namespace is an implementation detail and is not part of Paclo's
-  public compatibility contract. Public stream functions will wrap these
-  operations only after the v1.3 performance and lifecycle gates pass."
+  This namespace backs `paclo.stream` but remains an implementation detail and
+  is not part of Paclo's public compatibility contract."
   (:require
    [clojure.core.async :as async]
    [clojure.core.async.impl.protocols :as async.impl])

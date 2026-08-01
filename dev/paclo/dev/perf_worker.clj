@@ -217,6 +217,12 @@
                        :duration-ms duration-ms
                        :payload-bytes (max 1 (- frame-size 28))})))))))
 
+(defn- live-capture-max
+  [source expected-packets]
+  (if (and (= source :external) expected-packets)
+    (long expected-packets)
+    Long/MAX_VALUE))
+
 (defn- live-reducer [consumer-delay-ns]
   (fn [{:keys [packets bytes decode-errors] :as result} packet]
     (when (pos? (long consumer-delay-ns))
@@ -298,7 +304,7 @@
                       :filter filter*
                       :decode? decode?
                       :snaplen snaplen
-                      :max Long/MAX_VALUE
+                      :max (live-capture-max source expected-packets)
                       :max-time-ms (if (= source :external)
                                      duration-ms
                                      (+ duration-ms 1000))

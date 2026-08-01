@@ -6,6 +6,7 @@
    [paclo.dev.perf-data :as data]
    [paclo.dev.perf-generator :as generator]
    [paclo.dev.perf-metrics :as metrics]
+   [paclo.dev.perf-worker :as worker]
    [paclo.parse :as parse]
    [paclo.pcap :as pcap])
   (:import
@@ -149,6 +150,12 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
                           #"requires source=external"
                           (validate! (assoc valid :source :loopback))))))
+
+(deftest external-expected-count-bounds-live-capture
+  (let [capture-max (deref #'worker/live-capture-max)]
+    (is (= 2000000 (capture-max :external 2000000)))
+    (is (= Long/MAX_VALUE (capture-max :external nil)))
+    (is (= Long/MAX_VALUE (capture-max :loopback 2000000)))))
 
 (deftest external-worker-signals-capture-readiness
   (let [worker! (deref #'perf/worker!)
