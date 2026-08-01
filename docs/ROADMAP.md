@@ -129,6 +129,16 @@ the managed lifecycle and records the required real-NIC observation, while
 confirming that the current wired-to-Wi-Fi path cannot provide a repeatable
 end-to-end throughput floor.
 
+The v1.3 bounded fan-out track adds `paclo.stream/fan-out`, `branch`, and
+`stats` as a small backend-neutral public surface. Combined offline runs
+validated two blocking consumers, slow-branch drop isolation, bounded heap,
+and the 1,250 bytes/packet allocation ceiling. A Linux separate-JVM live gate
+then realized approximately 400k pps: dual fan-out delivered 2,000,000 packets
+to each branch at approximately 392k pkt/s, and slow-dropping delivered all
+1,000,000 packets to the fast branch at approximately 384k pkt/s. Both runs
+reported zero kernel and managed-queue drops. This clears the historical 369k
+live floor; packaging and release checks remain the final v1.3 work.
+
 Phase 6 remains a post-v1.1 conditional investigation. Borrowed buffers,
 batching, parallel decode, and mmap should be attempted only when a measured
 workload remains below target after the compatible Phase 1-5 paths.

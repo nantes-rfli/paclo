@@ -220,6 +220,33 @@ zero. Peak heap was approximately 67 MB. This establishes a zero-drop floor,
 not the maximum sustainable rate, because the local generator did not realize
 its one-million-pps target.
 
+## v1.3 bounded fan-out live gate
+
+The v1.3 public fan-out gate was completed on 2026-08-01 using Linux x86_64,
+JDK 21.0.12, libpcap 1.10.4 with TPACKET_V3, and a separate generator JVM.
+The tracked `paclo.dev.perf-generator` realized approximately 400k pps with
+eight senders. The receiver used a 128 MiB buffered libpcap ring, a bounded
+blocking managed-capture queue, and the core.async-backed fan-out runtime.
+
+| Scenario | Generator | Fan-out interval | Complete consumers | Intended branch drop | Kernel/queue drop | Allocation |
+| --- | ---: | ---: | --- | ---: | ---: | ---: |
+| two blocking branches | 399,986 pps | 391,773 pkt/s | left/right 2,000,000 | 0 | 0 / 0 | 1,136.0 B/packet |
+| slow dropping branch | 399,974 pps | 383,730 pkt/s | fast 1,000,000 | slow 999,936; delivered 64 | 0 / 0 | 926.1 B/packet |
+
+Both results exceed the historical approximately 369k pps live floor. The
+dual run delivered every packet to both branches and stayed below the 1,250
+bytes/packet allocation ceiling. The slow run delivered every packet to the
+fast branch while isolating all overload to the configured 64-entry dropping
+branch. Branch blocking/drop counters and final statistics satisfied their
+invariants.
+
+Linux loopback `pcap_stats.received` counted both directions and therefore
+reported 4,000,000 and 2,000,000 respectively; Paclo's exact delivered counts
+were 2,000,000 and 1,000,000. Both libpcap drop counters were zero. A 16 MiB
+immediate-mode probe overloaded TPACKET_V3, so the passing buffered-ring
+configuration is an explicit platform tuning choice rather than a new
+default.
+
 ## Phase-5 live baseline
 
 A three-second comparison on the same Intel reference Mac exercised

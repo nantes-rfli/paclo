@@ -120,6 +120,33 @@ For long-running or externally stopped capture, own a managed capture with
   (core/capture-stats capture))
 ```
 
+To feed two independent consumers, compose the managed capture with bounded
+fan-out. Each branch is single-consumer and must be owned with `with-open`:
+
+```clojure
+(require '[paclo.stream :as stream])
+
+(with-open [capture
+            (core/start-capture
+             {:device "en0"
+              :filter [:and :udp [:port 53]]
+              :queue-cap 4096})
+            fanout
+            (stream/fan-out
+             (core/capture-packets capture)
+             {:archive {:buffer-mode :blocking :buffer-cap 8192}
+              :metrics {:buffer-mode :dropping :buffer-cap 1024}}
+             {:cancel! #(core/stop-capture! capture)})
+            archive (stream/branch fanout :archive)
+            metrics (stream/branch fanout :metrics)]
+  (let [archive-task (future (run! write-packet! archive))
+        metrics-task (future (run! update-metrics! metrics))]
+    @archive-task
+    @metrics-task
+    {:capture (core/capture-stats capture)
+     :stream (stream/stats fanout)}))
+```
+
 ## Run examples
 
 Development examples are under `dev/examples` and loaded with `:dev`.
@@ -212,9 +239,11 @@ For full argument tables and behavior details, see `docs/usage.md`.
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
 | `paclo.core` | `bpf`, `packets`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
+| `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
-Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`) are not part of the compatibility contract.
+Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
+`paclo.stream.impl`) are not part of the compatibility contract.
 
 ## Compatibility matrix
 
