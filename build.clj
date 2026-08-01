@@ -29,7 +29,7 @@
 (defn- resolve-version []
   (or (System/getenv "PACLO_VERSION")
       (tagged-version)
-      "1.2.0-SNAPSHOT"))
+      "1.3.0-SNAPSHOT"))
 
 (def lib 'org.clojars.nanto/paclo)
 (def version (resolve-version))
