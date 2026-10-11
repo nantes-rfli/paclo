@@ -23,7 +23,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 
 | ID | Candidate | Task | Depends on | Status |
 | --- | --- | --- | --- | --- |
-| P01 | v1.3.x | Align public documentation with v1.3 behavior | — | ready |
+| P01 | v1.3.x | Align public documentation with v1.3 behavior | — | in-progress |
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | ready |
 | P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | blocked |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | blocked |
@@ -34,8 +34,9 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P01**, then P02. Implement one reviewable item or a documented
-slice at a time. Update this queue after completion; do not start all phases together.
+Default next task: **finish P01 review and verification in PR #17**, then P02.
+Implement one reviewable item or a documented slice at a time. Update this
+queue after completion; do not start all phases together.
 
 ## P01: Documentation and API discovery
 
@@ -52,6 +53,16 @@ Document existing stop defaults and distinguish finite-file completion from limi
 
 Acceptance: examples execute; API docs agree; resource-owning examples close on
 early termination. This item must not invent new runtime APIs.
+
+Documentation submitted in [PR #17](https://github.com/nantes-rfli/paclo/pull/17)
+on 2026-10-11. README, usage guide, API contract, and extension guide now
+cover `packet-xf`, bounded fan-out, early closure, stop defaults, EOF, and
+the existing writer limitations; the incorrect DNS namespace was corrected.
+Static checks passed (code/API cross-reference, Markdown fence balance,
+obsolete namespace and placeholder function scans). Example execution,
+Markdown lint, and full tests have not been run locally from this chat
+environment. Keep P01 in progress until the PR is reviewed, CI is checked,
+and the example-execution acceptance is verified.
 
 ## P02: Faithful PCAP round trips
 
@@ -183,3 +194,15 @@ Baseline investigation: 34 focused tests / 118 assertions passed on Linux/JDK 21
 Timestamp replacement and global-hook dependence were reproduced. That investigation
 did not validate live capture or rerun historical performance measurements.
 See `dev/codex-environment-validation.md` for preparation results.
+
+Item / slice: P01 / public API and usage documentation
+Status and implementation commit or PR: PR #17 (review and validation pending)
+Contract decisions: Document only the shipped v1.3 API; no new runtime options;
+  `packet-xf` is public and fan-out is separately owned; current writer
+  metadata loss remains until P02.
+Commands and measured results: GitHub source/API inspection and static
+  documentation consistency checks passed; runtime examples, local lint,
+  and tests were not executed in this chat environment.
+Unverified platforms or blocked checks: Executable example acceptance,
+  PR CI, local Markdown lint, live capture, macOS/arm64.
+Next item: Finish P01 verification/review; then P02.
