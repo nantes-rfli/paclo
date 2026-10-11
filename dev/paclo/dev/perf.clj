@@ -1,6 +1,7 @@
 (ns paclo.dev.perf
   "Offline and staged live-capture performance runner."
   (:require
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.java.shell :as shell]
    [clojure.string :as str]
