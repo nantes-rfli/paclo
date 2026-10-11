@@ -30,6 +30,35 @@ Internal namespaces (not covered by compatibility guarantees):
 - Output: libpcap BPF filter string (or `nil`)
 - Errors: throws `ex-info` for unsupported form/operator/keyword
 
+### `packet-xf`
+
+```clojure
+(packet-xf opts)
+```
+
+- Input: packet maps, normally including `:bytes`, supplied through ordinary
+  Clojure transducer composition
+- Options:
+  - `:decode? true`: full decode into `:decoded`; if decoding fails,
+    return a packet map with `:decode-error`
+  - `:decode-mode :flow`: flat numeric flow projection; IPv4 addresses are
+    unsigned longs and IPv6 addresses are two-long vectors
+  - neither option: identity transducer, leaving each packet unchanged
+- `:decode?` and `:decode-mode` are mutually exclusive; unsupported
+  decode modes and combined options throw `ex-info` at construction
+- With full decode, registered `paclo.decode-ext` hooks are applied after
+  successful decoding; flow mode does not run those hooks
+- Output: a transducer, suitable for `comp`, `sequence`, `into`, or
+  `transduce`; no capture is opened by constructing it
+
+```clojure
+(into []
+      (comp (packet-xf {:decode-mode :flow})
+            (filter #(= 17 (:protocol %)))
+            (map :dst-port))
+      (packets {:path "test/resources/dns-sample.pcap"}))
+```
+
 ### `packets`
 
 ```clojure
@@ -39,15 +68,25 @@ Internal namespaces (not covered by compatibility guarantees):
 - Input:
   - source: `:path` (offline) or `:device` (live)
   - `:filter`: BPF string / keyword / DSL vector
-  - optional `:decode?`, `:xform`, and additional capture options
-  - live queues remain bounded and blocking by default; opt-in
-    `:queue-mode :dropping` may be combined with `:queue-cap` and
-    `:on-queue-stats`
+  - `:decode? true` for full decode, or `:decode-mode :flow` for numeric
+    flow projection (they cannot be combined)
+  - optional `:xform` transducer, applied after the built-in
+    `packet-xf` transformation
+  - capture limits: `:max` (default 100 captured packets),
+    `:max-time-ms` (default 10000 ms), and `:idle-max-ms` (default
+    3000 ms; continuous idle, mainly live)
+  - bounded producer queue: `:queue-cap` (default 1024),
+    `:queue-mode :blocking` (default) or `:dropping`,
+    and optional `:on-queue-stats`
 - Output: lazy sequence of packet maps
-- Decode behavior (`:decode? true`):
-  - success -> packet includes `:decoded`
-  - failure -> packet includes `:decode-error`
-  - when `:decoded` exists, `paclo.decode-ext/apply!` is invoked
+- Decode behavior: identical to `packet-xf`; full decoding invokes
+  `paclo.decode-ext/apply!` when `:decoded` is present
+- Termination:
+  - offline EOF stops the source, unless a count/time/predicate limit stops
+    it first
+  - consuming only `(take n ...)` does **not** explicitly cancel the
+    background producer or close its source; use synchronous reduction or a
+    managed capture for predictable early cleanup
 - Errors:
   - throws `ex-info` for invalid `:filter` type
   - libpcap open/filter/capture errors may propagate
@@ -67,7 +106,7 @@ Internal namespaces (not covered by compatibility guarantees):
 - Behavior:
   - reads and reduces synchronously without a queue or intermediate lazy seq
   - fuses `:xform` into the reducing function
-  - honors `reduced` for immediate early termination
+  - honors `reduced` for immediate early termination and source cleanup
   - preserves the compatible `:decode? true` result and extension behavior
   - flow mode returns capture metadata plus numeric source/destination IP,
     protocol, and ports; IPv4 addresses are unsigned longs and IPv6 addresses
@@ -92,6 +131,8 @@ Internal namespaces (not covered by compatibility guarantees):
   - live capture includes final portable libpcap counters when available
 - Stop reasons include `:max-packets`, `:max-time`, `:idle-timeout`,
   `:predicate`, `:reduced`, `:eof`, and `:error`
+- EOF is not equivalent to exhausting the default count of 100 packets:
+  large files need explicitly raised count and time limits
 
 ### Managed capture
 
@@ -104,7 +145,8 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - `start-capture`:
   - accepts a live `:device` or offline `:path` plus the compatible filter,
-    decode, transducer, stopping, queue, and error options
+    decode, transducer, stopping, queue, and error options; the capture limit
+    and producer queue defaults are the same as for `packets`
   - opens the source and installs BPF synchronously
   - returns an opaque `java.io.Closeable` handle intended for `with-open`
 - `capture-packets`:
@@ -125,6 +167,9 @@ Internal namespaces (not covered by compatibility guarantees):
     after termination
 - Managed capture has exactly one direct packet consumer. Compose that stream
   with `paclo.stream/fan-out` when multiple bounded consumers are required.
+  Own the capture, fan-out and acquired branch handles together with
+  `with-open`, and pass `:cancel!` when fan-out shutdown needs to unblock
+  the capture source.
 
 ### `write-pcap!`
 
@@ -135,8 +180,15 @@ Internal namespaces (not covered by compatibility guarantees):
 - Input:
   - `packets`: seq of `byte-array` or `{:bytes ... :sec ... :usec ...}` maps
   - `out-path`: non-blank output path
-- Output: writes PCAP file; returns writer result
-- Errors: throws `ex-info` for invalid/missing output path or invalid packet entry
+- If either `:sec` or `:usec` is absent, the writer uses the current time.
+  Read packet maps use `:ts-sec`/`:ts-usec`, which are **not** automatically
+  mapped to the writer's timestamp keys.
+- Output: writes an Ethernet-linktype PCAP file with per-record captured
+  and original lengths derived from the byte-array length. Truncated records
+  cannot currently be round-tripped with their original wire length intact.
+- Errors: throws `ex-info` for invalid/missing output path or missing map
+  `:bytes`. Faithful read/write metadata preservation is separate future
+  work (P02), not a v1.3 behavior guarantee.
 
 ### `list-devices`
 
@@ -183,7 +235,8 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - returns an opaque `Seqable`, `IReduceInit`, and `java.io.Closeable` handle
 - each branch ID may be acquired once and drained by one consumer
-- supports `seq`, `reduce`, and `transduce`
+- supports `seq`, `reduce`, and `transduce`; a reducer returning
+  `reduced` closes that branch early
 - closing one branch does not close sibling branches
 - `:blocking` avoids branch-local drop but may backpressure all branches
 - `:dropping` isolates a slow branch by dropping new values when its buffer is
@@ -242,6 +295,9 @@ Internal namespaces (not covered by compatibility guarantees):
   - hook exceptions are swallowed
   - non-map hook return values are ignored
 - Returns updated (or original) packet map
+- The registry is process-wide; existing transforms consult the installed
+  hooks when processing packets. Per-pipeline extension selection is not
+  part of the current public v1.3 API.
 
 ## Stability notes
 
