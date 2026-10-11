@@ -10,6 +10,7 @@
    [paclo.dev.perf-data :as data]
    [paclo.dev.perf-generator :as generator]
    [paclo.dev.perf-metrics :as metrics]
+   [paclo.dev.perf-spec :as spec]
    [paclo.dev.perf-worker :as worker]
    [paclo.parse :as parse]
    [paclo.pcap :as pcap])
@@ -137,9 +138,25 @@
       (is (thrown-with-msg? clojure.lang.ExceptionInfo
                             #"invalid performance shard envelope"
                             (merge! opts)))
+      (spit (second paths)
+            (pr-str (update-in (second shards)
+                               [:offline 0 :runs 0 :bytes]
+                               inc)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"offline benchmark result failed consistency checks"
+                            (merge! opts)))
       (finally
         (doseq [file (reverse (file-seq dir))]
           (.delete file))))))
+
+(deftest standalone-perf-spec-matches-benchmark-inputs
+  (is (= data/profiles spec/profiles))
+  (is (= (deref #'perf/offline-scenarios) spec/offline-scenarios))
+  (doseq [[_ {:keys [count cases]}] spec/profiles
+          case-config cases
+          :let [config (assoc case-config :count count)]]
+    (is (= (data/expected-captured-bytes config)
+           (spec/expected-captured-bytes config)))))
 
 (deftest metric-summary-uses-medians
   (is (= 2 (metrics/median [3 1 2])))

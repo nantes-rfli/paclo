@@ -2,23 +2,12 @@
   "Deterministic Ethernet frame and benchmark PCAP generation."
   (:require
    [clojure.java.io :as io]
+   [paclo.dev.perf-spec :as spec]
    [paclo.pcap :as pcap]))
-
-(def ^:private traffic-cases
-  [{:id :udp-64 :frame-size 64 :traffic :udp}
-   {:id :tcp-512 :frame-size 512 :traffic :tcp}
-   {:id :mixed :frame-size 64
-    :alternate-frame-size 512
-    :traffic :mixed}])
 
 (def profiles
   "Named benchmark profiles. Large files are generated under target on demand."
-  {:quick {:count 50000
-           :cases traffic-cases}
-   :reference {:count 1000000
-               :cases traffic-cases}
-   :stress {:count 10000000
-            :cases traffic-cases}})
+  spec/profiles)
 
 (defn- put-u16!
   [^bytes frame ^long offset ^long value]
@@ -130,13 +119,8 @@
     (expected-pcap-size count frame-size)))
 
 (defn expected-captured-bytes
-  [{:keys [count frame-size alternate-frame-size traffic]}]
-  (if (= traffic :mixed)
-    (reduce +
-            (take count
-                  (cycle [(long frame-size)
-                          (long (or alternate-frame-size frame-size))])))
-    (* (long count) (long frame-size))))
+  [case-config]
+  (spec/expected-captured-bytes case-config))
 
 (defn dataset-path
   [root profile case-id]
