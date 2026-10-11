@@ -1,6 +1,7 @@
 (ns paclo.perf-test
   (:require
    [clojure.java.shell :as shell]
+   [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
    [paclo.dev.perf :as perf]
    [paclo.dev.perf-data :as data]
@@ -156,6 +157,20 @@
     (is (= 2000000 (capture-max :external 2000000)))
     (is (= Long/MAX_VALUE (capture-max :external nil)))
     (is (= Long/MAX_VALUE (capture-max :loopback 2000000)))))
+
+(deftest benchmark-worker-command-reuses-resolved-classpath
+  (let [command ((deref #'perf/worker-command))
+        cli-jvm-options? (some #(not (str/blank? (System/getenv %)))
+                               ["CLJ_JVM_OPTS" "JAVA_OPTS"])]
+    (if cli-jvm-options?
+      (is (= ["clojure" "-M:perf-worker"] command))
+      (do
+        (is (= (str (java.io.File. (System/getProperty "java.home")
+                                   "bin/java"))
+               (first command)))
+        (is (= ["-cp" (System/getProperty "java.class.path")
+                "clojure.main" "-m" "paclo.dev.perf-worker"]
+               (vec (rest command))))))))
 
 (deftest external-worker-signals-capture-readiness
   (let [worker! (deref #'perf/worker!)
