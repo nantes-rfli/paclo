@@ -7,7 +7,7 @@
 (defn- java-cp []
   (-> (sh/sh "clojure" "-Spath" "-A:checkstyle") :out str/trim))
 
-(defn -main [& _]
+(defn- run-cli [& _]
   (let [cp (java-cp)
         config "dev/resources/checkstyle.xml"
         out    "target/checkstyle.xml"
@@ -22,3 +22,10 @@
     (when (pos? (long exit))
       (println err)
       (System/exit exit))))
+
+;; clojure.java.shell starts agent-backed I/O workers; close them on CLI exit.
+(defn -main [& args]
+  (try
+    (apply run-cli args)
+    (finally
+      (shutdown-agents))))

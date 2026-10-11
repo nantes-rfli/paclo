@@ -78,15 +78,16 @@ jobs:
         shell: bash
         run: |
           set -e
-          # Prefer tools.build; fallback to direct javac with deps classpath
-          clojure -T:build jar || \
-          (mkdir -p target/classes && javac -cp "$(clojure -Spath)" -d target/classes $(find src-java -name "*.java"))
+          # Keep JAR/package validation and compiled classes for subsequent checks.
+          clojure -T:build jar
 
       - name: Run Java tests (JUnit)
         shell: bash
         run: |
           set -e
-          bash dev/script/codex.sh java-test
+          # The preceding JAR build already compiled src-java.
+          clojure -T:build javac-test
+          clojure -T:build junit
 
       - name: Development entrypoint smoke
         shell: bash
@@ -104,13 +105,14 @@ jobs:
         shell: bash
         run: |
           set -e
-          clojure -T:build spotbugs
+          # Invoke the same analyzer directly, avoiding the tools.build wrapper JVM.
+          clojure -M:spotbugs
 
       - name: CheckStyle
         shell: bash
         run: |
           set -e
-          clojure -T:build checkstyle
+          clojure -M:checkstyle
 
       - name: JaCoCo (coverage gate)
         shell: bash
@@ -118,11 +120,12 @@ jobs:
           JACOCO_MIN_LINE: "0.25"
         run: |
           set -e
-          clojure -T:build jacoco
-          clojure -T:build jacoco-gate
+          clojure -M:jacoco
+          clojure -M:jacoco-gate
 
       - name: Run unit tests
-        run: bash dev/script/codex.sh test
+        # Java classes are already compiled; the test alias is the same as in the matrix.
+        run: clojure -M:test
 
       - name: Performance gate (mid-50k decode path)
         shell: bash
@@ -145,7 +148,20 @@ jobs:
           if-no-files-found: warn
 
       - name: dns-ext smoke (dns-topn)
-        run: clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Test the same DNS entrypoint in an isolated process; do not shut down
+          # agents inside -main (unit tests invoke it in-process).
+          timeout 30s clojure -M:dev:dns-ext -e "(require 'examples.dns-topn)" \
+            -e '(try (examples.dns-topn/-main "test/resources/dns-sample.pcap") (finally (shutdown-agents)))'
+          # Verify that the existing missing-input exit status is unchanged.
+          set +e
+          timeout 30s clojure -M:dev:dns-ext -e "(require 'examples.dns-topn)" \
+            -e '(try (examples.dns-topn/-main "test/resources/no-such-file.pcap") (finally (shutdown-agents)))'
+          exit_status=$?
+          set -e
+          test "$exit_status" -eq 2
 
       - name: cljdoc dry run (namespace load)
         shell: bash
