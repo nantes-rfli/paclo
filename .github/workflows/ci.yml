@@ -95,12 +95,6 @@ jobs:
           bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
           bash dev/script/codex.sh smoke
 
-      - name: Execute maintained documentation examples (P01)
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 dev/script/verify_doc_examples.py
-
       - name: SpotBugs
         shell: bash
         run: |
@@ -148,13 +142,6 @@ jobs:
           set -e
           test "$exit_status" -eq 2
 
-      - name: cljdoc dry run (namespace load)
-        shell: bash
-        run: |
-          set -e
-          clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
-            -M -e "(require 'cljdoc.doc-tree) (println :cljdoc-loaded)"
-
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
         shell: bash
@@ -174,6 +161,61 @@ jobs:
         run: |
           set -e
           dev/script/mdlint.sh
+
+  # Execute the same maintained documentation checks on a dedicated runner
+  # so slow JVM-based examples and cljdoc loading do not block build-checks.
+  documentation-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+          clojure -Sdescribe
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        run: clojure -T:build javac
+
+      - name: Execute maintained documentation examples (P01)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 dev/script/verify_doc_examples.py
+
+      - name: cljdoc dry run (namespace load)
+        shell: bash
+        run: |
+          set -e
+          clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
+            -M -e "(require 'cljdoc.doc-tree) (println :cljdoc-loaded)"
 
   # Benchmark remains fully isolated: 27 worker JVMs run serially on
   # their own runner, preserving scenario order, JVM isolation, and inputs.
@@ -231,26 +273,29 @@ jobs:
           path: target/perf-quick/results.*
           if-no-files-found: warn
 
-  # Preserve the existing required "build" check. The compatibility matrix
-  # owns the Clojure unit suite on Linux/JDK21 and macOS/JDK17; all jobs must
-  # succeed (including the unchanged isolated performance measurement).
+  # Preserve the existing required "build" check. All mandatory checks
+  # (including the isolated documentation, compatibility and performance jobs)
+  # must succeed, even if another dependency failed or was skipped.
   build:
-    needs: [build-checks, performance-measurement, compatibility-matrix]
+    needs: [build-checks, documentation-checks, performance-measurement, compatibility-matrix]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require successful build, compatibility and performance checks
+      - name: Require successful build, documentation, compatibility and performance checks
         shell: bash
         env:
           BUILD_CHECKS_RESULT: ${{ needs.build-checks.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation-checks.result }}
           PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
         run: |
           set -euo pipefail
           echo "build-checks=$BUILD_CHECKS_RESULT"
+          echo "documentation-checks=$DOCUMENTATION_RESULT"
           echo "performance-measurement=$PERFORMANCE_RESULT"
           echo "compatibility-matrix=$COMPATIBILITY_RESULT"
           test "$BUILD_CHECKS_RESULT" = success
+          test "$DOCUMENTATION_RESULT" = success
           test "$PERFORMANCE_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
 
