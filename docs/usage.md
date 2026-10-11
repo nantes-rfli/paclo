@@ -7,12 +7,15 @@ For installation and CLI entry examples, start from `README.md`.
 
 - `paclo.core` is the user-facing API.
 - `packets` returns lazy packet maps from a file (`:path`) or device (`:device`).
+- `packet-xf` builds a reusable transducer for decoding or flow projection.
 - `reduce-packets` synchronously folds large or live captures without an
   intermediate sequence.
 - `reduce-packets-report` adds data-only execution statistics to the
   synchronous result.
 - `start-capture` owns an explicitly stoppable, single-consumer capture
   lifecycle.
+- `paclo.stream/fan-out` distributes one sequence to two or more bounded,
+  separately owned, single-consumer branches.
 - `bpf` converts a small Clojure DSL to BPF strings.
 - `write-pcap!` writes byte records back to a PCAP file.
 - Optional decode hooks (`paclo.decode-ext`) annotate decoded packets.
@@ -31,15 +34,62 @@ For installation and CLI entry examples, start from `README.md`.
 
 ## Quick start (live capture)
 
+For a limited prefix of live traffic, own the source explicitly:
+
 ```clojure
 (require '[paclo.core :as core])
 
-(->> (core/packets {:device "en0"
-                    :filter (core/bpf [:and [:udp] [:port 53]])
-                    :timeout-ms 50})
-     (take 10)
-     doall)
+(with-open [capture
+            (core/start-capture
+             {:device "en0"
+              :filter [:and [:udp] [:port 53]]
+              :timeout-ms 50
+              :max Long/MAX_VALUE
+              :max-time-ms 60000
+              :idle-max-ms 60000})]
+  (into [] (take 10) (core/capture-packets capture)))
 ```
+
+`with-open` closes the capture even when `take` completes early or the body
+throws. Change `en0` to an available interface (see `core/list-devices`);
+live capture may require OS permissions.
+
+## Choose a processing model
+
+| Need | Use | Ownership and termination |
+| --- | --- | --- |
+| Explore a finite capture lazily | `core/packets` | A lazy sequence; source limits and EOF end the producer |
+| Accumulate or stop as soon as a reducer decides | `core/reduce-packets` or `core/reduce-packets-report` | Synchronous; `reduced` stops and closes the source |
+| Cancel externally or inspect running statistics | `core/start-capture` + `core/capture-packets` | One consumer; close the capture with `with-open` |
+| Feed independent consumers | `stream/fan-out` + `stream/branch` | Own capture, fan-out, and every acquired branch; configure bounded buffers |
+
+`(take n (core/packets ...))` only stops consuming the lazy sequence. It
+does **not** explicitly stop the underlying producer, which may continue
+until a configured limit, time limit, or EOF. For predictable early cleanup,
+prefer synchronous `reduced` or an explicitly closed managed capture.
+Do not let a managed packet sequence escape its `with-open` scope.
+
+## Composable packet transformations
+
+`packet-xf` is an ordinary transducer, so it composes with `filter`, `map`,
+`comp`, and `transduce` without an additional pipeline abstraction:
+
+```clojure
+(into []
+      (comp (core/packet-xf {:decode-mode :flow})
+            (filter #(= 17 (:protocol %))) ; UDP
+            (map #(select-keys %
+                               [:src-ip :dst-ip :src-port :dst-port])))
+      (core/packets {:path "test/resources/dns-sample.pcap"}))
+```
+
+Use `{:decode? true}` for the nested `:decoded` packet representation and
+existing registered post-decode hooks, or `{:decode-mode :flow}` for a flat
+numeric flow projection. These options cannot be combined.
+`(core/packet-xf {})` passes packets through unchanged. The optional
+`:xform` on capture APIs runs **after** their built-in packet transformation.
+Do not apply the same decode twice by combining a decode option with another
+decode-configured `packet-xf` in `:xform`.
 
 ## Synchronous reduction
 
@@ -55,9 +105,23 @@ For installation and CLI entry examples, start from `README.md`.
  {})
 ```
 
-The reducer may return `(reduced value)` to stop capture immediately. This
-path avoids the producer future, blocking queue, and lazy-seq nodes used by
-`packets`; use `packets` when interactive lazy consumption is more useful.
+The reducer may return `(reduced value)` to stop capture immediately and
+close the underlying source. For example, collect just two packet summaries:
+
+```clojure
+(core/reduce-packets
+ {:path "test/resources/dns-sample.pcap"}
+ (fn [acc packet]
+   (let [next-acc (conj acc (select-keys packet
+                                        [:ts-sec :ts-usec :caplen]))]
+     (if (= 2 (count next-acc))
+       (reduced next-acc)
+       next-acc)))
+ [])
+```
+
+This path avoids the producer future, blocking queue, and lazy-seq nodes used
+by `packets`; use `packets` when interactive lazy consumption is more useful.
 
 Use `reduce-packets-report` when the caller also needs source, timing, packet,
 stop-reason, error, and final live libpcap statistics:
@@ -83,7 +147,10 @@ stop-reason, error, and final live libpcap statistics:
 ## Managed capture
 
 Use managed capture when a long-running capture needs explicit ownership,
-external cancellation, or in-progress queue statistics:
+external cancellation, or in-progress queue statistics. The default
+`:idle-max-ms 3000` stops a quiet live capture after roughly three idle
+seconds, even if `:max-time-ms` is much longer. Set an explicit idle limit
+appropriate to the session, as below:
 
 ```clojure
 (with-open [capture
@@ -93,8 +160,9 @@ external cancellation, or in-progress queue statistics:
               :queue-cap 4096
               :queue-mode :dropping
               :max Long/MAX_VALUE
-              :max-time-ms 3600000})]
-  (run! process-packet
+              :max-time-ms 3600000
+              :idle-max-ms 3600000})]
+  (run! #(prn (select-keys % [:ts-sec :ts-usec :caplen]))
         (core/capture-packets capture))
   (core/capture-stats capture))
 ```
@@ -113,11 +181,12 @@ Another thread may request shutdown:
             (core/start-capture
              {:device "en0"
               :max Long/MAX_VALUE
-              :max-time-ms 3600000})]
+              :max-time-ms 3600000
+              :idle-max-ms 3600000})]
   (future
-    (wait-for-shutdown-signal)
+    (Thread/sleep 2000)
     (core/stop-capture! capture))
-  (run! process-packet
+  (run! #(prn (:caplen %))
         (core/capture-packets capture)))
 ```
 
@@ -155,8 +224,72 @@ Live packet and queue counters are available while running. Portable libpcap
 counters are finalized at termination. Final statistics remain available
 after close.
 
-One managed capture has one packet consumer. Fan-out, pub/sub, and separate
-per-consumer queues are intentionally not provided.
+One managed capture has one direct packet consumer. Version 1.3 adds
+`paclo.stream` as a separate, bounded fan-out layer; it does not turn the
+capture itself into a multi-consumer handle.
+
+## Bounded fan-out (v1.3)
+
+Each branch must be acquired once and consumed by one consumer. Consume
+branches concurrently when a `:blocking` branch might fill its buffer,
+otherwise a slow branch can block the dispatcher and other branches.
+
+This complete offline example uses the bundled four-packet fixture:
+
+```clojure
+(require '[paclo.stream :as stream])
+
+(with-open [capture (core/start-capture
+                     {:path "test/resources/dns-sample.pcap"})
+            fanout (stream/fan-out
+                    (core/capture-packets capture)
+                    {:archive {:buffer-mode :blocking :buffer-cap 16}
+                     :metrics {:buffer-mode :dropping :buffer-cap 16}}
+                    {:cancel! #(core/stop-capture! capture)})
+            archive (stream/branch fanout :archive)
+            metrics (stream/branch fanout :metrics)]
+  (let [archive-count (future (reduce (fn [n _] (inc n)) 0 archive))
+        metrics-count (future (reduce (fn [n _] (inc n)) 0 metrics))]
+    {:archive-count @archive-count
+     :metrics-count @metrics-count
+     :distribution (stream/stats fanout)}))
+```
+
+`stream/fan-out` requires at least two keyword-named branches.
+`:buffer-cap` defaults to 1024; `:buffer-mode` is required and can be
+`:blocking` (backpressure, no branch-local drops) or `:dropping` (discard
+new values when that branch is full). Both modes use bounded buffers.
+`:cancel!` is useful for unblocking an external source at shutdown, and
+must release that source when called.
+
+Own the fan-out and acquired branches with `with-open` along with the
+capture. Closing one branch does not close sibling branches. Branch handles
+also support `reduce` and `transduce`; returning `reduced` from a branch
+reducer closes that branch. Check `stream/stats` for distribution statistics
+and `core/capture-stats` for capture statistics; they are separate.
+Fan-out shares map and byte-array references rather than copying packets.
+Treat packet bytes as read-only across branches.
+
+## Stopping conditions and defaults
+
+All capture paths default to `:max 100` packets, `:max-time-ms 10000`
+(10 seconds), and `:idle-max-ms 3000` (3 seconds of continuous idle time,
+primarily relevant to live capture). These are safeguards, not settings
+that mean “read the entire file.” Specify a sufficiently large `:max` and
+`:max-time-ms` when processing a large offline PCAP.
+
+For an offline source, `:eof` means libpcap reached the file's end; a
+configured count or time limit can stop processing **before** EOF. In a
+`reduce-packets-report` result or final `capture-stats`, inspect
+`:stop-reason` to distinguish `:eof`, `:max-packets`, `:max-time`,
+`:idle-timeout`, `:predicate`, `:reduced` (synchronous reduction), and
+errors where applicable. `:stop?` is an optional source-level predicate.
+`reduced` stops synchronous reduction; it is not a resource-management
+mechanism for a plain lazy `take`.
+
+`packets` and managed capture use a bounded producer queue (default
+`:queue-cap 1024`, `:queue-mode :blocking`). Managed capture is
+single-consumer even when used as the source for fan-out.
 
 For live overload experiments, `packets` also accepts a bounded dropping
 queue. Blocking remains the default and preserves existing behavior:
@@ -183,6 +316,14 @@ counters. A dropping queue never returns dropped packets to the consumer.
                     :usec 123456}]
                   "out.pcap")
 ```
+
+The current writer accepts `:sec`/`:usec`, whereas read packet maps have
+`:ts-sec`/`:ts-usec`. Passing a captured map directly does **not**
+preserve its timestamp: absent writer timestamp keys fall back to current
+time. The writer also derives both output lengths from `:bytes`, so a
+truncated record's original `:len` is not preserved. For now, explicitly
+adapt timestamps when writing and do not assume lossless round trips;
+faithful metadata preservation is planned separately (P02).
 
 ## BPF DSL (examples)
 
@@ -229,7 +370,7 @@ Use `README.md` as the command index, and use this guide for API behavior.
 ## Performance tips
 
 - Use BPF for coarse filtering as early as possible.
-- Use `:xform` transducers in `packets` for early map/filter and lower allocation.
+- Use `:xform` transducers in `packets` for map/filter composition; capture-level BPF is still the earlier filter.
 - For large traces, use `reduce-packets` to fuse transformation and reduction
   without full materialization.
 - Prefer `reduce-packets-report` over managed capture when synchronous
