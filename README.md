@@ -126,7 +126,9 @@ For synchronous processing with data-only execution statistics:
 ```
 
 For long-running or externally stopped capture, own a managed capture with
-`with-open`. Packet delivery is single-consumer:
+`with-open`. Packet delivery is single-consumer. A quiet device otherwise
+stops after the default 3-second idle limit, so this example sets
+`:idle-max-ms` explicitly to one hour, matching `:max-time-ms`:
 
 ```clojure
 (with-open [capture
@@ -136,7 +138,8 @@ For long-running or externally stopped capture, own a managed capture with
               :queue-cap 4096
               :queue-mode :dropping
               :max Long/MAX_VALUE
-              :max-time-ms 3600000})]
+              :max-time-ms 3600000
+              :idle-max-ms 3600000})]
   (run! #(prn (select-keys % [:ts-sec :ts-usec :caplen]))
         (core/capture-packets capture))
   (core/capture-stats capture))
