@@ -478,7 +478,8 @@
    Reject missing, duplicated or corrupted data before publishing either file."
   [{:keys [profile output merge-inputs] :as opts}]
   (validate-opts! opts)
-  (let [{:keys [cases count]} (get data/profiles profile)
+  (let [{:keys [cases] :as profile-config} (get data/profiles profile)
+        packet-count (:count profile-config)
         paths (str/split merge-inputs #"," -1)
         ids (mapv :id cases)]
     (when (or (not= (count ids) (count paths))
@@ -527,7 +528,7 @@
                                  {:case (:id case-config)})))
                (doseq [result results]
                  (validate-offline-result! result
-                                           (assoc case-config :count count)))
+                                           (assoc case-config :count packet-count)))
                (assoc acc (:id case-config)
                       (into {} (map (juxt :scenario identity)) results))))
            {}
