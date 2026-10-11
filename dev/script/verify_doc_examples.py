@@ -7,12 +7,15 @@ Run after compiling Paclo's Java bindings:
 Requires Clojure CLI and libpcap. No live device or network traffic is used.
 """
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 import shlex
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+# Separate Clojure subprocesses keep examples isolated; limit contention on CI.
+MAX_WORKERS = 3
 REQUIRE = "(require '[paclo.core :as core] '[paclo.stream :as stream] '[paclo.core :refer [packet-xf packets]])"
 
 
@@ -134,9 +137,25 @@ def run_dns_quick_check():
 
 
 def main():
-    for example in EXAMPLES:
-        run_doc_expression(*example)
-    run_dns_quick_check()
+    # Run every maintained example even if one fails. Each worker uses its own
+    # Clojure JVM while retaining the original real-PCAP and predicate checks.
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        checks = {
+            pool.submit(run_doc_expression, *example): example[0]
+            for example in EXAMPLES
+        }
+        checks[pool.submit(run_dns_quick_check)] = "README DNS quick check"
+        failures = []
+        for future in as_completed(checks):
+            try:
+                future.result()
+            except Exception as exc:
+                failures.append(f"{checks[future]}: {exc}")
+
+    if failures:
+        raise RuntimeError(
+            "Failed documentation examples:\n" + "\n".join(failures)
+        )
     print(f"\nPASS: {len(EXAMPLES) + 1} documentation examples", flush=True)
 
 

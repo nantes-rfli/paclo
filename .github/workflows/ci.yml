@@ -123,9 +123,8 @@ jobs:
           clojure -M:jacoco
           clojure -M:jacoco-gate
 
-      - name: Run unit tests
-        # Java classes are already compiled; the test alias is the same as in the matrix.
-        run: clojure -M:test
+      # The identical Linux/JDK21 Clojure test suite is already executed in
+      # compatibility-matrix and is enforced by the required build aggregate.
 
       - name: Performance gate (mid-50k decode path)
         shell: bash
@@ -232,24 +231,28 @@ jobs:
           path: target/perf-quick/results.*
           if-no-files-found: warn
 
-  # Preserve the existing required "build" check and fail it if either the
-  # complete build-checks or the unchanged measurement job fails or is skipped.
+  # Preserve the existing required "build" check. The compatibility matrix
+  # owns the Clojure unit suite on Linux/JDK21 and macOS/JDK17; all jobs must
+  # succeed (including the unchanged isolated performance measurement).
   build:
-    needs: [build-checks, performance-measurement]
+    needs: [build-checks, performance-measurement, compatibility-matrix]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require successful build and performance checks
+      - name: Require successful build, compatibility and performance checks
         shell: bash
         env:
           BUILD_CHECKS_RESULT: ${{ needs.build-checks.result }}
           PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
+          COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
         run: |
           set -euo pipefail
           echo "build-checks=$BUILD_CHECKS_RESULT"
           echo "performance-measurement=$PERFORMANCE_RESULT"
+          echo "compatibility-matrix=$COMPATIBILITY_RESULT"
           test "$BUILD_CHECKS_RESULT" = success
           test "$PERFORMANCE_RESULT" = success
+          test "$COMPATIBILITY_RESULT" = success
 
   compatibility-matrix:
     runs-on: ${{ matrix.os }}
