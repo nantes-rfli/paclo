@@ -138,6 +138,13 @@
       (is (thrown-with-msg? clojure.lang.ExceptionInfo
                             #"invalid performance shard envelope"
                             (merge! opts)))
+      (spit (second paths)
+            (pr-str (update-in (second shards)
+                               [:offline 0 :runs 0 :bytes]
+                               inc)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"offline benchmark result failed consistency checks"
+                            (merge! opts)))
       (finally
         (doseq [file (reverse (file-seq dir))]
           (.delete file))))))
