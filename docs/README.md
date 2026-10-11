@@ -25,6 +25,9 @@ This is the public documentation index for Paclo.
 
 ## Development and verification
 
+- Contributor and Codex setup: [CONTRIBUTING.md](../CONTRIBUTING.md)
+- Accepted development queue: [codex-plan.md](../dev/codex-plan.md)
+
 - Run tests: `clojure -M:test`
 - Run static checks: `clojure -M:eastwood` and `clj-kondo --lint src test dev`
 - Run performance gate: `clojure -M:perf-gate`

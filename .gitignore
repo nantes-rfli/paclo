@@ -22,4 +22,4 @@ out-dns*.pcap
 .envrc
 .claude/
 .eastwood
-AGENTS.md
+.dev-tools/

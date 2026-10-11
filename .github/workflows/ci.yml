@@ -66,7 +66,7 @@ jobs:
       - name: Set up Clojure tooling (clj-kondo)
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          clj-kondo: 'latest'
+          clj-kondo: '2025.10.23'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install clojure-lsp
@@ -86,8 +86,13 @@ jobs:
         shell: bash
         run: |
           set -e
-          clojure -T:build javac-test
-          clojure -T:build junit
+          bash dev/script/codex.sh java-test
+
+      - name: Development entrypoint smoke
+        shell: bash
+        run: |
+          bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
+          bash dev/script/codex.sh smoke
 
       - name: SpotBugs
         shell: bash
@@ -111,7 +116,7 @@ jobs:
           clojure -T:build jacoco-gate
 
       - name: Run unit tests
-        run: clojure -M:test
+        run: bash dev/script/codex.sh test
 
       - name: Performance gate (mid-50k decode path)
         shell: bash

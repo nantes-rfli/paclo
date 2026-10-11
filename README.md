@@ -322,6 +322,9 @@ NVD_API_TOKEN=<token> clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:de
 
 ## Maintainer notes
 
+For development setup, Codex instructions, and the accepted improvement plan, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 Clojars publish automation is defined in `.github/workflows/publish.yml`.
 Required repository secrets:
 
