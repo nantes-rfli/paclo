@@ -31,8 +31,17 @@ without changing the base parser (`parse/packet->clj`).
 (dx/installed)
 ```
 
-`paclo.core/packets` calls `decode-ext/apply!` when `:decode? true` is set, so every decoded packet
-passes through installed hooks.
+The public `paclo.core/packet-xf` applies `decode-ext/apply!` after a
+successful full decode (`:decode? true`). The same transformation is used
+by `packets`, `reduce-packets`, `reduce-packets-report`, and managed
+`capture-packets`. A packet with `:decode-error` does not run hooks, and
+`:decode-mode :flow` does not run full-decode hooks.
+
+The hook registry is process-wide. Its contents are consulted as packets
+are processed, not captured as an isolated hook set when a transducer is
+constructed. Keep this in mind when running independent pipelines;
+per-pipeline extension selection is planned for a later change (P03),
+and is not a v1.3 option.
 
 ## Example: DNS summary hook
 
