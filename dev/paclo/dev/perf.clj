@@ -173,6 +173,20 @@
     (throw (ex-info "queue-mode must be blocking or dropping"
                     {:queue-mode queue-mode}))))
 
+(defn- worker-command []
+  ;; :perf and :perf-worker both add "dev" to the same project classpath.
+  ;; Reuse the classpath resolved for the runner instead of invoking the
+  ;; Clojure CLI / tools.deps once for each isolated benchmark JVM.
+  ;;
+  ;; When CLI-specific JVM options are present, keep the original launcher
+  ;; so explicitly configured benchmark JVM flags are not silently lost.
+  (if (some #(not (str/blank? (System/getenv %)))
+            ["CLJ_JVM_OPTS" "JAVA_OPTS"])
+    ["clojure" "-M:perf-worker"]
+    [(str (io/file (System/getProperty "java.home") "bin" "java"))
+     "-cp" (System/getProperty "java.class.path")
+     "clojure.main" "-m" "paclo.dev.perf-worker"]))
+
 (defn- worker!
   ([arguments]
    (worker! arguments false))
@@ -187,7 +201,7 @@
                      ready-file
                      (conj "--ready-file" (.getAbsolutePath ready-file)))
          task (future
-                (apply shell/sh "clojure" "-M:perf-worker" arguments))]
+                (apply shell/sh (concat (worker-command) arguments)))]
      (try
        (when ready-file
          (loop []
