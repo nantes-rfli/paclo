@@ -1,11 +1,11 @@
 (ns paclo.perf-test
   (:require
+   [clojure.data.json :as json]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.java.shell :as shell]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
-   [clojure.data.json :as json]
    [paclo.dev.perf :as perf]
    [paclo.dev.perf-data :as data]
    [paclo.dev.perf-generator :as generator]
