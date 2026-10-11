@@ -45,13 +45,18 @@ clojure -X:deps prep
 ```clojure
 (require '[paclo.core :as core])
 
-;; Capture 10 UDP/53 packets
-(->> (core/packets {:device "en0"
-                    :filter (core/bpf [:and [:udp] [:port 53]])
-                    :timeout-ms 50})
-     (take 10)
+;; Read the first two decoded packets from the bundled offline fixture.
+(->> (core/packets {:path "test/resources/dns-sample.pcap"
+                    :decode? true})
+     (take 2)
+     (map #(select-keys % [:ts-sec :ts-usec :decoded :decode-error]))
      doall)
 ```
+
+For live capture, use `start-capture` with `with-open` when taking a
+prefix or stopping early. `take` on the lazy `packets` sequence alone does
+not stop its producer. The [usage guide](docs/usage.md) explains resource
+ownership and the default count/time limits.
 
 For synchronous large-PCAP reduction without an intermediate lazy sequence:
 
@@ -82,6 +87,22 @@ addresses are unsigned longs and IPv6 addresses are two-long vectors:
            (fnil inc 0)))
  {})
 ```
+
+For transformations outside the capture APIs, `packet-xf` is a public,
+composable transducer:
+
+```clojure
+(into []
+      (comp (core/packet-xf {:decode-mode :flow})
+            (filter #(= 17 (:protocol %))) ; UDP
+            (map #(select-keys %
+                               [:src-ip :dst-ip :src-port :dst-port])))
+      (core/packets {:path "test/resources/dns-sample.pcap"}))
+```
+
+Use either `:decode? true` for full decoding with registered hooks, or
+`:decode-mode :flow` for a flat flow projection (not both).
+Capture APIs apply `:xform` after the built-in packet transformation.
 
 For synchronous processing with data-only execution statistics:
 
@@ -116,36 +137,41 @@ For long-running or externally stopped capture, own a managed capture with
               :queue-mode :dropping
               :max Long/MAX_VALUE
               :max-time-ms 3600000})]
-  (run! process-packet (core/capture-packets capture))
+  (run! #(prn (select-keys % [:ts-sec :ts-usec :caplen]))
+        (core/capture-packets capture))
   (core/capture-stats capture))
 ```
 
-To feed two independent consumers, compose the managed capture with bounded
-fan-out. Each branch is single-consumer and must be owned with `with-open`:
+To feed two independent consumers, compose a managed capture with bounded
+fan-out. This example runs offline with the bundled fixture. Each branch is
+single-consumer and must be owned with `with-open`:
 
 ```clojure
 (require '[paclo.stream :as stream])
 
 (with-open [capture
             (core/start-capture
-             {:device "en0"
-              :filter [:and :udp [:port 53]]
-              :queue-cap 4096})
+             {:path "test/resources/dns-sample.pcap"})
             fanout
             (stream/fan-out
              (core/capture-packets capture)
-             {:archive {:buffer-mode :blocking :buffer-cap 8192}
-              :metrics {:buffer-mode :dropping :buffer-cap 1024}}
+             {:archive {:buffer-mode :blocking :buffer-cap 16}
+              :metrics {:buffer-mode :dropping :buffer-cap 16}}
              {:cancel! #(core/stop-capture! capture)})
             archive (stream/branch fanout :archive)
             metrics (stream/branch fanout :metrics)]
-  (let [archive-task (future (run! write-packet! archive))
-        metrics-task (future (run! update-metrics! metrics))]
-    @archive-task
-    @metrics-task
-    {:capture (core/capture-stats capture)
+  (let [archive-task (future (reduce (fn [n _] (inc n)) 0 archive))
+        metrics-task (future (reduce (fn [n _] (inc n)) 0 metrics))]
+    {:archive-count @archive-task
+     :metrics-count @metrics-task
+     :capture (core/capture-stats capture)
      :stream (stream/stats fanout)}))
 ```
+
+Blocking buffers can backpressure other branches; dropping buffers isolate
+slow consumers by discarding new values when full. Both remain bounded.
+For full behavior, shutdown rules, and stop defaults, see
+[the usage guide](docs/usage.md).
 
 ## Run examples
 
@@ -174,7 +200,7 @@ Notes:
 ### dns-ext alias quick check
 
 ```bash
-clojure -M:dev:dns-ext -e "(require 'paclo.dns.decode) (println :dns-ext-ok)"
+clojure -M:dev:dns-ext -e "(require '[paclo.proto.dns-ext :as dns-ext]) (dns-ext/register!) (println :dns-ext-ok)"
 ```
 
 ## CLI reference (stable v1.0)
@@ -238,7 +264,7 @@ For full argument tables and behavior details, see `docs/usage.md`.
 
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
-| `paclo.core` | `bpf`, `packets`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
+| `paclo.core` | `bpf`, `packets`, `packet-xf`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
 | `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
