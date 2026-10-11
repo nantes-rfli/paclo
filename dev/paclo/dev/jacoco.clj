@@ -15,7 +15,7 @@
   (let [sep-regex (re-pattern (java.util.regex.Pattern/quote path-sep))]
     (some #(when (str/includes? % substr) %) (str/split cp sep-regex))))
 
-(defn -main [& _]
+(defn- run-cli [& _]
   (let [cp-base   (classpath)
         cp-junit  (classpath "-A:junit")
         cp-jacoco (classpath "-A:jacoco")
@@ -52,3 +52,10 @@
         (println err)
         (System/exit exit)))
     (println "[jacoco] done")))
+
+;; clojure.java.shell starts agent-backed I/O workers; close them on CLI exit.
+(defn -main [& args]
+  (try
+    (apply run-cli args)
+    (finally
+      (shutdown-agents))))
