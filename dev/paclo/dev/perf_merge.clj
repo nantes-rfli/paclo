@@ -44,7 +44,8 @@
   "Reassemble independently measured cases in original order. Fail closed
    on absent, duplicate or corrupt results before writing combined artifacts."
   [{:keys [profile output merge-inputs]}]
-  (let [{:keys [cases count]} (get spec/profiles profile)
+  (let [{:keys [cases] :as profile-config} (get spec/profiles profile)
+        packet-count (:count profile-config)
         paths (when (string? merge-inputs)
                 (str/split merge-inputs #"," -1))
         ids (mapv :id cases)]
@@ -100,7 +101,7 @@
                (doseq [result results]
                  (validate-offline-result!
                   result
-                  (assoc case-config :count count)))
+                  (assoc case-config :count packet-count)))
                (assoc acc (:id case-config)
                       (into {} (map (juxt :scenario identity)) results))))
            {}
