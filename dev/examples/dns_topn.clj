@@ -154,81 +154,84 @@
                 (assoc m :pct (double (/ (long (or (metric m) 0)) total)))))
          vec)))
 
+(defn- run-cli [& args]
+  ;; positionals: <pcap> [bpf] [topN] [group] [format] [metric] flags...
+  (let [[pcap bpf-str topn-str group-str fmt-str metric-str & flags] args]
+    (when (nil? pcap) (usage) (System/exit 1))
+    (let [pcap* (ex/require-file! pcap)
+          _     (do (dns-ext/register!) (tls-ext/register!))
+          topN  (or (ex/parse-long* topn-str) default-topn)
+          group (keyword (or (when-not (ex/blank? group-str) group-str)
+                             (name default-group)))
+          fmt   (parse-format fmt-str)
+          metric (keyword (or (when-not (ex/blank? metric-str) metric-str)
+                              (name default-metric)))
+          {:keys [punycode? log-punycode-fail? sni-bpf alpn-join? async-opts]} (parse-flags flags)
+          {:keys [async? async-buffer async-mode async-timeout-ms]} async-opts
+          bpf   (if (ex/blank? bpf-str)
+                  (if (#{:sni :alpn} group) (or sni-bpf default-sni-bpf) default-dns-bpf)
+                  bpf-str)]
+      (ex/ensure-one-of! "group" group allowed-groups)
+      (ex/ensure-one-of! "metric" metric allowed-metrics)
+      (let [agg (atom {})
+            total (atom 0)
+            dropped (atom 0)
+            cancelled? (atom false)
+            start-ts (System/nanoTime)
+            process! (fn [p]
+                       (when (or (dns-packet? p) (#{:sni :alpn} group))
+                         (when-let [k (group-key p group punycode? log-punycode-fail? alpn-join?)]
+                           (swap! agg update k (fn [{:keys [count bytes]}]
+                                                 {:key k
+                                                  :count (inc (long (or count 0)))
+                                                  :bytes (+ (long (or bytes 0)) (long (or (:caplen p) 0)))}))
+                           (swap! total inc))))]
+        (if-not async?
+          ;; synchronous path
+          (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
+            (process! p))
+          ;; asynchronous path
+          (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
+                buf (case async-mode
+                      :dropping (async/dropping-buffer async-buffer)
+                      (async/buffer async-buffer))
+                pkt-ch (async/chan buf)
+                reader (async/thread
+                         (try
+                           (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
+                             (when cancel-ch
+                               (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
+                                 (when port (reset! cancelled? true))))
+                             (when-not @cancelled?
+                               (if (= async-mode :dropping)
+                                 (when-not (async/offer! pkt-ch p)
+                                   (swap! dropped inc))
+                                 (async/>!! pkt-ch p))))
+                           (finally (async/close! pkt-ch))))]
+            (async/thread (async/<!! reader))
+            (loop []
+              (when-let [p (async/<!! pkt-ch)]
+                (process! p)
+                (recur)))))
+        (let [rows (summarize (vals @agg) metric topN)
+              meta {:rows (count rows)
+                    :total @total
+                    :group group
+                    :metric metric
+                    :format fmt
+                    :async? async?
+                    :async-mode async-mode
+                    :async-buffer async-buffer
+                    :async-timeout-ms async-timeout-ms
+                    :async-dropped @dropped
+                    :async-cancelled? @cancelled?
+                    :elapsed-ms (/ (- (System/nanoTime) start-ts) 1e6)}]
+          (emit fmt rows)
+          (binding [*out* *err*]
+            (println (pr-str meta))))))))
+
 (defn -main [& args]
   (try
-    ;; positionals: <pcap> [bpf] [topN] [group] [format] [metric] flags...
-    (let [[pcap bpf-str topn-str group-str fmt-str metric-str & flags] args]
-      (when (nil? pcap) (usage) (System/exit 1))
-      (let [pcap* (ex/require-file! pcap)
-            _     (do (dns-ext/register!) (tls-ext/register!))
-            topN  (or (ex/parse-long* topn-str) default-topn)
-            group (keyword (or (when-not (ex/blank? group-str) group-str)
-                               (name default-group)))
-            fmt   (parse-format fmt-str)
-            metric (keyword (or (when-not (ex/blank? metric-str) metric-str)
-                                (name default-metric)))
-            {:keys [punycode? log-punycode-fail? sni-bpf alpn-join? async-opts]} (parse-flags flags)
-            {:keys [async? async-buffer async-mode async-timeout-ms]} async-opts
-            bpf   (if (ex/blank? bpf-str)
-                    (if (#{:sni :alpn} group) (or sni-bpf default-sni-bpf) default-dns-bpf)
-                    bpf-str)]
-        (ex/ensure-one-of! "group" group allowed-groups)
-        (ex/ensure-one-of! "metric" metric allowed-metrics)
-        (let [agg (atom {})
-              total (atom 0)
-              dropped (atom 0)
-              cancelled? (atom false)
-              start-ts (System/nanoTime)
-              process! (fn [p]
-                         (when (or (dns-packet? p) (#{:sni :alpn} group))
-                           (when-let [k (group-key p group punycode? log-punycode-fail? alpn-join?)]
-                             (swap! agg update k (fn [{:keys [count bytes]}]
-                                                   {:key k
-                                                    :count (inc (long (or count 0)))
-                                                    :bytes (+ (long (or bytes 0)) (long (or (:caplen p) 0)))}))
-                             (swap! total inc))))]
-          (if-not async?
-            ;; synchronous path
-            (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
-              (process! p))
-            ;; asynchronous path
-            (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
-                  buf (case async-mode
-                        :dropping (async/dropping-buffer async-buffer)
-                        (async/buffer async-buffer))
-                  pkt-ch (async/chan buf)
-                  reader (async/thread
-                           (try
-                             (doseq [p (core/packets {:path pcap* :filter bpf :decode? true})]
-                               (when cancel-ch
-                                 (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
-                                   (when port (reset! cancelled? true))))
-                               (when-not @cancelled?
-                                 (if (= async-mode :dropping)
-                                   (when-not (async/offer! pkt-ch p)
-                                     (swap! dropped inc))
-                                   (async/>!! pkt-ch p))))
-                             (finally (async/close! pkt-ch))))]
-              (async/thread (async/<!! reader))
-              (loop []
-                (when-let [p (async/<!! pkt-ch)]
-                  (process! p)
-                  (recur)))))
-          (let [rows (summarize (vals @agg) metric topN)
-                meta {:rows (count rows)
-                      :total @total
-                      :group group
-                      :metric metric
-                      :format fmt
-                      :async? async?
-                      :async-mode async-mode
-                      :async-buffer async-buffer
-                      :async-timeout-ms async-timeout-ms
-                      :async-dropped @dropped
-                      :async-cancelled? @cancelled?
-                      :elapsed-ms (/ (- (System/nanoTime) start-ts) 1e6)}]
-            (emit fmt rows)
-            (binding [*out* *err*]
-              (println (pr-str meta)))))))
+    (apply run-cli args)
     (finally
       (shutdown-agents))))
