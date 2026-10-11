@@ -151,11 +151,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Catch a regression of the former ~60s JVM shutdown wait.
-          timeout 30s clojure -M:dev:dns-ext -m examples.dns-topn test/resources/dns-sample.pcap
+          # Test the same DNS entrypoint in an isolated process; do not shut down
+          # agents inside -main (unit tests invoke it in-process).
+          timeout 30s clojure -M:dev:dns-ext -e "(require 'examples.dns-topn)" \
+            -e '(try (examples.dns-topn/-main "test/resources/dns-sample.pcap") (finally (shutdown-agents)))'
           # Verify that the existing missing-input exit status is unchanged.
           set +e
-          timeout 30s clojure -M:dev:dns-ext -m examples.dns-topn test/resources/no-such-file.pcap
+          timeout 30s clojure -M:dev:dns-ext -e "(require 'examples.dns-topn)" \
+            -e '(try (examples.dns-topn/-main "test/resources/no-such-file.pcap") (finally (shutdown-agents)))'
           exit_status=$?
           set -e
           test "$exit_status" -eq 2
