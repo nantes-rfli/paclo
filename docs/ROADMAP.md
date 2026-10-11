@@ -46,6 +46,12 @@ Completed release artifacts:
 
 ## Current focus (post-1.0)
 
+The accepted next-development queue is maintained in
+[`dev/codex-plan.md`](../dev/codex-plan.md), with dependencies and acceptance criteria.
+It prioritizes faithful packet round trips, explicit extension composition, data
+contracts, and reusable analysis. Release labels there are candidates. Developer
+setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
 `v1.0` is shipped; next work is maintenance and incremental improvements.
 
 - [ ] Stabilize arm64 success rate against long observation windows
