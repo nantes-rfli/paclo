@@ -23,9 +23,9 @@ Release labels are planning candidates, not scheduled or approved publications.
 
 | ID | Candidate | Task | Depends on | Status |
 | --- | --- | --- | --- | --- |
-| P01 | v1.3.x | Align public documentation with v1.3 behavior | — | in-progress |
+| P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | ready |
-| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | blocked |
+| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | ready |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | blocked |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | blocked |
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | blocked |
@@ -34,7 +34,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **finish P01 review and verification in PR #17**, then P02.
+Default next task: **P02**. P03 is also ready after completion of P01.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -54,15 +54,26 @@ Document existing stop defaults and distinguish finite-file completion from limi
 Acceptance: examples execute; API docs agree; resource-owning examples close on
 early termination. This item must not invent new runtime APIs.
 
-Documentation submitted in [PR #17](https://github.com/nantes-rfli/paclo/pull/17)
+Documentation and verification are in [PR #17](https://github.com/nantes-rfli/paclo/pull/17)
 on 2026-10-11. README, usage guide, API contract, and extension guide now
 cover `packet-xf`, bounded fan-out, early closure, stop defaults, EOF, and
 the existing writer limitations; the incorrect DNS namespace was corrected.
-Static checks passed (code/API cross-reference, Markdown fence balance,
-obsolete namespace and placeholder function scans). Example execution,
-Markdown lint, and full tests have not been run locally from this chat
-environment. Keep P01 in progress until the PR is reviewed, CI is checked,
-and the example-execution acceptance is verified.
+Long-running live examples now explicitly raise the idle limit.
+
+The new Linux GitHub Actions documentation step passed in
+[CI run 38143766864](https://github.com/nantes-rfli/paclo/actions/runs/38143766864).
+Reproduce after compiling Java bindings:
+`python3 dev/script/verify_doc_examples.py`.
+Result: 8 selected maintained code examples executed successfully against
+the bundled offline PCAP fixture, with assertions for packet count, flow
+results, early `reduced`, fan-out delivery and DNS namespace registration.
+The script extracts exact examples from maintained documents and runs the
+corresponding Clojure CLI commands; stdout includes the expanded commands
+and per-example PASS reports. Previous PR CI passed; at the time of this
+record, the additional full-workflow run was still running after the
+documentation step had succeeded. No live capture, real-NIC performance,
+or managed Codex environment execution is claimed. P01 acceptance is met;
+P03 is unblocked. Merge/review remains a separate gate.
 
 ## P02: Faithful PCAP round trips
 
@@ -196,13 +207,17 @@ did not validate live capture or rerun historical performance measurements.
 See `dev/codex-environment-validation.md` for preparation results.
 
 Item / slice: P01 / public API and usage documentation
-Status and implementation commit or PR: PR #17 (review and validation pending)
+Status and implementation commit or PR: Done, PR #17 (merge pending)
 Contract decisions: Document only the shipped v1.3 API; no new runtime options;
   `packet-xf` is public and fan-out is separately owned; current writer
-  metadata loss remains until P02.
-Commands and measured results: GitHub source/API inspection and static
-  documentation consistency checks passed; runtime examples, local lint,
-  and tests were not executed in this chat environment.
-Unverified platforms or blocked checks: Executable example acceptance,
-  PR CI, local Markdown lint, live capture, macOS/arm64.
-Next item: Finish P01 verification/review; then P02.
+  metadata loss remains until P02. Long-lived live examples have explicit
+  idle timeouts rather than inheriting the default 3000 ms.
+Commands and measured results: `python3 dev/script/verify_doc_examples.py`
+  passed in CI run 38143766864: 8 of 8 extracted documented examples
+  succeeded, including actual PCAP read and multi-branch fan-out; previous
+  PR CI and static documentation checks passed. Additional full CI still
+  running when this record was written.
+Unverified platforms or blocked checks: Live capture/real NIC not claimed;
+  this chat's container could not run native examples. The GitHub Actions
+  execution is the P01 runnable-example evidence.
+Next item: P02; P03 is unblocked/ready.
