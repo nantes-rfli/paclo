@@ -94,6 +94,12 @@ jobs:
           bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
           bash dev/script/codex.sh smoke
 
+      - name: Execute maintained documentation examples (P01)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 dev/script/verify_doc_examples.py
+
       - name: SpotBugs
         shell: bash
         run: |
