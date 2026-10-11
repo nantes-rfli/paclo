@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-checks:
     runs-on: ubuntu-latest
 
     steps:
@@ -133,20 +133,6 @@ jobs:
           set -e
           clojure -M:perf-gate
 
-      - name: Performance measurement smoke
-        shell: bash
-        run: |
-          set -e
-          clojure -M:perf --mode offline --profile quick --output target/perf-quick
-
-      - name: Upload performance measurement
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: perf-quick-${{ github.run_id }}
-          path: target/perf-quick/results.*
-          if-no-files-found: warn
-
       - name: dns-ext smoke (dns-topn)
         shell: bash
         run: |
@@ -189,6 +175,81 @@ jobs:
         run: |
           set -e
           dev/script/mdlint.sh
+
+  # Benchmark remains fully isolated: 27 worker JVMs run serially on
+  # their own runner, preserving scenario order, JVM isolation, and inputs.
+  performance-measurement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+          clojure -Sdescribe
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        run: clojure -T:build javac
+
+      - name: Performance measurement smoke
+        shell: bash
+        run: |
+          set -e
+          clojure -M:perf --mode offline --profile quick --output target/perf-quick
+
+      - name: Upload performance measurement
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-quick-${{ github.run_id }}
+          path: target/perf-quick/results.*
+          if-no-files-found: warn
+
+  # Preserve the existing required "build" check and fail it if either the
+  # complete build-checks or the unchanged measurement job fails or is skipped.
+  build:
+    needs: [build-checks, performance-measurement]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful build and performance checks
+        shell: bash
+        env:
+          BUILD_CHECKS_RESULT: ${{ needs.build-checks.result }}
+          PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
+        run: |
+          set -euo pipefail
+          echo "build-checks=$BUILD_CHECKS_RESULT"
+          echo "performance-measurement=$PERFORMANCE_RESULT"
+          test "$BUILD_CHECKS_RESULT" = success
+          test "$PERFORMANCE_RESULT" = success
 
   compatibility-matrix:
     runs-on: ${{ matrix.os }}
