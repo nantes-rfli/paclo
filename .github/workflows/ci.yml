@@ -217,10 +217,14 @@ jobs:
           clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version "0.0.1315-c9e9a7e"}}}' \
             -M -e "(require 'cljdoc.doc-tree) (println :cljdoc-loaded)"
 
-  # Benchmark remains fully isolated: 27 worker JVMs run serially on
-  # their own runner, preserving scenario order, JVM isolation, and inputs.
+  # Each of the three offline datasets is measured on a dedicated runner.
+  # Nine JVM workers remain serial per dataset to avoid CPU contention.
   performance-measurement:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [udp-64, tcp-512, mixed]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -263,21 +267,97 @@ jobs:
         shell: bash
         run: |
           set -e
-          clojure -M:perf --mode offline --profile quick --output target/perf-quick
+          clojure -M:perf --mode offline --profile quick --offline-case ${{ matrix.case }} --output target/perf-quick
 
       - name: Upload performance measurement
         if: always()
         uses: actions/upload-artifact@v4
         with:
+          name: perf-shard-${{ matrix.case }}-${{ github.run_id }}
+          path: target/perf-quick/results.edn
+          if-no-files-found: error
+
+
+  # Validate that every scenario is present exactly once and restore the
+  # original results.edn / results.json artifact layout before completing CI.
+  performance-results:
+    needs: [performance-measurement]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Install Clojure CLI
+        shell: bash
+        run: |
+          set -e
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          chmod +x clj.sh
+          sudo ./clj.sh
+          clojure -Sdescribe
+
+      - name: Cache Clojure deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            ~/.clojure
+          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        run: clojure -T:build javac
+
+      - name: Download udp-64 benchmark shard
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-shard-udp-64-${{ github.run_id }}
+          path: target/perf-shards/udp-64
+
+      - name: Download tcp-512 benchmark shard
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-shard-tcp-512-${{ github.run_id }}
+          path: target/perf-shards/tcp-512
+
+      - name: Download mixed benchmark shard
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-shard-mixed-${{ github.run_id }}
+          path: target/perf-shards/mixed
+
+      - name: Validate and merge all 27 performance scenarios
+        shell: bash
+        run: |
+          set -euo pipefail
+          clojure -M:perf --mode offline --profile quick --output target/perf-quick \
+            --merge-inputs target/perf-shards/udp-64/results.edn,target/perf-shards/tcp-512/results.edn,target/perf-shards/mixed/results.edn
+
+      - name: Upload combined performance measurement
+        uses: actions/upload-artifact@v4
+        with:
           name: perf-quick-${{ github.run_id }}
           path: target/perf-quick/results.*
-          if-no-files-found: warn
+          if-no-files-found: error
 
   # Preserve the existing required "build" check. All mandatory checks
   # (including the isolated documentation, compatibility and performance jobs)
   # must succeed, even if another dependency failed or was skipped.
   build:
-    needs: [build-checks, documentation-checks, performance-measurement, compatibility-matrix]
+    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -287,16 +367,19 @@ jobs:
           BUILD_CHECKS_RESULT: ${{ needs.build-checks.result }}
           DOCUMENTATION_RESULT: ${{ needs.documentation-checks.result }}
           PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
+          PERFORMANCE_RESULTS_RESULT: ${{ needs.performance-results.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
         run: |
           set -euo pipefail
           echo "build-checks=$BUILD_CHECKS_RESULT"
           echo "documentation-checks=$DOCUMENTATION_RESULT"
           echo "performance-measurement=$PERFORMANCE_RESULT"
+          echo "performance-results=$PERFORMANCE_RESULTS_RESULT"
           echo "compatibility-matrix=$COMPATIBILITY_RESULT"
           test "$BUILD_CHECKS_RESULT" = success
           test "$DOCUMENTATION_RESULT" = success
           test "$PERFORMANCE_RESULT" = success
+          test "$PERFORMANCE_RESULTS_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
 
   compatibility-matrix:

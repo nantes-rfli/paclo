@@ -1,5 +1,8 @@
 (ns paclo.perf-test
   (:require
+   [clojure.data.json :as json]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.java.shell :as shell]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
@@ -56,6 +59,87 @@
   (doseq [[_ {:keys [cases]}] data/profiles]
     (is (= #{:udp-64 :tcp-512 :mixed}
            (set (map :id cases))))))
+
+(deftest offline-case-selection-validates-mode-and-profile
+  (let [validate! (deref #'perf/validate-opts!)
+        opts {:mode :offline :profile :quick :port 39053
+              :offline-case :tcp-512}]
+    (is (nil? (validate! opts)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"known offline traffic case"
+                          (validate! (assoc opts :offline-case :unknown))))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"known offline traffic case"
+                          (validate! (assoc opts :mode :live))))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"requires offline mode"
+                          (validate! (assoc opts :merge-inputs "a,b,c"))))))
+
+(deftest performance-shards-merge-preserves-schema-and-rejects-bad-shards
+  (let [dir (.toFile (java.nio.file.Files/createTempDirectory
+                      "paclo-perf-shards"
+                      (make-array java.nio.file.attribute.FileAttribute 0)))
+        cases (get-in data/profiles [:quick :cases])
+        scenarios (deref #'perf/offline-scenarios)
+        paths (mapv #(str (io/file dir (str (name (:id %)) ".edn"))) cases)
+        shards (mapv
+                (fn [{:keys [id] :as config}]
+                  {:schema-version 2
+                   :created-at "2026-01-01T00:00:00Z"
+                   :profile :quick
+                   :offline
+                   (vec
+                    (for [scenario scenarios]
+                      {:mode :offline
+                       :scenario scenario
+                       :path (str (io/file "target/perf-quick/datasets"
+                                           (str "quick-" (name id) ".pcap")))
+                       :environment {}
+                       :summary {}
+                       :runs [{:packets 50000
+                               :bytes (data/expected-captured-bytes
+                                       (assoc config :count 50000))
+                               :decode-errors 0}]}))
+                   :live nil
+                   :max-sustainable-by-scenario nil})
+                cases)
+        opts {:mode :offline :profile :quick :port 39053
+              :output (str (io/file dir "merged"))
+              :merge-inputs (str/join "," paths)}
+        merge! (deref #'perf/merge-offline-results!)]
+    (try
+      (doseq [[path shard] (map vector paths shards)]
+        (spit path (pr-str shard)))
+      (let [result (merge! opts)
+            from-disk (edn/read-string
+                       (slurp (io/file (:output opts) "results.edn")))
+            json-result (json/read-str
+                         (slurp (io/file (:output opts) "results.json")))]
+        (is (= 2 (:schema-version from-disk)))
+        (is (= :quick (:profile from-disk)))
+        (is (nil? (:live from-disk)))
+        (is (= 27 (count (:offline result))))
+        (is (= 27 (count (:offline from-disk))))
+        (is (= 27 (count (get json-result "offline"))))
+        (is (= (vec (for [{:keys [id]} cases
+                          scenario scenarios]
+                      [(str "quick-" (name id) ".pcap") scenario]))
+               (mapv (fn [row]
+                       [(.getName (io/file (:path row))) (:scenario row)])
+                     (:offline result)))))
+      (spit (last paths) (slurp (first paths)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"duplicate performance traffic case"
+                            (merge! opts)))
+      (spit (last paths) (pr-str (last shards)))
+      (spit (second paths)
+            (pr-str (update (second shards) :offline pop)))
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"invalid performance shard envelope"
+                            (merge! opts)))
+      (finally
+        (doseq [file (reverse (file-seq dir))]
+          (.delete file))))))
 
 (deftest metric-summary-uses-medians
   (is (= 2 (metrics/median [3 1 2])))

@@ -55,6 +55,8 @@
   (println "  clojure -M:perf [--mode offline|live|all]")
   (println "                   [--profile quick|reference|stress]")
   (println "                   [--output target/perf]")
+  (println "                   [--offline-case udp-64|tcp-512|mixed]")
+  (println "                   [--merge-inputs path1,path2,path3]")
   (println "                   [--device lo0] [--port 39053]")
   (println "                   [--source loopback|external] [--filter BPF]")
   (println "                   [--scenarios name,...] [--rates pps,...]")
@@ -84,6 +86,8 @@
           "--mode" (recur (assoc opts :mode (keyword value)) more)
           "--profile" (recur (assoc opts :profile (keyword value)) more)
           "--output" (recur (assoc opts :output value) more)
+          "--offline-case" (recur (assoc opts :offline-case (keyword value)) more)
+          "--merge-inputs" (recur (assoc opts :merge-inputs value) more)
           "--device" (recur (assoc opts :device value) more)
           "--port" (recur (assoc opts :port (Long/parseLong value)) more)
           "--source" (recur (assoc opts :source (keyword value)) more)
@@ -127,12 +131,24 @@
 (defn- validate-opts!
   [{:keys [mode profile port source scenarios rates duration-ms warmups runs
            frame-size snaplen queue-cap queue-mode branch-cap slow-cap
-           consumer-delay-ns
+           consumer-delay-ns offline-case merge-inputs
            expected-packets]}]
   (when-not (contains? #{:offline :live :all} mode)
     (throw (ex-info "mode must be offline, live, or all" {:mode mode})))
   (when-not (contains? data/profiles profile)
     (throw (ex-info "unknown profile" {:profile profile})))
+  (when (and offline-case
+             (or (not= :offline mode)
+                 (not (some #(= offline-case (:id %))
+                            (get-in data/profiles [profile :cases])))))
+    (throw (ex-info "offline-case requires a known offline traffic case"
+                    {:mode mode :profile profile :offline-case offline-case})))
+  (when (and merge-inputs
+             (or (not= :offline mode)
+                 offline-case
+                 (str/blank? merge-inputs)))
+    (throw (ex-info "merge-inputs requires offline mode without offline-case"
+                    {:mode mode :offline-case offline-case})))
   (when-not (<= 1 (long port) 65535)
     (throw (ex-info "port must be between 1 and 65535" {:port port})))
   (when-not (contains? #{:loopback :external} (or source :loopback))
@@ -328,8 +344,11 @@
          (group-by :scenario results))))
 
 (defn- offline-results!
-  [{:keys [profile output]}]
+  [{:keys [profile output offline-case]}]
   (let [{:keys [count cases]} (get data/profiles profile)
+        cases (if offline-case
+                (filterv #(= offline-case (:id %)) cases)
+                cases)
         warmups 1
         runs (if (= profile :quick) 1 5)
         root (str (io/file output "datasets"))]
@@ -454,6 +473,83 @@
     {:edn (.getAbsolutePath edn-path)
      :json (.getAbsolutePath json-path)}))
 
+(defn- merge-offline-results!
+  "Reassemble three independently measured cases in the original scenario order.
+   Reject missing, duplicated or corrupted data before publishing either file."
+  [{:keys [profile output merge-inputs] :as opts}]
+  (validate-opts! opts)
+  (let [{:keys [cases] :as profile-config} (get data/profiles profile)
+        packet-count (:count profile-config)
+        paths (str/split merge-inputs #"," -1)
+        ids (mapv :id cases)]
+    (when (or (not= (count ids) (count paths))
+              (some str/blank? paths))
+      (throw (ex-info "expected one input per offline traffic case"
+                      {:paths paths :cases ids})))
+    (let [parts (mapv (fn [path]
+                        (edn/read-string (slurp (io/file path))))
+                      paths)
+          by-case
+          (reduce
+           (fn [acc part]
+             (when-not (and (= 2 (:schema-version part))
+                            (= profile (:profile part))
+                            (string? (:created-at part))
+                            (nil? (:live part))
+                            (nil? (:max-sustainable-by-scenario part))
+                            (vector? (:offline part))
+                            (= (count offline-scenarios)
+                               (count (:offline part))))
+               (throw (ex-info "invalid performance shard envelope"
+                               {:profile profile})))
+             (let [results (:offline part)
+                   names (set (map #(some-> (:path %) io/file .getName)
+                                   results))
+                   [case-config] (filter
+                                  #(= names
+                                      #{(str (name profile) "-" (name (:id %))
+                                             ".pcap")})
+                                  cases)
+                   scenario-ids (mapv :scenario results)]
+               (when-not (and case-config
+                              (= (count scenario-ids)
+                                 (count (set scenario-ids)))
+                              (= (set scenario-ids) (set offline-scenarios))
+                              (every? #(and (= :offline (:mode %))
+                                            (map? (:summary %))
+                                            (= (if (= profile :quick) 1 5)
+                                               (count (:runs %))))
+                                      results))
+                 (throw (ex-info "invalid or incomplete performance shard"
+                                 {:paths (mapv :path results)
+                                  :scenarios scenario-ids})))
+               (when (contains? acc (:id case-config))
+                 (throw (ex-info "duplicate performance traffic case"
+                                 {:case (:id case-config)})))
+               (doseq [result results]
+                 (validate-offline-result! result
+                                           (assoc case-config :count packet-count)))
+               (assoc acc (:id case-config)
+                      (into {} (map (juxt :scenario identity)) results))))
+           {}
+           parts)]
+      (when-not (= (set ids) (set (keys by-case)))
+        (throw (ex-info "missing performance traffic cases"
+                        {:expected ids :actual (keys by-case)})))
+      (let [result {:schema-version 2
+                    :created-at (str (Instant/now))
+                    :profile profile
+                    :offline (vec (for [id ids
+                                        scenario offline-scenarios]
+                                    (get-in by-case [id scenario])))
+                    :live nil
+                    :max-sustainable-by-scenario nil}
+            paths (write-results! output result)]
+        (println "[perf] merged" (count (:offline result)) "offline scenarios")
+        (println "[perf] wrote" (:edn paths))
+        (println "[perf] wrote" (:json paths))
+        (assoc result :result-paths paths)))))
+
 (defn run-benchmarks!
   [{:keys [mode profile output] :as opts}]
   (validate-opts! opts)
@@ -478,6 +574,8 @@
     (let [opts (parse-args args)]
       (if (:help? opts)
         (usage)
-        (run-benchmarks! opts)))
+        (if (:merge-inputs opts)
+          (merge-offline-results! opts)
+          (run-benchmarks! opts))))
     (finally
       (shutdown-agents))))
