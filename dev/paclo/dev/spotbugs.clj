@@ -29,4 +29,7 @@
   (println "[spotbugs] done"))
 
 (defn -main [& _]
-  (run-spotbugs))
+  (try
+    (run-spotbugs)
+    (finally
+      (shutdown-agents))))
