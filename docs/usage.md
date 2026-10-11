@@ -45,7 +45,8 @@ For a limited prefix of live traffic, own the source explicitly:
               :filter [:and [:udp] [:port 53]]
               :timeout-ms 50
               :max Long/MAX_VALUE
-              :max-time-ms 60000})]
+              :max-time-ms 60000
+              :idle-max-ms 60000})]
   (into [] (take 10) (core/capture-packets capture)))
 ```
 
@@ -146,7 +147,10 @@ stop-reason, error, and final live libpcap statistics:
 ## Managed capture
 
 Use managed capture when a long-running capture needs explicit ownership,
-external cancellation, or in-progress queue statistics:
+external cancellation, or in-progress queue statistics. The default
+`:idle-max-ms 3000` stops a quiet live capture after roughly three idle
+seconds, even if `:max-time-ms` is much longer. Set an explicit idle limit
+appropriate to the session, as below:
 
 ```clojure
 (with-open [capture
@@ -156,7 +160,8 @@ external cancellation, or in-progress queue statistics:
               :queue-cap 4096
               :queue-mode :dropping
               :max Long/MAX_VALUE
-              :max-time-ms 3600000})]
+              :max-time-ms 3600000
+              :idle-max-ms 3600000})]
   (run! #(prn (select-keys % [:ts-sec :ts-usec :caplen]))
         (core/capture-packets capture))
   (core/capture-stats capture))
@@ -176,7 +181,8 @@ Another thread may request shutdown:
             (core/start-capture
              {:device "en0"
               :max Long/MAX_VALUE
-              :max-time-ms 3600000})]
+              :max-time-ms 3600000
+              :idle-max-ms 3600000})]
   (future
     (Thread/sleep 2000)
     (core/stop-capture! capture))
