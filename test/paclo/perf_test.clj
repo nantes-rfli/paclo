@@ -10,6 +10,7 @@
    [paclo.dev.perf-data :as data]
    [paclo.dev.perf-generator :as generator]
    [paclo.dev.perf-metrics :as metrics]
+   [paclo.dev.perf-spec :as spec]
    [paclo.dev.perf-worker :as worker]
    [paclo.parse :as parse]
    [paclo.pcap :as pcap])
@@ -140,6 +141,15 @@
       (finally
         (doseq [file (reverse (file-seq dir))]
           (.delete file))))))
+
+(deftest standalone-perf-spec-matches-benchmark-inputs
+  (is (= data/profiles spec/profiles))
+  (is (= (deref #'perf/offline-scenarios) spec/offline-scenarios))
+  (doseq [[_ {:keys [count cases]}] spec/profiles
+          case-config cases
+          :let [config (assoc case-config :count count)]]
+    (is (= (data/expected-captured-bytes config)
+           (spec/expected-captured-bytes config)))))
 
 (deftest metric-summary-uses-medians
   (is (= 2 (metrics/median [3 1 2])))
