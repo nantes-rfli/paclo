@@ -280,6 +280,7 @@ jobs:
 
   # Validate that every scenario is present exactly once and restore the
   # original results.edn / results.json artifact layout before completing CI.
+  # The merger uses a standalone lightweight Clojure deps.edn; no native setup.
   performance-results:
     needs: [performance-measurement]
     runs-on: ubuntu-latest
@@ -292,11 +293,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Install libpcap
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libpcap-dev
 
       - name: Install Clojure CLI
         shell: bash
@@ -318,9 +314,6 @@ jobs:
           restore-keys: |
             cljdeps-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Compile Java (jnr-ffi bindings)
-        run: clojure -T:build javac
-
       - name: Download udp-64 benchmark shard
         uses: actions/download-artifact@v4
         with:
@@ -341,10 +334,12 @@ jobs:
 
       - name: Validate and merge all 27 performance scenarios
         shell: bash
+        working-directory: dev/perf-merge
         run: |
           set -euo pipefail
-          clojure -M:perf --mode offline --profile quick --output target/perf-quick \
-            --merge-inputs target/perf-shards/udp-64/results.edn,target/perf-shards/tcp-512/results.edn,target/perf-shards/mixed/results.edn
+          # Standalone tools.deps project: no libpcap, native bindings or compilation.
+          clojure -M:run --profile quick --output ../../target/perf-quick \
+            --merge-inputs ../../target/perf-shards/udp-64/results.edn,../../target/perf-shards/tcp-512/results.edn,../../target/perf-shards/mixed/results.edn
 
       - name: Upload combined performance measurement
         uses: actions/upload-artifact@v4
