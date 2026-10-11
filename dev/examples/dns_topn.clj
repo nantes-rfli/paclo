@@ -154,7 +154,7 @@
                 (assoc m :pct (double (/ (long (or (metric m) 0)) total)))))
          vec)))
 
-(defn- run-cli [& args]
+(defn -main [& args]
   ;; positionals: <pcap> [bpf] [topN] [group] [format] [metric] flags...
   (let [[pcap bpf-str topn-str group-str fmt-str metric-str & flags] args]
     (when (nil? pcap) (usage) (System/exit 1))
@@ -229,9 +229,3 @@
           (emit fmt rows)
           (binding [*out* *err*]
             (println (pr-str meta))))))))
-
-(defn -main [& args]
-  (try
-    (apply run-cli args)
-    (finally
-      (shutdown-agents))))
