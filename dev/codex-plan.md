@@ -166,4 +166,3 @@ When work is completed, update this queue's task status and dependency readiness
 Record detailed PR, test commands, outcomes, decisions, and remaining limitations
 in [the development work log](work-log.md). A passed offline CI check does not
 establish live capture or real-NIC performance.
-

@@ -262,4 +262,3 @@ live floor; packaging and release checks remain the final v1.3 work.
 Phase 6 remains a post-v1.1 conditional investigation. Borrowed buffers,
 batching, parallel decode, and mmap should be attempted only when a measured
 workload remains below target after the compatible Phase 1-5 paths.
-
