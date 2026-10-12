@@ -51,6 +51,8 @@ Internal namespaces (not covered by compatibility guarantees):
 - Output: a transducer, suitable for `comp`, `sequence`, `into`, or
   `transduce`; no capture is opened by constructing it
 
+<!-- paclo-doc-test: api-contract-packet-xf -->
+
 ```clojure
 (into []
       (comp (packet-xf {:decode-mode :flow})

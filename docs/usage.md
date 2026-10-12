@@ -74,6 +74,8 @@ Do not let a managed packet sequence escape its `with-open` scope.
 `packet-xf` is an ordinary transducer, so it composes with `filter`, `map`,
 `comp`, and `transduce` without an additional pipeline abstraction:
 
+<!-- paclo-doc-test: usage-packet-xf -->
+
 ```clojure
 (into []
       (comp (core/packet-xf {:decode-mode :flow})
@@ -107,6 +109,8 @@ decode-configured `packet-xf` in `:xform`.
 
 The reducer may return `(reduced value)` to stop capture immediately and
 close the underlying source. For example, collect just two packet summaries:
+
+<!-- paclo-doc-test: usage-early-reduced -->
 
 ```clojure
 (core/reduce-packets
@@ -235,6 +239,8 @@ branches concurrently when a `:blocking` branch might fill its buffer,
 otherwise a slow branch can block the dispatcher and other branches.
 
 This complete offline example uses the bundled four-packet fixture:
+
+<!-- paclo-doc-test: usage-bounded-fan-out -->
 
 ```clojure
 (require '[paclo.stream :as stream])

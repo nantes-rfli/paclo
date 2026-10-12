@@ -204,7 +204,10 @@ jobs:
       - name: Compile Java (jnr-ffi bindings)
         run: clojure -T:build javac
 
-      - name: Execute maintained documentation examples (P01)
+      - name: Validate documentation example parser
+        run: python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'
+
+      - name: Execute maintained documentation examples
         shell: bash
         run: |
           set -euo pipefail
