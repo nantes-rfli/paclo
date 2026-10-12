@@ -212,3 +212,21 @@ Commit-hook environment note: the existing `.githooks/pre-commit` invokes `clj`,
 which requires missing `rlwrap` on this host. The first commit attempt aborted.
 Use a temporary PATH shim delegating noninteractive `clj` to the installed
 `clojure` CLI to execute the same hook checks; no hook or project tooling change.
+
+PR and CI evidence:
+
+- Implementation commit: `0a33a54133995c39b570e0eae787322766cc37f4`.
+  [PR #29](https://github.com/nantes-rfli/paclo/pull/29) is open for review,
+  attached to this chat, and not merged. The commit hook completed all its
+  tests, formatting, Markdown and kondo checks using the temporary CLI shim.
+- [Actions run 38202555953](https://github.com/nantes-rfli/paclo/actions/runs/38202555953)
+  passed all 12 jobs on the implementation commit: required aggregate `build`,
+  build/Java quality gates, documentation, Linux x64/JDK21 compatibility,
+  macOS ARM64/JDK17 compatibility, three performance shards plus results,
+  Linux ARM64 monitor, Eastwood and coverage. No failing/skipped job was observed.
+- This evidence-recording commit changes only the plan/log. Its final-head CI
+  is checked through the PR after pushing; implementation evidence above remains
+  tied explicitly to the tested source commit rather than claiming a later SHA.
+- Independent review is still absent (reviews list empty). P02 remains
+  **in-progress** until review acceptance; next work is reviewing PR #29 and
+  choosing a compatible release version. Do not merge or publish during this task.

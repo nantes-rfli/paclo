@@ -49,10 +49,12 @@ statements are retained in [the work log](work-log.md).
 
 ## P02: Faithful PCAP round trips
 
-Status: **in-progress**. Implementation and regression fixtures are in place;
-local verification, supported-platform CI and review evidence are tracked in
-[the work log](work-log.md). Completion awaits successful required checks and
-review; code creation alone does not complete P02. Next feature remains P02
+Status: **in-progress**. [PR #29](https://github.com/nantes-rfli/paclo/pull/29)
+implements P02. Local checks and all implementation-commit CI jobs passed,
+including Linux x64/JDK21, macOS ARM64/JDK17 and the Linux ARM64 monitor.
+Evidence is tracked in [the work log](work-log.md); the final evidence-only
+commit's checks are reported in the PR. Independent review is still pending;
+code creation alone does not complete P02. Next feature remains P02
 until accepted; P03 is ready but is outside this change.
 
 Released v1.3.0 reads emit `:ts-sec`/`:ts-usec`; its writer consumes `:sec`/`:usec`.
