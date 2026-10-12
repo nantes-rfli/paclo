@@ -88,7 +88,6 @@ Run `python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'
 for the parser and, after compiling Java, run
 `python3 dev/script/verify_doc_examples.py` for the actual offline examples.
 
-
 | Change | Required local evidence |
 | --- | --- |
 | Docs only | Markdown lint; execute changed examples where applicable |
