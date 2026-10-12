@@ -45,7 +45,8 @@ It prioritizes faithful packet round trips, explicit extension composition, data
 contracts, and reusable analysis. Release labels there are candidates. Developer
 setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-`v1.3.0` is shipped; the next approved implementation items are P02 and P03.
+`v1.3.0` is shipped. P02 packet metadata preservation is implemented in
+`[Unreleased]`, with CI and review tracked in the accepted plan. P03 remains ready.
 
 - [ ] Stabilize arm64 success rate against long observation windows
 - [ ] Keep publish/release automation healthy (token rotation, workflow maintenance)

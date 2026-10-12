@@ -24,7 +24,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | ID | Candidate | Task | Depends on | Status |
 | --- | --- | --- | --- | --- |
 | P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
-| P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | ready |
+| P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | in-progress |
 | P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | ready |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | blocked |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | blocked |
@@ -49,9 +49,15 @@ statements are retained in [the work log](work-log.md).
 
 ## P02: Faithful PCAP round trips
 
-Baseline reads emit `:ts-sec`/`:ts-usec`; the writer consumes `:sec`/`:usec`.
-Passing a captured map directly to the writer replaces its time with wall-clock time.
-The writer also constructs both lengths from the byte array, losing original `:len`
+Status: **in-progress**. Implementation and regression fixtures are in place;
+local verification, supported-platform CI and review evidence are tracked in
+[the work log](work-log.md). Completion awaits successful required checks and
+review; code creation alone does not complete P02. Next feature remains P02
+until accepted; P03 is ready but is outside this change.
+
+Released v1.3.0 reads emit `:ts-sec`/`:ts-usec`; its writer consumes `:sec`/`:usec`.
+Passing a captured map directly to that writer replaces its time with wall-clock time.
+That writer also constructs both lengths from the byte array, losing original `:len`
 for truncated captures. These are distinct from later PCAPNG format support.
 
 - Accept captured maps directly while keeping legacy timestamp inputs working.

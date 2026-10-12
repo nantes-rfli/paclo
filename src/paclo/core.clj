@@ -311,11 +311,22 @@
 
 ;; Writer
 (defn write-pcap!
-  "Write packet bytes to a PCAP file.
+  "Write packet bytes and metadata to an Ethernet PCAP file.
 
   `packets` can contain:
   - `byte-array`
-  - map with `:bytes` and optional `:sec`/`:usec` timestamps"
+  - map with `:bytes`, optional `:ts-sec`/`:ts-usec` (preferred), legacy
+    `:sec`/`:usec`, `:caplen` and original `:len`.
+
+  Complete timestamp pairs use integer seconds (0..4294967295) and
+  microseconds (0..999999). Partial new pairs or invalid selected values
+  throw ex-info. Absent pairs and partial legacy pairs use current time.
+  Explicit caplen must equal byte-array length; len defaults to that length
+  and must be an integer in caplen..4294967295. Invalid bytes throw ex-info.
+  Preserves packet order, bytes, timestamps and lengths, including truncation;
+  source global headers, link types, snaplen and precision are not preserved.
+  Older libpcap readers may expose post-2038 seconds as negative; those values
+  are rejected by writer validation. See the API contract's portability note."
   [packets out]
   (pcap/bytes-seq->pcap! packets {:out out}))
 

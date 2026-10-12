@@ -323,13 +323,48 @@ counters. A dropping queue never returns dropped packets to the consumer.
                   "out.pcap")
 ```
 
-The current writer accepts `:sec`/`:usec`, whereas read packet maps have
-`:ts-sec`/`:ts-usec`. Passing a captured map directly does **not**
-preserve its timestamp: absent writer timestamp keys fall back to current
-time. The writer also derives both output lengths from `:bytes`, so a
-truncated record's original `:len` is not preserved. For now, explicitly
-adapt timestamps when writing and do not assume lossless round trips;
-faithful metadata preservation is planned separately (P02).
+P02 in `[Unreleased]` accepts read packet maps directly. A complete
+`:ts-sec`/`:ts-usec` pair takes precedence over legacy `:sec`/`:usec`, even when
+the pairs conflict. Seconds must be integers in `0..4294967295`, microseconds
+in `0..999999`; zero is valid. A partial new pair or invalid complete selected
+pair (including `nil`) throws `ex-info`. Missing timestamps and partial legacy
+pairs keep the current-time fallback. Released v1.3.0 does not have this behavior.
+
+The byte-array length is `:caplen`; a supplied `:caplen` must match it.
+Original `:len` is preserved, or defaults to the byte-array length when omitted.
+Explicit lengths must be integers in `0..4294967295`, with `:len >= :caplen`.
+Invalid bytes or metadata throw `ex-info`.
+
+This offline example reads, filters, writes the original packet maps, and compares
+their metadata and byte contents. The independent fixture includes truncated
+packets. Use your own Ethernet PCAP path and output path in an application.
+
+<!-- paclo-doc-test: usage-pcap-roundtrip -->
+```clojure
+(require '[paclo.core :as core])
+
+(let [out (java.io.File/createTempFile "paclo-roundtrip-" ".pcap")
+      snapshot (fn [packet]
+                 (update (select-keys packet [:ts-sec :ts-usec :caplen :len :bytes])
+                         :bytes vec))
+      kept (into [] (core/packets
+                     {:path "test/resources/metadata-roundtrip.pcap"
+                      :filter "ip" :max Long/MAX_VALUE}))]
+  (try
+    (core/write-pcap! kept (.getAbsolutePath out))
+    (let [saved (into [] (core/packets {:path (.getAbsolutePath out)
+                                      :max Long/MAX_VALUE}))]
+      {:count (count saved)
+       :preserved? (= (mapv snapshot kept) (mapv snapshot saved))
+       :truncated? (boolean (some #(< (:caplen %) (:len %)) saved))})
+    (finally (.delete out))))
+```
+
+The writer still outputs Ethernet PCAP with snaplen 65536 and microsecond precision.
+It preserves packet metadata, not the source file's global header, byte order,
+link type, snaplen, or timestamp precision. PCAPNG and additional link types remain
+future work. Older libpcap readers may expose post-2038 seconds as negative; see
+the [writer contract](cljdoc-api-contract.md#write-pcap) for this native limitation.
 
 ## BPF DSL (examples)
 

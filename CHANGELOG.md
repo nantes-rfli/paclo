@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- P02: `write-pcap!` accepts read packet maps directly, preserving packet bytes,
+  timestamps, captured lengths and original lengths, including truncated records.
+  `:ts-sec`/`:ts-usec` takes precedence over legacy `:sec`/`:usec`; raw bytes,
+  omitted timestamps and partial legacy pairs retain the current-time fallback.
+- Reject invalid bytes, partial new timestamps, invalid selected timestamp values,
+  inconsistent lengths and unsigned 32-bit overflow with `ex-info`. Complete
+  legacy pairs containing `nil` or coercible non-integers now fail validation.
+  Ethernet output and the public writer signature are unchanged. Source global
+  headers and timestamp precision are not copied; older libpcap's post-2038
+  timestamp interpretation remains a native limitation.
+
 ## [1.3.0] - 2026-08-01
 
 ### Added

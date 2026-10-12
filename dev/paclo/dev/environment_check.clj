@@ -33,11 +33,7 @@
 (defn- check-write! [packets]
   (let [file (java.io.File/createTempFile "paclo-environment-" ".pcap")]
     (try
-      ;; Explicitly adapt the current v1.3 writer contract. Plan item P02 adds
-      ;; direct packet-map round trips; this readiness check does not implement it.
-      (core/write-pcap!
-       (map #(assoc % :sec (:ts-sec %) :usec (:ts-usec %)) packets)
-       (.getAbsolutePath file))
+      (core/write-pcap! packets (.getAbsolutePath file))
       (let [saved (core/reduce-packets
                    {:path (.getAbsolutePath file) :max Long/MAX_VALUE
                     :max-time-ms 60000}

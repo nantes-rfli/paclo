@@ -32,6 +32,10 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "usage-pcap-roundtrip": Check(
+        "Usage PCAP metadata round trip", "clojure",
+        "(and (= 3 (:count result)) (:preserved? result) (:truncated? result))",
+    ),
     "offline-quick-start": Check(
         "README offline quick start", "clojure",
         "(and (= 2 (count result)) (every? #(contains? % :ts-sec) result))",
