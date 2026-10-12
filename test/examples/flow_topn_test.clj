@@ -1,5 +1,6 @@
 (ns examples.flow-topn-test
   (:require
+   [clojure.core.async :as async]
    [clojure.edn :as edn]
    [clojure.test :refer [deftest is testing]]
    [examples.flow-topn :as flow-topn]
@@ -41,8 +42,10 @@
   (doseq [value ["0" "-1" "no-number"]]
     (is (thrown? clojure.lang.ExceptionInfo
                  (run-main "test/resources/dns-sample.pcap" "--max-flows" value))))
-  (let [result (run-main "test/resources/dns-sample.pcap" "--async" "--async-timeout-ms" "0")]
-    (is (re-find #"cancelled= true" (:err result))))
+  (with-redefs [async/timeout (fn [_] (throw (ex-info "zero timeout must not schedule a timer" {})))]
+    (let [result (run-main "test/resources/dns-sample.pcap" "--async" "--async-timeout-ms" "0")]
+      (is (= [] (edn/read-string (:out result))))
+      (is (re-find #"cancelled= true" (:err result)))))
   (is (:async? (#'flow-topn/parse-flags ["--async" "--max-flows" "42"])))
   (is (= 42 (:max-flows (#'flow-topn/parse-flags ["--max-flows" "42"])))))
 

@@ -957,3 +957,33 @@ P06 final local verification (after the persistent-map update):
   results do not validate live capture, sustained real-NIC throughput or other
   platforms. P06 stays in-progress until independent review/merge; next feature
   after acceptance is P07.
+
+P06 PR and first CI follow-up:
+
+- Created [PR #33](https://github.com/nantes-rfli/paclo/pull/33) from `e735609`,
+  with structural move `cfb6ff2` as its separate first commit. Attached the PR
+  to the task; no merge, version update or publication.
+- Initial commit+push was rejected by automatic approval review, which believed
+  external publication was unauthorized/unverified. Read the attachment's
+  section 15 explicit implementation/test/fix/PR-creation instruction and
+  verified GitHub reports the requested nantes-rfli/paclo origin as public.
+  Local commit and the direct scoped push were then approved; no workaround
+  or alternate destination was used.
+- [CI run 38234118064](https://github.com/nantes-rfli/paclo/actions/runs/38234118064)
+  passed 11/12 jobs: both Linux x64/JDK21 and macOS ARM64/JDK17 compatibility,
+  build-checks/aggregate, documentation, three performance shards and merger,
+  Eastwood and coverage. ARM64 monitor failed one new zero-timeout assertion.
+  The run is not an all-passing validation. Logs show the four-record PCAP
+  finished before core.async's asynchronously scheduled timeout(0) notification.
+  Other new API/property tests passed there; no native decoder failure occurred.
+- Zero timeout now selects an already-closed cancellation channel, so immediate
+  cancellation does not depend on timer-thread scheduling. Positive timeout
+  behavior remains timer-based. A regression substitutes a throwing timeout
+  scheduler, proving the zero branch avoids it and emits no rows with cancellation.
+  Follow-up focused/local and platform verification follows; no CI gate is weakened.
+
+- Zero-timeout follow-up: `bash dev/script/codex.sh test
+  -n examples.flow-topn-test -n examples.smoke-test` passed 35 tests /
+  98 assertions. Focused clj-kondo passed with zero errors/warnings; pinned
+  clean-ns/format found no changes; Markdown lint and diff checks passed.
+  The analysis/decoder source and JAR consumer are unchanged by this CLI fix.

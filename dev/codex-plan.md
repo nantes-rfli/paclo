@@ -147,7 +147,9 @@ the next supported types. Validate native calls on the existing platform matrix.
 ## P06: Reusable flow analysis
 
 Status: **in-progress** (implementation and local verification complete;
-independent review and merge remain required). Three public functions in
+independent review and merge remain required).
+[PR #33](https://github.com/nantes-rfli/paclo/pull/33) contains the implementation.
+Three public functions in
 `paclo.flow` use a six-field numeric canonical key, immutable bounded aggregates
 and deterministic Top-N. Projection moved to internal `paclo.flow.project`.
 Full decode retains its legacy display descriptor; CLI delegates analysis,

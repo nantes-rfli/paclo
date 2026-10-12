@@ -583,5 +583,6 @@ It retains legacy display rows (`:flow {:proto ... :src ... :dst ...}`,
 budget is 100000 unique flows, configurable with `--max-flows N`; formerly
 unbounded large captures may now fail and need an explicit larger budget. Ties
 are now deterministic numeric order. Async cancellation terminates the producer
-early; dropping statistics count discarded inputs and reader/aggregate failures
+early (zero timeout cancels immediately, without scheduling a timer); dropping
+statistics count discarded inputs and reader/aggregate failures
 propagate after channel cleanup. EDN/JSONL and blocking/dropping modes remain.

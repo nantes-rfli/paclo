@@ -74,7 +74,10 @@
         dropped (atom 0)
         cancelled? (atom false)
         stop-ch (async/chan)
-        cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
+        cancel-ch (when async-timeout-ms
+                    (if (zero? async-timeout-ms)
+                      (doto (async/chan) (async/close!))
+                      (async/timeout async-timeout-ms)))
         ;; offer! against a fixed buffer reports every discarded input.
         pkt-ch (async/chan (async/buffer async-buffer))
         reader (async/thread
