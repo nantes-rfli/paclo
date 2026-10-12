@@ -42,6 +42,8 @@ clojure -X:deps prep
 
 ## Quick start
 
+<!-- paclo-doc-test: offline-quick-start -->
+
 ```clojure
 (require '[paclo.core :as core])
 
@@ -90,6 +92,8 @@ addresses are unsigned longs and IPv6 addresses are two-long vectors:
 
 For transformations outside the capture APIs, `packet-xf` is a public,
 composable transducer:
+
+<!-- paclo-doc-test: readme-packet-xf -->
 
 ```clojure
 (into []
@@ -149,6 +153,8 @@ To feed two independent consumers, compose a managed capture with bounded
 fan-out. This example runs offline with the bundled fixture. Each branch is
 single-consumer and must be owned with `with-open`:
 
+<!-- paclo-doc-test: readme-bounded-fan-out -->
+
 ```clojure
 (require '[paclo.stream :as stream])
 
@@ -201,6 +207,8 @@ Notes:
 - Bundled sample PCAPs: `test/resources/dns-sample.pcap`, `test/resources/dns-synth-small.pcap`, `test/resources/tls-sni-sample.pcap`.
 
 ### dns-ext alias quick check
+
+<!-- paclo-doc-test: readme-dns-quick-check -->
 
 ```bash
 clojure -M:dev:dns-ext -e "(require '[paclo.proto.dns-ext :as dns-ext]) (dns-ext/register!) (println :dns-ext-ok)"
