@@ -13,6 +13,7 @@ Do not split DNS extension into a separate artifact before v1.0.0.
 ## Revisit Trigger
 
 Re-evaluate split only if one of these happens:
+
 1. Extension dependency graph grows materially.
 2. Release cadence diverges between core and DNS extension.
 3. Users request independent versioning.
