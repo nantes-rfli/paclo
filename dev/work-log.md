@@ -805,3 +805,14 @@ P05 PR and CI follow-up:
 - `/private/tmp/p05-tools/pinned-lsp/clojure-lsp clean-ns --dry` and `format --dry`
   both passed for the whole project, with no proposed changes. The installed
   local version's focused dry runs also passed after the whitespace adjustment.
+- Final implementation head `e611d9a`:
+  [CI run 38220870309](https://github.com/nantes-rfli/paclo/actions/runs/38220870309)
+  **passed all 12 jobs**. Both Linux x64/JDK21 and macOS ARM64/JDK17 compatibility
+  jobs, Linux ARM64/JDK21 monitor, build-checks, documentation-checks, all three
+  performance shards, performance-results, Eastwood, coverage and build aggregate
+  succeeded. This includes the existing Java/native, pinned lint, documentation,
+  performance and coverage gates. No failing/skipped job remains on this run.
+- This follow-up records evidence only; no behavior, tests, gates, dependency or
+  version changes. PR #32 remains open/unmerged. P05 stays in-progress pending
+  independent review/merge; P06 remains ready and P08 remains blocked. Live NIC
+  and sustained real-NIC validation are still outside this offline evidence.

@@ -131,8 +131,9 @@ Test meaningful invariants with `test.check` and validate performance impact.
 
 Status: **in-progress**. [PR #32](https://github.com/nantes-rfli/paclo/pull/32)
 implements native DLT metadata and safe Ethernet dispatch. Local verification
-is complete; CI results are tracked in the work log. Independent review and
-merge remain required.
+and all 12 implementation CI jobs passed, including the supported platform
+matrix and ARM64 monitor. Evidence is tracked in the work log. Independent
+review and merge remain required.
 
 Full and flow decoding at the baseline assume Ethernet. Surface the actual source link type
 and dispatch or explicitly reject unsupported decoding, preserving raw capture access.
