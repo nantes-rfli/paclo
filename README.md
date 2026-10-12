@@ -344,18 +344,14 @@ NVD_API_TOKEN=<token> clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:de
 
 ## Documentation
 
-- Docs index: `docs/README.md`
-- Usage guide: `docs/usage.md`
-- Decode extensions: `docs/extensions.md`
-- Public API contract: `docs/cljdoc-api-contract.md`
-- Migration guide: `docs/migration-0.4-to-1.0.md`
-- Roadmap: `docs/ROADMAP.md`
-- Performance measurement: `docs/performance.md`
-- v1.3 stream design and acceptance record: `dev/v1.3-stream-spike.md`
-- v1.3.0 release checklist: `docs/release-v1.3.0-checklist.md`
-- v1.2.0 implementation plan: `docs/release-v1.2.0-plan.md`
-- v1.2.0 release checklist: `docs/release-v1.2.0-checklist.md`
-- v1.1.0 release checklist: `docs/release-v1.1.0-checklist.md`
+- [Docs index](docs/README.md): current guides and historical reference index
+- [Usage guide](docs/usage.md)
+- [Public API contract](docs/cljdoc-api-contract.md)
+- [Decode extensions](docs/extensions.md)
+- [Migration guide (0.4 to 1.0)](docs/migration-0.4-to-1.0.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Performance measurement](docs/performance.md)
+- [Historical releases and measurement evidence](docs/README.md#historical-records)
 
 ## Maintainer notes
 

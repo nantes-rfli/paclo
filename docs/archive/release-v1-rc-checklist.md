@@ -68,3 +68,18 @@ Reference URLs:
 
 - `v1.0.0` release: <https://github.com/nantes-rfli/paclo/releases/tag/v1.0.0>
 - cljdoc build: <https://cljdoc.org/builds/99557>
+
+## Historical roadmap acceptance record (archived)
+
+The v1.0 release roadmap is complete.
+
+Completed release artifacts:
+
+- [x] `v1.0.0-rc` and `v1.0.0-rc.1` tags/releases
+- [x] `v1.0.0` tag and GitHub Release (latest)
+- [x] `v1.0.1` patch release for docs/publication follow-up
+- [x] Clojars publish pipeline and release publication (`org.clojars.nanto/paclo`)
+- [x] cljdoc publication confirmed (`CURRENT` page and successful build)
+- [x] Migration guide (`docs/migration-0.4-to-1.0.md`)
+- [x] Public API contract (`docs/cljdoc-api-contract.md`)
+- [x] Compatibility matrix and performance gate integrated into CI

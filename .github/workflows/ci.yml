@@ -204,6 +204,13 @@ jobs:
       - name: Compile Java (jnr-ffi bindings)
         run: clojure -T:build javac
 
+      - name: Validate internal Markdown links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s dev/script -p 'test_verify_doc_links.py'
+          python3 dev/script/verify_doc_links.py
+
       - name: Validate documentation example parser
         run: python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'
 

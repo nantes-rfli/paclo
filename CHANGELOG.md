@@ -10,42 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-08-01
 
 ### Added
+
 - Added `paclo.core/packet-xf` for composing compatible full decode or numeric
   flow projection with standard Clojure transducers.
+
 - Added public `paclo.stream/fan-out`, `branch`, and `stats` for backend-neutral
   bounded distribution through reducible, seqable, closeable branches.
+
 - Added branch-local blocking/dropping policies and schema-versioned data-only
   distribution, buffer, backpressure, lifecycle, and error statistics.
 
 ### Changed
+
 - Unified packet transformation across lazy sequences, synchronous reduction,
   reduction reports, and managed captures through `packet-xf`.
+
 - Added `:decode-mode :flow` support to `paclo.core/packets`.
 - External exact-count live benchmarks now stop capture at the expected packet
   count instead of relying only on a duration timeout.
 
 ### Fixed
+
 - Read macOS `timeval.tv_usec` using its 32-bit Darwin ABI width instead of
   including the adjacent struct padding in packet timestamps.
+
 - Released the fan-out dispatcher's reference to the lazy source head so long
   bounded streams do not retain every realized tail.
 
 ## [1.2.0] - 2026-07-30
 
 ### Added
+
 - Added an exact-count UDP generator and external expected-packet accounting
   for reproducible end-to-end real-NIC live-capture measurements.
+
 - Added `paclo.core/reduce-packets-report` for synchronous results plus
   schema-versioned execution statistics and explicit stop reasons.
+
 - Added single-consumer managed captures through `start-capture`,
   `capture-packets`, `stop-capture!`, and `capture-stats`.
 
 ### Changed
+
 - Unified synchronous and managed capture reporting around data-only source,
   timing, packet, queue, libpcap, stop-reason, and error fields.
+
 - Advanced the local development version to `1.2.0-SNAPSHOT`.
 
 ### Fixed
+
 - Managed capture shutdown no longer depends on inserting a terminal marker
   into a full blocking queue; explicit close unblocks the producer and
   deterministically releases the libpcap handle.
@@ -53,47 +66,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-07-27
 
 ### Added
+
 - Added a phase-1 offline/live performance runner with deterministic PCAP
   generation, isolated JVM scenarios, EDN/JSON results, and JVM metrics.
+
 - Added internal portable `pcap_stats` counters and loopback-live load
   measurement.
+
 - Added `paclo.core/reduce-packets` for synchronous transducer-aware reduction
   without the producer queue or an intermediate lazy sequence.
+
 - Added opt-in numeric `:decode-mode :flow` projection to `reduce-packets`.
 - Added opt-in live capture buffer and immediate-mode configuration using
   libpcap's create/activate API.
+
 - Added live sender, libpcap, paclo queue, and consumer stage metrics with a
   0.1% sustainability classifier and per-scenario maximum passing result.
+
 - Added direct, bounded-blocking, and bounded-dropping live benchmark
   comparisons plus an external-generator profile for real-NIC measurement.
+
 - Added opt-in `:queue-mode :dropping` and final `:on-queue-stats` counters to
   the lazy packet sequence.
 
 ### Changed
+
 - CI now runs a non-thresholded 50k performance smoke and uploads its results.
 - Replaced hot-path address `format` calls with dedicated conversions, reducing
   compatible full-decode allocation without changing packet maps.
+
 - Migrated `flow-topn` to the synchronous numeric flow projection and an
   internally mutable accumulator while preserving its EDN/JSONL output contract.
+
 - Advanced performance result files to schema version 2 for staged live
   metrics.
+
 - Hardened release publication with main/tag provenance checks, release gates,
   uploaded candidate artifacts, and a non-publishing manual dry-run.
 
 ### Fixed
+
 - Preserved `nil` from truncated DNS and TLS byte readers instead of applying
   primitive return coercion to missing data.
+
 - Made live queue high-water and backpressure metrics race-safe when consumers
   drain immediately or producers encounter a full bounded queue.
 
 ## [1.0.1] - 2026-02-23
 
 ### Added
-- Added `.github/workflows/publish.yml` to publish tagged releases to Clojars (or manual dispatch), preparing cljdoc indexing.
+
+- Added `.github/workflows/publish.yml` to publish tagged releases to Clojars (or manual dispatch), preparing cljdoc
+  indexing.
 - Added `:deps-deploy` alias (`slipset/deps-deploy`) for Maven/Clojars deployment.
 
 ### Changed
-- `build.clj` now resolves version from `PACLO_VERSION`/tag context, writes Maven metadata (SCM/description/url), and adds a local `install` task.
+
+- `build.clj` now resolves version from `PACLO_VERSION` /tag context, writes Maven metadata (SCM/description/url), and
+  adds a local `install` task.
 - Switched publish/cljdoc coordinates from `io.github.nantes-rfli/paclo` to `org.clojars.nanto/paclo`.
 - Added MIT license metadata to generated POM and added a repository `LICENSE` file.
 - Rewrote user-facing docs in English and clarified README/docs structure for Clojars/cljdoc readers.
@@ -102,80 +132,107 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-23
 
 ### Changed
+
 - Promoted `v1.0.0-rc.1` to stable `v1.0.0`.
 - Kept the v1 API/CLI/BPF contracts, compatibility matrix, and CI gates established during RC.
 
 ## [1.0.0-rc.1] - 2026-02-23
 
 ### Changed
+
 - Added `:deps/prep-lib` (`build/javac`) to enable Java class preparation for git dependencies before use.
 - Updated install/release docs to require `clojure -X:deps prep` for first-time git dependency setup.
 
 ## [1.0.0-rc] - 2026-02-23
 
 ### Added
-- Added `docs/migration-0.4-to-1.0.md` with a migration checklist, compatibility policy, CLI exit-code contract, and deprecation timeline notes.
+
+- Added `docs/migration-0.4-to-1.0.md` with a migration checklist, compatibility policy, CLI exit-code contract, and
+  deprecation timeline notes.
 - Added `docs/release-v1-rc-checklist.md` to standardize `v1.0.0-rc` release gates and tagging steps.
-- Added `.github/workflows/arm64-promotion-report.yml` to report arm64 required-gate promotion readiness (14-day window, success/rerun/duration thresholds).
+- Added `.github/workflows/arm64-promotion-report.yml` to report arm64 required-gate promotion readiness (14-day window,
+  success/rerun/duration thresholds).
 - Added `dev/script/arm64_promotion_report.sh` to compute the same arm64 promotion metrics locally via `gh` API.
 
 ### Changed
-- Roadmap progress for v1.0 Phase I is now tracked with concrete items (BPF error contract tests, `invalid :filter` contract test, migration guide draft).
+
+- Roadmap progress for v1.0 Phase I is now tracked with concrete items (BPF error contract tests, `invalid :filter`
+  contract test, migration guide draft).
 - Docs index and README documentation links now include the 0.4 -> 1.0 migration guide.
-- Added arm64 required-gate promotion criteria to the v1 freeze draft (success/flake/perf thresholds and promotion procedure).
+- Added arm64 required-gate promotion criteria to the v1 freeze draft (success/flake/perf thresholds and promotion
+  procedure).
 - Updated README `deps.edn` install snippet from `v0.3.0` to `v0.4.0` tag/sha.
-- Made `arm64-monitor` a required CI gate by removing `continue-on-error` (exception path without waiting 14-day observation window).
+- Made `arm64-monitor` a required CI gate by removing `continue-on-error` (exception path without waiting 14-day
+  observation window).
 - Updated compatibility matrix macOS runner label to `macos-latest` (replacing unsupported `macos-13` configuration).
 - Isolated Clojure deps cache keys by `runner.arch` to prevent x64/arm64 cache cross-restore in CI jobs.
-- Stabilized arm64 required gate by excluding `paclo.pcap-loop-test` from the gating test regex and running it as a non-gating observation step.
-- Re-integrated `paclo.pcap-loop-test` into arm64 required unit tests after removing reflection-based `PointerByReference` mutation in tests.
-- Recorded `v1.0.0-rc` local gate execution results in the release checklist and updated P3 acceptance progress in ROADMAP.
+- Stabilized arm64 required gate by excluding `paclo.pcap-loop-test` from the gating test regex and running it as a
+  non-gating observation step.
+- Re-integrated `paclo.pcap-loop-test` into arm64 required unit tests after removing reflection-based
+  `PointerByReference` mutation in tests.
+- Recorded `v1.0.0-rc` local gate execution results in the release checklist and updated P3 acceptance progress in
+  ROADMAP.
 
 ### Tests
+
 - Strengthened BPF error-contract tests to assert `ex-message` and `ex-data` for unknown proto/op and unsupported forms.
 - Added explicit `core/packets` invalid-filter contract test (`ex-message` + `ex-data`).
 
 ## [0.4.0] - 2025-12-10
 
 ### Added
-- DNS aggregation CLIs `examples.dns-topn` / `examples.dns-qps` (EDN/JSONL/CSV, async/drop/cancel, qname punycode normalization, SNI/ALPN aggregation, empty-bucket fill).
-- Added four TLS sample PCAPs (`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap`, `tls-sni-h3-sample.pcap`, `tls-sni-alpn-h3mix-sample.pcap`) and expanded smoke tests.
+
+- DNS aggregation CLIs `examples.dns-topn` / `examples.dns-qps` (EDN/JSONL/CSV, async/drop/cancel, qname punycode
+  normalization, SNI/ALPN aggregation, empty-bucket fill).
+- Added four TLS sample PCAPs (`tls-sni-sample.pcap`, `tls-sni-alpn-sample.pcap` , `tls-sni-h3-sample.pcap` ,
+  `tls-sni-alpn-h3mix-sample.pcap` ) and expanded smoke tests.
 - Added DNS QPS benchmark reference to README/ROADMAP (dns-synth-small 10pkt, bucket=1000, decode?=true, ~16.2ms).
 - CI: added dns-ext smoke (`examples.dns-topn`) and cljdoc CLI dry-run to the build job.
 - CI: set coverage job to Temurin 17 with continue-on-error to mitigate cloverage native crashes.
 
 ### Fixed
-- Added `--log-punycode-fail` to `dns-qps`, aligning README/help with implementation; punycode decode failures now log WARN to stderr.
+
+- Added `--log-punycode-fail` to `dns-qps` , aligning README/help with implementation; punycode decode failures now log
+  WARN to stderr.
 
 ### Notes
+
 - Eastwood passes via `-M:eastwood:dns-ext` (+ data.xml); warnings limited to boxed-math/performance/reflection.
-- nvd-clojure runs in GitHub Actions `Dependency Audit` using `secrets.NVD_API_TOKEN`; to reproduce locally set `NVD_API_TOKEN` and run `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"`.
+- nvd-clojure runs in GitHub Actions `Dependency Audit` using `secrets.NVD_API_TOKEN` ; to reproduce locally set
+  `NVD_API_TOKEN` and run `clojure -M:nvd dev/nvd-clojure.edn "$(clojure -Spath -A:dev:dns-ext)"` .
 - 2025-12-10: GitHub Actions "Dependency Audit" (nvd-clojure) completed with `NVD_API_TOKEN`, no critical CVEs.
 
 ## [0.3.0] - 2025-12-05
 
 ### Added
+
 - TLS ClientHello SNI/ALPN decode extension (`paclo.proto.tls-ext`) and example `examples.tls-sni-scan` (EDN/JSONL).
 - REPL pipeline benchmark sample numbers for small / mid (50k) / large (100k) synthetic PCAPs.
 - Synthetic PCAP generator `make-synth-pcap` to reproduce benchmark inputs (count/caplen configurable).
 - Property test to assert decode_ext isolates exceptions yet keeps later hooks running.
 - Added decode_ext guard coverage for packets without `:decoded` or with `:decode-error` (hooks are skipped).
 - Added JSONL metadata smoke test for `examples.pcap-filter`.
-- Added opt-in `--async` support to `pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt` (backpressure/drop/timeout demos).
+- Added opt-in `--async` support to `pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt` (backpressure/drop/timeout
+  demos).
 
 ### Docs
+
 - `docs/extensions.md` stability notes for decode_ext hooks (map-only apply, exception isolation, API compatibility).
-- Roadmap updated to reflect Phase B progress and outstanding tasks; mid-size REPL turnaround numbers added; proto-dns split draft added (`dev/proto-dns-split-plan.md`).
+- Roadmap updated to reflect Phase B progress and outstanding tasks; mid-size REPL turnaround numbers added; proto-dns
+  split draft added (`dev/proto-dns-split-plan.md`).
 - README REPL turnaround section now lists small/mid/large pipeline-bench samples.
-- Aligned examples docs/help text (`dns-summary` alias hint, `tls-sni-scan` formats/tips), including shared EDN/JSONL flags and `_` skip usage.
+- Aligned examples docs/help text (`dns-summary` alias hint, `tls-sni-scan` formats/tips), including shared EDN/JSONL
+  flags and `_` skip usage.
 - Updated `docs/extensions.md` with v0.3 stability notes and explicit hook guard conditions.
-- Added async opt-in examples and long-PCAP backpressure/drop observation steps to README (`pcap-filter` / `flow-topn` / `pcap-stats` / `dns-rtt`) and synced ROADMAP core.async progress.
+- Added async opt-in examples and long-PCAP backpressure/drop observation steps to README (`pcap-filter` / `flow-topn` /
+  `pcap-stats` / `dns-rtt` ) and synced ROADMAP core.async progress.
 
 ### Fixed
+
 - `examples.dns-summary` help text now references the required `:dns-ext` alias.
 - `examples.tls-sni-scan` accepts skipped optional args via `_` and emits consistent format errors.
-- BPF arg `_` now correctly treated as "unset" in `examples.pcap-filter` / `flow-topn` / `pcap-stats` to match Usage tips.
-
+- BPF arg `_` now correctly treated as "unset" in `examples.pcap-filter` / `flow-topn` / `pcap-stats` to match Usage
+  tips.
 
 ## Versioning / SemVer
 
