@@ -93,3 +93,23 @@ Next item: P02; P03 is unblocked/ready.
 For each merged slice, record the task ID, PR or commit, behavioral contract
 decisions, commands and outcomes, blocked or unverified checks, and the next
 available item. Keep the task status itself in [the plan](codex-plan.md).
+
+## Issue #18: fan-out close-test scheduling race (2026-10-12)
+
+Item / slice: Maintenance / Issue [#18](https://github.com/nantes-rfli/paclo/issues/18)
+Status and implementation commit or PR: [PR #28](https://github.com/nantes-rfli/paclo/pull/28), awaiting CI and review.
+Contract decisions: Keep the stream runtime unchanged. A full queue alone
+  does not guarantee that a blocking put has returned and its
+  `:blocked-events` counter was updated. The bounded/idempotent close test
+  now checks terminal states and buffer accounting; a separate test
+  synchronizes on the blocking-put fallback before checking backpressure
+  after the queued values are consumed.
+Commands and measured results: Static delimiter-balance and diff checks only.
+  Focused Clojure test repeats, `bash dev/script/codex.sh check`, and CI
+  results were not available in this execution environment (no Clojure CLI
+  and no outbound repository/dependency-server access).
+Unverified platforms or blocked checks: Linux/macOS/JDK compatibility and
+  repeated scheduling runs remain to be confirmed by GitHub Actions or a
+  configured Clojure development environment.
+Next item: Verify PR #28 CI and repeated focused runs before merging;
+  P02 remains the next approved feature item.
