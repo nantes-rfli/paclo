@@ -434,3 +434,29 @@ Packaging and delivery preparation:
   real-NIC throughput and other unlisted platforms remain unverified. P03 stays
   in-progress pending review/merge; P04 remains blocked and is the next feature
   after acceptance. No merge, tag, version update, release or artifact publication.
+
+PR and CI evidence:
+
+- Implementation commit: `57b299822d21f7165f105f1ddc45fb2884237841`.
+  Branch: `codex/p03-explicit-extensions`, pushed to origin.
+  Created [PR #30](https://github.com/nantes-rfli/paclo/pull/30) against main
+  with the final API/design, backward compatibility, annotations, independence,
+  execution-model/fan-out checks, failure policy, performance and limitations.
+- [Implementation CI run 38207019415](https://github.com/nantes-rfli/paclo/actions/runs/38207019415):
+  **all 12 jobs passed**. `build-checks`, `documentation-checks`, three performance
+  shards, `performance-results`, both `compatibility-matrix` jobs and the `build`
+  aggregate passed. Separate `arm64-monitor`, `eastwood-lint` and optional
+  `coverage` also passed. CI includes unchanged SpotBugs, CheckStyle, JaCoCo
+  threshold, pinned lint tools, cljdoc namespace load and performance checks.
+- Downloaded both compatibility job logs with `gh run view --job ... --log`:
+  Linux x64/JDK21 and macOS ARM64/JDK17 each ran the final **298 tests /
+  1353 assertions**, zero failures/errors, including P03's added namespace.
+  Linux ARM64/JDK21 monitor also completed successfully. No workflow or quality
+  gate changes were made to obtain these results.
+- `gh pr view 30` confirms OPEN, no reviews and clean merge state. This confirms
+  review readiness, not independent review or acceptance. Do not mark P03 done
+  before review/merge; P04 remains blocked. Live capture and real-NIC performance
+  remain unverified.
+- This follow-up commit changes only the accepted plan and verification log.
+  Its checks are tracked in PR #30; the completed implementation-run results
+  above refer specifically to `57b2998`, not to an untested later SHA.

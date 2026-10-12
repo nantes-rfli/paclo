@@ -34,7 +34,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P03 verification, review and merge**. P02 was accepted
+Default next task: **P03 review and merge**. P02 was accepted
 through merge of PR #29. P04 is the next feature after P03 acceptance.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
@@ -76,16 +76,20 @@ and conflicting metadata. Use packet-byte equality rather than Java-array identi
 
 ## P03: Explicit extension composition
 
-Status: **in-progress**. Implementation and verification are underway; completion
-requires review and merge. P04 remains blocked pending P03 acceptance.
+Status: **in-progress**. [PR #30](https://github.com/nantes-rfli/paclo/pull/30)
+implements P03. Implementation commit `57b2998` passed all 12 CI jobs,
+including supported-platform tests. Review and merge remain outstanding;
+P04 stays blocked pending P03 acceptance. Final evidence-commit CI is reported
+in the PR; detailed design and verification are in [the work log](work-log.md).
 
-Baseline `packet-xf` consults the process-wide hook registry while processing packets.
-Registering a hook after constructing the same transducer changes its output.
-DNS/TLS annotation functions are currently private and exposed through registration.
+At the P03 baseline, `packet-xf` consulted the process-wide hook registry while
+processing packets. Registering a hook after constructing the same transducer
+changed its output. DNS/TLS annotations were private and exposed via registration.
 
 Add an explicit, ordered extension configuration to the transformation path and
-publish supported ordinary annotation functions. Proposed option name: `:extensions`.
-Finalize names in a short design note before freezing them.
+publish supported ordinary annotation functions. Final option: `:extensions`;
+public functions: `annotate-dns` and `annotate-tls-sni`. The pre-implementation
+design note and final choices are recorded in the work log.
 
 - An explicit vector selects exactly those functions; an empty vector selects none.
 - Omission preserves the existing global registry behavior for v1 callers.
