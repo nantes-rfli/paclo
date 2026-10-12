@@ -252,6 +252,9 @@ def run_dns_quick_check(label, code):
 
 def main():
     found = discover()
+    # The CLI writes shared .cpcache files. Prepare this alias serially before
+    # independent JVMs read it; concurrent cold starts can observe a partial cp.
+    execute("Prepare documentation classpath", ["clojure", "-P", "-M:dev:dns-ext"])
     # Run all checks even if one fails. Isolated JVMs retain real-PCAP checks.
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         checks = {}

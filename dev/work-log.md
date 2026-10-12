@@ -1005,3 +1005,27 @@ P06 verified implementation and CI:
   complete; no behavior, dependency, version or gate changes. PR #33 remains
   open for independent review. P06 remains in-progress pending acceptance/merge,
   with P07 the next feature after acceptance.
+
+Final evidence-head documentation runner follow-up:
+
+- On evidence-only head `f72aeab`, documentation CI failed before executing the
+  SLL example: one of the first concurrent CLI JVMs could not load clojure.main,
+  while all other examples ran successfully. This is an observed setup failure,
+  not a passed run or a failing flow/SLL assertion. Other implementation jobs
+  remained successful. The local CLI launcher shows shared .cpcache classpath
+  files are generated on cold startup and then read; independent first JVMs
+  can observe an incomplete file. The two new examples change startup ordering.
+- Prepare exactly the documentation alias serially with
+  clojure -P -M:dev:dns-ext before launching the unchanged three-worker pool.
+  Preparation failure aborts before workers start. No retry swallows an example
+  error, and no example/gate is removed. Two runner regressions verify startup
+  ordering and preparation-failure propagation; parser/runner tests now total 15.
+  Final verification is recorded in the PR description after CI completion.
+
+- After serial preparation, Python parser/runner unit tests passed 15/15 and
+  python3 dev/script/verify_doc_examples.py passed all 16 real offline examples.
+  Link and diff checks passed; Markdown lint remains enabled in the commit hook.
+  This correction changes only documentation test startup, not packet analysis.
+  On run 38235117755, the other ten jobs passed; documentation failure also
+  caused the dependent build aggregate to fail. Its failure is not hidden by
+  the earlier all-passing implementation run.
