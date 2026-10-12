@@ -62,6 +62,7 @@
   (let [p (if (contains? opts :pcap) pcap fake-pcap)]
     {:lib
      (reify PcapLibrary
+       (pcap_datalink [_ _] 1)
        (pcap_open_live [_ _device _snaplen _promisc _to_ms _errbuf] p)
        (pcap_close [_ _] nil)
        (pcap_open_offline [_ _ _] nil)
@@ -92,6 +93,7 @@
         dat' (or dat (alloc-direct 1))]
     {:lib
      (reify PcapLibrary
+       (pcap_datalink [_ _] 1)
        (pcap_next_ex [_ _ hdr-ref dat-ref]
          (let [rc (if-let [v (first @rcs*)]
                     (do (swap! rcs* rest) v)
@@ -147,7 +149,8 @@
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [9 9]))
         {:keys [lib breaks]} (fake-lib {:rcs [1 1 -2] :hdr hdr :dat dat})
         ready (atom 0)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)
                   pcap/open-live (fn [& _] fake-pcap)]
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
@@ -163,7 +166,8 @@
 
 (deftest capture->seq-passes-errors-when-requested
   (let [{:keys [lib]} (fake-lib {:rcs [-1]})]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [out (doall (pcap/capture->seq {:path "dummy" :error-mode :pass
                                            :max 1 :max-time-ms 10 :idle-max-ms 5}))]
@@ -173,7 +177,8 @@
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [1]))
         {:keys [lib breaks]} (fake-lib {:rcs [1 -1] :hdr hdr :dat dat})
         stop-called (atom 0)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [out (doall (pcap/capture->seq {:path "dummy"
                                            :stop? (fn [_] (swap! stop-called inc) true)
@@ -185,6 +190,7 @@
 
 (deftest capture->seq-throws-when-error-mode-throw
   (let [lib (reify PcapLibrary
+              (pcap_datalink [_ _] 1)
               (pcap_next_ex [_ _ _ _] (throw (RuntimeException. "boom")))
               (pcap_close [_ _] nil)
               (pcap_open_offline [_ _ _] nil)
@@ -204,7 +210,8 @@
               (pcap_freealldevs [_ _] nil)
               (pcap_lookupnet [_ _ _ _ _] 0))
         closed? (atom false)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)
                   pcap/close! (fn [_]
                                 (Thread/sleep 20)
@@ -218,7 +225,8 @@
 (deftest capture->seq-respects-queue-cap
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
         {:keys [lib breaks]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
                                             :queue-cap 2
@@ -231,7 +239,8 @@
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
         {:keys [lib]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})
         stats (promise)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (is (= 3
              (count
@@ -255,7 +264,8 @@
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [7]))
         {:keys [lib]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})
         stats (promise)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [packets (pcap/capture->seq
                      {:path "dummy"
@@ -290,7 +300,8 @@
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [7]))
         {:keys [lib]} (fake-lib {:rcs [1 1 1] :hdr hdr :dat dat})
         stopped (atom 0)]
-    (with-redefs [pcap/lib lib
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
                                             :queue-cap 2

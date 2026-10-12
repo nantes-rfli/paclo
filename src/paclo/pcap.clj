@@ -198,6 +198,28 @@
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
 
+(defn datalink
+  "Return the nonnegative DLT for an offline or activated live handle.
+   Throws on native failure; never infers Ethernet. The caller owns the handle."
+  [^Pointer pcap]
+  (let [rc (.pcap_datalink lib pcap)]
+    (when (neg? rc)
+      (throw (ex-info "pcap_datalink failed"
+                      {:phase :pcap-datalink :rc rc
+                       :err (try (.pcap_geterr lib pcap)
+                                 (catch Throwable _ nil))})))
+    rc))
+
+(defn- read-packet
+  [^Pointer hdr ^Pointer dat linktype]
+  (let [caplen (PcapHeader/caplen hdr)
+        arr (byte-array (int caplen))]
+    (.get dat (long 0) arr 0 (alength arr))
+    {:ts-sec (PcapHeader/tv_sec hdr)
+     :ts-usec (PcapHeader/tv_usec hdr)
+     :caplen caplen :len (PcapHeader/len hdr)
+     :bytes arr :linktype linktype}))
+
 (defn capture-stats
   "Return portable libpcap counters for a live capture handle.
 
@@ -442,36 +464,30 @@
 
 (defn loop!
   "Poll `pcap_next_ex`.
-   `handler` receives maps like {:ts-sec :ts-usec :caplen :len :bytes}.
+   `handler` receives maps with :ts-sec, :ts-usec, :caplen, :len, :bytes, :linktype.
    Terminates when rc<0 (EOF/error)."
-  [^Pointer pcap handler]
-  (let [^PointerByReference hdr-ref (PointerByReference.)
-        ^PointerByReference dat-ref (PointerByReference.)]
-    (loop []
-      (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-            status (rc->status rc)]
-        (cond
-          (= status :packet)
-          (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
-                ^jnr.ffi.Pointer dat (.getValue dat-ref)
-                ts-sec (PcapHeader/tv_sec hdr)
-                ts-usec (PcapHeader/tv_usec hdr)
-                caplen (PcapHeader/caplen hdr)
-                len    (PcapHeader/len hdr)
-                arr    (byte-array (int caplen))]
-            (.get dat (long 0) arr 0 (alength arr))
-            (handler {:ts-sec ts-sec :ts-usec ts-usec
-                      :caplen caplen :len len :bytes arr})
-            (recur))
+  ([^Pointer pcap handler]
+   (loop! pcap handler (datalink pcap)))
+  ([^Pointer pcap handler linktype]
+   (let [^PointerByReference hdr-ref (PointerByReference.)
+         ^PointerByReference dat-ref (PointerByReference.)]
+     (loop []
+       (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+             status (rc->status rc)]
+         (cond
+           (= status :packet)
+           (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
+             (handler packet)
+             (recur))
 
-          (= status :timeout)  ; timeout (live capture)
-          (recur)
+           (= status :timeout)  ; timeout (live capture)
+           (recur)
 
-          (= status :eof)     ; offline EOF
-          rc
+           (= status :eof)     ; offline EOF
+           rc
 
-          :else     ; -1 error
-          rc)))))
+           :else     ; -1 error
+           rc))))))
 
 (defn breakloop! [^Pointer pcap] (.pcap_breakloop lib pcap))
 
@@ -651,6 +667,7 @@
        (assert (pos? n) "n must be positive")
        (let [hdr-ref (PointerByReference.)
              dat-ref (PointerByReference.)
+             linktype (datalink pcap)
              idle-ms-target (long idle-max-ms)
              tick (long (or timeout-ms 100))
              handle (->pkt-handler handler)]
@@ -660,16 +677,8 @@
                    status (rc->status rc)]
                (cond
                  (= status :packet)
-                 (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
-                       ^jnr.ffi.Pointer dat (.getValue dat-ref)
-                       ts-sec (PcapHeader/tv_sec hdr)
-                       ts-usec (PcapHeader/tv_usec hdr)
-                       caplen (PcapHeader/caplen hdr)
-                       len    (PcapHeader/len hdr)
-                       arr    (byte-array (int caplen))]
-                   (.get dat (long 0) arr 0 (alength arr))
-                   (handle {:ts-sec ts-sec :ts-usec ts-usec
-                            :caplen caplen :len len :bytes arr})
+                 (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
+                   (handle packet)
                    (recur (unchecked-inc (long count)) 0))
 
                  (= status :timeout)
@@ -701,6 +710,7 @@
        (assert (pos? duration-ms) "duration-ms must be positive")
        (let [hdr-ref (PointerByReference.)
              dat-ref (PointerByReference.)
+             linktype (datalink pcap)
              t0 (System/currentTimeMillis)
              deadline (+ t0 duration-ms)
              idle-ms-target (long idle-max-ms)
@@ -712,16 +722,8 @@
                    status (rc->status rc)]
                (cond
                  (= status :packet)
-                 (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
-                       ^jnr.ffi.Pointer dat (.getValue dat-ref)
-                       ts-sec (PcapHeader/tv_sec hdr)
-                       ts-usec (PcapHeader/tv_usec hdr)
-                       caplen (PcapHeader/caplen hdr)
-                       len    (PcapHeader/len hdr)
-                       arr    (byte-array (int caplen))]
-                   (.get dat (long 0) arr 0 (alength arr))
-                   (handle {:ts-sec ts-sec :ts-usec ts-usec
-                            :caplen caplen :len len :bytes arr})
+                 (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
+                   (handle packet)
                    (recur 0))
 
                  (= status :timeout)
@@ -736,12 +738,13 @@
 (defn loop-n-or-ms!
   "Stop when either n packets are processed or duration-ms is reached.
    conf: {:n <long> :ms <long> :idle-max-ms <ms-optional> :timeout-ms <ms-optional> :stop? <fn-optional>}"
-  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?]} handler]
+  [^Pointer pcap {:keys [n ms idle-max-ms timeout-ms stop?] :as opts} handler]
   (when (nil? n) (throw (ex-info "missing :n" {})))
   (when (nil? ms) (throw (ex-info "missing :ms" {})))
   (assert (pos? (long n)) "n must be positive")
   (assert (pos? (long ms)) "ms must be positive")
-  (let [handle (->pkt-handler handler)
+  (let [linktype (if (contains? opts :linktype) (:linktype opts) (datalink pcap))
+        handle (->pkt-handler handler)
         n-long (long n)
         ms-long (long ms)]
     (if (nil? idle-max-ms)
@@ -754,7 +757,7 @@
                             stop-t? (>= (- (System/currentTimeMillis) t0) ms-long)
                             stop-custom? (and stop? (stop? pkt))]
                         (when (or stop-n? stop-t? stop-custom?)
-                          (breakloop! pcap))))))
+                          (breakloop! pcap)))) linktype))
       (let [hdr-ref (PointerByReference.)
             dat-ref (PointerByReference.)
             t0 (System/currentTimeMillis)
@@ -768,16 +771,7 @@
                   status (rc->status rc)]
               (cond
                 (= status :packet)
-                (let [^jnr.ffi.Pointer hdr (.getValue hdr-ref)
-                      ^jnr.ffi.Pointer dat (.getValue dat-ref)
-                      ts-sec (PcapHeader/tv_sec hdr)
-                      ts-usec (PcapHeader/tv_usec hdr)
-                      caplen (PcapHeader/caplen hdr)
-                      len    (PcapHeader/len hdr)
-                      arr    (byte-array (int caplen))
-                      _      (.get dat (long 0) arr 0 (alength arr))
-                      pkt    {:ts-sec ts-sec :ts-usec ts-usec
-                              :caplen caplen :len len :bytes arr}]
+                (let [pkt (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
                   (handle pkt)
                   (if (and stop? (stop? pkt))
                     (breakloop! pcap)            ;; Immediate stop on match (works for offline too)
@@ -893,71 +887,73 @@
                              :immediate? immediate?})
                  (open-offline path))]
     (try
-      (when filter
-        (if device
-          (set-bpf-on-device! handle device filter)
-          (set-bpf! handle filter)))
-      (when on-ready
-        (on-ready))
-      (try
-        (loop-n-or-ms!
-         handle
-         {:n max
-          :ms max-time-ms
-          :idle-max-ms idle-max-ms
-          :timeout-ms timeout-ms
-          :stop? (fn [packet]
-                   (cond
-                     (reduced? @result)
-                     (do (compare-and-set! stop-reason nil :reduced) true)
-
-                     (and stop? (stop? packet))
-                     (do (compare-and-set! stop-reason nil :predicate) true)
-
-                     :else false))}
-         (fn [packet]
-           (.increment captured)
-           (let [next-result (rf (unreduced @result) packet)]
-             (vreset! result next-result)
-             (when (reduced? next-result)
-               (compare-and-set! stop-reason nil :reduced)))))
-        (catch Throwable ex
-          (reset! failure ex)
-          (reset! stop-reason :error)
-          (when on-error
-            (try (on-error ex) (catch Throwable _)))
-          (when-not (= error-mode :pass)
-            (throw ex))))
-      (when device
+      (let [linktype (datalink handle)]
+        (when filter
+          (if device
+            (set-bpf-on-device! handle device filter)
+            (set-bpf! handle filter)))
+        (when on-ready
+          (on-ready))
         (try
-          (let [stats (capture-stats handle)]
-            (reset! final-pcap-stats stats)
-            (when on-stats
-              (on-stats stats)))
+          (loop-n-or-ms!
+           handle
+           {:linktype linktype
+            :n max
+            :ms max-time-ms
+            :idle-max-ms idle-max-ms
+            :timeout-ms timeout-ms
+            :stop? (fn [packet]
+                     (cond
+                       (reduced? @result)
+                       (do (compare-and-set! stop-reason nil :reduced) true)
+
+                       (and stop? (stop? packet))
+                       (do (compare-and-set! stop-reason nil :predicate) true)
+
+                       :else false))}
+           (fn [packet]
+             (.increment captured)
+             (let [next-result (rf (unreduced @result) packet)]
+               (vreset! result next-result)
+               (when (reduced? next-result)
+                 (compare-and-set! stop-reason nil :reduced)))))
           (catch Throwable ex
+            (reset! failure ex)
+            (reset! stop-reason :error)
             (when on-error
-              (try (on-error ex) (catch Throwable _))))))
-      (let [elapsed-ms (- (System/currentTimeMillis) started-at-ms)
-            count* (.sum captured)
-            reason (or @stop-reason
-                       (when (>= (long count*) (long max)) :max-packets)
-                       (when (>= (long elapsed-ms) (long max-time-ms))
-                         :max-time)
-                       (if device :idle-timeout :eof))]
-        (reset! stop-reason reason)
-        {:result (unreduced @result)
-         :stats
-         {:schema-version 1
-          :state (if @failure :failed :closed)
-          :source (capture-source {:device device :path path})
-          :timing {:started-at-ms started-at-ms
-                   :elapsed-ms elapsed-ms}
-          :packets {:captured count*
-                    :processed count*}
-          :queue nil
-          :pcap @final-pcap-stats
-          :stop-reason reason
-          :error (some-> @failure throwable->data)}})
+              (try (on-error ex) (catch Throwable _)))
+            (when-not (= error-mode :pass)
+              (throw ex))))
+        (when device
+          (try
+            (let [stats (capture-stats handle)]
+              (reset! final-pcap-stats stats)
+              (when on-stats
+                (on-stats stats)))
+            (catch Throwable ex
+              (when on-error
+                (try (on-error ex) (catch Throwable _))))))
+        (let [elapsed-ms (- (System/currentTimeMillis) started-at-ms)
+              count* (.sum captured)
+              reason (or @stop-reason
+                         (when (>= (long count*) (long max)) :max-packets)
+                         (when (>= (long elapsed-ms) (long max-time-ms))
+                           :max-time)
+                         (if device :idle-timeout :eof))]
+          (reset! stop-reason reason)
+          {:result (unreduced @result)
+           :stats
+           {:schema-version 1
+            :state (if @failure :failed :closed)
+            :source (capture-source {:device device :path path})
+            :timing {:started-at-ms started-at-ms
+                     :elapsed-ms elapsed-ms}
+            :packets {:captured count*
+                      :processed count*}
+            :queue nil
+            :pcap @final-pcap-stats
+            :stop-reason reason
+            :error (some-> @failure throwable->data)}}))
       (finally
         (close! handle)))))
 
@@ -1094,17 +1090,18 @@
     (future
       (let [captured-error (atom nil)]
         (try
-          (when filter
-            (if device
-              (set-bpf-on-device! h device filter)
-              (set-bpf! h filter)))
-          (when on-ready
-            (on-ready))
-          (loop-n-or-ms! h {:n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
-                         (fn [pkt]
-                           (enqueue-packet! pkt)
-                           (when (and stop? (stop? pkt))
-                             (breakloop! h))))
+          (let [linktype (datalink h)]
+            (when filter
+              (if device
+                (set-bpf-on-device! h device filter)
+                (set-bpf! h filter)))
+            (when on-ready
+              (on-ready))
+            (loop-n-or-ms! h {:linktype linktype :n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
+                           (fn [pkt]
+                             (enqueue-packet! pkt)
+                             (when (and stop? (stop? pkt))
+                               (breakloop! h)))))
           (catch Throwable ex
             (when on-error (try (on-error ex) (catch Throwable _)))
             (reset! captured-error ex))

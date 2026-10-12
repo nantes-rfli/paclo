@@ -37,4 +37,29 @@ public class PcapOfflineTest {
       assertNotNull(dataRef.getValue(), "data pointer");
     }
   }
+  @Test
+  public void detectOfflineLinkTypes() {
+    String[] fixtures = {"dns-sample.pcap", "linktype-sll.pcap", "linktype-null.pcap"};
+    // These three DLT values agree on supported Linux and macOS platforms.
+    int[] dlts = {1, 113, 0};
+    for (int i = 0; i < fixtures.length; i++) {
+      Path path = Paths.get("test/resources", fixtures[i]).toAbsolutePath();
+      try (PcapHandle handle = PcapHandle.openOffline(path.toString())) {
+        assertEquals(dlts[i], PcapLibrary.INSTANCE.pcap_datalink(handle.pointer()));
+      }
+    }
+  }
+  @Test
+  public void inactiveHandleHasNoValidLinkType() {
+    jnr.ffi.Runtime runtime = jnr.ffi.Runtime.getSystemRuntime();
+    Pointer errbuf = jnr.ffi.Memory.allocateDirect(runtime, 256);
+    String device = System.getProperty("os.name").contains("Mac") ? "lo0" : "lo";
+    Pointer handle = PcapConfigLibrary.INSTANCE.pcap_create(device, errbuf);
+    assertNotNull(handle);
+    try {
+      assertTrue(PcapLibrary.INSTANCE.pcap_datalink(handle) < 0);
+    } finally {
+      PcapLibrary.INSTANCE.pcap_close(handle);
+    }
+  }
 }

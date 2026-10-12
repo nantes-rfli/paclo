@@ -14,6 +14,7 @@
    [paclo.capture :as capture]
    [paclo.decode-ext :as decode-ext]
    [paclo.flow :as flow]
+   [paclo.linktype :as linktype]
    [paclo.parse :as parse]
    [paclo.pcap  :as pcap])
   (:import
@@ -102,12 +103,14 @@
                        (select-keys data [:offset :required :available])))]
     (cond-> {:stage stage
              :reason (if (contains? #{:short-frame :truncated-header
-                                      :malformed-packet :unsupported-ethertype}
+                                      :malformed-packet :unsupported-ethertype
+                                      :unsupported-linktype}
                                     reason)
                        reason :unexpected-failure)}
       (and (map? location)
            (every? integer? (map location [:offset :required :available])))
       (assoc :location (select-keys location [:offset :required :available]))
+      (contains? data :linktype) (assoc :linktype (:linktype data))
       (integer? (:ethertype data)) (assoc :ethertype (:ethertype data)))))
 
 (defn ^:private decode-result
@@ -121,25 +124,32 @@
 
 (defn ^:private decode-packet
   [m extend-packet]
-  (let [ba ^bytes (:bytes m)]
-    (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
-      (let [{:keys [ok value error diagnostic]} (decode-result ba)]
-        (if ok
-          (let [diagnostics (:paclo.parse/diagnostics (meta value))]
-            (extend-packet
-             (cond-> (assoc m :decoded value)
-               diagnostics (update :diagnostics (fnil into [])
-                                   (mapv #(assoc % :stage :decode) diagnostics)))))
-          (-> m
-              (assoc :decode-error error)
-              (update :diagnostics (fnil conj []) diagnostic))))
-      (-> m
-          (assoc :decode-error
-                 (str "frame too short: " (when ba (alength ba)) " bytes"))
-          (update :diagnostics (fnil conj [])
-                  {:stage :decode :reason :short-frame
-                   :location {:offset 0 :required ETH_MIN_HDR
-                              :available (if ba (alength ba) 0)}})))))
+  (if (linktype/unsupported? m)
+    (-> m
+        (dissoc :decoded)
+        (assoc :decode-error "unsupported linktype")
+        (update :diagnostics (fnil conj [])
+                {:stage :decode :reason :unsupported-linktype
+                 :linktype (:linktype m)}))
+    (let [ba ^bytes (:bytes m)]
+      (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
+        (let [{:keys [ok value error diagnostic]} (decode-result ba)]
+          (if ok
+            (let [diagnostics (:paclo.parse/diagnostics (meta value))]
+              (extend-packet
+               (cond-> (assoc m :decoded value)
+                 diagnostics (update :diagnostics (fnil into [])
+                                     (mapv #(assoc % :stage :decode) diagnostics)))))
+            (-> m
+                (assoc :decode-error error)
+                (update :diagnostics (fnil conj []) diagnostic))))
+        (-> m
+            (assoc :decode-error
+                   (str "frame too short: " (when ba (alength ba)) " bytes"))
+            (update :diagnostics (fnil conj [])
+                    {:stage :decode :reason :short-frame
+                     :location {:offset 0 :required ETH_MIN_HDR
+                                :available (if ba (alength ba) 0)}}))))))
 
 (defn ^:private normalize-filter [filter]
   (cond
@@ -157,6 +167,7 @@
        :ts-usec (:ts-usec packet)
        :caplen (:caplen packet)
        :len (:len packet)
+       :linktype (:linktype packet)
        :decode-error (or (.getMessage error) (str error))
        :diagnostics (conj (vec (:diagnostics packet))
                           (error-diagnostic :flow error))})))
@@ -212,6 +223,9 @@
 
    The two decode options are mutually exclusive. Decode failures retain string
    `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
+   Native captures supply integer DLT `:linktype`. Full/flow support Ethernet
+   (DLT 1); explicit other/invalid values yield unsupported-linktype diagnostics.
+   Missing :linktype retains legacy Ethernet input for standalone transforms.
    Best-effort unsupported/incomplete decoded data can also carry diagnostics.
    Published packet bytes are mutable shared arrays; treat them as read-only."
   [{:keys [decode? decode-mode extensions extension-error-mode] :as opts}]
@@ -244,7 +258,8 @@
     (cond-> opts (some? filter*) (assoc :filter filter*))))
 
 (defn packets
-  "Return packets as a lazy sequence.
+  "Return packets as a lazy sequence. Native packets include integer DLT :linktype;
+   full/flow decoding rejects explicit unsupported types while raw retains bytes.
 
   Key opts:
   - source: `:path` (offline) or `:device` (live)
@@ -382,6 +397,7 @@
 ;; Writer
 (defn write-pcap!
   "Write packet bytes and metadata to an Ethernet PCAP file.
+   Source :linktype is ignored; non-Ethernet bytes require format conversion.
 
   `packets` can contain:
   - `byte-array`

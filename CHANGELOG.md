@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P05: native `pcap_datalink` binding and integer DLT `:linktype` on raw packets
+  across lazy reads, reductions/reports and managed capture. Acquire once after
+  activation/open, fail without guessing Ethernet, and close on setup failure.
+- Full/flow reject explicit unsupported or invalid link types before parsing,
+  retaining metadata and adding `:unsupported-linktype` diagnostics. Full keeps
+  raw bytes and skips extensions; flow omits bytes and includes linktype metadata.
+  Missing linktype in standalone `packet-xf` retains legacy Ethernet behavior.
+  Stats remain schema version 1; these decode failures use existing error counts.
+  Real SLL/loopback fixtures and an executable raw-read example cover dispatch.
+  Writer remains Ethernet-only; no new decoders, conversion or PCAPNG support.
+
 - P04: canonical raw/full/flow packet data contracts and additive EDN
   `:diagnostics` with stable stage/reason fields and byte locations when known.
   Existing decoded values, `:decode-error` strings and statistics v1 are retained.

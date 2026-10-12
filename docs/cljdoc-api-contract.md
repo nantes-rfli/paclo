@@ -26,8 +26,9 @@ These contracts describe built-in transformations before user extensions and
 `:xform`. They share one implementation across `packet-xf`, `packets`, both
 synchronous reductions, and managed capture. User functions can replace maps,
 remove keys, or change their shape; Paclo does not validate every output packet.
-Full and flow decoding currently assume Ethernet (including VLAN tags), without
-source link-type detection. Additional link types and PCAPNG are outside P04.
+Native captures identify their source link type. Full and flow decoding support
+Ethernet (including VLAN tags); other types remain readable as raw packets.
+Additional decoders and full PCAPNG metadata/file preservation remain P08.
 
 ### Raw capture packets
 
@@ -38,8 +39,9 @@ source link-type detection. Additional link types and PCAPNG are outside P04.
 | `:ts-usec` | integer | Microsecond component, normally `0..999999` |
 | `:caplen` | integer | Captured byte count, equal to array length |
 | `:len` | integer | Original wire length; truncation has `:caplen < :len` |
+| `:linktype` | nonnegative integer | Native libpcap DLT for this capture handle |
 
-Normal native reads supply all five keys. `packet-xf {}` preserves its input
+Normal native reads supply all six keys. `packet-xf {}` preserves its input
 unchanged, including missing metadata. Metadata is not inferred or repaired by
 decoding. Reader timestamp boundaries depend on libpcap; see the
 [writer portability note](#write-pcap) for post-2038 seconds. File open, malformed
@@ -58,11 +60,47 @@ read-only; copy explicitly before modifying them:
 
 Paclo does not copy every packet for fan-out or diagnostics.
 
+### Link-type dispatch
+
+P05 adds source link-type awareness in `[Unreleased]`; released v1.3.0 does not
+detect source link types.
+
+`:linktype` is the numeric value from
+[`pcap_datalink`](https://www.tcpdump.org/manpages/pcap_datalink.3pcap.html),
+acquired once per capture execution after offline open or live activation and
+before `on-ready`. It applies to that handle's packets, including `stop?` and
+user `:xform` inputs. Native acquisition failures never default to Ethernet:
+negative results throw `ex-info` with `:phase :pcap-datalink`, `:rc` and native
+`:err`; native exceptions propagate. The owner closes the handle. Synchronous
+and managed setup throw before readiness; lazy capture uses its existing
+background `:error-mode` policy. No packet is emitted on acquisition failure.
+
+DLT values are platform libpcap constants, not necessarily the numeric LINKTYPE
+stored in a savefile global header (for example DLT_RAW varies by platform).
+Do not compare arbitrary savefile LINKTYPE codes directly to `:linktype`.
+The supported Linux/macOS fixtures use DLT_EN10MB 1, DLT_LINUX_SLL 113 and
+DLT_NULL 0. The actual native value is retained without name conversion.
+
+Full/flow decode accepts explicit integer DLT_EN10MB (1). Explicit non-Ethernet,
+unknown, negative, nil or invalid values yield string `:decode-error`
+`"unsupported linktype"` and append
+`{:stage :decode :reason :unsupported-linktype :linktype value}` (flow uses
+`:stage :flow`), without an Ethernet byte location. This check precedes short-frame classification.
+Full decode retains raw bytes/metadata, removes stale input `:decoded` and
+skips all post-decode hooks. Flow retains capture metadata/linktype and emits
+neither bytes nor flow/IP/port fields. Raw mode passes packets through unchanged.
+
+Standalone `packet-xf` cannot detect framing from arbitrary bytes: when the
+`:linktype` key is absent, it preserves the legacy Ethernet assumption.
+Explicit presence (including nil) is different from absence. A supplied DLT is
+trusted as metadata; Paclo does not sniff bytes or convert packet formats.
+
 ### Full decode packets
 
 `{:decode? true}` preserves input keys and metadata, adding `:decoded` on parse
 success or the existing string `:decode-error` on a thrown decode failure.
-Ordinary successful packets omit `:diagnostics`. Existing input keys are retained;
+Ordinary successful packets omit `:diagnostics`. Existing input keys are retained
+except stale `:decoded` on unsupported link types, as specified above;
 for example a pre-existing `:decode-error` key prevents extension execution even
 when its value is nil. A successful decode does not clear such a key.
 
@@ -114,13 +152,13 @@ DNS/TLS annotation functions follow the [extension contract](#supported-protocol
 | `:protocol` | integer | IPv4 protocol / IPv6 final next-header number |
 | `:src-ip`, `:dst-ip` | unsigned integer `0..4294967295` or two-long vector | IPv4 numeric address / IPv6 `[high-long low-long]` with signed JVM words |
 | `:src-port`, `:dst-port` | integer `0..65535` or nil | TCP/UDP ports; nil for other protocols or noninitial fragments |
-| `:ts-sec`, `:ts-usec`, `:caplen`, `:len` | original value or nil | Capture metadata, always present in flow output |
+| `:ts-sec`, `:ts-usec`, `:caplen`, `:len`, `:linktype` | original value or nil | Capture metadata, always present in flow output |
 
 Flow reads only the first four transport bytes needed for ports. It can succeed
 where full decode rejects a short TCP/UDP header. It skips supported IPv6 extension
 headers with a bounded chain and does not validate all lengths/checksums. Invalid
 IP version/header length, short frames/headers, and unsupported Ethertypes return
-the four metadata keys plus string `:decode-error` and `:diagnostics`, without
+the five metadata keys plus string `:decode-error` and `:diagnostics`, without
 flow fields. ARP is unsupported for flow projection. Neither success nor failure
 includes raw `:bytes` or nested `:decoded`. Existing diagnostics are retained.
 
@@ -133,6 +171,7 @@ partial/unsupported decode can have diagnostics and `:decoded` without an error.
 
 | Stage | Reason | Classification |
 | --- | --- | --- |
+| `:decode`, `:flow` | `:unsupported-linktype` | Explicit link type has no supported decoder; includes `:linktype` |
 | `:decode`, `:flow` | `:short-frame` | Fewer than 14 Ethernet bytes (missing full-decode bytes also uses zero available) |
 | `:decode`, `:flow` | `:truncated-header` | Known required header bytes are missing |
 | `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length or invalid IPv6 options; flow also bounds extension chains |
@@ -164,7 +203,8 @@ Statistics retain schema version 1 and their existing fields: `:stop-reason`,
 `:error`, `:state` where applicable and all counters. `:packets :decode-errors`
 counts the existing truthy `:decode-error` after built-in transformation, before
 `:xform`; unsupported best-effort decoding and extension diagnostics alone do not
-increment it. No diagnostic counters are added to reduction, capture or fan-out
+increment it. Unsupported link-type failures do increment it in full/flow mode.
+No diagnostic counters are added to reduction, capture or fan-out
 statistics. Packet diagnostics are the primary record; reducers can collect them.
 
 ## `paclo.core`
@@ -367,6 +407,9 @@ statistics. Packet diagnostics are the primary record; reducers can collect them
   with snaplen 65536 and microsecond precision. Source global headers, link types,
   snaplen, byte order, and precision are not copied; this is packet metadata
   preservation, not complete source-file preservation or PCAPNG support.
+  Packet `:linktype` is ignored by the writer. Saving non-Ethernet bytes under
+  its Ethernet header without format conversion cannot produce correct replay.
+  Broader output/link-type and complete file round trips remain P08.
 - Errors: throws `ex-info` for invalid/missing output path, missing map `:bytes`,
   invalid byte-array inputs, and invalid selected metadata. Native I/O errors retain
   existing behavior; handles and dumpers close when packet processing throws.

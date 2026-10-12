@@ -71,6 +71,7 @@
                 :ts-usec 2
                 :caplen 3
                 :len 4
+                :linktype nil
                 :decode-error "bad flow"
                 :diagnostics [{:stage :flow :reason :unexpected-failure}]}
                result))))))

@@ -301,6 +301,11 @@
                   (update :idle-max-ms #(or % default-idle-max-ms))
                   validate-opts)
         handle (open-handle opts*)
+        linktype (try
+                   (pcap/datalink handle)
+                   (catch Throwable error
+                     (pcap/close! handle)
+                     (throw error)))
         queue (LinkedBlockingQueue. (int (:queue-cap opts*)))
         capture
         (ManagedCapture.
@@ -330,7 +335,8 @@
               (try
                 (pcap/loop-n-or-ms!
                  handle
-                 {:n (:max opts*)
+                 {:linktype linktype
+                  :n (:max opts*)
                   :ms (:max-time-ms opts*)
                   :idle-max-ms (:idle-max-ms opts*)
                   :timeout-ms (:timeout-ms opts*)

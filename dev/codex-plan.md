@@ -26,16 +26,17 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | done |
 | P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | done |
-| P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | in-progress |
-| P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | blocked |
-| P06 | v1.5 | Reusable flow keys and aggregates | P04 | blocked |
+| P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
+| P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | in-progress |
+| P06 | v1.5 | Reusable flow keys and aggregates | P04 | ready |
 | P07 | v1.5 | Bounded time windows and DNS request/response analysis | P03, P04, P06 | blocked |
 | P08 | Later | Broader link-type and PCAPNG support | P05, concrete fixtures | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P04 review and merge**. P03 was accepted through
-merge of PR #30 on 2026-10-12; P05 remains blocked until P04 acceptance.
+Default next task: **P05 review and merge**. P04 was accepted through
+merge of PR #31 on 2026-10-12; P06 is ready. P08 remains blocked pending
+P05 acceptance and a fixture-backed scope decision.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -104,11 +105,9 @@ registration changes after construction, and legacy behavior.
 
 ## P04: Data contracts and diagnostics
 
-Status: **in-progress**. [PR #31](https://github.com/nantes-rfli/paclo/pull/31)
-implements contracts, diagnostics and opt-in hook reporting. Local checks and all
-12 implementation-commit CI jobs passed, including supported-platform tests.
-CI evidence is tracked in the work log; review
-and merge remain required. P05 is the next feature after P04 acceptance.
+Status: **done**. [PR #31](https://github.com/nantes-rfli/paclo/pull/31)
+was merged on 2026-10-12 at `17d8bf1`. Implementation and verification evidence
+is retained in the work log. P05 is in progress; P06 prerequisites are complete.
 
 Document packet and flow key types, timestamp units, missing/unsupported values,
 and metadata preservation. Use an additive contract; avoid requiring a heavy schema
@@ -130,7 +129,9 @@ Test meaningful invariants with `test.check` and validate performance impact.
 
 ## P05: Link-type awareness
 
-Full and flow decoding currently assume Ethernet. Surface the actual source link type
+Status: **in-progress**, pending independent review and merge.
+
+Full and flow decoding at the baseline assume Ethernet. Surface the actual source link type
 and dispatch or explicitly reject unsupported decoding, preserving raw capture access.
 Define metadata placement and stats behavior across live/offline execution before
 adding new native bindings or public keys.

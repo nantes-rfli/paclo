@@ -66,7 +66,8 @@
 
 (deftest reduce-packets-report-pass-mode-records-background-error
   (let [closed (atom 0)]
-    (with-redefs [pcap/open-offline (fn [_] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_] :handle)
                   pcap/close! (fn [_] (swap! closed inc))
                   pcap/loop-n-or-ms!
                   (fn [_ _ handler]
@@ -120,7 +121,8 @@
   (let [events (atom [])
         release-loop (promise)
         closed (promise)]
-    (with-redefs [pcap/open-offline
+    (with-redefs [pcap/datalink (fn [_] (swap! events conj :datalink) 1)
+                  pcap/open-offline
                   (fn [_ _]
                     (swap! events conj :open)
                     :handle)
@@ -138,16 +140,17 @@
                      {:path "dummy.pcap"
                       :on-ready #(swap! events conj :ready)})]
         (try
-          (is (= [:open :ready] @events))
+          (is (= [:open :datalink :ready] @events))
           (is (= :running (:state (core/capture-stats capture))))
           (finally
             (.close ^java.io.Closeable capture)))
         (is (true? (deref closed 1000 false)))
-        (is (= [:open :ready :close] @events))))))
+        (is (= [:open :datalink :ready :close] @events))))))
 
 (deftest managed-capture-startup-failure-closes-handle
   (let [closed (atom 0)]
-    (with-redefs [pcap/open-offline (fn [_ _] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_ _] :handle)
                   pcap/close! (fn [_] (swap! closed inc))]
       (is (thrown-with-msg?
            RuntimeException
@@ -176,7 +179,8 @@
 (deftest managed-capture-close-unblocks-full-blocking-queue
   (let [entered-second-packet (promise)
         closed (promise)]
-    (with-redefs [pcap/open-offline (fn [_ _] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_ _] :handle)
                   pcap/loop-n-or-ms!
                   (fn [_ _ handler]
                     (handler {:id 1})
@@ -200,7 +204,8 @@
 
 (deftest managed-capture-stop-is-idempotent
   (let [loop-started (promise)]
-    (with-redefs [pcap/open-offline (fn [_ _] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_ _] :handle)
                   pcap/loop-n-or-ms!
                   (fn [_ config _]
                     (deliver loop-started true)

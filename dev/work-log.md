@@ -645,3 +645,142 @@ Final contract-test audit:
   passes 12 tests / 270 assertions, including all 300 property cases. Focused
   kondo and format checks pass. This final test-only addition changes no runtime
   or performance code; the complete final CI is tracked in PR #31.
+
+## P05 — design and baseline (2026-10-12)
+
+- Clean supplied checkout; preserved `codex/p04-data-diagnostics`. PR #31 merged
+  at `17d8bf1` on 2026-10-12; P05 branch starts at that latest main.
+- Public `:linktype` is the nonnegative integer DLT returned by
+  `pcap_datalink`, not a copied savefile LINKTYPE. No per-packet native lookup,
+  name conversion, byte mutation, extra byte copy or mandatory dependency.
+- Acquire once per capture execution after live activation/open and before
+  `on-ready`; pass the value explicitly to the shared native packet constructor
+  and polling loop. Low-level standalone loops acquire once per invocation.
+  No global handle cache or cross-source state. Raw packets, stop predicates,
+  user transforms and managed/fan-out consumers receive the same metadata.
+- Full decode rejects explicit values other than integer DLT_EN10MB (1) before
+  checking frame length. Preserve bytes/metadata and append diagnostic
+  `{:stage :decode :reason :unsupported-linktype :linktype value}`; remove
+  stale `:decoded`. Flow uses stage `:flow`, retains capture metadata/linktype,
+  and excludes bytes and flow fields on failure. Neither executes extensions.
+  Missing `:linktype` in standalone packet-xf retains legacy Ethernet behavior;
+  explicit nil/invalid/unknown values are rejected. Raw identity is unchanged.
+- Statistics remain schema-version 1 with no new fields. Unsupported full/flow
+  errors count in existing decode-errors. Diagnostics keep P04 location semantics.
+- Negative native results throw ex-info (`:phase :pcap-datalink`, rc/error data);
+  native exceptions propagate. Capture owners close on setup failure; synchronous
+  and managed setup fail before readiness, legacy async errors use its existing
+  background error policy. No guessing Ethernet on native failure.
+- Writer remains Ethernet-only. Metadata is not format conversion or full-file
+  preservation; broader decoders, PCAPNG and interface metadata remain P08.
+
+P05 implementation and local verification:
+
+- Added `PcapLibrary.pcap_datalink` and internal `pcap/datalink`. Shared packet
+  construction retains bytes, timestamps and both lengths and adds the native
+  DLT. Each public capture execution acquires once before readiness and passes
+  it into polling, including the no-idle path. No global handle cache is used.
+- Full and flow share explicit Ethernet eligibility. Missing metadata retains
+  standalone compatibility; invalid/unknown presence is rejected before any
+  frame parsing. Full rejects stale decoded values and skips global/explicit
+  hooks in both failure modes. Flow retains five metadata fields, including
+  nil linktype when absent, and never adds bogus IP/port fields on failure.
+- Added deterministic SLL/NULL PCAPs plus their Python generator. Each contains
+  a proper IPv4/UDP record, a two-byte truncation with original length 1500,
+  and an adversarial record that would successfully parse as Ethernet if the
+  guard were absent. Existing Ethernet DNS/TLS/IPv4/IPv6/VLAN regressions remain.
+- New `paclo.linktype-test` covers all five public processing paths, native DLT,
+  ordered bytes/time/length metadata, stop/xform inputs, error counts in stats
+  v1, raw/full/flow fan-out with capacity-one blocking branches, diagnostic
+  append order, and skipped hooks. Native doubles cover live/offline failures,
+  exception identity, deterministic close, readiness/activation ordering and
+  once-per-capture acquisition. New JUnit tests exercise real offline DLTs and
+  the negative result of a real unactivated handle, closing without activation.
+- 150 property cases prove unsupported dispatch, stable stage/reason, EDN
+  round trips, metadata preservation and unchanged shared byte-array contents.
+  New concurrent tests use futures/promises and bounded waits, without sleeps.
+- Public contract, usage, README, extension guidance, changelog and relevant
+  docstrings now specify DLT versus LINKTYPE, missing versus explicit values,
+  raw access, unsupported dispatch and the unchanged Ethernet-only writer.
+  A registered executable SLL example extends the maintained 13 examples to 14.
+- Measured allocation adjustment: adding an eleventh flow-map entry crossed
+  the 20-argument call boundary of `array-map`. Initial flow-project allocation
+  rose from 1498.1 to 2274.1 bytes/packet; a focused map-construction experiment
+  measured about 226 versus 994 bytes/construction for ten/eleven entries.
+  A small private macro emits a typed Object[] and PersistentArrayMap for
+  compile-time-known unique keys. Storage is private during construction and
+  never mutated after publishing the immutable map. No public mutable aggregate,
+  borrowed buffer, framework or parser redesign is introduced. Final flow
+  allocation is 1418.9 bytes/packet; the ordinary byte-only flow path is unchanged.
+
+Local environment: macOS 15.4.1, reported x86_64, Temurin 21.0.12.1,
+Clojure library 1.12.1, CLI 1.12.5.1654, libpcap 1.10.1.
+
+- `bash dev/script/codex.sh doctor`: passed, real offline read (four packets).
+- `bash dev/script/codex.sh prepare`: passed after native binding/test changes.
+- Focused `test` invocation selecting `paclo.pcap-unit-test`, `packet-xf-test`,
+  `flow-test`, `diagnostics-test`, `linktype-test`, `pcap-loop-test`,
+  `managed-capture-test` and `reduce-test`: passed 124 tests / 1128 assertions
+  before the final additional setup/order coverage. All requested namespace
+  names exist; no namespace substitutions were needed.
+- After the allocation adjustment, focused `flow-test`, `linktype-test` and
+  `packet-xf-test`: passed 26 tests / 669 assertions.
+- Final `bash dev/script/codex.sh check`: passed JUnit 10/10, Clojure 321 tests /
+  2256 assertions with no failures/errors, and offline smoke.
+- Final `bash dev/script/codex.sh lint`: passed kondo (zero warnings/errors),
+  Eastwood (60 existing warning sites, no exceptions), clean-ns and format
+  dry runs, and Markdown lint. New test deprecation/boxing warnings were fixed.
+- `clojure -T:build spotbugs`, `checkstyle`, `jacoco`, `jacoco-gate`: passed.
+  JaCoCo line coverage 43.8%, with unchanged CI threshold `JACOCO_MIN_LINE=0.25`.
+- Final `bash dev/script/codex.sh perf`: passed, 50,000 / 74-byte synthetic frames,
+  493.3 ms against unchanged 1000 ms warning / 1200 ms failure budgets.
+- `dev/script/mdlint.sh`: passed through the final lint command. Initial sandbox
+  npm DNS/cache access failed; the authorized ordinary-environment retry worked.
+  Two added double blank lines were fixed before the final successful check.
+- `python3 dev/script/verify_doc_links.py`: passed.
+- `python3 -m unittest discover -s dev/script -p test_verify_doc_examples.py`:
+  passed 13 parser tests. `python3 dev/script/verify_doc_examples.py`: passed all
+  14 offline examples, preserving the previous 13.
+- `git diff --check`: passed. CI workflows, dependency graph, release versions,
+  pinned tools, coverage threshold and performance budgets are unchanged.
+
+P05 offline performance characterization:
+
+Baseline is main `17d8bf1`, from `/private/tmp/p05-baseline` source archive and
+baseline compiled classes (not a new worktree). Revised is uncommitted P05 source;
+worker git metadata is nil for the archive and baseline HEAD for the revised
+checkout, so these source labels, rather than embedded git metadata, identify
+what was measured. Dataset is the same `/private/tmp/p05-mixed.pcap`: 50,000
+alternating UDP-64/TCP-512 Ethernet records, 14,400,000 captured bytes.
+
+Existing perf-worker commands use `clojure -M:perf-worker --mode offline
+--scenario <scenario> --path /private/tmp/p05-mixed.pcap --count 50000
+--warmups 2 --runs 5`, in each source directory. Separate JVMs run serially,
+with scenario order raw-reduce, full-decode, full-reduce, flow-project for baseline
+and then for final revised source; no concurrent tests/lint during these runs.
+The runner performs its existing GC/25 ms settling step before each measured run.
+Every measured run processed all 50,000 records with zero decode errors.
+Reduction modes have no producer queue; lazy full decode uses the default
+blocking queue. Offline workers do not expose queue-drop counters.
+
+| Scenario | Before pps | After pps | Change | Before alloc B/packet | After alloc B/packet |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| raw-reduce | 1223967.8 | 1101714.0 | -10.0% | 1018.1 | 1026.9 |
+| full-decode | 134086.0 | 149351.4 | +11.4% | 6055.0 | 5930.7 |
+| full-reduce | 161789.3 | 188506.9 | +16.5% | 5778.1 | 5702.9 |
+| flow-project | 592963.4 | 676697.4 | +14.1% | 1498.1 | 1418.9 |
+
+These short runs characterize allocation and show substantial JVM/timing
+variation; they do not prove throughput gains or regressions. Raw allocation
+increased by about 8.8 bytes/packet. No packet byte copies were added. Reports
+and the constructor experiment remain under `/private/tmp/p05-*`.
+Live NIC values, privileges, sustained live capture and real-NIC performance
+remain unvalidated. Supported-platform CI must be assessed on the PR; P05
+remains in-progress until independent review/merge, P06 is ready, and P08 remains
+blocked until P05 acceptance and a concrete decoder/PCAPNG fixture-backed scope.
+
+The first commit attempt stopped because the local pre-commit hook invokes
+`clj`, which requires missing `rlwrap` on this host. All equivalent checks above
+ran with `clojure`. The commit reuses their successful results through the
+repository hook's existing `SKIP_TESTS`, `SKIP_FMT` and `SKIP_KONDO` flags;
+Markdown lint remains enabled. No hook or gate is changed.

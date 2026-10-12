@@ -362,7 +362,9 @@ packets. Use your own Ethernet PCAP path and output path in an application.
 
 The writer still outputs Ethernet PCAP with snaplen 65536 and microsecond precision.
 It preserves packet metadata, not the source file's global header, byte order,
-link type, snaplen, or timestamp precision. PCAPNG and additional link types remain
+link type, snaplen, or timestamp precision. Packet `:linktype` is ignored; saving
+non-Ethernet raw bytes without format conversion under an Ethernet header does
+not produce correct replay. PCAPNG and broader link-type output remain
 future work. Older libpcap readers may expose post-2038 seconds as negative; see
 the [writer contract](cljdoc-api-contract.md#write-pcap) for this native limitation.
 
@@ -472,3 +474,37 @@ extension failures alone do not increment its decode-error counter.
    :edn-roundtrip? (= result (edn/read-string (pr-str result)))
    :decode-errors (get-in stats [:packets :decode-errors])})
 ```
+
+## Reading non-Ethernet captures
+
+Native raw reads retain the actual libpcap DLT as integer `:linktype`. DLT is
+not necessarily the savefile's numeric LINKTYPE; see the
+[link-type contract](cljdoc-api-contract.md#link-type-dispatch). Detection happens
+once after open/activation; it does not infer framing from arbitrary bytes.
+Full decode and flow currently support Ethernet (DLT 1), including VLAN tags.
+SLL and BSD loopback bytes remain accessible in raw mode, while full/flow return
+`"unsupported linktype"` with `:unsupported-linktype` diagnostics and no IP/port
+fields. Full decode keeps bytes and skips DNS/TLS hooks; flow omits bytes.
+These failures increment existing decode-error counters without changing stats v1.
+
+This repository example reads the bundled Linux cooked fixture and inspects its
+link type and a flow diagnostic:
+
+<!-- paclo-doc-test: usage-linktype-raw -->
+
+```clojure
+(let [raw (core/reduce-packets {:path "test/resources/linktype-sll.pcap"}
+                               conj [])
+      flow (into [] (core/packet-xf {:decode-mode :flow}) raw)]
+  {:linktypes (mapv :linktype raw)
+   :captured-lengths (mapv #(alength ^bytes (:bytes %)) raw)
+   :diagnostics (mapv :diagnostics flow)
+   :flow-has-bytes? (some #(contains? % :bytes) flow)})
+```
+
+For external packet maps, omission of `:linktype` retains the legacy Ethernet
+assumption. Explicit nil/unknown/invalid values are rejected by full/flow; raw
+`packet-xf {}` remains identity. Do not mutate shared packet arrays in fan-out.
+The writer remains Ethernet-only and does not preserve source `:linktype` or
+convert non-Ethernet bytes. Additional decoders, PCAPNG, interface metadata and
+complete source-file round trips remain P08 work.
