@@ -1,5 +1,6 @@
 (ns paclo.stream-impl-test
   (:require
+   [clojure.core.async :as async]
    [clojure.edn :as edn]
    [clojure.test :refer [deftest is]]
    [paclo.stream.impl :as stream])
@@ -365,12 +366,42 @@
       (is (= 1 @cancel-count))
       (.close ^Closeable fanout)
       (is (= 1 @cancel-count))
-      (let [branch-stats (get-in (stream/stats fanout)
-                                 [:branches :blocked])]
-        (is (pos? (get-in branch-stats [:buffer :blocked-events])))
+      (let [stats (stream/stats fanout)
+            branch-stats (get-in stats [:branches :blocked])]
+        (is (= :closed (:state stats)))
+        (is (= :closed (:stop-reason stats)))
+        (is (= :fanout-closed (:state branch-stats)))
+        (is (= :fanout-closed (:stop-reason branch-stats)))
         (assert-branch-invariants branch-stats))
       (finally
         (.close ^Closeable fanout)))))
+
+(deftest blocking-buffer-records-backpressure-after-fallback
+  (let [fallback-entered (promise)
+        blocking-put! async/>!!]
+    (with-redefs [async/>!! (fn [channel value]
+                              (deliver fallback-entered true)
+                              (blocking-put! channel value))]
+      (with-open [^Closeable fanout
+                  (stream/start (range 3) {:blocked (config :blocking 1)})
+                  ^Closeable blocked
+                  (stream/branch fanout :blocked)]
+        ;; Wait for the actual fallback call, not merely a full buffer:
+        ;; max-depth alone does not prove that a blocking put was attempted.
+        (let [entered? (true? (deref fallback-entered 2000 false))]
+          (is entered?)
+          (when entered?
+            (let [consumer (future (vec blocked))]
+              (is (= [0 1 2] (deref consumer 2000 ::timeout)))
+              (when (realized? consumer)
+                (is (true? (stream/await! fanout)))
+                (let [stats (stream/stats fanout)
+                      branch-stats (get-in stats [:branches :blocked])]
+                  (is (= :source-exhausted (:stop-reason stats)))
+                  (is (= 3 (:delivered branch-stats)))
+                  (is (pos? (get-in branch-stats
+                                    [:buffer :blocked-events])))
+                  (assert-branch-invariants branch-stats))))))))))
 
 (deftest cancel-unblocks-an-externally-waiting-source
   (let [released (promise)
