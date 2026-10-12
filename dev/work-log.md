@@ -230,3 +230,82 @@ PR and CI evidence:
 - Independent review is still absent (reviews list empty). P02 remains
   **in-progress** until review acceptance; next work is reviewing PR #29 and
   choosing a compatible release version. Do not merge or publish during this task.
+
+## 2026-10-12: Merged branch cleanup
+
+The user requested branch cleanup, expecting 26 deletions. GitHub had 27
+branches: `main` and 26 completed PR branches. All 26 branch heads matched
+exactly the final head SHA of a merged PR targeting `main`; no open PR used
+any candidate. Some PRs used squash merges, so commit ancestry alone was
+not sufficient evidence. Deleted these 26 remote branches and pruned their
+remote-tracking refs. Retained all three local branches and the current
+checkout, including the unique local `main` commit `f0bc162`.
+
+Verification and commands:
+
+- Initial `git status --short --untracked-files=all`: clean.
+- `bash dev/script/codex.sh doctor`: PASS; real offline libpcap read,
+  4 packets / 438 bytes; optional lint tools available.
+- `git ls-remote --heads origin`, `git fetch --prune origin`, and
+  `gh pr list --state all` with head SHAs: verified 26 deletion candidates.
+  Initial sandbox network attempts failed DNS/connectivity; network-enabled
+  retries passed.
+- `git push --atomic` with one exact-SHA `--force-with-lease` and deletion
+  refspec per branch: PASS, all 26 deleted in one transaction.
+- Final `git fetch --prune origin`: PASS. Final `git ls-remote --heads origin`
+  returned only `main` at `653414b9eb41a380df6262c1d79751af9b127f6d`.
+- PR #29 was merged at 2026-10-12 04:22:44 UTC. Updated the plan to mark
+  P02 accepted/done and P03 as the next unfinished item. No new independent
+  review, live-capture, platform, or performance validation is claimed.
+
+Documentation verification: `python3 dev/script/verify_doc_links.py` and
+`git diff --check` passed. Markdown lint initially found one extra blank line
+in this entry; removed it. Final `dev/script/mdlint.sh` passed (27 files,
+0 errors) with network access. The initial sandbox lint attempt failed with
+`ENOTFOUND registry.npmjs.org`; it is not counted as a passing check.
+No source behavior, release version, publication, or PR merge was changed
+by this cleanup task.
+
+## 2026-10-12: Local branch cleanup
+
+The user also authorized cleanup of the three local branches after review.
+The unique local `main` commit `f0bc162` contains an obsolete v1.1 planning
+draft, with no runtime code. Saved all three old branch heads and complete
+history in `.dev-tools/branch-backups/20261012-local-cleanup.bundle` before
+changing refs; `git bundle verify` passed. Saved the existing uncommitted
+documentation diff alongside it as `20261012-uncommitted-docs.patch`.
+
+- Initial status: only the previous plan/log edits were uncommitted.
+- `bash dev/script/codex.sh doctor`: PASS, offline read 4 packets / 438 bytes.
+- `git fetch --prune origin`: PASS; current worktree HEAD and `origin/main`
+  had identical committed trees. `fix/hbh-udp` was an ancestor of `origin/main`.
+- `git switch --detach origin/main`, `git branch -f main origin/main`, then
+  `git switch main`: PASS; preserved the uncommitted plan/log edits.
+- `git branch -d fix/hbh-udp` and `git branch -D codex/p02-pcap-round-trips`:
+  PASS. P02 was already squash-merged as PR #29; its tree matched current main.
+- Initial sandbox ref/index writes were denied; network-enabled/unsandboxed
+  retries passed. No failed attempt is counted as a successful operation.
+- Final local branch: only `main`, tracking `origin/main`, at `653414b`.
+  No feature, release, or remote branch was changed during this local cleanup.
+  Next feature remains P03; retained documentation edits are uncommitted.
+- Verification: `git rev-list --left-right --count main...origin/main`
+  returned `0 0`; `git diff --check` and the local Markdown link checker passed.
+  Initial Markdown lint found an extra blank line before this entry; corrected it.
+  Rerun passed (2 files, 0 errors).
+
+## 2026-10-12: Commit branch-cleanup records
+
+The user authorized committing the remaining plan/log changes. This commit
+records remote and local branch cleanup, P02 merge acceptance, and P03 as
+the next unfinished feature; it introduces no runtime changes.
+
+- Initial status: only `dev/codex-plan.md` and `dev/work-log.md` modified.
+- `bash dev/script/codex.sh doctor`: PASS, offline read 4 packets / 438 bytes.
+- `dev/script/mdlint.sh`: PASS, 27 files / 0 errors.
+  `python3 dev/script/verify_doc_links.py` and `git diff --check`: PASS.
+  No runnable documentation examples changed.
+- Commit command: `SKIP_TESTS=1 SKIP_FMT=1 SKIP_KONDO=1 git commit
+  -m "docs: record branch cleanup and P02 completion"`. The existing hook's
+  documented optional flags omit runtime tests and Clojure formatting/lint
+  for this documentation-only change; its Markdown lint remains enabled.
+- Scope: local commit only. No push, PR, release, or P03 implementation.
