@@ -165,3 +165,21 @@ Recorded verification results on 2026-08-01:
   [paclo.stream API](https://cljdoc.org/d/org.clojars.nanto/paclo/1.3.0/api/paclo.stream)
 - GitHub Release:
   [v1.3.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.3.0)
+
+## Historical roadmap acceptance record (archived)
+
+- [x] Add one composable `packet-xf` transformation source of truth
+- [x] Add backend-neutral `fan-out`, `branch`, and `stats` public functions
+- [x] Keep every branch bounded with explicit blocking or dropping behavior
+- [x] Make branch ownership, cancellation, and close semantics deterministic
+- [x] Add schema-versioned per-branch and distribution statistics
+- [x] Prove slow-branch isolation, bounded heap, and source-head release
+- [x] Pass the Linux/macOS, JDK 17/21, arm64, lint, coverage, and package gates
+- [x] Clear the historical live floor with a separate-JVM Linux probe
+- [x] Complete the publication dry-run on the release commit
+- [x] Publish `v1.3.0` to Clojars and verify cljdoc
+
+The v1.3 public surface remains deliberately small. It does not expose the
+core.async backend, dynamically add or remove branches, or make a branch
+multi-consumer. Those choices preserve ordinary seq/reduce composition and
+keep ownership and overload behavior explicit.

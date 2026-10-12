@@ -134,3 +134,14 @@ gh release create v1.1.0 \
 
 If a release defect is discovered, do not move the tag or replace the Clojars
 artifact. Correct it with a new patch release.
+
+## Historical roadmap acceptance record (archived)
+
+- [x] Reproducible offline and live measurement foundation
+- [x] Public synchronous `reduce-packets` API with transducer fusion
+- [x] Opt-in numeric flow projection and compatible full-decode optimization
+- [x] `flow-topn` migration to the numeric fast path
+- [x] Live direct/blocking/dropping comparison and staged drop metrics
+- [x] v1.1 public API contract, changelog, and release metadata prepared
+- [x] Publish `v1.1.0` to Clojars and verify cljdoc
+- [x] Publish the `v1.1.0` GitHub Release

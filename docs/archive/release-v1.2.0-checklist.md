@@ -149,3 +149,21 @@ Recorded release results on 2026-07-30:
 
 If a release defect is discovered, do not move the tag or replace the Clojars
 artifact. Correct it with a new patch release.
+
+## Historical roadmap acceptance record (archived)
+
+- [x] Define a schema-versioned execution statistics contract
+- [x] Add synchronous result-plus-statistics reduction
+- [x] Add an opaque, Closeable managed capture handle
+- [x] Add explicit idempotent stop and single-consumer packet delivery
+- [x] Make shutdown independent of queue capacity
+- [x] Add lifecycle, early-reduction, and full-queue regression tests
+- [x] Add managed-capture performance scenarios
+- [x] Run loopback and separate-host real-NIC acceptance probes
+- [x] Complete static, compatibility, and packaging gates
+- [x] Complete the publication dry-run
+- [x] Publish `v1.2.0` to Clojars and verify cljdoc
+
+The v1.2 scope intentionally excludes multiple consumers, pub/sub, dynamic
+BPF replacement, pause/resume, borrowed buffers, batching, parallel decode,
+mmap, and PCAPNG. These capabilities require separate evidence and contracts.
