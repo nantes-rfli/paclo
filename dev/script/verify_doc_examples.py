@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MAX_WORKERS = 3
 REQUIRE = (
     "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] "
-    "'[paclo.core :refer [packet-xf packets]] "
+    "'[paclo.flow :as flow] '[paclo.core :refer [packet-xf packets]] "
     "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
 )
 MARKER = re.compile(r"<!-- paclo-doc-test: ([a-z][a-z0-9-]*) -->")
@@ -36,6 +36,17 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-flow-analysis": Check(
+        "README bounded flow analysis", "clojure",
+        '(and (seq result) (= 4 (reduce + (map :packets result))) '
+        '(every? #(and (:captured-bytes %) (:wire-bytes %) '
+        '(integer? (get-in % [:flow :protocol]))) result))',
+    ),
+    "usage-flow-analysis": Check(
+        "Usage composable flow analysis", "clojure",
+        '(and (:same? result) (= {:seen 4 :aggregated 4 :skipped 0} (:summary result)) '
+        '(= 2 (count (:top result))))',
+    ),
     "usage-linktype-raw": Check(
         "Usage non-Ethernet raw linktype", "clojure",
         '(and (= [113 113 113] (:linktypes result)) '
@@ -241,6 +252,9 @@ def run_dns_quick_check(label, code):
 
 def main():
     found = discover()
+    # The CLI writes shared .cpcache files. Prepare this alias serially before
+    # independent JVMs read it; concurrent cold starts can observe a partial cp.
+    execute("Prepare documentation classpath", ["clojure", "-P", "-M:dev:dns-ext"])
     # Run all checks even if one fails. Isolated JVMs retain real-PCAP checks.
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         checks = {}

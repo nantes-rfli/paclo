@@ -119,8 +119,9 @@
   (.remaining (.duplicate b)))
 
 (defn- make-flow-key
-  "Build a flow key from L3 src/dst and L4 ports.
-   For non-TCP/UDP traffic, build a protocol+IP key without ports."
+  "Assemble the legacy string-address display descriptor (no normalization).
+   Canonical numeric analysis identity belongs to paclo.flow/key; use core
+   flow projection for analysis. This representation stays compatible with v1."
   [{:keys [src dst protocol next-header]} l4]
   (let [proto (long (or protocol next-header -1))]   ;; IPv4 uses :protocol, IPv6 uses :next-header
     (case proto

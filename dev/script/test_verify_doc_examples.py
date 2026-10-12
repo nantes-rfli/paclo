@@ -1,8 +1,9 @@
-"""Fast, dependency-free regression tests for documentation snippet discovery."""
+"""Dependency-free regressions for snippet discovery and runner startup."""
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import Mock, call, patch
 
 import verify_doc_examples as verifier
 
@@ -117,6 +118,31 @@ class SnippetTests(unittest.TestCase):
         ):
             with self.subTest(command=command), self.assertRaises(ValueError):
                 verifier.dns_argv(command)
+
+
+class RunnerStartupTests(unittest.TestCase):
+    def test_classpath_prepared_before_parallel_workers(self):
+        calls = Mock()
+        with patch.object(verifier, "discover", return_value={}), \
+             patch.object(verifier, "CHECKS", {}), \
+             patch.object(verifier, "execute") as prepare, \
+             patch.object(verifier, "ThreadPoolExecutor") as pool, \
+             patch("builtins.print"):
+            calls.attach_mock(prepare, "prepare")
+            calls.attach_mock(pool, "pool")
+            verifier.main()
+        self.assertEqual(calls.mock_calls[:2], [
+            call.prepare("Prepare documentation classpath", ["clojure", "-P", "-M:dev:dns-ext"]),
+            call.pool(max_workers=verifier.MAX_WORKERS),
+        ])
+
+    def test_preparation_failure_stops_before_parallel_start(self):
+        with patch.object(verifier, "discover", return_value={}), \
+             patch.object(verifier, "execute", side_effect=RuntimeError("classpath unavailable")), \
+             patch.object(verifier, "ThreadPoolExecutor") as pool:
+            with self.assertRaisesRegex(RuntimeError, "classpath unavailable"):
+                verifier.main()
+            pool.assert_not_called()
 
 
 if __name__ == "__main__":

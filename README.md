@@ -69,38 +69,31 @@ prefix or stopping early. `take` on the lazy `packets` sequence alone does
 not stop its producer. The [usage guide](docs/usage.md) explains resource
 ownership and the default count/time limits.
 
-For synchronous large-PCAP reduction without an intermediate lazy sequence:
+For bounded flow analysis, select numeric flow projection and reuse the public
+`paclo.flow` reducer. IPv4 addresses are unsigned integers; IPv6 addresses are
+two-long vectors. Exact byte totals distinguish captured length from wire length.
+
+<!-- paclo-doc-test: readme-flow-analysis -->
 
 ```clojure
-(core/reduce-packets
- {:path "large.pcap"
-  :decode? true
-  :max Long/MAX_VALUE
-  :max-time-ms 3600000
-  :xform (keep #(get-in % [:decoded :l3 :flow-key]))}
- (fn [counts flow] (update counts flow (fnil inc 0)))
- {})
+(require '[paclo.flow :as flow])
+
+(let [rf (flow/aggregate-rf {:direction :bidir :max-flows 10000})
+      result (core/reduce-packets
+              {:path "test/resources/dns-sample.pcap" :decode-mode :flow}
+              rf (rf))]
+  (flow/top-n result {:metric :captured-bytes :n 10}))
 ```
 
-For a flat low-allocation flow projection, use explicit flow mode. IPv4
-addresses are unsigned longs and IPv6 addresses are two-long vectors:
+`flow/key` defines canonical numeric identity; full decode's legacy
+`[:decoded :l3 :flow-key]` remains a string-address display descriptor.
+Use flow projection for analysis and full decode for protocol inspection.
+See the [flow analysis contract](docs/cljdoc-api-contract.md#pacloflow) and
+[composition examples](docs/usage.md#reusable-flow-analysis) for ordering,
+invalid inputs and cardinality limits.
 
-```clojure
-(core/reduce-packets
- {:path "large.pcap"
-  :decode-mode :flow
-  :max Long/MAX_VALUE
-  :max-time-ms 3600000}
- (fn [counts flow]
-   (update counts
-           (select-keys flow
-                        [:src-ip :dst-ip :protocol :src-port :dst-port])
-           (fnil inc 0)))
- {})
-```
-
-For transformations outside the capture APIs, `packet-xf` is a public,
-composable transducer:
+For transformations outside capture APIs, compose the same numeric projection
+with standard transducers:
 
 <!-- paclo-doc-test: readme-packet-xf -->
 
@@ -263,8 +256,15 @@ clojure -M:dev -m examples.pcap-stats in.pcap 'udp and port 53' 10 jsonl
 
 ### flow-topn
 
+The CLI keeps `packets` and `bytes` metrics (`bytes` means captured bytes), EDN
+and JSONL rows, and async buffer/timeout options. Exact aggregation now defaults
+to at most 100000 unique flows; `--max-flows N` sets a positive finite budget.
+Existing flows can update at the limit; a new flow beyond it throws. Large
+captures that previously accumulated without a bound must select a larger budget.
+Tied rows now follow canonical numeric key order.
+
 ```bash
-clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 bidir bytes jsonl
+clojure -M:dev -m examples.flow-topn in.pcap 'udp and port 53' 10 bidir bytes jsonl --max-flows 100000
 clojure -M:dev -m examples.flow-topn in.pcap 'udp or tcp' 10 bidir bytes edn --async --async-mode dropping --async-timeout-ms 1000
 ```
 

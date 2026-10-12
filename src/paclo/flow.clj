@@ -1,223 +1,143 @@
 (ns paclo.flow
-  "Internal low-allocation flow projection for Ethernet IP packets."
-  (:require
-   [paclo.linktype :as linktype]))
+  "Pure, bounded flow analysis over numeric flow projection packets."
+  (:refer-clojure :exclude [key]))
 
-(def ^:private ethernet-header-bytes 14)
+(defn- uint? [value maximum]
+  (and (integer? value) (<= 0 value maximum)))
 
-(defn- u8 ^long [^bytes frame ^long offset]
-  (bit-and (aget frame (int offset)) 0xff))
+(defn- ipv6? [address]
+  (and (vector? address) (= 2 (count address))
+       (every? #(and (integer? %) (<= Long/MIN_VALUE % Long/MAX_VALUE)) address)))
 
-(defn- u16 ^long [^bytes frame ^long offset]
-  (bit-or (bit-shift-left (u8 frame offset) 8)
-          (u8 frame (inc offset))))
+(defn- valid-flow? [{:keys [ip-version protocol src-ip dst-ip src-port dst-port]
+                     :as packet}]
+  (and (map? packet)
+       (not (contains? packet :decode-error))
+       (not-any? #(= :flow (:stage %)) (:diagnostics packet))
+       (uint? protocol 255)
+       (case ip-version
+         4 (and (uint? src-ip 4294967295) (uint? dst-ip 4294967295))
+         6 (and (ipv6? src-ip) (ipv6? dst-ip))
+         false)
+       (contains? packet :src-port) (contains? packet :dst-port)
+       (if (contains? #{6 17} protocol)
+         (and (or (nil? src-port) (uint? src-port 65535))
+              (or (nil? dst-port) (uint? dst-port 65535)))
+         (and (nil? src-port) (nil? dst-port)))))
 
-(defn- u32 ^long [^bytes frame ^long offset]
-  (bit-or (bit-shift-left (u8 frame offset) 24)
-          (bit-shift-left (u8 frame (+ offset 1)) 16)
-          (bit-shift-left (u8 frame (+ offset 2)) 8)
-          (u8 frame (+ offset 3))))
+(defn- address-compare [version a b]
+  (if (= 4 version)
+    (compare a b)
+    (let [high (Long/compareUnsigned (long (first a)) (long (first b)))]
+      (if (zero? high)
+        (Long/compareUnsigned (long (second a)) (long (second b)))
+        high))))
 
-(defn- i64 ^long [^bytes frame ^long offset]
-  (loop [index 0
-         result (long 0)]
-    (if (= index 8)
-      result
-      (recur (inc index)
-             (bit-or (bit-shift-left result 8)
-                     (u8 frame (+ offset index)))))))
+(defn- endpoint-compare [version a-ip a-port b-ip b-port]
+  (let [address (address-compare version a-ip b-ip)]
+    (if (zero? address)
+      (compare (or a-port -1) (or b-port -1))
+      address)))
 
-(defn- require-bytes!
-  [^bytes frame ^long offset ^long required reason]
-  (when (> (+ offset required) (alength frame))
-    (throw (ex-info reason
-                    {:reason (if (zero? offset) :short-frame :truncated-header)
-                     :offset offset
-                     :required required
-                     :available (max 0 (- (alength frame) offset))}))))
+(defn- direction! [{:keys [direction] :or {direction :unidir}}]
+  (when-not (contains? #{:unidir :bidir} direction)
+    (throw (ex-info ":direction must be :unidir or :bidir" {:direction direction})))
+  direction)
 
-(defn- vlan-tpid? [^long ethertype]
-  (case ethertype
-    0x8100 true
-    0x88a8 true
-    0x9100 true
-    0x9200 true
-    false))
+(defn- packet-key [packet direction]
+  (when (valid-flow? packet)
+    (let [{:keys [ip-version protocol src-ip src-port dst-ip dst-port]} packet
+          reverse? (and (= :bidir direction)
+                        (pos? (endpoint-compare ip-version src-ip src-port dst-ip dst-port)))]
+      {:ip-version ip-version :protocol protocol
+       :src-ip (if reverse? dst-ip src-ip) :src-port (if reverse? dst-port src-port)
+       :dst-ip (if reverse? src-ip dst-ip) :dst-port (if reverse? src-port dst-port)})))
 
-(defn- ethernet-payload
-  ^long
-  [^bytes frame]
-  (require-bytes! frame 0 ethernet-header-bytes "truncated ethernet header")
-  (loop [offset ethernet-header-bytes
-         ethertype (u16 frame 12)]
-    (if (vlan-tpid? ethertype)
-      (do
-        (require-bytes! frame offset 4 "truncated VLAN header")
-        (recur (+ offset 4) (u16 frame (+ offset 2))))
-      (bit-or (bit-shift-left (long offset) 32)
-              (long ethertype)))))
+(defn key
+  "Return a canonical six-field numeric flow key, or nil for invalid input.
 
-(defn- packed-ports
-  [^bytes frame ^long offset ^long protocol non-first-fragment?]
-  (when (and (not non-first-fragment?)
-             (or (= protocol 6) (= protocol 17)))
-    (require-bytes! frame offset 4 "truncated transport header")
-    (bit-or (bit-shift-left (u16 frame offset) 16)
-            (u16 frame (+ offset 2)))))
+   Accepts flow projection packets, requiring both port keys (nil is unknown).
+   IPv4 uses unsigned integers; IPv6 uses two signed long words. Protocol is
+   numeric. :direction defaults to :unidir; :bidir orders endpoints by unsigned
+   address then port, with nil before zero. IP version precedes protocol in
+   ordering across keys. Metadata is excluded; decode-error or flow diagnostics
+   make the input ineligible. Does not decode bytes or convert full-decode keys."
+  ([packet] (key packet {}))
+  ([packet opts] (packet-key packet (direction! opts))))
 
-(defmacro ^:private fixed-array-map
-  "Construct a map with compile-time-known unique keys. Avoid the variadic
-   array-map path above 20 arguments; keep its backing array local and never
-   mutate it after publishing the persistent map."
-  [& entries]
-  (let [storage (with-meta (gensym "entries") {:tag 'objects})]
-    `(let [~storage (object-array ~(count entries))]
-       ~@(map-indexed (fn [index value] `(aset ~storage ~index ~value)) entries)
-       (clojure.lang.PersistentArrayMap. ~storage))))
+(defn- lengths! [{:keys [caplen len]}]
+  (when-not (and (uint? caplen 4294967295) (uint? len 4294967295) (<= caplen len))
+    (throw (ex-info "flow aggregation requires valid :caplen and :len"
+                    {:reason :invalid-lengths :caplen caplen :len len}))))
 
-(defn- flow-map
-  [packet ip-version protocol src-ip dst-ip packed]
-  (let [src-port (when packed (bit-shift-right packed 16))
-        dst-port (when packed (bit-and packed 0xffff))]
-    (if packet
-      (fixed-array-map
-       :ts-sec (:ts-sec packet)
-       :ts-usec (:ts-usec packet)
-       :caplen (:caplen packet)
-       :len (:len packet)
-       :linktype (:linktype packet)
-       :ip-version ip-version
-       :protocol protocol
-       :src-ip src-ip
-       :dst-ip dst-ip
-       :src-port src-port
-       :dst-port dst-port)
-      (array-map
-       :ip-version ip-version
-       :protocol protocol
-       :src-ip src-ip
-       :dst-ip dst-ip
-       :src-port src-port
-       :dst-port dst-port))))
+(defn aggregate-rf
+  "Return a standard 0/1/2-arity reducing function with immutable map state.
 
-(defn- ipv4-flow
-  [^bytes frame ^long offset packet]
-  (require-bytes! frame offset 20 "truncated IPv4 header")
-  (let [version-ihl (u8 frame offset)
-        version (bit-shift-right version-ihl 4)
-        header-length (* 4 (bit-and version-ihl 0x0f))]
-    (when-not (= version 4)
-      (throw (ex-info "invalid IPv4 version" {:reason :malformed-packet :version version})))
-    (when (< header-length 20)
-      (throw (ex-info "invalid IPv4 header length"
-                      {:reason :malformed-packet :header-length header-length})))
-    (require-bytes! frame offset header-length "truncated IPv4 options")
-    (let [protocol (u8 frame (+ offset 9))
-          flags-fragment (u16 frame (+ offset 6))
-          non-first-fragment? (pos? (bit-and flags-fragment 0x1fff))
-          packed (packed-ports frame
-                               (+ offset header-length)
-                               protocol
-                               non-first-fragment?)]
-      (flow-map packet
-                4
-                protocol
-                (u32 frame (+ offset 12))
-                (u32 frame (+ offset 16))
-                packed))))
+   Requires positive integer :max-flows; :direction defaults to :unidir.
+   State is {:flows {key {:packets n :captured-bytes n :wire-bytes n}}
+             :summary {:seen n :aggregated n :skipped n}}.
+   Invalid keys are skipped. Eligible packets require integer lengths in
+   0..4294967295 with caplen <= len, otherwise throw ex-info. A new key beyond
+   the bound throws ex-info (:reason :max-flows); existing keys still update.
+   Counters promote to arbitrary precision integers on overflow. Completion
+   returns state unchanged. No state is retained between reductions."
+  [{:keys [max-flows] :as opts}]
+  (let [direction (direction! opts)]
+    (when-not (and (integer? max-flows) (pos? max-flows))
+      (throw (ex-info ":max-flows must be a positive integer" {:max-flows max-flows})))
+    (fn
+      ([] {:flows {} :summary {:seen 0 :aggregated 0 :skipped 0}})
+      ([state] state)
+      ([state packet]
+       (if-let [fk (packet-key packet direction)]
+         (do
+           (lengths! packet)
+           (let [flows (:flows state)
+                 previous (get flows fk)]
+             (when (and (nil? previous) (>= (count flows) max-flows))
+               (throw (ex-info "flow cardinality limit exceeded"
+                               {:reason :max-flows :max-flows max-flows :flow fk})))
+             (let [summary (:summary state)]
+               (assoc state
+                      :flows (assoc flows fk
+                                    {:packets (inc' (or (:packets previous) 0))
+                                     :captured-bytes (+' (or (:captured-bytes previous) 0) (:caplen packet))
+                                     :wire-bytes (+' (or (:wire-bytes previous) 0) (:len packet))})
+                      :summary (assoc summary :seen (inc' (:seen summary))
+                                      :aggregated (inc' (:aggregated summary)))))))
+         (let [summary (:summary state)]
+           (assoc state :summary (assoc summary :seen (inc' (:seen summary))
+                                        :skipped (inc' (:skipped summary))))))))))
 
-(defn- ipv6-transport
-  [^bytes frame ^long initial-offset ^long initial-next-header]
-  (loop [offset initial-offset
-         next-header initial-next-header
-         non-first-fragment? false
-         remaining-headers 16]
-    (when (zero? remaining-headers)
-      (throw (ex-info "too many IPv6 extension headers" {:reason :malformed-packet})))
-    (case next-header
-      (0 43 60)
-      (do
-        (require-bytes! frame offset 2 "truncated IPv6 extension header")
-        (let [following (u8 frame offset)
-              header-bytes (* 8 (inc (u8 frame (inc offset))))]
-          (require-bytes! frame offset header-bytes
-                          "truncated IPv6 extension body")
-          (recur (+ offset header-bytes)
-                 following
-                 non-first-fragment?
-                 (dec remaining-headers))))
+(defn- key-compare [a b]
+  (let [version (compare (:ip-version a) (:ip-version b))
+        protocol (compare (:protocol a) (:protocol b))]
+    (cond
+      (not (zero? version)) version
+      (not (zero? protocol)) protocol
+      :else (let [source (endpoint-compare (:ip-version a)
+                                           (:src-ip a) (:src-port a) (:src-ip b) (:src-port b))]
+              (if (zero? source)
+                (endpoint-compare (:ip-version a)
+                                  (:dst-ip a) (:dst-port a) (:dst-ip b) (:dst-port b))
+                source)))))
 
-      44
-      (do
-        (require-bytes! frame offset 8 "truncated IPv6 fragment header")
-        (let [following (u8 frame offset)
-              fragment-field (u16 frame (+ offset 2))]
-          (recur (+ offset 8)
-                 following
-                 (pos? (bit-and fragment-field 0xfff8))
-                 (dec remaining-headers))))
+(defn top-n
+  "Return a vector of {:flow canonical-key :packets n :captured-bytes n :wire-bytes n}.
 
-      51
-      (do
-        (require-bytes! frame offset 2 "truncated IPv6 AH header")
-        (let [following (u8 frame offset)
-              header-bytes (* 4 (+ 2 (u8 frame (inc offset))))]
-          (require-bytes! frame offset header-bytes "truncated IPv6 AH body")
-          (recur (+ offset header-bytes)
-                 following
-                 non-first-fragment?
-                 (dec remaining-headers))))
-
-      {:offset offset
-       :protocol next-header
-       :non-first-fragment? non-first-fragment?})))
-
-(defn- ipv6-flow
-  [^bytes frame ^long offset packet]
-  (require-bytes! frame offset 40 "truncated IPv6 header")
-  (let [version (bit-shift-right (u8 frame offset) 4)]
-    (when-not (= version 6)
-      (throw (ex-info "invalid IPv6 version" {:reason :malformed-packet :version version})))
-    (let [{:keys [protocol non-first-fragment?]
-           transport-offset :offset}
-          (ipv6-transport frame (+ offset 40) (u8 frame (+ offset 6)))
-          packed (packed-ports frame
-                               transport-offset
-                               protocol
-                               non-first-fragment?)]
-      (flow-map packet
-                6
-                protocol
-                [(i64 frame (+ offset 8))
-                 (i64 frame (+ offset 16))]
-                [(i64 frame (+ offset 24))
-                 (i64 frame (+ offset 32))]
-                packed))))
-
-(defn- project
-  [^bytes frame packet]
-  (let [ethernet (ethernet-payload frame)
-        offset (unsigned-bit-shift-right ethernet 32)
-        ethertype (bit-and ethernet 0xffffffff)]
-    (case ethertype
-      0x0800 (ipv4-flow frame offset packet)
-      0x86dd (ipv6-flow frame offset packet)
-      (throw (ex-info "unsupported flow ethertype"
-                      {:reason :unsupported-ethertype :ethertype ethertype})))))
-
-(defn packet->flow
-  "Project Ethernet IPv4/IPv6 bytes into numeric flow fields.
-
-   IPv4 addresses are unsigned values in longs. IPv6 addresses are
-   `[high-long low-long]` pairs. Throws `ex-info` for unsupported or truncated
-  packets so the public facade can represent the failure as data."
-  [^bytes frame]
-  (project frame nil))
-
-(defn project-packet
-  "Project a capture packet map into metadata plus numeric flow fields.
-
-   The returned array-map deliberately excludes the raw bytes."
-  [packet]
-  (linktype/require-ethernet! packet)
-  (project ^bytes (:bytes packet) packet))
+   :metric defaults to :packets; also accepts :captured-bytes or :wire-bytes.
+   :n defaults to 10 and must be a nonnegative integer. Sorts descending by
+   metric, then ascending by canonical key (version, protocol, endpoints).
+   Ties are independent of input order, including mixed IPv4/IPv6 and nil ports.
+   Accepts aggregate-rf results; exact sorting costs O(F log F) for F flows."
+  [result {:keys [metric n] :or {metric :packets n 10}}]
+  (when-not (contains? #{:packets :captured-bytes :wire-bytes} metric)
+    (throw (ex-info "unsupported flow metric" {:metric metric})))
+  (when-not (and (integer? n) (<= 0 n))
+    (throw (ex-info ":n must be a nonnegative integer" {:n n})))
+  (->> (:flows result)
+       (sort (fn [[a av] [b bv]]
+               (let [ranking (compare (get bv metric) (get av metric))]
+                 (if (zero? ranking) (key-compare a b) ranking))))
+       (take n)
+       (mapv (fn [[fk counts]] (assoc counts :flow fk)))))
