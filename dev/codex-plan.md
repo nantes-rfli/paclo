@@ -185,8 +185,8 @@ PCAP capture/reduction/fan-out paths. Do not migrate the existing DNS CLIs.
 
 ## P07-B: DNS CLI migration and bounded reporting
 
-Status: **in-progress** (implementation and local verification complete;
-independent review/merge pending). The [CLI migration contract](p07-b-design.md)
+Status: **in-progress** (implementation, local verification and all 12 implementation
+CI jobs complete on `30cd06a`; independent review/merge pending). The [CLI migration contract](p07-b-design.md)
 and [work log](work-log.md) document strict DNS RTT correlation, packet QPS
 windows, exact microseconds and max-event-time/reorder watermarks. CLI-only
 report state is bounded: topN pairs, exact samples/qname groups, active windows/

@@ -1289,3 +1289,18 @@ P07-B final client/server group review:
   Pinned clean-ns/format dry runs and full lint passed (kondo zero errors/warnings,
   Eastwood zero exceptions/209 warnings, Markdown 30 files). Links and parser
   tests 15/15 passed again. Final PR-head CI will verify the correction.
+
+P07-B final implementation CI acceptance evidence:
+
+- [Run 38272297272](https://github.com/nantes-rfli/paclo/actions/runs/38272297272)
+  passed all 12 jobs on `30cd06a`: build-checks/required aggregate, documentation,
+  Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64/JDK21 monitor, three performance
+  shards/merger, Eastwood and coverage. No failing/skipped job remains in this run.
+  The previous import-layout failure is resolved with pinned tooling, not a gate
+  relaxation. This establishes offline platform/native behavior, not live/NIC
+  performance or a high-cardinality throughput target.
+- PR #36 remains open and attached for independent review; no merge or publication.
+  This final evidence-only commit changes plan/log only. Its head checks are
+  tracked in the PR description after they finish, separately from the passing
+  implementation run. Supplied checkout is clean after committing/pushing evidence.
+  Next action is independent P07-B review/acceptance, then P08 fixture-backed scope.
