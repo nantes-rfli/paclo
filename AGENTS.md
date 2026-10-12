@@ -16,7 +16,7 @@ its API sketches are proposals, not implemented features.
 - Pick the requested plan item. When asked to continue the accepted plan without
   a specific item, take the first unfinished item whose dependencies are complete.
 - Check the implementation before relying on historical release notes. Record
-  progress and verification in the plan as each item is completed.
+  task status in the plan and detailed verification in `dev/work-log.md` as each item is completed.
 
 ## Design constraints
 
@@ -48,6 +48,7 @@ its API sketches are proposals, not implemented features.
 - Keep commits and PRs scoped to reviewable plan items. Do not change release
   versions, publish artifacts, or merge as part of ordinary implementation work
   unless the user's task authorizes it.
-- Record commands, results, outstanding concerns, and the next unfinished item.
+- Record commands, results, outstanding concerns in `dev/work-log.md`, and
+  update task status and the next unfinished item in `dev/codex-plan.md`.
   Do not mark live capture, other platforms, or performance targets validated
   based solely on offline tests or historical measurements.

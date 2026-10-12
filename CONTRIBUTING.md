@@ -129,9 +129,21 @@ Publication and dependency-audit workflows manage their own credentials. If the
 CLI's GitHub authentication is unavailable, use the connected GitHub tools when
 available; do not start an interactive login or copy tokens into the repository.
 
+## Documentation verification
+
+For documentation-only changes, run Markdown lint and the local-link checker:
+`dev/script/mdlint.sh` and `python3 dev/script/verify_doc_links.py`. The link
+checker includes archived Markdown and validates local paths and heading anchors;
+it deliberately does not make network requests or validate external URLs.
+Run `python3 -m unittest discover -s dev/script -p 'test_verify_doc_links.py'`
+when modifying its parsing logic. Current runnable code examples are checked
+separately; archived examples are not executed by the maintained-example gate.
+
 ## Handoff
 
-Update the relevant row in `dev/codex-plan.md` with the implementation commit/PR,
-commands and results, open design decisions, and the next task. Keep unfinished
-items visibly unfinished. Review version assignment against compatibility before
-calling an item a patch release; release labels in the plan are candidates.
+Update the relevant task status and dependencies in `dev/codex-plan.md`.
+Write the implementation commit/PR, actual commands and results, decisions,
+unverified environments, and next task in [dev/work-log.md](dev/work-log.md).
+Keep unfinished items visibly unfinished. Review version assignment against
+compatibility before calling an item a patch release; release labels in the
+plan are candidates.

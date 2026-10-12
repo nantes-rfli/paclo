@@ -1,5 +1,8 @@
 # Codex environment preparation
 
+> Historical environment snapshot before P01. The current task queue is in
+> [dev/codex-plan.md](../codex-plan.md); P01 has since been completed.
+
 Preparation date: 2026-10-11 (Asia/Tokyo).
 Application baseline: `aaa3ec7bd3ac686c2e7ef85f1cf13c2245eb1978`.
 This record distinguishes executed checks from historical release evidence.
@@ -52,6 +55,6 @@ This change prepares development instructions, an executable entry point, pinned
 lint installation, CI coverage of the entry point, and the accepted work queue.
 No packet API implementation or release version changes are included.
 
-Next task: **P01** in [codex-plan.md](codex-plan.md).
+Next task: **P01** in [codex-plan.md](../codex-plan.md).
 Live capture, real-NIC performance, macOS/arm64, audit, and publication are separate
 checks and are not established by this environment validation.

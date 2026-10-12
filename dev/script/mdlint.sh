@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Run markdownlint-cli2 via npx (no local deps). Requires network on first run.
 # Usage: dev/script/mdlint.sh [--fix] [paths...]
-# If no paths, lint maintained public docs and Codex development instructions.
+# If no paths, lint current and historical documentation, including archives.
 
 fix_flag=""
 if [ "${1:-}" = "--fix" ]; then
@@ -13,13 +13,13 @@ fi
 
 paths=("$@")
 if [ ${#paths[@]} -eq 0 ]; then
-  if ls README.md >/dev/null 2>&1; then
-    paths+=(README.md)
-  fi
-  if ls docs/*.md >/dev/null 2>&1; then
-    paths+=(docs/*.md)
-  fi
-  paths+=(AGENTS.md CONTRIBUTING.md dev/codex-plan.md dev/codex-environment-validation.md)
+  paths+=(README.md CHANGELOG.md AGENTS.md CONTRIBUTING.md)
+  while IFS= read -r -d '' path; do paths+=("$path"); done < <(
+    find docs -type f -name '*.md' -print0
+  )
+  while IFS= read -r -d '' path; do paths+=("$path"); done < <(
+    find dev -maxdepth 2 -type f -name '*.md' -print0
+  )
 fi
 
 if [ ${#paths[@]} -eq 0 ]; then
@@ -28,5 +28,4 @@ if [ ${#paths[@]} -eq 0 ]; then
 fi
 
 echo "[mdlint] Linting: ${paths[*]}"
-# --config is auto-detected (.markdownlint.jsonc)
 npx --yes markdownlint-cli2@0.18.1 $fix_flag "${paths[@]}"
