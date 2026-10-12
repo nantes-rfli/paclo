@@ -27,7 +27,8 @@ statements of the current public API.
 - [v1.3.0 release checklist](archive/release-v1.3.0-checklist.md)
 - [Historical performance evidence](archive/performance-results.md)
 - [v1.3 stream design and acceptance record](../dev/archive/v1.3-stream-spike.md)
-- [Archived development design notes](../dev/codex-plan.md)
+- [Historical extension API proposal](../dev/archive/decode-ext-api-plan.md)
+- [Historical DNS artifact decision](../dev/archive/proto-dns-split-plan.md)
 
 ## Development and verification
 
