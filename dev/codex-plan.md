@@ -28,15 +28,16 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | done |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | done |
-| P06 | v1.5 | Reusable flow keys and aggregates | P04 | in-progress |
-| P07 | v1.5 | Bounded time windows and DNS request/response analysis | P03, P04, P06 | blocked |
+| P06 | v1.5 | Reusable flow keys and aggregates | P04 | done |
+| P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | in-progress |
+| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | blocked |
 | P08 | Later | Broader link-type and PCAPNG support | P05, concrete fixtures | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P06 independent review and merge**. P05 was merged through
-PR #32 on 2026-10-12. P07 awaits P06 acceptance; P08 still needs a
-fixture-backed scope decision.
+Default next task: **P07-A independent review and merge**. P06 was merged
+through PR #33 on 2026-10-12 at `0665c09`. P07-B awaits P07-A acceptance;
+P08 still needs a fixture-backed scope decision.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -146,8 +147,7 @@ the next supported types. Validate native calls on the existing platform matrix.
 
 ## P06: Reusable flow analysis
 
-Status: **in-progress** (implementation, local verification and implementation CI complete;
-independent review and merge remain required).
+Status: **done**. PR #33 merged on 2026-10-12 at `0665c09`.
 [PR #33](https://github.com/nantes-rfli/paclo/pull/33) contains the implementation.
 Three public functions in
 `paclo.flow` use a six-field numeric canonical key, immutable bounded aggregates
@@ -159,8 +159,8 @@ documentation examples pass, including the previous 14. Local performance gate
 and clean JAR consumer pass. All 12 implementation CI jobs passed on `64b0df6`,
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21. Measurement evidence and limitations are in the
 work log; persistent analysis costs more than the old unchecked mutable CLI.
-After P06 acceptance, the next feature is **P07**, bounded windows and DNS
-correlation; those behaviors are not part of P06.
+P07 is split into P07-A (pure analysis) and P07-B (CLI migration).
+Performance improvement remains tracked separately in issue #34.
 
 Extract the useful behavior in `dev/examples/flow_topn.clj` into small supported
 functions: unidirectional/bidirectional keys, counts/bytes, and result projection.
@@ -172,20 +172,25 @@ results are ordinary data. Specify ordering, IPv4/IPv6, absent ports, and whethe
 bytes means captured or wire bytes. Define a cardinality limit or bounded variant
 before recommending unbounded-duration aggregation. Confine optimized mutation.
 
-## P07: Time windows and DNS analysis
+## P07-A: Pure bounded time windows and DNS correlation
 
-Build on the existing DNS QPS/RTT examples. Prefer a deterministic state transition,
-for example `(step state event) -> {:state next-state :events [...]}`; names are a
-design sketch. Supply time/expiration explicitly and keep clocks outside the pure core.
+Status: **in-progress** (implementation, local verification and CI complete;
+independent review/merge pending). `paclo.window` and `paclo.dns` provide ordinary
+immutable state transitions. [PR #35](https://github.com/nantes-rfli/paclo/pull/35)
+is ready for independent review; all 12 implementation CI jobs passed on `902eef8`.
+The [pre-implementation design](p07-a-design.md)
+fixes event time, explicit watermarks, lateness, retries, ambiguity, quarantine,
+expiry and required cardinality limits. Reuse existing DNS decode/annotation.
+Validate determinism, EDN, immutable snapshots, bounded retention and actual
+PCAP capture/reduction/fan-out paths. Do not migrate the existing DNS CLIs.
 
-Specify event time versus processing time, out-of-order records, window closing,
-DNS retransmissions/ID reuse, expiry, and outstanding-request/cardinality bounds.
-Use a fresh state per reduction; do not share a stateful reducing function between consumers.
+## P07-B: DNS CLI migration and bounded reporting
 
-Acceptance: offline replay and live adapters agree for the same ordered events;
-expiry and bounds are deterministic; long-running state remains bounded. CLI
-examples become thin clients of these functions. Document approximate statistics
-if exact quantiles or top-N would require unbounded memory.
+Status: **blocked** by P07-A acceptance. Move dns-rtt/dns-qps onto the analysis
+APIs, remove sync/async duplication, preserve snapshots and document migration.
+Own CLI arguments, display, CSV/JSONL, p50/p95/p99, group Top-N and cancellation/
+dropping adapters. Exact all-history percentiles and Top-N can require unbounded
+memory; choose and document finite retention or approximation before adding them.
 
 ## P08-P10: Evidence-driven expansion
 

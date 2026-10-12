@@ -1029,3 +1029,110 @@ Final evidence-head documentation runner follow-up:
   On run 38235117755, the other ten jobs passed; documentation failure also
   caused the dependent build aggregate to fail. Its failure is not hidden by
   the earlier all-passing implementation run.
+
+## P07-A start — 2026-10-12
+
+- Clean supplied checkout at `523cf47`, no unrelated changes. Doctor passed:
+  Mac OS X x86_64, Temurin JDK21, Clojure 1.12.1, native offline PCAP 4 packets.
+  All optional lint tools available. Read contribution/API/plan/log, core, flow,
+  parse, decode-ext, DNS annotation and existing DNS QPS/RTT examples/tests.
+- GitHub confirms PR #33 merged at `0665c09` on 2026-10-12. Fetched latest main
+  and created `codex/p07-a-analysis` from it. Ordinary GitHub access and git
+  metadata writes need sandbox escalation on this host; authorized scoped
+  operations succeeded. No extra worktree. P06 marked done; P07 split A/B.
+- API decisions recorded before implementation in [design](p07-a-design.md).
+  No DNS header reparser, implicit watermark, orphan buffer or CLI migration.
+  Bounded retired-key quarantine makes immediate identical-ID reuse explicit;
+  missing questions are classified instead of matching by ID alone.
+
+P07-A implementation and local verification:
+
+- Public APIs: window init/step/advance/finish; DNS packet-time-us/packet->event
+  plus init/step/advance/finish. Required count bounds and exact promoting integer
+  arithmetic; immutable EDN state and per-call events. Explicit watermark,
+  floor-aligned half-open boundaries, late classification and terminal finish.
+- DNS uses existing parsed headers and explicitly selected question annotation.
+  Exact endpoint/version/ID/question keys; earliest-query retries, immediate
+  unmatched responses, signed negative RTT classification, timeout equality and
+  bounded retired-key quarantine. Missing questions and quarantined reuse never
+  produce guessed matches. No new dependency, global registration, I/O, clock,
+  default capture path, CLI migration, version, release or performance-gate change.
+- Final source review added EDN-restored window ordering (reading EDN need not
+  recreate a sorted map), numeric-address trailing-separator validation, and
+  recursive group metadata removal so packet/array/Throwable metadata cannot be
+  retained. DNS projection discards arbitrary unknown fields/objects. All three
+  have regressions; output EDN can be restored and continued deterministically.
+- `bash dev/script/codex.sh test -n paclo.window-test`: final 9 tests / 74
+  assertions, including 400 generated property cases. DNS focused command
+  `bash dev/script/codex.sh test -n paclo.dns-test`: 15 tests / 196 assertions,
+  including 600 property cases. All pass. Five properties total 1000 cases.
+- Focused combined new APIs plus dns-ext, flow, decode-ext, explicit extensions,
+  diagnostics, examples.smoke-test and examples.cli-contract-test: 101 tests /
+  869 assertions passed before the final EDN/metadata boundary regressions.
+- Final `bash dev/script/codex.sh check`: passed JUnit 10/10, Clojure 358 tests /
+  2625 assertions, offline smoke 4 packets / 438 captured bytes. Real DNS PCAP
+  yields two matches; vector/reduce/transduce, offline reduction, managed capture
+  and independent fan-out agree with the same ordered events/explicit watermark.
+  Actual IPv6 decoder plus native write/read round trip and short DNS header
+  rejection are tested. No live capture inference from these offline fixtures.
+- `bash dev/script/codex.sh lint`: passed clj-kondo with zero errors/warnings,
+  Eastwood with zero exceptions, clean-ns/format dry checks and Markdown lint.
+  Eastwood's existing all-linters mode emits warnings (138 on final source),
+  including intentionally boxed promoting arithmetic in the new core. No lint
+  suppression, gate or coverage threshold was changed. Initial sandbox npm
+  access failed at registry.npmjs.org; approved ordinary-environment execution
+  passed. Later artifact-sharing validations run serially.
+- `bash dev/script/codex.sh perf`: final unchanged 50000/74-byte full-decode gate
+  passed at 634.5 ms (1000 ms warning / 1200 ms failure); earlier run 557.9 ms.
+  No new analysis is invoked by default decoding/capture. Issue #34 is unchanged.
+- Reproducible new measurement: `clojure -M:dev -m paclo.dev.window-dns-perf`.
+  macOS x86_64, JDK 21.0.12.1, Clojure 1.12.1; 3 warmups of 10000 work units,
+  5 measured runs of 50000; no drops. Window workload: width 1000, 8 groups,
+  step+advance per event, at most one retained window; median 84.5 ms and
+  99,301,728 thread-allocated bytes (1986 bytes/event), 50 windows emitted and
+  zero retained. DNS workload: one reused question/ID with query+response+advance
+  per cycle, pending/retired limits 1, timeout 100 us/reuse 50 us, times 200 us
+  apart; median 771.5 ms and 936,397,128 bytes (18728 bytes/cycle), 50000 matches,
+  zero pending/retired. These include normalization and input construction,
+  not parsing/capture; measured runs still show JIT warm-up variation. They do
+  not validate high-cardinality expiry, long-run live capture, real NICs or other
+  platforms, and are not a comparison against the old unbounded CLI.
+- Public contract, README, usage, changelog and plan updated in English. Retain
+  all 16 prior executable examples and add three. The doc runner's first new
+  example attempt failed because aliases were not loaded before compiling its
+  enclosing expression; adding both new namespaces to the existing require
+  prelude fixed it. Parser/runner unit tests pass 15/15; all 19 examples passed
+  after correction. Required-ID protection now includes the two P06 examples.
+- Package and independent consumer validation passed on both initial and final
+  packaged source. JAR contains paclo/dns.clj and paclo/window.clj. Consumer in
+  /private/tmp/p07-consumer uses only local/root JAR, no checkout source/test
+  paths, with -Srepro; asserts jar: resources and native DNS PCAP results,
+  EDN round trip, window totals and release after watermark. Prints
+  :jar-consumer-ok :matches 2 :packets 4. Final package/consumer passed after
+  metadata hardening and final docs execution. Markdown/link/diff checks passed.
+- P07-A remains in-progress for CI and independent acceptance; P07-B waits for
+  acceptance. CLI migration, sync/async deduplication, snapshots, CSV/JSONL,
+  percentiles, group Top-N and cancellation/drops are explicitly deferred.
+  Exact all-history statistics require a finite-retention/approximation decision.
+
+P07-A PR and platform verification:
+
+- Committed implementation as `902eef8` and created independent
+  [PR #35](https://github.com/nantes-rfli/paclo/pull/35), attached to this task.
+  Pre-commit Markdown lint passed. Used existing SKIP_TESTS/SKIP_FMT/SKIP_KONDO
+  switches after equivalent explicit tests/lint/dry-format passed; no hook/gate
+  was modified. The final supplied checkout is clean after committing evidence.
+- [CI run 38258574756](https://github.com/nantes-rfli/paclo/actions/runs/38258574756)
+  passed **all 12 jobs** on `902eef8`: build-checks and required aggregate build,
+  documentation, Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64/JDK21 monitor,
+  three performance shards and their merger, Eastwood and coverage. No skipped
+  or failing job in this implementation run. Existing coverage/performance gates
+  and supported-platform requirements were not relaxed.
+- This verifies offline native/platform behavior and pure analysis, not live
+  capture, high-cardinality performance or sustained real-NIC throughput. The
+  PR description includes API decisions/alternatives, memory bounds, validation,
+  performance limitations and P07-B handoff. No merge, tag, version change or
+  Clojars publication. P07-A remains in-progress only for independent review/
+  acceptance; next plan action is review/merge, then P07-B CLI migration.
+- This evidence-only follow-up updates plan/log; final evidence-head CI is
+  checked separately in the PR description after it completes.

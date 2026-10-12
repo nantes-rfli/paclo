@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P07-A: public `paclo.window` tumbling counts/captured bytes and `paclo.dns`
+  packet-to-EDN normalization/UDP correlation. Pure immutable init/step/advance/
+  finish APIs use integer microsecond event time, explicit monotonic watermarks,
+  floor boundaries, lateness, timeout and required retention limits. Arithmetic
+  promotes on overflow; capacity errors never evict. DNS reuses existing decode
+  and explicit annotations, matches endpoint/version/ID/question keys, tracks
+  earliest-query retries, classifies ambiguity/unmatched/negative RTT and bounds
+  retired-key quarantine against immediate ID reuse/duplicate responses.
+  Existing DNS CLI migration/reporting remains P07-B; no capture behavior changes.
+
 - P06: public `paclo.flow/key`, `aggregate-rf`, and `top-n` for canonical numeric
   IPv4/IPv6 identity, unidirectional/bidirectional normalization, immutable exact
   packet/captured/wire totals, required cardinality bounds and deterministic ties.

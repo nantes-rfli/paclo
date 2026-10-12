@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[2]
 MAX_WORKERS = 3
 REQUIRE = (
     "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] "
-    "'[paclo.flow :as flow] '[paclo.core :refer [packet-xf packets]] "
+    "'[paclo.flow :as flow] '[paclo.window :as window] '[paclo.dns :as dns] "
+    "'[paclo.core :refer [packet-xf packets]] "
     "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
 )
 MARKER = re.compile(r"<!-- paclo-doc-test: ([a-z][a-z0-9-]*) -->")
@@ -36,6 +37,24 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-time-window": Check(
+        "README pure time window", "clojure",
+        '(and (= 1 (count result)) (= 0 (:start-us (first result))) '
+        '(= 1000000 (:end-us (first result))) (:complete? (first result)) '
+        '(= {:packets 1 :captured-bytes 128} (get-in result [0 :groups :dns])))',
+    ),
+    "usage-time-windows": Check(
+        "Usage offline time windows", "clojure",
+        '(and (:same? result) (zero? (:retained result)) '
+        '(= 4 (reduce + (map #(get-in % [:groups :dns :packets]) (:events result)))) '
+        '(every? :complete? (:events result)))',
+    ),
+    "usage-dns-correlation": Check(
+        "Usage offline DNS correlation", "clojure",
+        '(and (zero? (:pending result)) (= [:match :match] (mapv :kind (:transactions result))) '
+        '(every? #(= (:rtt-us %) (- (get-in % [:response :time-us]) '
+        '(get-in % [:query :time-us]))) (:transactions result)))',
+    ),
     "readme-flow-analysis": Check(
         "README bounded flow analysis", "clojure",
         '(and (seq result) (= 4 (reduce + (map :packets result))) '
@@ -112,6 +131,8 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "readme-flow-analysis",
+    "usage-flow-analysis",
     "usage-linktype-raw",
     "usage-structured-diagnostics",
     "usage-explicit-extensions",

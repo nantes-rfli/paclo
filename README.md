@@ -285,16 +285,42 @@ clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl
 
 For full argument tables and behavior details, see `docs/usage.md`.
 
+## Bounded event-time analysis (Unreleased)
+
+`paclo.window` and `paclo.dns` provide pure immutable `init`, `step`, `advance`
+and `finish` APIs. Supply integer microsecond event times and monotonic watermarks;
+configure explicit retention bounds. DNS normalization reuses full decode and
+optional DNS annotations, with question-aware correlation, retry counts, timeout
+and bounded ID-reuse quarantine. Missing questions and unmatched responses produce
+explicit classifications. Capture, clocks and output remain caller-owned.
+
+<!-- paclo-doc-test: readme-time-window -->
+
+```clojure
+(require '[paclo.window :as window])
+(let [state (window/init {:width-us 1000000 :max-windows 10 :max-groups 100})
+      next (window/step state {:time-us 999999 :group :dns :captured-bytes 128})]
+  (:events (window/advance (:state next) 1000000)))
+```
+
+See [executable PCAP examples](docs/usage.md#pure-bounded-time-windows) and the
+[API contract](docs/cljdoc-api-contract.md#paclowindow). Existing DNS CLIs remain
+unchanged; their migration and bounded reporting are P07-B.
+
 ## Public API surface (v1.x)
 
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
 | `paclo.core` | `bpf`, `packets`, `packet-xf`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
+| `paclo.flow` | `key`, `aggregate-rf`, `top-n` | Bounded flow analysis (Unreleased P06) |
+| `paclo.window` | `init`, `step`, `advance`, `finish` | Bounded tumbling windows (Unreleased P07-A) |
+| `paclo.dns` | `packet-time-us`, `packet->event`, `init`, `step`, `advance`, `finish` | Pure DNS analysis (Unreleased P07-A) |
 | `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
-`paclo.stream.impl`) are not part of the compatibility contract.
+`paclo.stream.impl`) are not part of the compatibility contract, except supported
+`paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`.
 
 ## Compatibility matrix
 

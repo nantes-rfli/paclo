@@ -586,3 +586,78 @@ are now deterministic numeric order. Async cancellation terminates the producer
 early (zero timeout cancels immediately, without scheduling a timer); dropping
 statistics count discarded inputs and reader/aggregate failures
 propagate after channel cleanup. EDN/JSONL and blocking/dropping modes remain.
+
+## Pure bounded time windows
+
+The P07-A APIs are available in `[Unreleased]`. Supply event time and watermark
+explicitly; they never read a clock or retain all output. Each consumer starts
+with its own state. Here all packet times come from the real offline fixture;
+the final watermark is an explicit caller decision. This example intentionally
+collects output in the caller, which can instead write/process each returned batch.
+
+<!-- paclo-doc-test: usage-time-windows -->
+
+```clojure
+(require '[paclo.window :as window] '[paclo.dns :as dns])
+(let [packets (vec (core/packets {:path "test/resources/dns-sample.pcap"}))
+      initial (window/init {:width-us 1000000 :max-windows 10 :max-groups 10})
+      add (fn [state packet]
+            (:state (window/step state {:time-us (dns/packet-time-us packet)
+                                        :group :dns :captured-bytes (:caplen packet)})))
+      state (reduce add initial packets)
+      same (transduce identity (completing add) initial packets)
+      watermark (+' (reduce max (map dns/packet-time-us packets)) 1000000)
+      closed (window/advance state watermark)]
+  {:same? (= state same) :events (:events closed)
+   :retained (count (get-in closed [:state :windows]))})
+```
+
+Windows are epoch-aligned half-open intervals; negative timestamps use floor
+division. Set `:allowed-lateness-us` to keep a window until watermark reaches
+end plus lateness. Arrival before that cutoff remains eligible regardless of
+order; later input produces `:late-event`, never recreating a window. Required
+limits bound windows and total window/group pairs. Exceeding them throws.
+Finish emits retained partial windows with `:complete? false`. No empty gaps
+are generated. See the [full contract](cljdoc-api-contract.md#paclowindow).
+
+## Pure DNS correlation
+
+Use the existing full decoder and an explicitly selected DNS annotation. The
+normalizer drops byte arrays and packet references. Analysis does not register
+extensions globally. Question fields are required for a pair; missing qname,
+qtype or qclass is classified as `:ambiguous-question`.
+
+<!-- paclo-doc-test: usage-dns-correlation -->
+
+```clojure
+(require '[paclo.dns :as dns])
+(let [opts {:path "test/resources/dns-sample.pcap"
+            :decode? true :extensions [dns-ext/annotate-dns]}
+      initial (dns/init {:timeout-us 5000000 :max-pending 100 :max-retired 100})
+      collect (fn [{:keys [state events]} event]
+                (let [next (dns/step state event)]
+                  {:state (:state next) :events (into events (:events next))}))
+      result (transduce (keep dns/packet->event) (completing collect)
+                        {:state initial :events []} (core/packets opts))
+      final (dns/finish (:state result))]
+  {:transactions (into (:events result) (:events final))
+   :pending (count (get-in final [:state :pending]))})
+```
+
+Correlation keys include version, UDP, ID, client/server endpoints and the full
+available question (name/type/class). Identical pending queries are retries with
+RTT measured from the earliest query. Different questions can reuse an ID;
+completed/expired identical keys enter bounded quarantine until a caller watermark
+releases them. Queries during quarantine emit `:id-reuse`; duplicate/old responses
+emit `:duplicate-or-expired-response`. Choose `:reuse-delay-us` (defaults to timeout)
+for your capture's delayed-message horizon. Identical overlapping requests cannot
+be distinguished from retries. Unmatched response-before-query is classified
+immediately and not buffered. Negative RTT is diagnostic, never a normal pair.
+
+Advance DNS watermark explicitly to expire queries at time plus timeout and
+release retired keys. A late event before the watermark is classified. Limits
+bound pending and retired cardinality; no silent eviction. Finish emits unfinished
+queries and clears retention. Only standard unfragmented UDP/53 with at most one
+question is supported. The [full contract](cljdoc-api-contract.md#paclodns) defines
+all event/error shapes and assumptions. P07-B will migrate dns-rtt/dns-qps and
+own CLI output, quantiles, Top-N and execution adapters.

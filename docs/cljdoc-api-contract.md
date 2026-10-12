@@ -9,6 +9,8 @@ Public namespaces:
 
 - `paclo.core`
 - `paclo.flow`
+- `paclo.window`
+- `paclo.dns`
 - `paclo.stream`
 - `paclo.decode-ext`
 - `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
@@ -639,3 +641,203 @@ Explicit selection and the public annotations are additions in `[Unreleased]`
 - Items above are the v1.x compatibility baseline.
 - Backward-compatible additive changes are allowed in v1.x.
 - Internal namespace details are intentionally excluded from this contract.
+
+## `paclo.window`
+
+P07-A adds pure bounded tumbling windows in `[Unreleased]`. State is an immutable
+EDN map; capture, scheduling, clocks, output and reducers remain caller-owned.
+
+### `init`, `step`, `advance`, `finish`
+
+```clojure
+(window/init {:width-us 1000000 :allowed-lateness-us 100000
+              :max-windows 10 :max-groups 100})
+(window/step state {:time-us 1720000000123456 :group :dns :captured-bytes 128})
+(window/advance state 1720000001100000)
+(window/finish state)
+```
+
+`init` returns state; the other functions return `{:state next-state :events [...]}`.
+Events contain only that call's new results; no output history is retained.
+Required width and limits are positive integers. Lateness defaults to zero and
+must be a nonnegative integer. `:max-groups` bounds total window/group pairs,
+not groups per window. Bounds count entries, not caller-supplied key bytes.
+
+Event time and watermarks are integer microseconds, including negative epoch
+values. All time, deadline and total arithmetic promotes to arbitrary precision;
+no floats, wrapping overflow, clock reads or timestamp repair. `:captured-bytes`
+is a nonnegative integer, representing captured bytes as in P06. A `:group` key
+is required, including explicit nil; allowed values are nil, booleans, strings,
+keywords, symbols, integers, characters and vectors recursively containing those.
+Maps, sets, functions, lazy sequences, arrays and objects are rejected as keys.
+Group metadata and unknown event fields are discarded. Wire-byte accumulation
+is not part of this API.
+
+Windows align to epoch zero with mathematical floor division and half-open
+`[start-us,end-us)` boundaries. Width 10 puts -1 in [-10,0), 0 in [0,10),
+and 10 in [10,20). State holds only nonempty windows. `advance` emits/removes
+windows when `watermark >= end + allowed-lateness`. Watermarks start nil and
+are explicit, monotonically nondecreasing; equality is allowed. Input maxima
+do not advance them. Out-of-order input can update any unfinalized window.
+An event for an already-finalizable window emits
+`{:kind :late-event :time-us t :start-us start :end-us end}` and leaves state
+unchanged, even if that window was never seen. Finalized windows never reopen.
+No empty windows or zero-filled gaps are created by any operation.
+
+Window results are emitted in ascending start order:
+
+```clojure
+{:kind :window :start-us 0 :end-us 1000000 :complete? true
+ :groups {:dns {:packets 2 :captured-bytes 256}}}
+```
+
+`finish` emits remaining windows with `:complete? false`, clears retention and
+marks state terminal without inventing an infinite watermark. Repeated finish
+returns no events; later step/advance throws. State internals are inspectable EDN
+but should be passed back unchanged. `advance` sorts/scans retained windows in
+O(W log W) for W windows; output and work are bounded by retained cardinality
+rather than elapsed time.
+
+## `paclo.dns`
+
+P07-A adds pure normalization and correlation, with no global registry, I/O,
+wall-clock or packet-byte parsing. DNS transaction identity is separate from P06
+network flow identity. Existing DNS CLI analysis remains unchanged until P07-B.
+
+### `packet-time-us`, `packet->event`
+
+`packet-time-us` converts a complete native `:ts-sec`/`:ts-usec` pair into exact
+integer epoch microseconds (`sec * 1000000 + usec`). Seconds may be negative;
+usec must be an integer in 0..999999. Missing/partial/noninteger inputs throw
+`:invalid-time`. Legacy `:sec`/`:usec`, usec-only and wall-clock fallbacks are
+not supported. This analysis conversion does not change the writer's P02 policy.
+
+`packet->event` projects an existing full-decoded packet, reusing `paclo.parse`'s
+ID, QR, opcode, counts and rcode. It never re-parses the DNS header. Select
+`{:decode? true :extensions [dns-ext/annotate-dns]}` to supply optional question
+fields through P03. It never invokes `register!` or modifies a packet.
+
+Eligible input is unfragmented standard opcode-0 UDP/53, with a complete minimum
+DNS header, consistent UDP length and zero or one question. TCP streams, multiple
+questions/messages and fragment reassembly are excluded. Decode-error presence,
+any nonempty diagnostics (including extension reports), explicit unsupported
+linktype and incomplete/unsupported decode return nil. Eligible bad timestamps
+throw. Ineligible input returns nil before time validation. No bytes, native
+handles, Throwable, lazy packet references or arbitrary input fields survive.
+
+```clojure
+{:time-us 1720000000123456 :kind :query :id 42 :protocol :udp :ip-version 4
+ :src {:ip "192.0.2.1" :port 50000} :dst {:ip "192.0.2.53" :port 53}
+ :qname "example.com" :qtype 1 :qclass 1 :rcode 0}
+```
+
+`:kind` is `:query` or `:response`; ID, ports, qtype and qclass are integers in
+0..65535; rcode is optional in 0..15. Query destination/response source port must
+be 53. IP version is 4 or 6, protocol is `:udp`. IPs are numeric strings:
+dotted IPv4 or eight colon-separated hexadecimal IPv6 words, as provided by full
+decode; compressed IPv6 input is not accepted. Strings are normalized (IPv4
+leading zeros removed, IPv6 lowercase without word-leading zeros). No hostname
+resolution occurs. Optional qname is lowercase using Locale/ROOT; the empty
+string represents root. Name identity uses the existing best-effort decoded
+text, not arbitrary DNS wire-label identity. Question fields and rcode are omitted
+when unavailable; no guessed values are inserted. `step` validates/projects the
+same shape and discards unknown fields, even when they contain objects.
+
+### `init`, `step`, `advance`, `finish`
+
+```clojure
+(dns/init {:timeout-us 5000000 :reuse-delay-us 5000000
+           :max-pending 10000 :max-retired 20000})
+(dns/step state event)
+(dns/advance state watermark-us)
+(dns/finish state)
+```
+
+`init` returns state; transitions return `{:state next-state :events [...]}`.
+Timeout and cardinality limits are required positive integers. Reuse delay is
+positive and defaults to timeout. There is no implicit clock/expiry/watermark.
+State stores bounded pending queries and retired keys, never unmatched responses
+or output history. String sizes are caller-controlled; cardinality is not a
+byte-memory limit. Scanning expiry costs O(pending + retired); ordered timeout
+output adds O(pending log pending) sorting.
+
+Exact transaction keys contain `:id`, `:protocol`, `:ip-version`, oriented
+`:client`/`:server` endpoints, `:qname`, `:qtype`, `:qclass`. Responses reverse
+their source/destination to produce this same orientation. All three question
+fields must be available; otherwise `:ambiguous-question` is emitted and no
+query is retained/matched. Matching by ID alone or by a guessed missing question
+is prohibited. Different questions/endpoints/versions remain independent.
+
+Identical pending queries within the deadline are retries. Count them in
+`:retransmissions`; use the earliest observed query event time for RTT and
+`deadline = earliest-query-time + timeout`. An earlier out-of-order retry moves
+the baseline/deadline earlier, never later. A retry at/after the retained deadline
+emits `:expiry-required` without modifying state; advance the watermark to expire
+it. Identical overlapping requests cannot be distinguished from retries using
+these fields; callers must accept this explicit single-transaction retry policy.
+
+A response before any processed query emits `:unmatched-response` immediately;
+it is not buffered or paired later. This deliberate ordered-stream policy means
+query/response order matters, while replay of the same ordered events/watermarks
+is deterministic. A response with event time before a retained query consumes
+that query and emits `:negative-rtt`, retaining the signed RTT for diagnosis.
+A response at/after the deadline consumes it and emits `:timeout` followed by
+`:unmatched-response` with `:reason :outside-timeout`. Successful responses emit:
+
+```clojure
+{:kind :match :transaction transaction-key :query query-event
+ :response response-event :rtt-us 1234 :retransmissions 0 :deadline-us deadline}
+```
+
+RTT is exactly response time minus earliest query time in integer microseconds;
+display units/rounding belong to callers. Negative RTT never becomes a normal
+match. Timeout/unfinished events have transaction, query, deadline and retry
+count but no response or fabricated RTT. Other diagnostic events have `:kind`
+and the projected `:event`.
+
+A consumed/expired key remains quarantined until its query deadline plus reuse
+delay. During quarantine, query emits `:id-reuse`, response emits
+`:duplicate-or-expired-response`; neither creates a match. This prevents immediate
+identical-ID reuse from pairing with an old response, and prevents duplicate
+responses from using a query twice. Different question keys can reuse an ID.
+`advance` expires queries when deadline <= watermark, emits `:timeout` in
+ascending deadline then canonical key order, and releases quarantine when its
+expiry <= watermark. A large jump can expire and release in the same call.
+
+Watermarks start nil, are explicit integer microseconds and may only advance
+(equality allowed). Every event before the DNS watermark emits `:late-event`
+without changing state. At equality it remains eligible. Only after advancing
+past quarantine may an identical key be reused. This finite retention policy
+assumes the caller's watermark accurately excludes earlier traffic and the
+chosen timeout/reuse horizon excludes arbitrarily delayed identical messages.
+No bounded correlator can distinguish identical wire transactions indefinitely.
+Do not treat ID reuse during quarantine or missing-question traffic as valid pairs.
+
+`finish` emits retained queries as `:unfinished` in deadline/key order, clears
+pending/quarantine and marks state terminal. Repeated finish is empty; subsequent
+step/advance throws. It does not reinterpret end-of-input as timeout.
+
+### Analysis error classification
+
+Both namespaces throw `ex-info` with ordinary EDN `{:reason keyword}`. Failure
+is atomic: the original immutable state remains available; no silent eviction.
+
+| Reason | Meaning |
+| --- | --- |
+| `:invalid-options` | Missing/noninteger/out-of-range configuration |
+| `:invalid-time` | Missing/noninteger event or watermark, or invalid native components |
+| `:invalid-event` | Invalid bytes/group or DNS field/address/port shape |
+| `:watermark-regression` | Requested watermark is lower than the current one |
+| `:max-windows`, `:max-groups` | New window/group pair exceeds configured retention |
+| `:max-pending`, `:max-retired` | New query or quarantined key exceeds configured retention |
+| `:finished` | Step/advance attempted after terminal finish |
+
+Invalid inputs are validated before late-event/ambiguity classification.
+Window groups are maps, so order inside a groups map is not a display contract.
+DNS canonical output ordering is version, protocol, client IP text/port,
+server IP text/port, ID, qname, qtype, qclass (preceded by deadline).
+
+P07-B owns CLI migration, synchronous/asynchronous adapters, cancellation/drops,
+CSV/JSONL, p50/p95/p99 and group Top-N. Exact all-period quantiles/Top-N can need
+unbounded memory; P07-B must specify finite retention or approximation. P06
+performance work remains issue #34; this API does not alter the capture hot path.
