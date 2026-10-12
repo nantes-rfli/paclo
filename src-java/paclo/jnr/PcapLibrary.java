@@ -52,6 +52,13 @@ public interface PcapLibrary {
    */
   Pointer pcap_open_dead(int linktype, int snaplen);
 
+  /**
+   * Get the data-link type of an offline or activated live handle.
+   * @param pcap pcap_t pointer
+   * @return DLT value, or a negative result on failure (including before activation)
+   */
+  int pcap_datalink(Pointer pcap);
+
   // poll (no callback)
   /**
    * Non-callback packet fetch.

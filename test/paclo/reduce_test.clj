@@ -95,7 +95,8 @@
         stopped (atom 0)
         ready (atom 0)
         setup-events (atom [])]
-    (with-redefs [pcap/open-offline (fn [_] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_] :handle)
                   pcap/set-bpf! (fn [& _]
                                   (swap! setup-events conj :filter)
                                   true)
@@ -127,7 +128,8 @@
 (deftest reduce-capture-error-mode-pass-returns-last-accumulator
   (let [reported (atom nil)
         closed (atom 0)]
-    (with-redefs [pcap/open-offline (fn [_] :handle)
+    (with-redefs [pcap/datalink (constantly 1)
+                  pcap/open-offline (fn [_] :handle)
                   pcap/close! (fn [_] (swap! closed inc))
                   pcap/loop-n-or-ms!
                   (fn [_ _ handler]

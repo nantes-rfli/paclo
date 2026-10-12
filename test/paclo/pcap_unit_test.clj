@@ -19,6 +19,7 @@
   "Create a PcapLibrary test double with overridable function slots."
   [{:keys [lookupnet-fn dump-open-fn open-dead-fn next-ex-fn findalldevs-fn]}]
   (reify PcapLibrary
+    (pcap_datalink [_ _] 1)
     (pcap_lookupnet [_ dev netp maskp err]
       (if lookupnet-fn (lookupnet-fn dev netp maskp err) 0))
     (pcap_dump_open [_ _pcap path]
@@ -175,6 +176,7 @@
             (spit "ab"))]
     (try
       (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_datalink [_ _] 1)
                             (pcap_open_offline [_ _ _] nil))]
         (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_open_offline failed"
                               (p/open-offline (.getAbsolutePath f)))))
@@ -185,6 +187,7 @@
             (spit "ab"))]
     (try
       (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_datalink [_ _] 1)
                             (pcap_open_offline [_ _ err]
                               (let [^Pointer err* err
                                     ^bytes msg (.getBytes "oops")
@@ -200,6 +203,7 @@
 (deftest capture->seq-on-error-hook-called
   (let [err-called (atom 0)]
     (with-redefs [p/lib (reify PcapLibrary
+                          (pcap_datalink [_ _] 1)
                           (pcap_next_ex [_ _ _ _] (throw (RuntimeException. "boom")))
                           (pcap_close [_ _] nil)
                           (pcap_open_offline [_ _ _] :h)
@@ -218,6 +222,7 @@
                           (pcap_findalldevs [_ _ _] 0)
                           (pcap_freealldevs [_ _] nil)
                           (pcap_lookupnet [_ _ _ _ _] 0))
+                  p/datalink (constantly 1)
                   p/open-offline (fn [& _] :h)
                   p/close! (fn [_] nil)]
       (let [out (doall (p/capture->seq {:path "dummy"
@@ -229,6 +234,7 @@
 
 (deftest list-devices-error-throws
   (with-redefs [p/lib (reify PcapLibrary
+                        (pcap_datalink [_ _] 1)
                         (pcap_findalldevs [_ _ _] -1))]
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_findalldevs failed"
                           (p/list-devices)))))
@@ -326,6 +332,7 @@
     (spit tmp "data")
     (try
       (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_datalink [_ _] 1)
                             (pcap_open_offline [_ _ _] ptr)
                             (pcap_close [_ _] nil))
                     p/apply-filter! (fn [h opts] (reset! seen [h opts]) h)]
@@ -335,6 +342,7 @@
 
 (deftest list-devices-empty-when-no-ifaces
   (with-redefs [p/lib (reify PcapLibrary
+                        (pcap_datalink [_ _] 1)
                         (pcap_findalldevs [_ _ _] 0)
                         (pcap_freealldevs [_ _] nil))
                 p/macos-device->desc (fn [] {})]
@@ -366,6 +374,7 @@
   (let [calls (atom 0)
         ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)
         lib (reify PcapLibrary
+              (pcap_datalink [_ _] 1)
               (pcap_next_ex [_ _ _ _]
                 (let [^long n (swap! calls inc)]
                   (case (int n)
@@ -395,7 +404,8 @@
 (deftest capture->seq-live-stop-and-filter
   (let [filter-seen (atom nil)
         handled (atom [])]
-    (with-redefs [p/open-live (fn [_] :h)
+    (with-redefs [p/datalink (constantly 1)
+                  p/open-live (fn [_] :h)
                   p/set-bpf-on-device! (fn [_ dev expr] (reset! filter-seen [dev expr]))
                   p/set-bpf! (fn [& _] nil)
                   p/loop-n-or-ms! (fn [_ _ handler]
@@ -411,6 +421,7 @@
   (let [seen (atom nil)
         ptr  (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
     (with-redefs [p/lib (reify PcapLibrary
+                          (pcap_datalink [_ _] 1)
                           (pcap_open_dead [_ link snap]
                             (reset! seen [link snap])
                             ptr)
@@ -535,7 +546,8 @@
 
 (deftest loop-n-or-ms!-no-idle-breaks-on-count
   (let [breaks (atom 0)]
-    (with-redefs [p/loop! (fn [_ handler] (handler {:bytes (byte-array 1)}))
+    (with-redefs [p/datalink (constantly 1)
+                  p/loop! (fn [_ handler & _] (handler {:bytes (byte-array 1)}))
                   p/breakloop! (fn [_] (swap! breaks inc))]
       (p/loop-n-or-ms! :pcap {:n 1 :ms 100} (fn [_])))
     (is (= 1 @breaks))))
@@ -559,7 +571,8 @@
   (let [opened-live (atom nil)
         opened-offline (atom nil)
         closed (atom [])]
-    (with-redefs [p/open-live (fn [opts] (reset! opened-live opts) :live)
+    (with-redefs [p/datalink (constantly 1)
+                  p/open-live (fn [opts] (reset! opened-live opts) :live)
                   p/open-offline (fn [path] (reset! opened-offline path) :off)
                   p/close! (fn [h] (swap! closed conj h))]
       (p/with-live [h {:device "en0"}]
@@ -607,7 +620,8 @@
                                              (set-ref! dat-ref dat)
                                              1)
                                          -2)))})]
-    (with-redefs [p/lib lib
+    (with-redefs [p/datalink (constantly 1)
+                  p/lib lib
                   p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
                   p/open-dumper (fn [_ out] (swap! calls conj [:open-dumper out]) :d)
                   p/dump! (fn [& _] (swap! calls conj [:dump]))
@@ -633,7 +647,8 @@
                                        (set-ref! hdr-ref hdr)
                                        (set-ref! dat-ref dat)
                                        rc))})]
-    (with-redefs [p/lib lib
+    (with-redefs [p/datalink (constantly 1)
+                  p/lib lib
                   p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
                   p/open-dumper (fn [_ out] (swap! calls conj [:open-dumper out]) :d)
                   p/dump! (fn [& _] (swap! calls conj [:dump]))
@@ -654,7 +669,8 @@
                                      (set-ref! hdr-ref hdr)
                                      (set-ref! dat-ref dat)
                                      -2)})]
-    (with-redefs [p/lib lib
+    (with-redefs [p/datalink (constantly 1)
+                  p/lib lib
                   p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
                   p/breakloop! (fn [_] (swap! calls conj [:break]))
                   p/set-bpf-on-device! (fn [& args] (swap! calls conj (into [:set-bpf-device] args)))
@@ -673,7 +689,8 @@
   (let [calls (atom [])
         rt (jnr.ffi.Runtime/getSystemRuntime)
         lib (stub-lib {:next-ex-fn (fn [& _] -2)})]
-    (with-redefs [p/lib lib
+    (with-redefs [p/datalink (constantly 1)
+                  p/lib lib
                   p/open-live (fn [opts] (swap! calls conj [:open opts]) (Memory/allocate rt 1))
                   p/set-bpf! (fn [& args] (swap! calls conj (into [:set-bpf] args)))
                   p/set-bpf-on-device! (fn [& args] (swap! calls conj (into [:set-bpf-device] args)))

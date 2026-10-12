@@ -178,3 +178,8 @@ clojure -M:dev -m examples.tls-sni-scan tls-sample.pcap 'tcp and port 443' 10 js
 
 - TLS SNI extraction is best-effort and does not perform TCP stream reassembly.
 - No SNI in ClientHello means no annotation is added.
+
+Full decode skips all extension hooks when an explicit `:linktype` is unsupported,
+including global registration and explicit `:extensions` with either error mode.
+Raw reads still expose those bytes and their native DLT. See the
+[link-type dispatch contract](cljdoc-api-contract.md#link-type-dispatch).

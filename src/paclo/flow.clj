@@ -1,5 +1,7 @@
 (ns paclo.flow
-  "Internal low-allocation flow projection for Ethernet IP packets.")
+  "Internal low-allocation flow projection for Ethernet IP packets."
+  (:require
+   [paclo.linktype :as linktype]))
 
 (def ^:private ethernet-header-bytes 14)
 
@@ -63,16 +65,27 @@
     (bit-or (bit-shift-left (u16 frame offset) 16)
             (u16 frame (+ offset 2)))))
 
+(defmacro ^:private fixed-array-map
+  "Construct a map with compile-time-known unique keys. Avoid the variadic
+   array-map path above 20 arguments; keep its backing array local and never
+   mutate it after publishing the persistent map."
+  [& entries]
+  (let [storage (with-meta (gensym "entries") {:tag 'objects})]
+    `(let [~storage (object-array ~(count entries))]
+       ~@(map-indexed (fn [index value] `(aset ~storage ~index ~value)) entries)
+       (clojure.lang.PersistentArrayMap. ~storage))))
+
 (defn- flow-map
   [packet ip-version protocol src-ip dst-ip packed]
   (let [src-port (when packed (bit-shift-right packed 16))
         dst-port (when packed (bit-and packed 0xffff))]
     (if packet
-      (array-map
+      (fixed-array-map
        :ts-sec (:ts-sec packet)
        :ts-usec (:ts-usec packet)
        :caplen (:caplen packet)
        :len (:len packet)
+       :linktype (:linktype packet)
        :ip-version ip-version
        :protocol protocol
        :src-ip src-ip
@@ -206,4 +219,5 @@
 
    The returned array-map deliberately excludes the raw bytes."
   [packet]
+  (linktype/require-ethernet! packet)
   (project ^bytes (:bytes packet) packet))

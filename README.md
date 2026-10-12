@@ -16,6 +16,15 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
 - Roadmap status: v1.3.0 released (see `docs/ROADMAP.md`)
 
+Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
+support non-Ethernet PCAPs; full/flow decode supports Ethernet and returns
+`:unsupported-linktype` diagnostics for other explicit types. Standalone
+`packet-xf` without the key retains its Ethernet assumption. The writer still
+outputs Ethernet PCAP and does not convert non-Ethernet bytes or preserve source
+link types. See the [raw capture example](docs/usage.md#reading-non-ethernet-captures)
+and [contract](docs/cljdoc-api-contract.md#link-type-dispatch); broader decoders
+and complete PCAPNG/file preservation remain P08.
+
 ## Install
 
 ### deps.edn (recommended: Clojars)
