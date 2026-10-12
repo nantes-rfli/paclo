@@ -113,3 +113,120 @@ Unverified platforms or blocked checks: Linux/macOS/JDK compatibility and
   configured Clojure development environment.
 Next item: Verify PR #28 CI and repeated focused runs before merging;
   P02 remains the next approved feature item.
+
+## 2026-10-12 — P02 packet metadata round trips
+
+Status: **in-progress**, pending required PR CI and review. No merge or release
+is authorized by this task. This change implements only P02; P03 and all other
+queue items retain their existing states.
+
+Baseline and protection:
+
+- The supplied checkout was clean on local `main` at `f0bc162`, with one local
+  commit and 57 upstream commits of divergence. Preserved that branch and its
+  commit; created `codex/p02-pcap-round-trips` from latest `origin/main`
+  `e2ce4e3` (PR #28). No unrelated changes were included.
+- Read current agent/contribution instructions, accepted P02 plan, public API
+  contract, writer/reader, native header helpers, fixtures, tests and CI.
+  The initial doctor attempt on the stale checkout found no wrapper; after
+  switching to current main, doctor passed against real system libpcap.
+- Before editing: `bash dev/script/codex.sh test -n paclo.pcap-unit-test`
+  passed (48 tests / 101 assertions), and `test -n paclo.pcap-bytes-test`
+  passed (1 test / 7 assertions).
+
+Implemented contract:
+
+- Keep `(write-pcap! packets out)` and Ethernet output. Prefer complete
+  `:ts-sec`/`:ts-usec`; reject partial new pairs; otherwise use complete legacy
+  `:sec`/`:usec`, or current time for missing pairs/partial legacy pairs/raw bytes.
+  Check key presence so zero is retained and complete `nil` pairs are rejected.
+  Validate only the selected pair: seconds `0..4294967295`, usec `0..999999`,
+  integer types only. Legacy numeric coercion and complete nil fallback were
+  incidental old behavior; explicit invalid complete inputs now fail as requested.
+- Validate byte-array inputs; derive captured length from bytes, require supplied
+  `:caplen` to match, retain original `:len` (default captured length), and require
+  integer uint32 lengths with original length at least captured length. Only after
+  validation, use unchecked int conversion to retain uint32 field bits.
+- Keep existing resource-finally ownership, with exception cleanup regression
+  tests. Write Linux int64 and Darwin int32 microseconds plus deterministic padding
+  consistently with existing `PcapHeader.java`; no native binding rewrite.
+- Add `metadata-roundtrip.pcap`, built by the independent Python struct generator
+  `test/resources/make_metadata_fixture.py`, with full Ethernet records, a 42-byte
+  capture of a 1500-byte packet, and original length `4294967295`. Real BPF and
+  Clojure filter/read/write/read tests verify ordered records and byte contents.
+  An independent binary parser verifies both fixture and serialized output headers,
+  including uint32 seconds and lengths, so shared reader/writer errors cannot pass.
+- Update maintained writer docs/docstrings, Unreleased notes and readiness smoke;
+  preserve archived history. Register the runnable round-trip example as a ninth
+  documentation check while retaining all eight required IDs.
+
+Compatibility finding:
+
+- An independently constructed record with seconds `4294967295` was returned as
+  `:ts-sec -1` by this machine's macOS system libpcap. Current upstream
+  [libpcap source](https://github.com/the-tcpdump-group/libpcap/blob/master/sf-pcap.c)
+  defines unsigned savefile seconds, but older native readers sign-extend them.
+  Do not silently change Paclo reader timestamps in P02. Document the post-2038
+  native limitation; negative native seconds fail writer validation. The round-trip
+  fixture uses seconds up to `2147483647` and verifies large unsigned original
+  length end-to-end. A separate serialized-file test verifies max uint32 seconds.
+  Review this limitation and stricter invalid-input rejection before deciding
+  patch versus minor release. No version, tag or Clojars change was made.
+
+Local evidence (macOS x86_64, Temurin JDK 21.0.12.1, Clojure CLI 1.12.5.1654,
+project Clojure 1.12.1, system libpcap):
+
+- `bash dev/script/codex.sh doctor`: PASS; real offline read, 4 packets / 438 bytes;
+  clj-kondo, clojure-lsp and npx available.
+- Focused final regressions: unit 49 tests / 103 assertions; bytes 5 / 87;
+  new `paclo.pcap-roundtrip-test` 4 / 68; all passed.
+- `bash dev/script/codex.sh check`: PASS; JUnit 8 tests, Clojure 287 tests /
+  1211 assertions, offline writer/DNS smoke; final type-hint cleanup recheck also passed.
+- `clojure -M:perf-gate`: PASS, existing 50k/74-byte gate 421.7 ms versus
+  1000 ms warning / 1200 ms failure budgets. One local run is gate evidence,
+  not a comparative performance improvement or regression claim.
+- `python3 dev/script/verify_doc_examples.py`: PASS, 9 real offline examples.
+- Parser tests: `python3 -m unittest discover -s dev/script
+  -p 'test_verify_doc_examples.py'`: PASS, 13 tests.
+- `python3 dev/script/verify_doc_links.py` and `git diff --check`: PASS.
+- `dev/script/mdlint.sh`: PASS, 27 files / 0 errors after allowed network retry.
+  Initial sandbox run failed with npm registry DNS `ENOTFOUND`; do not count it
+  as success. `bash dev/script/codex.sh lint` passed kondo (0 errors/warnings),
+  Eastwood and format/namespace checks but initially failed at the same npm step;
+  the complete final command passed with network access (58 existing Eastwood
+  warnings, no exceptions, no changes required by namespace/format checks).
+
+CI/review and scope:
+
+- Existing required `build` aggregates build checks, documentation, performance
+  shards/results and compatibility matrix (Linux x64/JDK21 and macOS ARM64/JDK17).
+  Linux ARM64 is a separate existing monitoring job, not a required aggregate
+  dependency. Keep these jobs, quality thresholds and performance gates unchanged.
+- PR creation/check results will be recorded below. Supported-platform CI,
+  independent review, and live capture are not validated by the local offline run.
+  No PCAPNG, additional/dynamic link types, source global-header/snaplen/precision
+  preservation, borrowed buffers, parallel decoding or new public API is included.
+- Next work is P02 CI and review; do not start P03 as part of this PR.
+
+Commit-hook environment note: the existing `.githooks/pre-commit` invokes `clj`,
+which requires missing `rlwrap` on this host. The first commit attempt aborted.
+Use a temporary PATH shim delegating noninteractive `clj` to the installed
+`clojure` CLI to execute the same hook checks; no hook or project tooling change.
+
+PR and CI evidence:
+
+- Implementation commit: `0a33a54133995c39b570e0eae787322766cc37f4`.
+  [PR #29](https://github.com/nantes-rfli/paclo/pull/29) is open for review,
+  attached to this chat, and not merged. The commit hook completed all its
+  tests, formatting, Markdown and kondo checks using the temporary CLI shim.
+- [Actions run 38202555953](https://github.com/nantes-rfli/paclo/actions/runs/38202555953)
+  passed all 12 jobs on the implementation commit: required aggregate `build`,
+  build/Java quality gates, documentation, Linux x64/JDK21 compatibility,
+  macOS ARM64/JDK17 compatibility, three performance shards plus results,
+  Linux ARM64 monitor, Eastwood and coverage. No failing/skipped job was observed.
+- This evidence-recording commit changes only the plan/log. Its final-head CI
+  is checked through the PR after pushing; implementation evidence above remains
+  tied explicitly to the tested source commit rather than claiming a later SHA.
+- Independent review is still absent (reviews list empty). P02 remains
+  **in-progress** until review acceptance; next work is reviewing PR #29 and
+  choosing a compatible release version. Do not merge or publish during this task.

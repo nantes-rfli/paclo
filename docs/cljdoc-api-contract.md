@@ -180,17 +180,41 @@ Internal namespaces (not covered by compatibility guarantees):
 ```
 
 - Input:
-  - `packets`: seq of `byte-array` or `{:bytes ... :sec ... :usec ...}` maps
+  - `packets`: seq of `byte-array` or packet maps with a required byte-array `:bytes`
   - `out-path`: non-blank output path
-- If either `:sec` or `:usec` is absent, the writer uses the current time.
-  Read packet maps use `:ts-sec`/`:ts-usec`, which are **not** automatically
-  mapped to the writer's timestamp keys.
-- Output: writes an Ethernet-linktype PCAP file with per-record captured
-  and original lengths derived from the byte-array length. Truncated records
-  cannot currently be round-tripped with their original wire length intact.
-- Errors: throws `ex-info` for invalid/missing output path or missing map
-  `:bytes`. Faithful read/write metadata preservation is separate future
-  work (P02), not a v1.3 behavior guarantee.
+- Timestamp selection, in order:
+  - A complete `:ts-sec`/`:ts-usec` pair takes precedence, even when legacy values
+    conflict or are invalid. A partial new pair throws `ex-info`, even if a
+    complete legacy pair is present.
+  - When neither new key exists, a complete legacy `:sec`/`:usec` pair is used.
+  - Otherwise use current wall-clock time, including raw byte-arrays, maps
+    without timestamps, and partial legacy pairs.
+- The selected pair must contain integers: epoch seconds in `0..4294967295`
+  and microseconds in `0..999999`. Explicit zero is valid. Presence is based on
+  keys, so a complete pair containing `nil`, non-integers, or out-of-range values
+  throws `ex-info`. Older callers could incidentally coerce some numeric values
+  or fall back on `nil`; these invalid complete inputs are now rejected.
+- Captured length is the byte-array length. Explicit `:caplen` must equal it.
+  Original `:len` is retained when present, otherwise defaults to captured length.
+  Explicit lengths must be integers in `0..4294967295`, with `:len >= :caplen`.
+  Negative, fractional, `nil`, inconsistent, or overflowing values throw `ex-info`.
+  The byte-array itself remains subject to JVM array-size limits.
+- Output: preserves packet order, bytes, selected timestamps, captured length,
+  and original length, including truncated records. Writes classic Ethernet PCAP
+  with snaplen 65536 and microsecond precision. Source global headers, link types,
+  snaplen, byte order, and precision are not copied; this is packet metadata
+  preservation, not complete source-file preservation or PCAPNG support.
+- Errors: throws `ex-info` for invalid/missing output path, missing map `:bytes`,
+  invalid byte-array inputs, and invalid selected metadata. Native I/O errors retain
+  existing behavior; handles and dumpers close when packet processing throws.
+- Portability: unsigned seconds fit the PCAP record, but older system libpcap
+  readers can expose seconds above `2147483647` as negative (observed with macOS
+  system libpcap). Those negative reader values fail writer validation; numeric
+  timestamp round trips beyond 2038 depend on the installed libpcap. Paclo does
+  not reinterpret native reader timestamps in this change.
+
+Direct packet-map metadata preservation is implemented by P02 in `[Unreleased]`;
+released v1.3.0 still requires timestamp adaptation and loses original lengths.
 
 ### `list-devices`
 

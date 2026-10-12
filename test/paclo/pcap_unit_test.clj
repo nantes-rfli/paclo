@@ -142,8 +142,8 @@
   (let [calls (atom [])]
     (with-redefs [p/open-dead (fn [& _] :dead)
                   p/open-dumper (fn [_ out] (swap! calls conj [:open out]) :dumper)
-                  p/ensure-bytes-timestamp (fn [p] (if (map? p) [(:bytes p) 1 2] [p 1 2]))
-                  p/mk-hdr (fn ^Object [^long sec ^long usec ^long len] {:hdr [sec usec len]})
+                  p/now-sec-usec (fn [] [1 2])
+                  p/mk-hdr (fn ^Object [^long sec ^long usec ^long caplen ^long len] {:hdr [sec usec caplen len]})
                   p/bytes->ptr (fn [ba] {:ptr (vec ba)})
                   p/dump! (fn [_ hdr dat] (swap! calls conj [:dump hdr dat]))
                   p/flush-dumper! (fn [_] (swap! calls conj [:flush]))
@@ -151,12 +151,24 @@
                   p/close! (fn [_] (swap! calls conj [:close-pcap]))]
       (p/bytes-seq->pcap! [(byte-array [1 2]) {:bytes (byte-array [3])}] {:out "x"})
       (is (= [[:open "x"]
-              [:dump {:hdr [1 2 2]} {:ptr [1 2]}]
-              [:dump {:hdr [1 2 1]} {:ptr [3]}]
+              [:dump {:hdr [1 2 2 2]} {:ptr [1 2]}]
+              [:dump {:hdr [1 2 1 1]} {:ptr [3]}]
               [:flush]
               [:close-d]
               [:close-pcap]]
              @calls)))))
+
+(deftest bytes-seq->pcap!-closes-after-invalid-metadata
+  (let [calls (atom [])]
+    (with-redefs [p/open-dead (fn [& _] :dead)
+                  p/open-dumper (fn [& _] :dumper)
+                  p/dump! (fn [& _] (swap! calls conj :dump))
+                  p/flush-dumper! (fn [_] (swap! calls conj :flush))
+                  p/close-dumper! (fn [_] (swap! calls conj :close-d))
+                  p/close! (fn [_] (swap! calls conj :close-pcap))]
+      (is (thrown? clojure.lang.ExceptionInfo
+                   (p/bytes-seq->pcap! [{:bytes (byte-array 2) :len 1}] {:out "x"})))
+      (is (= [:flush :close-d :close-pcap] @calls)))))
 
 (deftest open-offline-empty-errbuf-message
   (let [f (doto (java.io.File/createTempFile "pcap" ".pcap")

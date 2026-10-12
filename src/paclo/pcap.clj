@@ -275,21 +275,50 @@
         usec (long (* 1000 (long (mod ms 1000))))]
     [sec usec]))
 
+(defn- checked-integer
+  [field value upper]
+  (when-not (and (integer? value) (<= 0 value upper))
+    (throw (ex-info (str "invalid " field ": expected integer in 0.." upper)
+                    {:field field :value value :min 0 :max upper})))
+  (long value))
+
+(defn- packet-timestamp [p]
+  (let [ts-sec? (contains? p :ts-sec)
+        ts-usec? (contains? p :ts-usec)
+        [sec-key usec-key] (cond
+                             (and ts-sec? ts-usec?) [:ts-sec :ts-usec]
+                             (or ts-sec? ts-usec?)
+                             (throw (ex-info "partial :ts-sec/:ts-usec timestamp" {:item p}))
+                             (and (contains? p :sec) (contains? p :usec)) [:sec :usec])]
+    (if sec-key
+      [(checked-integer sec-key (get p sec-key) 0xffffffff)
+       (checked-integer usec-key (get p usec-key) 999999)]
+      (now-sec-usec))))
+
 (defn ^:private ensure-bytes-timestamp
-  "Normalize one packet input into [byte-array sec usec].
-   - If map, :bytes required; sec/usec optional (defaults to now).
-   - If byte-array, wraps with current timestamp.
-   Throws ex-info on missing :bytes."
+  "Normalize a byte-array or packet map into [bytes sec usec caplen len].
+   Prefer :ts-sec/:ts-usec over legacy :sec/:usec; absent pairs use now.
+   Validate explicit metadata before passing it to libpcap."
   [p]
-  (if (map? p)
-    (let [{:keys [bytes sec usec]} p
-          ba' (or bytes (byte-array 0))]
-      (when (nil? bytes)
-        (throw (ex-info "missing :bytes" {:item p})))
-      (let [[s u] (if (and sec usec) [sec usec] (now-sec-usec))]
-        [^bytes ba' (long s) (long u)]))
-    (let [[s u] (now-sec-usec)]
-      [^bytes p (long s) (long u)])))
+  (let [packet (if (map? p) p {})
+        ba (if (map? p) (:bytes p) p)]
+    (when (and (map? p) (nil? ba))
+      (throw (ex-info "missing :bytes" {:item p})))
+    (when-not (bytes? ba)
+      (throw (ex-info "invalid packet bytes: expected byte-array" {:item p})))
+    (let [caplen (alength ^bytes ba)
+          _ (when (contains? packet :caplen)
+              (let [specified (checked-integer :caplen (:caplen packet) 0xffffffff)]
+                (when-not (= caplen specified)
+                  (throw (ex-info ":caplen must match byte-array length"
+                                  {:caplen specified :bytes-length caplen})))))
+          len (long (if (contains? packet :len)
+                      (checked-integer :len (:len packet) 0xffffffff)
+                      caplen))
+          _ (when (< len caplen)
+              (throw (ex-info ":len must be >= :caplen" {:caplen caplen :len len})))
+          [sec usec] (packet-timestamp packet)]
+      [ba sec usec caplen len])))
 
 (defn ^:private idle-next
   "Given current idle ms, tick, and target, return {:idle <new> :break? bool}."
@@ -334,20 +363,24 @@
     m))
 
 (defn ^:private mk-hdr
-  "Build a pcap_pkthdr pointer.
-   `sec`/`usec` are epoch second/microsecond values; `len` is int."
-  [^long sec ^long usec ^long len]
+  "Build the supported 64-bit pcap_pkthdr ABI with distinct uint32 lengths."
+  [^long sec ^long usec ^long caplen ^long len]
   (let [^Pointer hdr (Memory/allocate rt (long PCAP_PKTHDR_BYTES))]
     (.putLong hdr (long 0) sec)
-    (.putLong hdr (long 8) usec)
-    (.putInt  hdr (long 16) (int len))
-    (.putInt  hdr (long 20) (int len))
+    ;; Darwin's suseconds_t is int32 followed by padding; Linux uses int64.
+    (.putLong hdr (long 8) (long 0))
+    (if (.startsWith (System/getProperty "os.name" "") "Mac")
+      (.putInt hdr (long 8) (int usec))
+      (.putLong hdr (long 8) usec))
+    (.putInt hdr (long 16) (unchecked-int caplen))
+    (.putInt hdr (long 20) (unchecked-int len))
     hdr))
 
 (defn bytes-seq->pcap!
   "Write a sequence of packet bytes to a PCAP file.
-   packets: sequence of `byte-array` or
-            `{:bytes <ba> :sec <long> :usec <long>}`
+   packets: byte-arrays or maps with :bytes, optional :ts-sec/:ts-usec
+            (preferred) or :sec/:usec, :caplen and original :len.
+   Missing timestamps use now; invalid explicit metadata throws ex-info.
    opts: {:out \"out.pcap\" :linktype DLT_* :snaplen 65536}"
   [packets {:keys [out linktype snaplen]
             :or   {linktype DLT_EN10MB snaplen 65536}}]
@@ -358,8 +391,8 @@
       (let [d (open-dumper pcap out)]
         (try
           (doseq [p packets]
-            (let [[^bytes ba sec usec] (ensure-bytes-timestamp p)
-                  hdr (mk-hdr sec usec (alength ba))
+            (let [[^bytes ba sec usec caplen len] (ensure-bytes-timestamp p)
+                  hdr (mk-hdr sec usec caplen len)
                   dat (bytes->ptr ba)]
               (dump! d hdr dat)))
           (finally
