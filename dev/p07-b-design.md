@@ -23,7 +23,7 @@ No public library API change; P06 performance issue #34 remains separate.
 | Concern | Before | After |
 | --- | --- | --- |
 | Meaning | Full-decode DNS packets with a non-nil selected group | Preserve packet counting; never use DNS transaction correlation |
-| Groups | rcode/rrtype/qname/suffix/client/server | Preserve; client/server retain source/destination IP semantics even for responses |
+| Groups | rcode/rrtype/qname/suffix/client/server; client/server meant source/destination | Same groups; client/server use decoded QR to orient query and response IP roles |
 | Bytes | Captured caplen | Preserve; window captured-bytes |
 | Time | Floating milliseconds, fallback, truncation division | Exact native microseconds; floor-aligned epoch windows; millisecond display |
 | Formats | EDN/JSONL/CSV, t/key/count/bytes | Preserve; ties ordered by printed key after time and descending count |

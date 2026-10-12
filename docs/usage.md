@@ -671,8 +671,10 @@ app data and uses `window/advance`, `step` and `finish`. It counts packets,
 including queries and responses; it does not count DNS transactions. A packet
 with insufficient question information for RTT can still contribute to QPS.
 QPS rows contain counts per bucket; divide by bucket seconds to obtain a rate.
-Bytes always mean captured `caplen`, not wire length. The QPS client/server
-labels preserve the existing source/destination IP grouping semantics.
+Bytes always mean captured `caplen`, not wire length. QPS client/server
+groups use decoded QR to orient IP roles: response destination is the client,
+response source is the server; queries use the inverse. Question information
+is not required for these packet groups.
 
 Both CLIs retain their positional arguments, `_` placeholders, formats, filters,
 rankings, alert and Punycode options. RTT EDN emits a vector for pairs/qstats
@@ -753,7 +755,8 @@ no longer truncates fractional milliseconds. Strict question matching, retries,
 expiry and quarantine may reduce pair counts compared with the old ID-only
 matcher. Async execution metadata is never counted as a pair. QPS removes
 floating/partial timestamp fallbacks, floors negative times correctly, orders
-count ties by printed key, preserves simultaneous groups during empty fill,
+count ties by printed key, groups query/response IPs by their client/server roles,
+preserves simultaneous groups during empty fill,
 and fails on output overflow instead of silently truncating. Punycode decoding
 also handles xn-- labels following a plain leading label. The existing QPS
 fixture snapshot is unchanged. The before/after contract tables are in the

@@ -96,5 +96,6 @@ memory improvement. Entry bounds, raw packet exclusion and post-finish release
 are the memory contract. This finite 500-group workload does not establish
 100000-group throughput, long-run heap/GC behavior, live capture, real NICs or
 other platforms. The unchanged default full-decode performance gate passed at
-634.2 ms for 50000 packets/74 bytes (warning 1000, failure 1200); it does not
+634.2 ms and, after the role-group follow-up, 879.7 ms for 50000 packets/74 bytes
+(warning 1000, failure 1200); it does not
 exercise CLI analysis. No performance or coverage threshold was relaxed.

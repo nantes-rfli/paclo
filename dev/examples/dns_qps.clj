@@ -6,7 +6,8 @@
    [examples.dns-cli :as cli]
    [paclo.dns :as dns]
    [paclo.window :as window])
-  (:import [java.net IDN]))
+  (:import
+   [java.net IDN]))
 
 (def defaults
   {:bucket-ms 1000 :group :rcode :max-buckets 200000 :max-windows 10000
@@ -67,8 +68,8 @@
       :rrtype       (some-> (:qtype-name app) keyword)
       :qname        (some-> (:qname app) (normalize-qname puny? log-fail?))
       :qname-suffix (some-> (:qname app) (qname-suffix puny? log-fail?))
-      :client       (get-in pkt [:decoded :l3 :src])
-      :server       (get-in pkt [:decoded :l3 :dst])
+      :client       (get-in pkt [:decoded :l3 (if (:qr? app) :dst :src)])
+      :server       (get-in pkt [:decoded :l3 (if (:qr? app) :src :dst)])
       nil)))
 
 (defn init [options]

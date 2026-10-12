@@ -77,7 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   historical pair counts. Fix native timestamp keys and fractional average;
   async metadata no longer contaminates statistics. QPS remains packet counts,
   fixes negative/large timestamps and empty fill losing simultaneous groups,
-  adds deterministic ties and decodes Punycode in non-leading labels. Offline
+  adds deterministic ties, groups client/server IPs by QR role instead of raw
+  source/destination, and decodes Punycode in non-leading labels. Offline
   reports now read to EOF, removing inherited 100-packet/10-second capture caps.
 - Measured DNS advance allocation improvement: remove only expired retired keys
   instead of reconstructing every live quarantine entry at each watermark;

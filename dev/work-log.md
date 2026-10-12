@@ -1158,7 +1158,8 @@ P07-B implementation and verification — 2026-10-13:
   matcher. Display conversion fixes native RTT and fractional mean; sample
   fixture RTTs are independently fixed at 10.241/15.817 ms, average 13.029 ms.
 - QPS uses full DNS app groups directly in paclo.window, never dns/step. Preserves
-  packet/captured-byte counts, formats and source/destination grouping. Removes
+  packet/captured-byte counts and formats. QR orients client/server IP groups
+  consistently across query and response (see final review follow-up below). Removes
   private time/window aggregation, floating fallbacks and silent truncation.
   Empty fill keeps simultaneous groups and preflights full row count, including
   huge timestamps/gaps; Punycode handles non-leading labels. Existing QPS
@@ -1262,3 +1263,29 @@ P07-B independent PR handoff:
   in-progress solely for independent review/merge; next is P08 scope selection.
 - The first evidence-only commit attempt was rejected by Markdown MD013 on the
   newly linked plan line; wrapped that line and reran the unchanged hook.
+
+P07-B final client/server group review:
+
+- Correct QPS client/server groups using existing decoded QR information, so
+  query source and response destination count under the same client IP, and
+  query destination/response source under the same server IP. The initial
+  contract preserved raw source/destination grouping; final correctness review
+  replaces that misleading role labeling and documents the intentional change.
+  No transaction correlation, question requirement or header reparser is added.
+  Real default RCODE snapshot, formats and qname performance workload are unchanged.
+  Added exact query/response group regression and reran final checks below.
+- Final role-aware focused CLI run passed 20 tests/134 assertions and 400 property
+  cases; final full check passed JUnit 10/10, Clojure 377 tests/2762 assertions
+  and offline smoke. Final performance gate passed at 879.7 ms. Qname benchmark
+  branch and packaged library sources are unchanged by this example-only fix.
+- CI run 38270838903 on `d6ee497` failed build-checks only at clean-ns import
+  layout, causing the dependent build aggregate to fail. Other ten jobs passed,
+  including Linux/JDK21, macOS ARM64/JDK17, ARM64 monitor, documentation, all
+  performance shards/merger, Eastwood and coverage. This was not a passing CI run.
+- Local global clojure-lsp was 2026.05.05 versus CI's pinned 2025.11.28-12.47.43.
+  Downloaded official macOS x64 clojure-lsp and kondo v2025.10.23 into ignored
+  .dev-tools/bin, verified official GitHub SHA256 asset digests, and fixed only
+  QPS's import layout. Global installation/dependencies/CI were not changed.
+  Pinned clean-ns/format dry runs and full lint passed (kondo zero errors/warnings,
+  Eastwood zero exceptions/209 warnings, Markdown 30 files). Links and parser
+  tests 15/15 passed again. Final PR-head CI will verify the correction.

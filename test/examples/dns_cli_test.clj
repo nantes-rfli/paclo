@@ -316,3 +316,10 @@
                     (= :max-samples result)
                     (and (= n (get-in result [:report :pairs]))
                          (= n (count (get-in result [:state :samples]))))))))
+
+(deftest qps-client-server-groups-follow-dns-message-roles
+  (let [ps [(packet 0 false 1 "a") (packet 100 true 1 "a")
+            (packet 200 false 2 "b") (packet 300 true 2 "b")]]
+    (doseq [[group ip] [[:client "192.0.2.1"] [:server "192.0.2.53"]]]
+      (is (= [{:t 0 :key ip :count 4 :bytes 320}]
+             (:report (qps-analysis {:group group} ps)))))))
