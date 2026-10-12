@@ -1,6 +1,7 @@
 (ns paclo.flow
   "Internal low-allocation flow projection for Ethernet IP packets."
-  (:require [paclo.linktype :as linktype]))
+  (:require
+   [paclo.linktype :as linktype]))
 
 (def ^:private ethernet-header-bytes 14)
 

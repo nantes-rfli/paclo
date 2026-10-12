@@ -129,7 +129,10 @@ Test meaningful invariants with `test.check` and validate performance impact.
 
 ## P05: Link-type awareness
 
-Status: **in-progress**, pending independent review and merge.
+Status: **in-progress**. [PR #32](https://github.com/nantes-rfli/paclo/pull/32)
+implements native DLT metadata and safe Ethernet dispatch. Local verification
+is complete; CI results are tracked in the work log. Independent review and
+merge remain required.
 
 Full and flow decoding at the baseline assume Ethernet. Surface the actual source link type
 and dispatch or explicitly reject unsupported decoding, preserving raw capture access.

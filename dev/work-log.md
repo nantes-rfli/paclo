@@ -784,3 +784,24 @@ The first commit attempt stopped because the local pre-commit hook invokes
 ran with `clojure`. The commit reuses their successful results through the
 repository hook's existing `SKIP_TESTS`, `SKIP_FMT` and `SKIP_KONDO` flags;
 Markdown lint remains enabled. No hook or gate is changed.
+
+P05 PR and CI follow-up:
+
+- Created [PR #32](https://github.com/nantes-rfli/paclo/pull/32) from implementation
+  `99c60ee`, attached to this chat. No merge/release action was performed.
+- [Initial CI run 38220256645](https://github.com/nantes-rfli/paclo/actions/runs/38220256645)
+  passed both compatibility jobs (Linux x64/JDK21 and macOS ARM64/JDK17), Linux
+  ARM64/JDK21 monitor, documentation, all three performance shards and their
+  merger, Eastwood and coverage. Build-checks passed Java compilation, JUnit,
+  offline smoke, SpotBugs, CheckStyle, JaCoCo (43.8%, threshold 25%) and the
+  performance gate (724.1 ms), then failed clean-ns on the compact single require
+  in `paclo.flow`; build aggregate consequently failed. This is not a passing
+  overall run. No native/platform test failed.
+- Local clojure-lsp was 2026.05.05-12.58.26; CI uses 2025.11.28-12.47.43. Expanded
+  the require to the repository's multiline form. This changes whitespace only.
+  Retained CI's pinned tool/version and downloaded its official macOS x64 binary
+  into `/private/tmp/p05-tools`, verifying the published SHA-256 before execution.
+  Final fixed-version checks and final PR CI evidence follow below.
+- `/private/tmp/p05-tools/pinned-lsp/clojure-lsp clean-ns --dry` and `format --dry`
+  both passed for the whole project, with no proposed changes. The installed
+  local version's focused dry runs also passed after the whitespace adjustment.

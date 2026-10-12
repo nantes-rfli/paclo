@@ -17,6 +17,7 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - `paclo.pcap`
 - `paclo.parse`
+- `paclo.linktype`
 - `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
 
