@@ -30,23 +30,28 @@
   []
   (map first @hooks))
 
-(defn apply!
-  "Apply all hooks to packet map `m`.
+(defn- apply-hook [m f]
+  (try
+    (let [result (f m)]
+      (if (map? result) result m))
+    (catch Throwable _ m)))
 
-  Hooks run in registration order.
-  Exceptions are swallowed and non-map return values are ignored.
-  Hooks are skipped unless `m` contains `:decoded` and does not contain `:decode-error`."
-  [m]
-  (if (and (map? m)
-           (contains? m :decoded)
-           (not (contains? m :decode-error)))
-    (reduce
-     (fn [mm [_ f]]
-       (try
-         (let [r (f mm)]
-           (if (map? r) r mm))
-         (catch Throwable _
-           mm)))
-     m
-     @hooks)
-    m))
+(defn apply!
+  "Apply post-decode functions to packet map `m`.
+
+  With one argument, consult the current global hooks in registration order.
+  With `extensions`, apply only those functions in their supplied order,
+  including duplicates. An empty collection leaves the packet unchanged.
+  Core's `:extensions` option validates its vector at pipeline construction.
+
+  Exceptions are swallowed and non-map return values are ignored; subsequent
+  functions receive the last successful map. Functions are skipped unless `m`
+  contains `:decoded` and does not contain `:decode-error`."
+  ([m]
+   (apply! m (map second @hooks)))
+  ([m extensions]
+   (if (and (map? m)
+            (contains? m :decoded)
+            (not (contains? m :decode-error)))
+     (reduce apply-hook m extensions)
+     m)))

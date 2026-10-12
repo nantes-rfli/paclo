@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- P03: ordered `:extensions` function vectors for full decode in `packet-xf`,
+  `packets`, synchronous reductions/reports, and managed capture. Explicit
+  selection retains duplicates and is independent of the global registry;
+  `[]` disables extensions and omission preserves dynamic global hooks.
+  Invalid configuration and raw/flow combinations fail early with `ex-info`.
+- Public `paclo.proto.dns-ext/annotate-dns` and
+  `paclo.proto.tls-ext/annotate-tls-sni` functions for direct use and independent
+  fan-out branches. Existing registration and best-effort parsing remain intact.
+- Two-argument `paclo.decode-ext/apply!` for supplied functions, sharing the
+  existing decode eligibility, exception isolation and non-map result policy.
+
 ### Fixed
 
 - P02: `write-pcap!` accepts read packet maps directly, preserving packet bytes,

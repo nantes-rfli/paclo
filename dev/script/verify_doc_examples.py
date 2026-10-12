@@ -19,7 +19,11 @@ from typing import NamedTuple
 ROOT = Path(__file__).resolve().parents[2]
 # Separate Clojure subprocesses keep examples isolated; limit contention on CI.
 MAX_WORKERS = 3
-REQUIRE = "(require '[paclo.core :as core] '[paclo.stream :as stream] '[paclo.core :refer [packet-xf packets]])"
+REQUIRE = (
+    "(require '[paclo.core :as core] '[paclo.stream :as stream] "
+    "'[paclo.core :refer [packet-xf packets]] "
+    "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
+)
 MARKER = re.compile(r"<!-- paclo-doc-test: ([a-z][a-z0-9-]*) -->")
 FENCE = re.compile(r"```([a-zA-Z0-9_-]+)")
 
@@ -32,6 +36,22 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "usage-explicit-extensions": Check(
+        "Usage explicit DNS extensions", "clojure",
+        '(and (= 4 (count result)) (every? #(= "DNS message" %) result))',
+    ),
+    "extensions-ordered-selection": Check(
+        "Ordered explicit extensions with duplicates", "clojure",
+        '(and (= 4 (count result)) (every? #(= [[:annotated :annotated] "DNS message"] %) result))',
+    ),
+    "extensions-fan-out": Check(
+        "Independent DNS/TLS fan-out extensions", "clojure",
+        '(and (= 5 (count (:dns result)) (count (:tls result))) '
+        '(some #(= "DNS message" (get-in % [:decoded :l3 :l4 :app :summary])) (:dns result)) '
+        '(not-any? #(get-in % [:decoded :l3 :l4 :app :sni]) (:dns result)) '
+        '(some #(= "example.com" (get-in % [:decoded :l3 :l4 :app :sni])) (:tls result)) '
+        '(not-any? #(= "DNS message" (get-in % [:decoded :l3 :l4 :app :summary])) (:tls result)))',
+    ),
     "usage-pcap-roundtrip": Check(
         "Usage PCAP metadata round trip", "clojure",
         "(and (= 3 (:count result)) (:preserved? result) (:truncated? result))",
@@ -69,6 +89,7 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "usage-pcap-roundtrip",
     "offline-quick-start",
     "readme-packet-xf",
     "usage-packet-xf",

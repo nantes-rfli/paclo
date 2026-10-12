@@ -103,7 +103,7 @@
       {:ok false :error (or (.getMessage e) (str e))})))
 
 (defn ^:private decode-packet
-  [m]
+  [m extend-packet]
   (let [ba ^bytes (:bytes m)]
     (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
       (let [{:keys [ok value error]} (decode-result ba)
@@ -111,7 +111,7 @@
                  ok       (assoc :decoded value)
                  (not ok) (assoc :decode-error error))]
         (if (contains? m' :decoded)
-          (decode-ext/apply! m')
+          (extend-packet m')
           m'))
       (assoc m :decode-error
              (str "frame too short: " (when ba (alength ba)) " bytes")))))
@@ -139,13 +139,24 @@
   (if (some? xf) (sequence xf s) s))
 
 (defn ^:private validate-decode-opts
-  [{:keys [decode? decode-mode]}]
+  [{:keys [decode? decode-mode extensions] :as opts}]
   (when (and decode? decode-mode)
     (throw (ex-info ":decode? and :decode-mode cannot be combined"
                     {:decode? decode? :decode-mode decode-mode})))
   (when-not (contains? #{nil :flow} decode-mode)
     (throw (ex-info "unsupported :decode-mode"
-                    {:decode-mode decode-mode}))))
+                    {:decode-mode decode-mode})))
+  (when (contains? opts :extensions)
+    (when-not (true? decode?)
+      (throw (ex-info ":extensions requires :decode? true"
+                      {:decode? decode? :decode-mode decode-mode})))
+    (when-not (vector? extensions)
+      (throw (ex-info ":extensions must be a vector of functions"
+                      {:extensions extensions})))
+    (doseq [[index extension] (map-indexed vector extensions)]
+      (when-not (fn? extension)
+        (throw (ex-info ":extensions elements must be functions"
+                        {:index index :extension extension}))))))
 
 (defn packet-xf
   "Return a transducer that applies Paclo's packet transformation contract.
@@ -153,14 +164,23 @@
    Options:
    - `:decode? true` performs the compatible full decode
    - `:decode-mode :flow` projects packets to flat, numeric flow maps
+   - `:extensions` is an ordered vector of functions, requiring `:decode? true`.
+     Omission uses current global hooks; `[]` disables all extensions. Explicit
+     selection is independent of global registration and retains duplicates.
+     Exceptions and non-map results preserve the preceding map and processing
+     continues with later functions. Configuration errors throw `ex-info` when
+     constructed; extensions run only after successful full decoding.
 
-   The two options are mutually exclusive. Decode failures are returned as
+   The two decode options are mutually exclusive. Decode failures are returned as
    packet maps containing `:decode-error`."
-  [{:keys [decode? decode-mode] :as opts}]
+  [{:keys [decode? decode-mode extensions] :as opts}]
   (validate-decode-opts opts)
   (cond
     (= decode-mode :flow) (map flow-packet)
-    decode? (map decode-packet)
+    decode? (let [extend-packet (if (contains? opts :extensions)
+                                  #(decode-ext/apply! % extensions)
+                                  decode-ext/apply!)]
+              (map #(decode-packet % extend-packet)))
     :else identity))
 
 (defn ^:private packet-pipeline-xf
@@ -188,7 +208,9 @@
   - `:filter`: BPF string, protocol keyword, or BPF DSL vector
   - `:decode?`: when true, add `:decoded` or `:decode-error` to each packet map
   - `:decode-mode :flow`: project packets to flat, numeric flow maps
-  - `:xform`: transducer applied to output stream via `sequence`
+  - `:extensions`: ordered function vector for `:decode? true`, as in `packet-xf`;
+    omission uses global hooks and `[]` disables extensions
+  - `:xform`: transducer applied after decode and extensions via `sequence`
   - live queue: `:queue-cap`, opt-in `:queue-mode :dropping`, and
     `:on-queue-stats`
 
@@ -203,7 +225,7 @@
   "Synchronously reduce live or offline packets without an intermediate seq.
 
    `(reduce-packets opts rf init)` accepts the same source, BPF, decode,
-   transducer, stopping, and error options as `packets`. The transducer in
+   extension, transducer, stopping, and error options as `packets`. The transducer in
    `:xform` is fused into the reducing function. Returning `reduced` from `rf`
    stops capture immediately."
   [{:keys [xform] :as opts} rf init]
@@ -255,7 +277,8 @@
 
    The returned opaque handle implements `java.io.Closeable` and should be
    owned by `with-open`. Startup is synchronous through source open and BPF
-   installation. Packet delivery is single-consumer."
+   installation. Packet delivery is single-consumer. Decode and `:extensions`
+   options follow `packet-xf`; invalid configuration fails before source open."
   [opts]
   (let [opts* (normalized-opts opts)]
     (Capture. (capture/start opts*)

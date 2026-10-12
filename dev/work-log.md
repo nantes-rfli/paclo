@@ -309,3 +309,154 @@ the next unfinished feature; it introduces no runtime changes.
   documented optional flags omit runtime tests and Clojure formatting/lint
   for this documentation-only change; its Markdown lint remains enabled.
 - Scope: local commit only. No push, PR, release, or P03 implementation.
+
+## 2026-10-12 — P03 design and implementation
+
+Started from clean main `c13916b`, equal to fetched `origin/main`, containing
+P02 merge `653414b` (PR #29). `bash dev/script/codex.sh doctor` passed on
+macOS x86_64, Temurin JDK 21.0.12.1, Clojure 1.12.1 / CLI 1.12.5.1654;
+native offline PCAP read and all optional lint tools were available.
+
+Design decisions made before adding the API:
+
+- `:extensions` is a vector whose elements satisfy `fn?`; validate configuration
+  at pipeline construction, using key presence to distinguish omission from nil.
+  Explicit configuration requires `:decode? true`; raw and flow modes reject it
+  before opening a capture. Existing decode-mode exclusions remain unchanged.
+- Omission keeps the dynamic process-wide registry. Explicit vectors select only
+  their functions, including duplicates, in order; `[]` selects none. The vector
+  is retained in the transform and never combined with the registry.
+- Publish the existing `annotate-dns` and `annotate-tls-sni` functions directly;
+  existing registration installs those same functions. Preserve best-effort parsing.
+- Share failure isolation via an additive `decode-ext/apply!` arity accepting
+  packet plus functions; core validates configuration once, outside packet execution.
+  Map results feed the next function; exceptions and non-map results preserve
+  the preceding map and later functions continue. Eligibility remains presence
+  of `:decoded` and absence of `:decode-error`, as in the existing hook contract.
+- Keep `packet-pipeline-xf` as the shared path for all capture models, with
+  decode, selected extensions, then user `:xform`. Preserve stats and ownership.
+  Structured extension diagnostics remain P04 work.
+
+P03 remains in-progress until review and merge; no release or merge is authorized.
+
+Implementation and offline regression evidence:
+
+- Added construction-time vector/function validation and full-decode restriction
+  to the shared core path; explicit selection bypasses the registry. Added the
+  `apply!` arity to share eligibility and failure isolation, with no new stats.
+  Published existing DNS/TLS functions and kept registration using those functions.
+- `bash dev/script/codex.sh test -n` passed for `paclo.decode-ext-test`
+  (6 tests / 22 assertions), `paclo.packet-xf-test` (8 / 17),
+  `paclo.dns-ext-test` (8 / 18), `paclo.tls-ext-test` (11 / 20).
+  Final `paclo.explicit-extensions-test` passed 10 tests / 134 assertions,
+  including 100 generated ordered-composition/failure/determinism cases.
+- DNS and TLS real PCAPs agree across direct `packet-xf`, lazy `packets`,
+  synchronous reduction, reduction report, and managed capture. Tests compare
+  all nested byte-array contents and decoded data, capture timestamps/lengths,
+  ordering before user transforms, annotations and EOF/reduced report behavior.
+  Concurrent fan-out uses finite input, capacity-one blocking branches and a
+  promise to coordinate consumers with registration changes; no sleeps. It
+  verifies different DNS/TLS selections, no global hook calls and unchanged bytes.
+- Corrected an existing DNS hook test's cleanup key to the actual DNS namespace
+  so its registration does not leak into subsequent compatibility tests.
+- `bash dev/script/codex.sh check` passed: JUnit 8 tests, Clojure 297 tests /
+  1348 assertions, zero failures/errors, offline native smoke. The final focused
+  test run additionally covers the last reduced-report regression added afterward.
+- `python3 dev/script/verify_doc_links.py` passed.
+  `python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'`
+  passed all 13 parser tests. `python3 dev/script/verify_doc_examples.py` passed
+  all 12 real-PCAP examples: the original nine plus three P03 examples. Added
+  the P02 ID to the mandatory preservation set and preloaded the DNS/TLS aliases
+  alongside existing core/stream aliases for compiled expression checks.
+- Initial focused lint found the generated property-test symbol needed the same
+  declaration used by existing `defspec` tests; fixed without weakening checks.
+  Initial document execution exposed missing preloaded aliases; fixed and reran
+  every example. Corrected one new local anchor and one Markdown line length.
+- Direct Markdown lint passed all 27 documents after fixes. Sandboxed npm
+  access initially failed resolving registry.npmjs.org (and offline cache mode
+  was incomplete); the authorized network-enabled run succeeded. Final complete
+  `bash dev/script/codex.sh lint` passed: kondo zero errors/warnings,
+  Eastwood 60 warnings / zero exceptions, and no namespace/format changes. Local tools are clj-kondo 2026.05.25 and
+  clojure-lsp 2026.05.05-12.58.26; CI uses its unchanged pinned 2025 versions.
+
+Performance evidence (offline only):
+
+- `bash dev/script/codex.sh perf` passed: 50,000 packets / 74-byte frames,
+  560.8 ms versus unchanged 1000 ms warning / 1200 ms failure budgets.
+- Used existing `perf-data/ensure-dataset!` with `perf-spec/traffic-cases` to
+  generate identical 50,000-packet UDP-64, TCP-512 and mixed PCAPs. For each
+  case, ran `clojure -M:perf-worker --mode offline --scenario <full-decode|full-reduce>
+  --path /private/tmp/paclo-p03-<case>.pcap --count 50000 --warmups 1 --runs 3`
+  serially before runtime edits and after, without concurrent checks. Baseline
+  is `c13916b`; revised measurements are the uncommitted P03 implementation.
+  Initial attempts used unsupported offline `--scenarios` and the wrong
+  traffic-case namespace; these failed and were corrected before measurement.
+- Same macOS 15.4.1 x86_64 host, Temurin JDK 21.0.12.1, Clojure 1.12.1,
+  libpcap 1.10.1, one warm-up and three measured runs per separate worker JVM.
+  Every revised run processed 50,000 packets with zero decode errors. Lazy
+  captures used default blocking queues; the worker reports no queue-drop
+  counters for offline runs. Reducers have no producer queue.
+
+| Case / scenario | Before pps | After pps | Change | Before alloc B/packet | After alloc B/packet | Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| mixed-full-decode | 141288.3 | 128389.0 | -9.1% | 5966.4 | 5974.2 | +0.1% |
+| mixed-full-reduce | 160967.9 | 149250.1 | -7.3% | 5692.6 | 5861.3 | +3.0% |
+| tcp-512-full-decode | 101681.8 | 105438.0 | +3.7% | 7240.5 | 7335.1 | +1.3% |
+| tcp-512-full-reduce | 113240.1 | 108326.4 | -4.3% | 6966.3 | 7137.7 | +2.5% |
+| udp-64-full-decode | 112314.3 | 133004.2 | +18.4% | 4761.1 | 4728.1 | -0.7% |
+| udp-64-full-reduce | 169015.6 | 154807.9 | -8.4% | 4571.7 | 4658.1 | +1.9% |
+
+These short runs show noisy throughput (-9.1% to +18.4%) and median allocation
+changes of -0.7% to +3.0%; they do not establish a stable speedup or regression,
+nor live/real-NIC throughput. Reports remain in `/private/tmp/paclo-p03-baseline`
+and `/private/tmp/paclo-p03-revised`; packaging will not remove them.
+
+Packaging and delivery preparation:
+
+- After all tests, lint and performance workers exited, ran
+  `bash dev/script/codex.sh package`: passed (unchanged snapshot version).
+  `jar tf target/paclo-1.3.0-SNAPSHOT.jar` confirmed core, decode-ext, DNS and TLS
+  namespaces. No packaging or tests ran concurrently.
+- Created `/private/tmp/paclo-p03-consumer/deps.edn` with empty `:paths` and only
+  the local JAR dependency; ran `clojure -Srepro -M check.clj` there. Passed
+  `:p03-clean-jar-consumer-ok`, requiring both public annotation functions,
+  verifying their resources load from `jar:file:` URLs, and checking actual
+  DNS/TLS PCAP annotations through explicit synchronous reductions. No DNS
+  source path or development alias was supplied to the consumer.
+- `git diff --check` and local Markdown links passed after final edits.
+- Implementation commit uses the repository hook's documented `SKIP_TESTS=1`,
+  `SKIP_FMT=1`, `SKIP_KONDO=1` flags because those checks already passed above;
+  the hook's Markdown lint remains enabled for the final log/doc changes.
+- Existing workflow jobs and quality thresholds are unchanged. GitHub main has
+  no branch-protection status configuration (API returned HTTP 404); the existing
+  CI `build` aggregate and platform jobs remain the verification target.
+- CI and PR URL will be recorded after creation. Independent review, live capture,
+  real-NIC throughput and other unlisted platforms remain unverified. P03 stays
+  in-progress pending review/merge; P04 remains blocked and is the next feature
+  after acceptance. No merge, tag, version update, release or artifact publication.
+
+PR and CI evidence:
+
+- Implementation commit: `57b299822d21f7165f105f1ddc45fb2884237841`.
+  Branch: `codex/p03-explicit-extensions`, pushed to origin.
+  Created [PR #30](https://github.com/nantes-rfli/paclo/pull/30) against main
+  with the final API/design, backward compatibility, annotations, independence,
+  execution-model/fan-out checks, failure policy, performance and limitations.
+- [Implementation CI run 38207019415](https://github.com/nantes-rfli/paclo/actions/runs/38207019415):
+  **all 12 jobs passed**. `build-checks`, `documentation-checks`, three performance
+  shards, `performance-results`, both `compatibility-matrix` jobs and the `build`
+  aggregate passed. Separate `arm64-monitor`, `eastwood-lint` and optional
+  `coverage` also passed. CI includes unchanged SpotBugs, CheckStyle, JaCoCo
+  threshold, pinned lint tools, cljdoc namespace load and performance checks.
+- Downloaded both compatibility job logs with `gh run view --job ... --log`:
+  Linux x64/JDK21 and macOS ARM64/JDK17 each ran the final **298 tests /
+  1353 assertions**, zero failures/errors, including P03's added namespace.
+  Linux ARM64/JDK21 monitor also completed successfully. No workflow or quality
+  gate changes were made to obtain these results.
+- `gh pr view 30` confirms OPEN, no reviews and clean merge state. This confirms
+  review readiness, not independent review or acceptance. Do not mark P03 done
+  before review/merge; P04 remains blocked. Live capture and real-NIC performance
+  remain unverified.
+- This follow-up commit changes only the accepted plan and verification log.
+  Its checks are tracked in PR #30; the completed implementation-run results
+  above refer specifically to `57b2998`, not to an untested later SHA.
