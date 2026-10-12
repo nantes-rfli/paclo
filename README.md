@@ -104,9 +104,14 @@ composable transducer:
       (core/packets {:path "test/resources/dns-sample.pcap"}))
 ```
 
-Use either `:decode? true` for full decoding with registered hooks, or
+Use either `:decode? true` for full decoding with decode extensions, or
 `:decode-mode :flow` for a flat flow projection (not both).
 Capture APIs apply `:xform` after the built-in packet transformation.
+
+In `[Unreleased]` (P03), full decode accepts an ordered `:extensions` vector
+of functions. Omission keeps dynamic global hooks; `[]` disables them, and
+explicit selection runs only its functions. Public DNS/TLS annotations and
+independent fan-out examples are in [decode extensions](docs/extensions.md).
 
 For synchronous processing with data-only execution statistics:
 

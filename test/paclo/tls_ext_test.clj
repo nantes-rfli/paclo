@@ -50,7 +50,7 @@
   (let [ba (hex->bytes fixture-clienthello-sni-alpn)
         pkt {:decoded {:l3 {:l4 {:type :tcp
                                  :payload ba}}}}
-        annotate (deref #'tls-ext/annotate-tls-sni)
+        annotate tls-ext/annotate-tls-sni
         out (annotate pkt)]
     (is (= :tls (get-in out [:decoded :l3 :l4 :app :type])))
     (is (= "example.com" (get-in out [:decoded :l3 :l4 :app :sni])))
@@ -60,7 +60,7 @@
 
 (deftest annotate-tls-sni-noop-when-non-tcp
   (let [pkt {:decoded {:l3 {:l4 {:type :udp :payload (byte-array 0)}}}}
-        annotate (deref #'tls-ext/annotate-tls-sni)]
+        annotate tls-ext/annotate-tls-sni]
     (is (= pkt (annotate pkt)))))
 
 (deftest extract-tls-info-returns-empty-map-when-alpn-truncated

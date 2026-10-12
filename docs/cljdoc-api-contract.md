@@ -10,12 +10,14 @@ Public namespaces:
 - `paclo.core`
 - `paclo.stream`
 - `paclo.decode-ext`
+- `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
+  (supported annotation functions; other protocol internals remain excluded)
 
 Internal namespaces (not covered by compatibility guarantees):
 
 - `paclo.pcap`
 - `paclo.parse`
-- `paclo.proto.*`
+- `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
 
 ## `paclo.core`
@@ -43,11 +45,22 @@ Internal namespaces (not covered by compatibility guarantees):
     return a packet map with `:decode-error`
   - `:decode-mode :flow`: flat numeric flow projection; IPv4 addresses are
     unsigned longs and IPv6 addresses are two-long vectors
-  - neither option: identity transducer, leaving each packet unchanged
+  - neither decode option: identity transducer, leaving each packet unchanged
+  - `:extensions`: a vector of functions (`fn?`), accepted only with
+    `:decode? true`. Key presence matters: `nil`, other collection types and
+    non-function elements throw `ex-info` at construction. Raw and flow modes
+    reject explicit selection, including `[]`
 - `:decode?` and `:decode-mode` are mutually exclusive; unsupported
   decode modes and combined options throw `ex-info` at construction
-- With full decode, registered `paclo.decode-ext` hooks are applied after
-  successful decoding; flow mode does not run those hooks
+- With full decode, omission of `:extensions` uses the current process-wide
+  `paclo.decode-ext` hooks on each packet. `[]` runs none. An explicit vector
+  selects exactly its functions in order, retains duplicates, and passes each
+  map result to the next function. It is retained as pipeline configuration
+  and never merged with or re-read from the global registry
+- Functions run only when `:decoded` is present and `:decode-error` is absent.
+  Exceptions and non-map results preserve the preceding map; later functions
+  still run. Pure functions give deterministic results for the same input and
+  explicit selection. Flow mode does not run full-decode extensions
 - Output: a transducer, suitable for `comp`, `sequence`, `into`, or
   `transduce`; no capture is opened by constructing it
 
@@ -72,7 +85,8 @@ Internal namespaces (not covered by compatibility guarantees):
   - `:filter`: BPF string / keyword / DSL vector
   - `:decode? true` for full decode, or `:decode-mode :flow` for numeric
     flow projection (they cannot be combined)
-  - optional `:xform` transducer, applied after the built-in
+  - optional `:extensions` vector with exactly the `packet-xf` contract
+  - optional `:xform` transducer, applied after decode and extensions in the built-in
     `packet-xf` transformation
   - capture limits: `:max` (default 100 captured packets),
     `:max-time-ms` (default 10000 ms), and `:idle-max-ms` (default
@@ -81,8 +95,8 @@ Internal namespaces (not covered by compatibility guarantees):
     `:queue-mode :blocking` (default) or `:dropping`,
     and optional `:on-queue-stats`
 - Output: lazy sequence of packet maps
-- Decode behavior: identical to `packet-xf`; full decoding invokes
-  `paclo.decode-ext/apply!` when `:decoded` is present
+- Decode and extension behavior: identical to `packet-xf`; invalid extension
+  configuration fails before opening the source
 - Termination:
   - offline EOF stops the source, unless a count/time/predicate limit stops
     it first
@@ -147,7 +161,7 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - `start-capture`:
   - accepts a live `:device` or offline `:path` plus the compatible filter,
-    decode, transducer, stopping, queue, and error options; the capture limit
+    decode, extension, transducer, stopping, queue, and error options; the capture limit
     and producer queue defaults are the same as for `packets`
   - opens the source and installs BPF synchronously
   - returns an opaque `java.io.Closeable` handle intended for `with-open`
@@ -313,6 +327,7 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
 
 ```clojure
 (apply! m)
+(apply! m extensions)
 ```
 
 - Applies hooks only when `m` is a map with `:decoded` and without `:decode-error`
@@ -322,8 +337,25 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
   - non-map hook return values are ignored
 - Returns updated (or original) packet map
 - The registry is process-wide; existing transforms consult the installed
-  hooks when processing packets. Per-pipeline extension selection is not
-  part of the current public v1.3 API.
+  hooks when processing packets. The two-argument arity applies only the
+  supplied functions, in their supplied order, with the same eligibility and
+  failure policy. Core validates `:extensions` at construction; this lower-level
+  function does not validate configuration.
+
+## Supported protocol annotations
+
+- `paclo.proto.dns-ext/annotate-dns`: ordinary packet-map function adding
+  DNS summary and best-effort qname, qtype, qtype-name and qclass fields.
+- `paclo.proto.tls-ext/annotate-tls-sni`: ordinary packet-map function adding
+  best-effort TLS ClientHello SNI, ALPN and summary, without stream reassembly.
+- Unrelated packets pass through unchanged; parsed fields are best-effort and
+  omitted when unavailable. Existing protocol `register!` functions install
+  these same annotation functions.
+- Repository CLI consumers include `:dns-ext` for the DNS namespace; both
+  namespaces remain included in the dependency JAR.
+
+Explicit selection and the public annotations are additions in `[Unreleased]`
+(P03); released v1.3.0 supports the global registry only.
 
 ## Stability notes
 

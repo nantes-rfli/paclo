@@ -86,7 +86,7 @@ Do not let a managed packet sequence escape its `with-open` scope.
 ```
 
 Use `{:decode? true}` for the nested `:decoded` packet representation and
-existing registered post-decode hooks, or `{:decode-mode :flow}` for a flat
+selected post-decode extensions (global hooks by default), or `{:decode-mode :flow}` for a flat
 numeric flow projection. These options cannot be combined.
 `(core/packet-xf {})` passes packets through unchanged. The optional
 `:xform` on capture APIs runs **after** their built-in packet transformation.
@@ -376,21 +376,39 @@ the [writer contract](cljdoc-api-contract.md#write-pcap) for this native limitat
 ;; => "(net 10.0.0.0/8) and (not (port 22))"
 ```
 
-## Decode hooks
+## Decode extensions
+
+Explicit `:extensions` selects a vector of ordinary functions in order,
+including duplicates. Omission uses the dynamic global hook registry;
+`[]` disables all extensions. Explicit selection requires `:decode? true`;
+invalid vectors/elements and raw/flow combinations throw `ex-info` before
+source open. Extensions receive successful decoded packet maps before
+`:xform`; exceptions and non-map returns preserve the preceding map while
+later extensions continue. Registration changes do not affect explicit pipelines.
+
+<!-- paclo-doc-test: usage-explicit-extensions -->
 
 ```clojure
-(require '[paclo.core :as core]
-         '[paclo.proto.dns-ext :as dns-ext])
+(require '[paclo.proto.dns-ext :as dns-ext])
 
-(dns-ext/register!)
-
-(->> (core/packets {:path "test/resources/dns-sample.pcap"
-                    :decode? true})
-     (take 1)
-     doall)
+(core/reduce-packets
+ {:path "test/resources/dns-sample.pcap"
+  :decode? true
+  :extensions [dns-ext/annotate-dns]
+  :xform (map #(get-in % [:decoded :l3 :l4 :app :summary]))}
+ conj [])
 ```
 
-See `docs/extensions.md` for hook contract and TLS/DNS extension notes.
+The same option works with `packet-xf`, `packets`, `reduce-packets-report`,
+and `start-capture`. `dns-ext/annotate-dns` and
+`paclo.proto.tls-ext/annotate-tls-sni` can also be called directly; existing
+DNS/TLS `register!` entrypoints still select global hooks for callers that
+omit the option. Repository CLI runs using DNS need `:dns-ext`; the namespace
+is included in the dependency JAR.
+
+See [decode extensions](extensions.md) for the full contract and an executable
+example of independent DNS/TLS fan-out branches. Treat shared packet bytes as
+read-only. Explicit selection and public annotations are in `[Unreleased]` (P03).
 
 ## CLI workflows
 

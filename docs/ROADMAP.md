@@ -46,7 +46,8 @@ contracts, and reusable analysis. Release labels there are candidates. Developer
 setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 `v1.3.0` is shipped. P02 packet metadata preservation is implemented in
-`[Unreleased]`, with CI and review tracked in the accepted plan. P03 remains ready.
+`[Unreleased]`, with CI and review tracked in the accepted plan. P03 is in progress;
+acceptance still requires review and merge.
 
 - [ ] Stabilize arm64 success rate against long observation windows
 - [ ] Keep publish/release automation healthy (token rotation, workflow maintenance)

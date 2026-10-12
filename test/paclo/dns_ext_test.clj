@@ -6,7 +6,6 @@
 ;; Helpers to access privates
 (def decode-name #'dns/decode-name)
 (def annotate-qname-qtype #'dns/annotate-qname-qtype)
-(def annotate-dns #'dns/annotate-dns)
 
 (deftest decode-name-basic-and-compressed
   ;; message: www.google.com, type A, class IN
@@ -71,7 +70,7 @@
 
 (deftest annotate-dns-noop-when-not-dns
   (let [m {:decoded {:l3 {:l4 {:app {:type :other}}}}}
-        out (annotate-dns m)]
+        out (dns/annotate-dns m)]
     (is (= m out))))
 
 (deftest decode-name-fails-gracefully-on-oob

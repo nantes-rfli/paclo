@@ -25,7 +25,7 @@
         (is (= "DNS message"
                (get-in (first xs) [:decoded :l3 :l4 :app :summary])))))
     (finally
-      (dx/unregister! ::dns-summary))))
+      (dx/unregister! :paclo.proto.dns-ext/dns-summary))))
 
 (deftest hooks-ignore-non-map-and-swallow-exceptions
   (let [pkt {:decoded {:l3 {:l4 {:type :udp}}}}]
@@ -91,3 +91,15 @@
       (is (= 1 @called))
       (finally
         (dx/unregister! ::count)))))
+
+(deftest explicit-functions-share-legacy-eligibility-and-failure-policy
+  (let [calls (atom 0)
+        f (fn [m] (swap! calls inc) (assoc m :extended true))]
+    (doseq [packet [nil :invalid {} {:decode-error "bad"}
+                    {:decoded {} :decode-error nil}]]
+      (is (= packet (dx/apply! packet [f]))))
+    (is (zero? @calls))
+    (is (= {:decoded {} :extended true}
+           (dx/apply! {:decoded {}} [(constantly nil)
+                                     (fn [_] (throw (ex-info "bad" {}))) f])))
+    (is (= 1 @calls))))

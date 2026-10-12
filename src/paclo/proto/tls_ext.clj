@@ -126,7 +126,11 @@
 
 ;; --- decode-ext hook ---------------------------------------------------------
 
-(defn- annotate-tls-sni [m]
+(defn annotate-tls-sni
+  "Annotate decoded TCP packets with best-effort ClientHello SNI and ALPN.
+   No TCP stream reassembly is performed; absent or incomplete TLS data passes
+   through unchanged. Use directly or in core's ordered `:extensions` vector."
+  [m]
   (if (= :tcp (get-in m [:decoded :l3 :l4 :type]))
     (let [ba   (get-in m [:decoded :l3 :l4 :payload])
           info (when ba (extract-tls-info ^bytes ba))

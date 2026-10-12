@@ -25,7 +25,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | --- | --- | --- | --- | --- |
 | P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | done |
-| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | ready |
+| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | in-progress |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | blocked |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | blocked |
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | blocked |
@@ -34,7 +34,8 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P03**. P02 was accepted through merge of PR #29.
+Default next task: **P03 verification, review and merge**. P02 was accepted
+through merge of PR #29. P04 is the next feature after P03 acceptance.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -74,6 +75,9 @@ length, and wire length. Include truncated records, zero timestamps, legacy inpu
 and conflicting metadata. Use packet-byte equality rather than Java-array identity.
 
 ## P03: Explicit extension composition
+
+Status: **in-progress**. Implementation and verification are underway; completion
+requires review and merge. P04 remains blocked pending P03 acceptance.
 
 Baseline `packet-xf` consults the process-wide hook registry while processing packets.
 Registering a hook after constructing the same transducer changes its output.

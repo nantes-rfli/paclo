@@ -94,8 +94,10 @@
         m))
     (catch Throwable _ m)))
 
-(defn ^:private annotate-dns
-  "If decoded packet has DNS, attach a tiny :summary and (best-effort) qname/qtype."
+(defn annotate-dns
+  "Annotate a decoded DNS packet with :summary and best-effort question fields.
+   Adds qname, qtype, qtype-name and qclass when available; other packets pass
+   through unchanged. Use directly or in core's ordered `:extensions` vector."
   [m]
   (if (= :dns (get-in m [:decoded :l3 :l4 :app :type]))
     (-> m
