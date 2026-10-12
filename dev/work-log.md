@@ -816,3 +816,144 @@ P05 PR and CI follow-up:
   version changes. PR #32 remains open/unmerged. P05 stays in-progress pending
   independent review/merge; P06 remains ready and P08 remains blocked. Live NIC
   and sustained real-NIC validation are still outside this offline evidence.
+
+## P06 — design and baseline (2026-10-12)
+
+- Clean supplied checkout; doctor passed real offline capture. Fetched latest
+  main `7711170` (P05 PR #32 merged), created `codex/p06-flow-analysis`.
+- `core` previously required the internal `paclo.flow` projection. Move it to
+  responsibility-named `paclo.flow.project`; analysis introduces no decode cost
+  into raw/full/flow paths. Structural move is commit `cfb6ff2`.
+- Canonical identity is a six-field numeric map including IP version/protocol.
+  Bidir compares unsigned IP words, then ports (nil before zero). Validation
+  skips missing/invalid numeric fields, absent port keys and flow decode errors.
+- Full decode's string-address `:flow-key` remains a legacy display descriptor:
+  it never normalizes direction. `parse/make-flow-key` only assembles that
+  descriptor, so it is not a second canonical identity algorithm. Keeping it
+  avoids breaking v1 data contracts or adding conversions/computation to full
+  decoding. Applications needing canonical identity select flow projection.
+- Three public functions: key, aggregate-rf, top-n. Reducer state is persistent
+  data with input summary separate from flow counts and configuration. Require
+  explicit positive cardinality bound, throw on new-key overflow, retain
+  existing-key updates; use promoting integer arithmetic for exact counters.
+  Eligible packets require valid captured/wire lengths; invalid flows skip.
+- CLI retains legacy protocol/IP display and bytes=captured-bytes. Analysis
+  moves entirely to the library. CLI bound defaults to 100000 flows, configurable
+  with --max-flows; this practical application budget is not a library default.
+- P07 can reuse canonical identity, immutable reducer data and exact ranking.
+  Event time, expiration, windows and DNS correlation remain outside P06.
+
+P06 implementation and measurement:
+
+- Public analysis is pure, with three functions and ordinary persistent maps.
+  Internal projection and all core hot paths retain their prior computation.
+  Legacy full decode remains a display descriptor; only the public numeric
+  analysis API determines canonical identity and direction. No v1 full-decode
+  schema is removed, no version is updated, and no artifacts are published.
+- CLI removes its canonicalization, Java HashMap/long-array counters and ranking.
+  Display rows and packets/bytes metrics remain, with bytes=captured. Added finite
+  --max-flows 100000 default and override; ties now follow numeric canonical order.
+  Split optional positional arguments before flags, so documented short async
+  invocations work. Underscore mode/metric placeholders now follow usage defaults.
+- Async uses a fixed buffer plus offer! for dropping, reporting every dropped
+  packet. Timeout returns reduced to stop reading; reader errors propagate.
+  An aggregate exception initially revealed a blocked producer: core.async close
+  does not release every pending buffered put. A separate stop channel now
+  participates in alts!!, releasing that producer before joining it. Full/focused
+  runs that stalled before this fix were terminated and do not count as passes.
+  Regression coverage includes capacity-one limit failures, reader failures,
+  deterministic drop counts and zero-timeout cancellation.
+- Public API tests cover IPv4/IPv6 signed words, unknown protocols, absent/nil
+  ports, fragments, reversal, invalid data, lengths, integer promotion, bounds,
+  deterministic Top-N, EDN and preserved snapshots. 650 property cases cover
+  reversal/idempotence, key collision identity, input-order independence and
+  exact totals. Real DNS/SLL PCAPs, a real truncated wire-length record, managed
+  capture, and capacity-one fan-out reuse the same reducer. Existing projection
+  tests moved to paclo.flow-project-test; packet-xf tests target the moved decoder.
+- API contract, README, usage, changelog and docstrings explain identity versus
+  display, lengths, skipped inputs, bounds, ordering and migration. Two new
+  executable examples retain all previous 14, giving 16 examples.
+
+Reproducible aggregation comparison:
+
+`clojure -M:dev -m paclo.dev.flow-perf 7711170` loads the actual historical
+CLI add-packet! from git only inside the opt-in development benchmark; the
+application/library contain no duplicate analysis implementation. Baseline is
+latest main 7711170; revised is the P06 source after direct persistent-map
+updates, before the implementation commit. macOS 15.4.1, reported x86_64,
+Temurin 21.0.12.1, Clojure 1.12.1. Synthetic numeric IPv4/UDP projected input:
+100000 packets, caplen 64/wire 84, 10 or 10000 unique flows. Three warmups and
+five timed runs per scenario; median throughput and ThreadMXBean current-thread
+allocated bytes. All runs are serial, with no concurrent tests/lint/benchmarks.
+No queue/native capture is involved; drops are zero. Measures aggregation only,
+excluding decode, formatting and sorting; native/CLI end-to-end rates are not
+established by this experiment.
+
+| Flows | Direction | Old pps | New pps | Old alloc B/packet | New alloc B/packet | Old retained B/flow | New retained B/flow |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | unidir | 2012191 | 531108 | 457.7 | 2054.1 | 144.4 | 192.7 |
+| 10 | bidir | 1949116 | 588583 | 697.7 | 2054.1 | 165.5 | 192.6 |
+| 10000 | unidir | 2140945 | 467839 | 437.7 | 2330.6 | 158.0 | 191.4 |
+| 10000 | bidir | 1835399 | 461215 | 677.7 | 2331.6 | 158.5 | 190.3 |
+
+Persistent aggregation is materially slower and allocates more than the old
+mutable unchecked two-counter CLI. It adds validation, wire-byte totals, summary,
+exact promoting counters, immutable snapshots and cardinality checks. No analysis
+throughput target was defined; retain the simple persistent reference rather than
+introducing hidden mutable ownership. Future optimization must retain this
+contract. Replacing three nested update-in/assoc-in operations with direct map
+updates cut allocation from 2614.1 to 2054.1 B/packet at 10 flows, and from
+2855.0 to 2330.6 at 10000 flows (initial sample: 439109/389380 unidir pps).
+
+Retained heap is a GC-based estimate, not an object-size profiler or memory cap:
+retain 100000 total flow entries across independent results, with one packet/key,
+and keep input data reachable across both GC snapshots. The first experiment
+retained only 100 low-cardinality entries and produced negative/noisy deltas;
+those low-cardinality values were rejected and amplification added. Final
+estimates are positive but vary with GC/JIT and sharing. They exclude input
+storage and temporary per-update allocations; full peak CLI memory is unmeasured.
+Raw reports remain in /private/tmp/p06-flow-perf*.edn; the maintained runner and
+this table preserve the method and results. Live capture/real NIC and other
+platforms remain separate from these local measurements.
+
+P06 final local verification (after the persistent-map update):
+
+- `bash dev/script/codex.sh test -n paclo.flow-test -n paclo.flow-project-test
+  -n examples.flow-topn-test -n examples.cli-contract-test
+  -n examples.smoke-test`: passed 56 tests / 212 assertions; all 650 generated
+  property cases passed. CLI snapshots and sync/async EDN/JSONL remain covered.
+- `bash dev/script/codex.sh check`: passed JUnit 10/10, Clojure 334 tests /
+  2354 assertions and real offline smoke (four packets). Waited for process exit.
+- `PATH=/private/tmp/p05-tools/pinned-lsp:$PATH bash dev/script/codex.sh lint`:
+  passed kondo (zero errors/warnings), Eastwood (82 warning sites, zero exceptions),
+  clean-ns/format dry runs and Markdown lint. Explicitly verified lsp version
+  2025.11.28-12.47.43, matching CI. Boxed arithmetic warnings are expected for
+  validated arbitrary integer counters. New resource-close reflection warnings
+  and the CLI primitive recur warning were fixed. Initial sandbox npm/cache
+  access failed, then the ordinary-environment lint succeeded; two Markdown
+  consecutive-blank-line violations were corrected before success.
+- `bash dev/script/codex.sh perf`: passed unchanged 50000/74-byte gate in
+  633.6 ms against 1000 ms warning / 1200 ms failure budgets. Run after tests,
+  lint and doc execution completed. No analysis computations enter core paths.
+- `dev/script/mdlint.sh`: passed after the blank-line fixes; final documentation
+  append also checked by the pre-commit hook.
+- `python3 dev/script/verify_doc_links.py`: passed.
+- `python3 -m unittest discover -s dev/script -p test_verify_doc_examples.py`:
+  passed 13 parser tests. `python3 dev/script/verify_doc_examples.py`: passed
+  all 16 offline examples after the final reducer changes.
+- `bash dev/script/codex.sh package`: passed, serially after other checks.
+  JAR contains paclo/flow.clj and paclo/flow/project.clj. A clean consumer in
+  /private/tmp/p06-consumer with only the local/root JAR dependency required
+  paclo.core and paclo.flow, performed native DNS PCAP aggregation, asserted
+  canonical identity and Top-N, and printed :jar-consumer-ok with
+  {:seen 4 :aggregated 4 :skipped 0}. It has no checkout source/test paths.
+- `git diff --check`: passed. No dependencies, CI/performance budgets, versions,
+  default packet transformations or native binding behavior changed.
+- Commits keep structural projection movement separate from API/CLI behavior.
+  Local hook needs unavailable rlwrap via clj; as in P05, use its existing
+  SKIP_TESTS/SKIP_FMT/SKIP_KONDO flags after equivalent checks pass with clojure.
+  Markdown lint remains enabled. No gate/hook is modified.
+- GitHub Actions/platform checks are assessed on the PR. These offline/local
+  results do not validate live capture, sustained real-NIC throughput or other
+  platforms. P06 stays in-progress until independent review/merge; next feature
+  after acceptance is P07.

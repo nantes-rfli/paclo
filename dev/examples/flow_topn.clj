@@ -2,9 +2,8 @@
   (:require
    [clojure.core.async :as async]
    [examples.common :as ex]
-   [paclo.core :as core])
-  (:import
-   [java.util HashMap]))
+   [paclo.core :as core]
+   [paclo.flow :as flow]))
 
 (def ^:private default-async-buffer 1024)
 (def ^:private default-async-mode :buffer)
@@ -17,8 +16,8 @@
 (defn- usage []
   (binding [*out* *err*]
     (println "Usage:")
-    (println "  clojure -M:dev -m examples.flow-topn <in.pcap> [<bpf>] [<topN>] [<mode>] [<metric>] [<format>] [--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS]")
-    (println "Defaults: <bpf>='udp or tcp', <topN>=10, <mode>=unidir, <metric>=packets, <format>=edn, async=off, async-buffer=1024, async-mode=buffer")
+    (println "  clojure -M:dev -m examples.flow-topn <in.pcap> [<bpf>] [<topN>] [<mode>] [<metric>] [<format>] [--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS] [--max-flows N]")
+    (println "Defaults: <bpf>='udp or tcp', <topN>=10, <mode>=unidir, <metric>=packets, <format>=edn, async=off, async-buffer=1024, async-mode=buffer, max-flows=100000")
     (println "Modes  : unidir | bidir")
     (println "Metric : packets | bytes")
     (println "Formats: edn | jsonl")
@@ -45,134 +44,102 @@
     (ipv6->str address)
     (ipv4->str address)))
 
-(defn- flow->repr [{:keys [proto src-ip src-port dst-ip dst-port]}]
-  {:proto proto
+(defn- flow->repr [{:keys [protocol src-ip src-port dst-ip dst-port]}]
+  {:proto (get protocol-names protocol protocol)
    :src (str (ip->str src-ip) (when src-port (str ":" src-port)))
    :dst (str (ip->str dst-ip) (when dst-port (str ":" dst-port)))})
 
-(defn- canon-fk
-  "Canonicalize flow key for bidirectional mode."
-  [{:keys [proto src-ip src-port dst-ip dst-port] :as fk} bidir?]
-  (if-not bidir?
-    fk
-    (let [a [(or src-ip "") (long (or src-port -1))]
-          b [(or dst-ip "") (long (or dst-port -1))]]
-      (if (neg? (compare a b))
-        fk
-        {:proto proto
-         :src-ip dst-ip :src-port dst-port
-         :dst-ip src-ip :dst-port src-port}))))
+(defn- parse-flags [flags]
+  (loop [xs flags max-flows 100000 async-flags []]
+    (if (empty? xs)
+      (assoc (ex/parse-async-opts async-flags
+                                  {:default-buffer default-async-buffer
+                                   :default-mode default-async-mode})
+             :max-flows max-flows)
+      (if (= "--max-flows" (first xs))
+        (let [value (ex/parse-long* (second xs))]
+          (when-not (and value (pos? (long value)))
+            (throw (ex-info "--max-flows requires a positive integer" {})))
+          (recur (nnext xs) (long value) async-flags))
+        (recur (next xs) max-flows (conj async-flags (first xs)))))))
 
-(defn- packet->flow-key
-  "Build a compatible flow key from a numeric flow projection."
-  [m bidir?]
-  (let [{:keys [protocol src-ip dst-ip src-port dst-port]} m]
-    (when (and protocol src-ip dst-ip)
-      (canon-fk {:proto (get protocol-names protocol protocol)
-                 :src-ip src-ip :src-port src-port
-                 :dst-ip dst-ip :dst-port dst-port}
-                bidir?))))
+(defn- display-rows [result metric top-n]
+  (mapv (fn [{:keys [flow packets captured-bytes]}]
+          {:flow (flow->repr flow) :packets packets :bytes captured-bytes})
+        (flow/top-n result {:metric (if (= :bytes metric) :captured-bytes :packets)
+                            :n top-n})))
 
-(defn- add-packet! [^HashMap counts packet bidir?]
-  (if-let [flow-key (packet->flow-key packet bidir?)]
-    (if-let [^longs aggregate (.get counts flow-key)]
-      (do
-        (aset-long aggregate 0 (unchecked-inc (aget aggregate 0)))
-        (aset-long aggregate 1
-                   (unchecked-add (aget aggregate 1)
-                                  (long (or (:caplen packet) 0)))))
-      (.put counts flow-key
-            (long-array [1 (long (or (:caplen packet) 0))])))
-    counts))
-
-(defn- top-rows [^HashMap counts metric top-n]
-  (->> counts
-       (map (fn [[flow-key ^longs aggregate]]
-              {:flow (flow->repr flow-key)
-               :packets (aget aggregate 0)
-               :bytes (aget aggregate 1)}))
-       (sort-by (case metric
-                  :bytes :bytes
-                  :packets :packets)
-                >)
-       (take top-n)
-       vec))
+(defn- async-aggregate [opts rf {:keys [async-buffer async-mode async-timeout-ms]}]
+  (let [total (atom 0)
+        dropped (atom 0)
+        cancelled? (atom false)
+        stop-ch (async/chan)
+        cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
+        ;; offer! against a fixed buffer reports every discarded input.
+        pkt-ch (async/chan (async/buffer async-buffer))
+        reader (async/thread
+                 (try
+                   (core/reduce-packets
+                    opts
+                    (fn [state packet]
+                      (swap! total inc)
+                      (let [stop-ports (cond-> [stop-ch] cancel-ch (conj cancel-ch))
+                            [_ ready] (async/alts!! stop-ports :default :active)
+                            sent? (and (= :default ready)
+                                       (if (= :dropping async-mode)
+                                         (do (when-not (async/offer! pkt-ch packet)
+                                               (swap! dropped inc))
+                                             true)
+                                         (let [[sent port] (async/alts!! (conj stop-ports [pkt-ch packet])
+                                                                         :priority true)]
+                                           (and (= port pkt-ch) sent))))]
+                        (if sent?
+                          state
+                          (do (reset! cancelled? true) (reduced state)))))
+                    nil)
+                   {:ok true}
+                   (catch Throwable error {:error error})
+                   (finally (async/close! pkt-ch))))]
+    (try
+      (let [result (loop [state (rf)]
+                     (if-let [packet (async/<!! pkt-ch)]
+                       (recur (rf state packet))
+                       (rf state)))
+            reader-result (async/<!! reader)]
+        (when-let [error (:error reader-result)] (throw error))
+        {:result result :total @total :dropped @dropped :cancelled? @cancelled?})
+      (finally
+        ;; Release a blocked producer when aggregation throws (e.g. max-flows).
+        (async/close! stop-ch)
+        (async/close! pkt-ch)
+        (async/<!! reader)))))
 
 (defn -main [& args]
-  (let [[in bpf topn-str mode-str metric-str fmt-str & flags] args]
+  (let [[positional flags] (split-with #(not (.startsWith ^String % "--")) args)
+        [in bpf topn-str mode-str metric-str fmt-str] positional]
     (when (nil? in) (usage) (System/exit 1))
-    (let [in*    (ex/require-file! in)
-          bpf    (if (ex/blank? bpf) "udp or tcp" bpf)
-          topN   (or (ex/parse-long* topn-str) 10)
-          mode   (keyword (or mode-str "unidir"))
-          metric (keyword (or metric-str "packets"))
-          fmt    (ex/parse-format fmt-str)
-          {:keys [async? async-buffer async-mode async-timeout-ms]} (ex/parse-async-opts flags {:default-buffer default-async-buffer :default-mode default-async-mode})]
-      (ex/ensure-one-of! "mode"   mode   #{:unidir :bidir})
+    (let [in* (ex/require-file! in)
+          bpf (if (ex/blank? bpf) "udp or tcp" bpf)
+          topN (or (ex/parse-long* topn-str) 10)
+          mode (keyword (if (ex/blank? mode-str) "unidir" mode-str))
+          metric (keyword (if (ex/blank? metric-str) "packets" metric-str))
+          fmt (ex/parse-format fmt-str)
+          {:keys [async? async-buffer async-mode max-flows] :as execution} (parse-flags flags)]
+      (ex/ensure-one-of! "mode" mode #{:unidir :bidir})
       (ex/ensure-one-of! "metric" metric #{:packets :bytes})
-      (let [bidir? (= :bidir mode)
-            counts (HashMap.)
-            total  (atom 0)
-            dropped (atom 0)
-            cancelled? (atom false)]
-        (if-not async?
-          ;; synchronous path
-          (let [total (volatile! 0)
-                _ (core/reduce-packets
-                   {:path in*
-                    :filter bpf
-                    :decode-mode :flow
-                    :max Long/MAX_VALUE}
-                   (fn [state packet]
-                     (vswap! total
-                             (fn [value]
-                               (unchecked-inc (long value))))
-                     (add-packet! counts packet bidir?)
-                     state)
-                   nil)
-                rows (top-rows counts metric topN)]
-            (ex/emit fmt rows)
-            (binding [*out* *err*]
-              (println "flows=" (count rows)
-                       " total-packets=" @total
-                       " topN=" topN " mode=" (name mode) " metric=" (name metric))))
-          ;; asynchronous path
-          (let [cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))
-                buf (case async-mode
-                      :dropping (async/dropping-buffer async-buffer)
-                      (async/buffer async-buffer))
-                pkt-ch (async/chan buf)
-                reader (async/thread
-                         (try
-                           (core/reduce-packets
-                            {:path in*
-                             :filter bpf
-                             :decode-mode :flow
-                             :max Long/MAX_VALUE}
-                            (fn [state packet]
-                              (swap! total inc)
-                              (when cancel-ch
-                                (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
-                                  (when port (reset! cancelled? true))))
-                              (when-not @cancelled?
-                                (if (= async-mode :dropping)
-                                  (when-not (async/offer! pkt-ch packet)
-                                    (swap! dropped inc))
-                                  (async/>!! pkt-ch packet)))
-                              state)
-                            nil)
-                           (finally (async/close! pkt-ch))))
-                _ (async/thread (async/<!! reader))
-                ;; consume
-                _ (loop []
-                    (when-let [p (async/<!! pkt-ch)]
-                      (add-packet! counts p bidir?)
-                      (recur)))
-                rows (top-rows counts metric topN)]
-            (ex/emit fmt rows)
-            (binding [*out* *err*]
-              (println "flows=" (count rows)
-                       " total-packets=" @total
-                       " topN=" topN " mode=" (name mode) " metric=" (name metric)
-                       " async=true" " buffer=" async-buffer " async-mode=" (name async-mode)
-                       " dropped=" @dropped " cancelled=" @cancelled?))))))))
+      (let [rf (flow/aggregate-rf {:direction mode :max-flows max-flows})
+            opts {:path in* :filter bpf :decode-mode :flow :max Long/MAX_VALUE}
+            {:keys [result total dropped cancelled?]}
+            (if async?
+              (async-aggregate opts rf execution)
+              (let [result (core/reduce-packets opts rf (rf))]
+                {:result result :total (get-in result [:summary :seen])}))
+            rows (display-rows result metric topN)]
+        (ex/emit fmt rows)
+        (binding [*out* *err*]
+          (print "flows=" (count rows) " total-packets=" total
+                 " topN=" topN " mode=" (name mode) " metric=" (name metric))
+          (when async?
+            (print " async=true" " buffer=" async-buffer " async-mode=" (name async-mode)
+                   " dropped=" dropped " cancelled=" cancelled?))
+          (println))))))

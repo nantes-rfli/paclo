@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P06: public `paclo.flow/key`, `aggregate-rf`, and `top-n` for canonical numeric
+  IPv4/IPv6 identity, unidirectional/bidirectional normalization, immutable exact
+  packet/captured/wire totals, required cardinality bounds and deterministic ties.
+  Invalid flows skip; eligible invalid lengths throw; counters promote on overflow.
+  Full decode's legacy string-address flow descriptor remains compatible.
+- Internal projection moved from `paclo.flow` to `paclo.flow.project`; supported
+  core packet transformations remain unchanged. `flow-topn` delegates analysis
+  to the library, retains display/format/async options and adds `--max-flows N`
+  (default 100000). Formerly unbounded captures can now exceed this budget; set
+  a larger explicit bound. Ties follow canonical order. Async cancellation stops
+  the reader, drop counts are accurate and reader/aggregate exceptions propagate.
+
 - P05: native `pcap_datalink` binding and integer DLT `:linktype` on raw packets
   across lazy reads, reductions/reports and managed capture. Acquire once after
   activation/open, fail without guessing Ethernet, and close on setup failure.

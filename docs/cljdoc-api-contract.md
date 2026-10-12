@@ -8,6 +8,7 @@ It is intentionally compact and focused on user-facing namespaces.
 Public namespaces:
 
 - `paclo.core`
+- `paclo.flow`
 - `paclo.stream`
 - `paclo.decode-ext`
 - `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
@@ -17,6 +18,7 @@ Internal namespaces (not covered by compatibility guarantees):
 
 - `paclo.pcap`
 - `paclo.parse`
+- `paclo.flow.project` (numeric packet projection; no compatibility guarantee)
 - `paclo.linktype`
 - `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
@@ -119,7 +121,7 @@ The best-effort nested representation is:
 | `[:decoded :l3 :l4 :src-port]`, `:dst-port` | Integer TCP/UDP ports; absent on fragments/other L4 |
 | `[:decoded :l3 :l4 :payload]` | Usually byte-array; truncated UDP retains the legacy empty vector |
 | `[:decoded :l3 :l4 :app]` | Minimal DNS on UDP/53, possibly nil when fewer than 12 DNS bytes; otherwise absent |
-| `[:decoded :l3 :flow-key]` | Existing string-address flow map, or nil after an incomplete IPv6 extension chain |
+| `[:decoded :l3 :flow-key]` | Legacy string-address display descriptor, or nil after an incomplete IPv6 extension chain |
 
 IPv4 includes header fields (`:version`, `:ihl` in bytes, `:total-length`, `:tos`,
 `:id`, `:flags-frag`, `:ttl`, `:header-checksum`); IPv6 includes `:version`,
@@ -440,6 +442,84 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
 
 - Behavior: prints repository usage hints for `clojure -M:run`
 - Note: convenience entrypoint, not an application runtime API
+
+## `paclo.flow`
+
+P06 adds three supported pure analysis functions in `[Unreleased]`.
+
+### `key`
+
+```clojure
+(flow/key projected-packet)
+(flow/key projected-packet {:direction :unidir})
+(flow/key projected-packet {:direction :bidir})
+```
+
+Returns a six-field canonical map with `:ip-version`, numeric `:protocol`,
+`:src-ip`, `:src-port`, `:dst-ip`, `:dst-port`, excluding metadata. IPv4 uses
+unsigned integers (`0..4294967295`); IPv6 uses `[high-long low-long]` signed-word
+vectors. Protocol ranges from 0 to 255. Both port keys are required; TCP/UDP
+ports are nil or integers `0..65535`, other protocols require nil ports.
+
+Default `:unidir` preserves direction. `:bidir` orders endpoints by unsigned
+address, then port (nil before zero). IPv6 words compare unsigned, high first.
+Version remains part of identity. Invalid/incomplete numeric inputs, presence
+of `:decode-error` (even nil), or flow-stage diagnostics return nil. Invalid
+direction throws `ex-info`. The function does not decode bytes or convert full
+decode. The legacy full-decode `:flow-key` retains its string-address display
+contract and performs no canonical normalization. For analysis, migrate grouping
+of that descriptor to numeric flow projection plus this API. No full-decode
+fields or released v1 contracts are removed.
+
+### `aggregate-rf`
+
+```clojure
+(flow/aggregate-rf {:direction :bidir :max-flows 10000})
+```
+
+Returns an ordinary 0/1/2-arity reducing function. Initialization is
+`{:flows {} :summary {:seen 0 :aggregated 0 :skipped 0}}`; completion is identity.
+Each flow stores `{:packets n :captured-bytes n :wire-bytes n}`. Seen includes
+all inputs; invalid keys increment skipped; eligible packets increment aggregated.
+No state is shared between reductions; all published state is immutable EDN
+data. Packet maps/bytes are never mutated. Capture and scheduling remain in core
+and stream APIs; the same reducer composes with reduce, transduce and all capture
+paths using an explicit `(rf)` initial value when needed.
+
+Eligible packets require integer `:caplen` and `:len` in `0..4294967295` with
+`caplen <= len`. Missing/invalid lengths throw `ex-info` with
+`:reason :invalid-lengths`; invalid keys skip length validation. Captured bytes
+sum caplen, wire bytes sum len. Every counter promotes to arbitrary precision
+integers on overflow. Configuration is excluded from aggregate data.
+
+`:max-flows` has no library default: require a positive integer. New keys beyond
+the bound throw `ex-info` with `:reason :max-flows`, `:max-flows` and `:flow`.
+Existing keys still update at the bound. No eviction or approximation occurs.
+Invalid options throw at reducer construction. Duration/expiration remain caller
+policy; windows and DNS correlation remain P07.
+
+### `top-n`
+
+```clojure
+(flow/top-n result {:metric :captured-bytes :n 10})
+```
+
+Returns vector rows `{:flow canonical-key :packets n :captured-bytes n
+:wire-bytes n}`. Metric defaults to `:packets`; alternatives are
+`:captured-bytes` and `:wire-bytes`. N defaults to 10 and must be a nonnegative
+integer; zero or zero flows returns `[]`. Invalid options throw `ex-info`.
+Descending metric ties use ascending version, protocol, source endpoint, then
+destination endpoint, following key's unsigned address/nil port rules. Results
+are independent of packet/map iteration order. Exact sorting uses O(F log F)
+time and O(F) additional memory for F flows.
+
+The `flow-topn` example now uses this API, retaining its display fields,
+`packets`/`bytes` (captured) metrics and EDN/JSONL. It adds `--max-flows N`, with
+a finite application default of 100000; formerly unbounded large captures need
+a larger explicit budget. Ties now use canonical numeric ordering. The previous
+internal projection namespace has moved to `paclo.flow.project`; unsupported
+consumers of `paclo.flow/packet->flow` or `project-packet` must update their
+requires, or use the supported `core/packet-xf {:decode-mode :flow}` instead.
 
 ## `paclo.stream`
 

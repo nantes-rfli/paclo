@@ -27,16 +27,16 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | done |
 | P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | done |
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
-| P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | in-progress |
-| P06 | v1.5 | Reusable flow keys and aggregates | P04 | ready |
+| P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | done |
+| P06 | v1.5 | Reusable flow keys and aggregates | P04 | in-progress |
 | P07 | v1.5 | Bounded time windows and DNS request/response analysis | P03, P04, P06 | blocked |
 | P08 | Later | Broader link-type and PCAPNG support | P05, concrete fixtures | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P05 review and merge**. P04 was accepted through
-merge of PR #31 on 2026-10-12; P06 is ready. P08 remains blocked pending
-P05 acceptance and a fixture-backed scope decision.
+Default next task: **P06 independent review and merge**. P05 was merged through
+PR #32 on 2026-10-12. P07 awaits P06 acceptance; P08 still needs a
+fixture-backed scope decision.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -107,7 +107,7 @@ registration changes after construction, and legacy behavior.
 
 Status: **done**. [PR #31](https://github.com/nantes-rfli/paclo/pull/31)
 was merged on 2026-10-12 at `17d8bf1`. Implementation and verification evidence
-is retained in the work log. P05 is in progress; P06 prerequisites are complete.
+is retained in the work log. P05 is accepted; P06 prerequisites are complete.
 
 Document packet and flow key types, timestamp units, missing/unsupported values,
 and metadata preservation. Use an additive contract; avoid requiring a heavy schema
@@ -129,11 +129,11 @@ Test meaningful invariants with `test.check` and validate performance impact.
 
 ## P05: Link-type awareness
 
-Status: **in-progress**. [PR #32](https://github.com/nantes-rfli/paclo/pull/32)
+Status: **done**. [PR #32](https://github.com/nantes-rfli/paclo/pull/32)
 implements native DLT metadata and safe Ethernet dispatch. Local verification
 and all 12 implementation CI jobs passed, including the supported platform
-matrix and ARM64 monitor. Evidence is tracked in the work log. Independent
-review and merge remain required.
+matrix and ARM64 monitor. Evidence is tracked in the work log.
+Merged on 2026-10-12 in main `7711170`.
 
 Full and flow decoding at the baseline assume Ethernet. Surface the actual source link type
 and dispatch or explicitly reject unsupported decoding, preserving raw capture access.
@@ -145,6 +145,19 @@ appear to be a valid Ethernet decode. Use Linux cooked and loopback fixtures to 
 the next supported types. Validate native calls on the existing platform matrix.
 
 ## P06: Reusable flow analysis
+
+Status: **in-progress** (implementation and local verification complete;
+independent review and merge remain required). Three public functions in
+`paclo.flow` use a six-field numeric canonical key, immutable bounded aggregates
+and deterministic Top-N. Projection moved to internal `paclo.flow.project`.
+Full decode retains its legacy display descriptor; CLI delegates analysis,
+adds --max-flows and preserves display formats. Tests include 650 property
+cases, real PCAP processing paths and independent fan-out; all 16 executable
+documentation examples pass, including the previous 14. Local performance gate
+and clean JAR consumer pass. Measurement evidence and limitations are in the
+work log; persistent analysis costs more than the old unchecked mutable CLI.
+After P06 acceptance, the next feature is **P07**, bounded windows and DNS
+correlation; those behaviors are not part of P06.
 
 Extract the useful behavior in `dev/examples/flow_topn.clj` into small supported
 functions: unidirectional/bidirectional keys, counts/bytes, and result projection.

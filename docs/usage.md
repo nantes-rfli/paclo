@@ -5,7 +5,8 @@ For installation and CLI entry examples, start from `README.md`.
 
 ## Mental model
 
-- `paclo.core` is the user-facing API.
+- `paclo.core` handles capture and packet transformation.
+- `paclo.flow` provides pure canonical keys, bounded aggregation and exact Top-N.
 - `packets` returns lazy packet maps from a file (`:path`) or device (`:device`).
 - `packet-xf` builds a reusable transducer for decoding or flow projection.
 - `reduce-packets` synchronously folds large or live captures without an
@@ -95,17 +96,9 @@ decode-configured `packet-xf` in `:xform`.
 
 ## Synchronous reduction
 
-```clojure
-(core/reduce-packets
- {:path "large.pcap"
-  :decode? true
-  :max Long/MAX_VALUE
-  :max-time-ms 3600000
-  :xform (keep #(get-in % [:decoded :l3 :flow-key]))}
- (fn [counts flow]
-   (update counts flow (fnil inc 0)))
- {})
-```
+For flow counts and byte totals, use the reducer in
+[reusable flow analysis](#reusable-flow-analysis). For other data, pass any
+ordinary two-argument reducing function and its initial value.
 
 The reducer may return `(reduced value)` to stop capture immediately and
 close the underlying source. For example, collect just two packet summaries:
@@ -508,3 +501,87 @@ assumption. Explicit nil/unknown/invalid values are rejected by full/flow; raw
 The writer remains Ethernet-only and does not preserve source `:linktype` or
 convert non-Ethernet bytes. Additional decoders, PCAPNG, interface metadata and
 complete source-file round trips remain P08 work.
+
+## Reusable flow analysis
+
+Require `[paclo.flow :as flow]`. Analysis consumes the flat numeric maps produced
+by `{:decode-mode :flow}`. Canonical identity is an EDN map:
+
+```clojure
+{:ip-version 4 :protocol 17
+ :src-ip 167772161 :src-port 12000
+ :dst-ip 167772162 :dst-port 53}
+```
+
+IPv4 addresses are unsigned integers in `0..4294967295`. IPv6 addresses are
+`[high-long low-long]` vectors of signed JVM words. Protocol stays numeric,
+including unknown protocols. Both port keys must be present; nil means unknown
+(TCP/UDP fragments) or inapplicable (ICMP/other protocols). Ports otherwise range
+from 0 to 65535. Metadata, bytes and lengths are excluded from identity.
+
+`(flow/key packet)` defaults to `:unidir`, distinguishing A→B from B→A.
+`(flow/key packet {:direction :bidir})` chooses the smaller endpoint as source.
+Addresses compare as unsigned numbers, including each IPv6 word; nil ports sort
+before zero. IP versions remain distinct. Invalid/incomplete fields, a present
+`:decode-error`, or flow-stage diagnostics return nil. Full-decode maps are not
+accepted. The legacy full-decode `:flow-key` remains a display descriptor with
+string IPs and protocol keywords; it performs no bidirectional normalization.
+Migrate analytical code that grouped that descriptor to flow projection plus
+`flow/key` or `flow/aggregate-rf`. Full decode output remains compatible.
+
+<!-- paclo-doc-test: usage-flow-analysis -->
+
+```clojure
+(require '[paclo.flow :as flow])
+
+(let [rf (flow/aggregate-rf {:direction :bidir :max-flows 10000})
+      packets (vec (core/packets {:path "test/resources/dns-sample.pcap"
+                                 :decode-mode :flow}))
+      result (reduce rf (rf) packets)]
+  {:same? (= result (transduce identity rf packets))
+   :summary (:summary result)
+   :top (flow/top-n result {:metric :wire-bytes :n 2})})
+```
+
+The standard reducing function supports initialization `(rf)`, update
+`(rf state packet)` and identity completion `(rf state)`. It retains no state
+between reductions. Use the same function with `core/reduce-packets`,
+`core/reduce-packets-report`, managed `core/capture-packets`, or independent
+fan-out branches. Own captures and branch handles with `with-open`; each branch
+has its own initial state. Analysis performs no I/O and does not mutate packets.
+
+Results are ordinary immutable data:
+
+```clojure
+{:flows {flow-key {:packets 3 :captured-bytes 120 :wire-bytes 150}}
+ :summary {:seen 4 :aggregated 3 :skipped 1}}
+```
+
+`:seen` counts all inputs; invalid keys increment `:skipped`. Eligible packets
+increment `:aggregated` and their flow's counters. Captured bytes sum `:caplen`;
+wire bytes sum `:len`. Eligible packets require both integer lengths in
+`0..4294967295`, with `:caplen <= :len`; missing/invalid lengths throw `ex-info`.
+They are never silently treated as zero. Invalid flows skip length validation.
+All counters promote to arbitrary precision integers on overflow. Configuration
+remains in the reducer closure and is absent from result data.
+
+`:max-flows` is required and must be a positive integer. New keys beyond that
+bound throw `ex-info` with `:reason :max-flows`; existing flows still update at
+the bound. No flows are evicted. This is exact finite aggregation; duration and
+expiration are the caller's responsibility until P07's windows.
+
+`flow/top-n` returns a vector of maps with `:flow` and the three counters.
+`:metric` is `:packets` (default), `:captured-bytes`, or `:wire-bytes`; `:n` is a
+nonnegative integer (default 10). Rank descending by metric, then ascending by
+IP version, protocol, source endpoint and destination endpoint. This total order
+also covers mixed IPv4/IPv6 and nil ports; input order cannot change ties.
+Exact sorting takes O(F log F) time and O(F) additional memory for F flows.
+
+The example CLI delegates identity, aggregation and ranking to these functions.
+It retains legacy display rows (`:flow {:proto ... :src ... :dst ...}`,
+`:packets`, `:bytes`), with bytes meaning captured bytes. Its finite default
+budget is 100000 unique flows, configurable with `--max-flows N`; formerly
+unbounded large captures may now fail and need an explicit larger budget. Ties
+are now deterministic numeric order. Async cancellation terminates the producer
+early; dropping statistics count discarded inputs and reader/aggregate failures
+propagate after channel cleanup. EDN/JSONL and blocking/dropping modes remain.
