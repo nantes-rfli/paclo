@@ -636,3 +636,12 @@ PR delivery:
   CheckStyle and JaCoCo; the unchanged Java line coverage gate passed at 41.1%
   against the existing 25% threshold. Initial evidence commit Markdown lint
   found one overlong plan line; wrapped it and reran the hook before delivery.
+
+Final contract-test audit:
+
+- Added one explicit successful TCP-port assertion group for full decode and flow
+  (`12000 -> 443`), complementing UDP, fragment, truncated transport and real TLS
+  path comparisons. `bash dev/script/codex.sh test -n paclo.diagnostics-test`
+  passes 12 tests / 270 assertions, including all 300 property cases. Focused
+  kondo and format checks pass. This final test-only addition changes no runtime
+  or performance code; the complete final CI is tracked in PR #31.

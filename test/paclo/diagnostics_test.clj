@@ -316,3 +316,12 @@
     (is (= 2 (count (:diagnostics (first (:result report))))))
     (is (= :reduced (get-in report [:stats :stop-reason])))
     (is (zero? (get-in report [:stats :packets :decode-errors])))))
+
+(deftest successful-tcp-ports-agree-with-full-decode
+  (let [packet {:bytes (data/ethernet-ipv4-frame 64 :tcp)}
+        flow (transform {:decode-mode :flow} packet)
+        full (transform {:decode? true :extensions []} packet)]
+    (is (= 6 (:protocol flow)))
+    (is (= [12000 443] (mapv flow [:src-port :dst-port])))
+    (is (= [12000 443] (mapv (get-in full [:decoded :l3 :l4]) [:src-port :dst-port])))
+    (is (not-any? #(contains? % :diagnostics) [flow full]))))
