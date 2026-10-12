@@ -194,8 +194,9 @@ groups and finalized/filled rows. Overflow fails before output. Sync/async
 share packet steps and one source-owning delivery adapter; cancellation/drop
 metadata never becomes analysis data. Corrected native RTT, average, empty fill,
 source EOF limits and deterministic ties are documented with regression tests.
-CI outcomes and platform/performance evidence are maintained on the independent
-PR; no merge, version change, publication or P06 issue #34 change is authorized.
+CI outcomes and platform/performance evidence are maintained on independent
+[PR #36](https://github.com/nantes-rfli/paclo/pull/36); no merge, version change,
+publication or P06 issue #34 change is authorized.
 P08 still requires a fixture-backed scope decision after P07-B acceptance.
 
 ## P08-P10: Evidence-driven expansion

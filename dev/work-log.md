@@ -1244,3 +1244,21 @@ P07-B measured follow-up and final verification:
   client 10.0.0.1/server 1.1.1.1 CLI filter returned one exact 15.817 ms pair.
   Full final documentation execution and independent PR/CI links are recorded
   in the PR description. No outstanding local gate failure remains.
+
+P07-B independent PR handoff:
+
+- Implementation committed as `e9cf87b`; created and attached independent
+  [PR #36](https://github.com/nantes-rfli/paclo/pull/36) with structure, removal,
+  analysis paths, watermark/retention/failure contracts, compatibility changes,
+  local checks, measured costs and unverified environments. No merge/tag/version
+  or publication. Supplied checkout stays on `codex/p07-b-dns-cli`.
+- Final core-inclusive documentation execution passed all 20 examples; parser
+  unit tests 15/15 and links passed. Commit-hook Markdown lint passed 30 files.
+  Existing optional SKIP_TESTS/SKIP_FMT/SKIP_KONDO switches avoided repeating
+  equivalent explicit checks; no hook/gate changed and Markdown hook remained on.
+- This evidence-only plan/log follow-up links the PR. CI's final head/run outcomes
+  are maintained in the PR description and checks after completion; local offline
+  evidence cannot substitute for the supported platform matrix. P07-B remains
+  in-progress solely for independent review/merge; next is P08 scope selection.
+- The first evidence-only commit attempt was rejected by Markdown MD013 on the
+  newly linked plan line; wrapped that line and reran the unchanged hook.
