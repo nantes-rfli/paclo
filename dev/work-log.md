@@ -1114,3 +1114,25 @@ P07-A implementation and local verification:
   acceptance. CLI migration, sync/async deduplication, snapshots, CSV/JSONL,
   percentiles, group Top-N and cancellation/drops are explicitly deferred.
   Exact all-history statistics require a finite-retention/approximation decision.
+
+P07-A PR and platform verification:
+
+- Committed implementation as `902eef8` and created independent
+  [PR #35](https://github.com/nantes-rfli/paclo/pull/35), attached to this task.
+  Pre-commit Markdown lint passed. Used existing SKIP_TESTS/SKIP_FMT/SKIP_KONDO
+  switches after equivalent explicit tests/lint/dry-format passed; no hook/gate
+  was modified. The final supplied checkout is clean after committing evidence.
+- [CI run 38258574756](https://github.com/nantes-rfli/paclo/actions/runs/38258574756)
+  passed **all 12 jobs** on `902eef8`: build-checks and required aggregate build,
+  documentation, Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64/JDK21 monitor,
+  three performance shards and their merger, Eastwood and coverage. No skipped
+  or failing job in this implementation run. Existing coverage/performance gates
+  and supported-platform requirements were not relaxed.
+- This verifies offline native/platform behavior and pure analysis, not live
+  capture, high-cardinality performance or sustained real-NIC throughput. The
+  PR description includes API decisions/alternatives, memory bounds, validation,
+  performance limitations and P07-B handoff. No merge, tag, version change or
+  Clojars publication. P07-A remains in-progress only for independent review/
+  acceptance; next plan action is review/merge, then P07-B CLI migration.
+- This evidence-only follow-up updates plan/log; final evidence-head CI is
+  checked separately in the PR description after it completes.

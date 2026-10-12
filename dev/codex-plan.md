@@ -35,7 +35,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P07-A CI and independent review**. P06 was merged
+Default next task: **P07-A independent review and merge**. P06 was merged
 through PR #33 on 2026-10-12 at `0665c09`. P07-B awaits P07-A acceptance;
 P08 still needs a fixture-backed scope decision.
 Implement one reviewable item or a documented slice at a time. Update this
@@ -174,9 +174,11 @@ before recommending unbounded-duration aggregation. Confine optimized mutation.
 
 ## P07-A: Pure bounded time windows and DNS correlation
 
-Status: **in-progress** (implementation and local checks complete; CI and
+Status: **in-progress** (implementation, local verification and CI complete;
 independent review/merge pending). `paclo.window` and `paclo.dns` provide ordinary
-immutable state transitions. The [pre-implementation design](p07-a-design.md)
+immutable state transitions. [PR #35](https://github.com/nantes-rfli/paclo/pull/35)
+is ready for independent review; all 12 implementation CI jobs passed on `902eef8`.
+The [pre-implementation design](p07-a-design.md)
 fixes event time, explicit watermarks, lateness, retries, ambiguity, quarantine,
 expiry and required cardinality limits. Reuse existing DNS decode/annotation.
 Validate determinism, EDN, immutable snapshots, bounded retention and actual
