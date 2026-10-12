@@ -29,7 +29,8 @@
   [^bytes frame ^long offset ^long required reason]
   (when (> (+ offset required) (alength frame))
     (throw (ex-info reason
-                    {:offset offset
+                    {:reason (if (zero? offset) :short-frame :truncated-header)
+                     :offset offset
                      :required required
                      :available (max 0 (- (alength frame) offset))}))))
 
@@ -93,10 +94,10 @@
         version (bit-shift-right version-ihl 4)
         header-length (* 4 (bit-and version-ihl 0x0f))]
     (when-not (= version 4)
-      (throw (ex-info "invalid IPv4 version" {:version version})))
+      (throw (ex-info "invalid IPv4 version" {:reason :malformed-packet :version version})))
     (when (< header-length 20)
       (throw (ex-info "invalid IPv4 header length"
-                      {:header-length header-length})))
+                      {:reason :malformed-packet :header-length header-length})))
     (require-bytes! frame offset header-length "truncated IPv4 options")
     (let [protocol (u8 frame (+ offset 9))
           flags-fragment (u16 frame (+ offset 6))
@@ -119,7 +120,7 @@
          non-first-fragment? false
          remaining-headers 16]
     (when (zero? remaining-headers)
-      (throw (ex-info "too many IPv6 extension headers" {})))
+      (throw (ex-info "too many IPv6 extension headers" {:reason :malformed-packet})))
     (case next-header
       (0 43 60)
       (do
@@ -163,7 +164,7 @@
   (require-bytes! frame offset 40 "truncated IPv6 header")
   (let [version (bit-shift-right (u8 frame offset) 4)]
     (when-not (= version 6)
-      (throw (ex-info "invalid IPv6 version" {:version version})))
+      (throw (ex-info "invalid IPv6 version" {:reason :malformed-packet :version version})))
     (let [{:keys [protocol non-first-fragment?]
            transport-offset :offset}
           (ipv6-transport frame (+ offset 40) (u8 frame (+ offset 6)))
@@ -189,7 +190,7 @@
       0x0800 (ipv4-flow frame offset packet)
       0x86dd (ipv6-flow frame offset packet)
       (throw (ex-info "unsupported flow ethertype"
-                      {:ethertype ethertype})))))
+                      {:reason :unsupported-ethertype :ethertype ethertype})))))
 
 (defn packet->flow
   "Project Ethernet IPv4/IPv6 bytes into numeric flow fields.

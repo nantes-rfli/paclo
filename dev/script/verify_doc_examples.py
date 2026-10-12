@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # Separate Clojure subprocesses keep examples isolated; limit contention on CI.
 MAX_WORKERS = 3
 REQUIRE = (
-    "(require '[paclo.core :as core] '[paclo.stream :as stream] "
+    "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] "
     "'[paclo.core :refer [packet-xf packets]] "
     "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
 )
@@ -36,6 +36,11 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "usage-structured-diagnostics": Check(
+        "Usage structured diagnostics", "clojure",
+        '(and (= (vec (repeat 4 :extension-exception)) (:reasons result)) '
+        '(:edn-roundtrip? result) (zero? (:decode-errors result)))',
+    ),
     "usage-explicit-extensions": Check(
         "Usage explicit DNS extensions", "clojure",
         '(and (= 4 (count result)) (every? #(= "DNS message" %) result))',
@@ -89,6 +94,10 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "usage-structured-diagnostics",
+    "usage-explicit-extensions",
+    "extensions-ordered-selection",
+    "extensions-fan-out",
     "usage-pcap-roundtrip",
     "offline-quick-start",
     "readme-packet-xf",

@@ -71,7 +71,8 @@
                 :ts-usec 2
                 :caplen 3
                 :len 4
-                :decode-error "bad flow"}
+                :decode-error "bad flow"
+                :diagnostics [{:stage :flow :reason :unexpected-failure}]}
                result))))))
 
 (deftest packet-xf-validates-options-when-created

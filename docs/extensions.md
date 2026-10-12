@@ -51,7 +51,12 @@ Full decode runs extensions before the user `:xform`, through the same
 - Extensions run only when `:decoded` is present and `:decode-error` is absent.
   Exceptions and non-map results, including `nil`, preserve the preceding map.
   Later functions continue. This is the same failure isolation as global hooks;
-  it does not add error statistics or structured diagnostics (planned for P04).
+  the default `:extension-error-mode :ignore` preserves these outputs.
+  Opt into `:report` to append EDN diagnostics for exceptions/non-map results,
+  with zero-based indices in execution order (also for global hooks).
+  See the [canonical diagnostics contract](cljdoc-api-contract.md#structured-diagnostics)
+  and [executable example](usage.md#packet-contracts-and-diagnostics).
+  Existing decode-error counters and capture `:error-mode` remain separate.
 
 The supported ordinary annotation functions are `dns-ext/annotate-dns` and
 `tls-ext/annotate-tls-sni`. Existing `register!` functions install those same

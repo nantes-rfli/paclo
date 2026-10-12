@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P04: canonical raw/full/flow packet data contracts and additive EDN
+  `:diagnostics` with stable stage/reason fields and byte locations when known.
+  Existing decoded values, `:decode-error` strings and statistics v1 are retained.
+- Opt-in full-decode `:extension-error-mode :report` for isolated exception and
+  non-map hook failures, ordered by zero-based execution index for explicit and
+  global hooks. Default `:ignore` retains legacy outputs; invalid settings fail
+  before source open. Three-argument `decode-ext/apply!` shares the hook runner.
+
 - P03: ordered `:extensions` function vectors for full decode in `packet-xf`,
   `packets`, synchronous reductions/reports, and managed capture. Explicit
   selection retains duplicates and is independent of the global registry;

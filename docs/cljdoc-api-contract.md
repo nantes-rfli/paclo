@@ -20,6 +20,153 @@ Internal namespaces (not covered by compatibility guarantees):
 - `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
 
+## Packet data contracts
+
+These contracts describe built-in transformations before user extensions and
+`:xform`. They share one implementation across `packet-xf`, `packets`, both
+synchronous reductions, and managed capture. User functions can replace maps,
+remove keys, or change their shape; Paclo does not validate every output packet.
+Full and flow decoding currently assume Ethernet (including VLAN tags), without
+source link-type detection. Additional link types and PCAPNG are outside P04.
+
+### Raw capture packets
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `:bytes` | Java `byte[]` | Captured bytes; mutable, not persistent Clojure data |
+| `:ts-sec` | integer | Epoch seconds as returned by native libpcap |
+| `:ts-usec` | integer | Microsecond component, normally `0..999999` |
+| `:caplen` | integer | Captured byte count, equal to array length |
+| `:len` | integer | Original wire length; truncation has `:caplen < :len` |
+
+Normal native reads supply all five keys. `packet-xf {}` preserves its input
+unchanged, including missing metadata. Metadata is not inferred or repaired by
+decoding. Reader timestamp boundaries depend on libpcap; see the
+[writer portability note](#write-pcap) for post-2038 seconds. File open, malformed
+PCAP records and read failures can throw or terminate according to capture error
+policy; they do not necessarily yield a packet map or packet diagnostics.
+
+Fan-out shares the same packet map and byte-array references across branches.
+An immutable map does not make its array immutable. Treat published bytes as
+read-only; copy explicitly before modifying them:
+
+```clojure
+(let [private-bytes (aclone ^bytes (:bytes packet))]
+  (aset-byte private-bytes 0 (byte 0))
+  (assoc packet :bytes private-bytes))
+```
+
+Paclo does not copy every packet for fan-out or diagnostics.
+
+### Full decode packets
+
+`{:decode? true}` preserves input keys and metadata, adding `:decoded` on parse
+success or the existing string `:decode-error` on a thrown decode failure.
+Ordinary successful packets omit `:diagnostics`. Existing input keys are retained;
+for example a pre-existing `:decode-error` key prevents extension execution even
+when its value is nil. A successful decode does not clear such a key.
+
+The best-effort nested representation is:
+
+| Path | Built-in values |
+| --- | --- |
+| `:decoded` | Ethernet map: `:type :ethernet`, string MAC `:src`/`:dst`, numeric `:eth`, `:l3` |
+| `[:decoded :vlan-tags]` | Vector of maps with `:tpid`, `:pcp`, boolean `:dei`, `:vid`; normally absent without tags |
+| `[:decoded :l3]` | IPv4, IPv6, ARP or `{:type :unknown-l3 :eth number}` |
+| `[:decoded :l3 :src]`, `:dst` | IP strings for IPv4/IPv6; IPv6 also has `:src-compact`/`:dst-compact` |
+| `[:decoded :l3 :protocol]` | IPv4 protocol number; absent for IPv6 |
+| `[:decoded :l3 :next-header]` | IPv6 final next-header number, or nil for an incomplete extension chain |
+| `[:decoded :l3 :l4]` | TCP/UDP/ICMP map, fragment map or `:unknown-l4` map; absent on ARP/unknown L3 |
+| `[:decoded :l3 :l4 :src-port]`, `:dst-port` | Integer TCP/UDP ports; absent on fragments/other L4 |
+| `[:decoded :l3 :l4 :payload]` | Usually byte-array; truncated UDP retains the legacy empty vector |
+| `[:decoded :l3 :l4 :app]` | Minimal DNS on UDP/53, possibly nil when fewer than 12 DNS bytes; otherwise absent |
+| `[:decoded :l3 :flow-key]` | Existing string-address flow map, or nil after an incomplete IPv6 extension chain |
+
+IPv4 includes header fields (`:version`, `:ihl` in bytes, `:total-length`, `:tos`,
+`:id`, `:flags-frag`, `:ttl`, `:header-checksum`); IPv6 includes `:version`,
+`:traffic-class`, `:flow-label`, `:payload-length`, `:hop-limit`. Both include
+boolean `:frag?` and `:frag-offset` (8-byte units, nil without fragmentation).
+TCP exposes sequence/acknowledgement numbers, flags, window/checksum,
+`:urgent-pointer`, `:header-len` and `:data-len` in bytes. UDP exposes `:length`,
+`:checksum`, `:data-len`. ICMP exposes `:icmp-type`, `:code`, `:checksum`, names,
+summary and payload. ARP uses `:op`, MAC `:sha`/`:tha` and IPv4 `:spa`/`:tpa`
+strings (nil for other protocol types); incomplete ARP can be only `{:type :arp}`.
+
+These are partial parsers, without checksum validation or reassembly. Unknown
+Ethertype remains `:unknown-l3` with a diagnostic; unknown L4 protocol remains
+`:unknown-l4` with `:proto` and payload and does not itself generate a diagnostic.
+Noninitial fragments retain `:ipv4-fragment`/`:ipv6-fragment`, offset and payload.
+Truncated UDP retains `:unknown-l4` with `:reason :truncated-udp` and a diagnostic;
+incomplete IPv6 extension chains retain nil next-header/flow-key and unknown L4.
+Other insufficient headers can throw and produce `:decode-error`. Available
+bytes can be parsed even when the declared payload length exceeds capture length.
+Diagnostics are not a complete validation or completeness guarantee. Missing
+keys, present nil values and explicit unknown keywords have different meanings.
+DNS/TLS annotation functions follow the [extension contract](#supported-protocol-annotations).
+
+### Flow projection packets
+
+`{:decode-mode :flow}` normally returns only these flat fields:
+
+| Key | Type / missing value | Meaning |
+| --- | --- | --- |
+| `:ip-version` | integer 4 or 6 | IP version |
+| `:protocol` | integer | IPv4 protocol / IPv6 final next-header number |
+| `:src-ip`, `:dst-ip` | unsigned integer `0..4294967295` or two-long vector | IPv4 numeric address / IPv6 `[high-long low-long]` with signed JVM words |
+| `:src-port`, `:dst-port` | integer `0..65535` or nil | TCP/UDP ports; nil for other protocols or noninitial fragments |
+| `:ts-sec`, `:ts-usec`, `:caplen`, `:len` | original value or nil | Capture metadata, always present in flow output |
+
+Flow reads only the first four transport bytes needed for ports. It can succeed
+where full decode rejects a short TCP/UDP header. It skips supported IPv6 extension
+headers with a bounded chain and does not validate all lengths/checksums. Invalid
+IP version/header length, short frames/headers, and unsupported Ethertypes return
+the four metadata keys plus string `:decode-error` and `:diagnostics`, without
+flow fields. ARP is unsupported for flow projection. Neither success nor failure
+includes raw `:bytes` or nested `:decoded`. Existing diagnostics are retained.
+
+### Structured diagnostics
+
+P04 adds `:diagnostics` only when an issue is observed: a vector of ordinary EDN
+maps, ordered by discovery/execution. Every entry requires keyword `:stage` and
+`:reason`. Decode failures retain their prior `:decode-error` text; a best-effort
+partial/unsupported decode can have diagnostics and `:decoded` without an error.
+
+| Stage | Reason | Classification |
+| --- | --- | --- |
+| `:decode`, `:flow` | `:short-frame` | Fewer than 14 Ethernet bytes (missing full-decode bytes also uses zero available) |
+| `:decode`, `:flow` | `:truncated-header` | Known required header bytes are missing |
+| `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length or invalid IPv6 options; flow also bounds extension chains |
+| `:decode`, `:flow` | `:unsupported-ethertype` | Decoder has no implementation for this Ethertype; includes numeric `:ethertype` |
+| `:decode`, `:flow` | `:unexpected-failure` | Unclassified exception; no inference from its message |
+| `:extension` | `:extension-exception` | Hook threw; includes `:exception-class` and `:message` strings |
+| `:extension` | `:extension-non-map` | Hook returned any non-map value, including nil |
+
+When known, `:location` is `{:offset integer :required integer :available integer}`:
+zero-based absolute frame byte offset of the required region, its required size,
+and available captured bytes in that region/buffer. Units are bytes. Omit it when
+no precise region is available. Stages/reasons are additive stable keywords;
+consumers should tolerate future values and extra fields. No Throwable, function,
+byte-array or native pointer is retained in built-in diagnostics. Diagnostics can
+round-trip through `pr-str` / `clojure.edn/read-string`; entire packets containing
+byte arrays cannot be assumed to do so.
+
+`:extension-error-mode :ignore|:report` is for full decode only. Omission defaults
+to `:ignore`, preserving legacy hook outputs and failure isolation. Explicit use
+requires literal `:decode? true`; nil/unknown modes and raw/flow combinations throw
+`ex-info` before source open. With `:report`, failures append diagnostics with
+zero-based `:index` in selected/global execution order. Failed results are discarded
+and later functions receive the preceding map plus diagnostics. Global registration
+remains dynamic; arbitrary registry keys are not stored in diagnostics. User hooks
+and `:xform` can themselves reshape/remove diagnostics, as with other packet keys.
+Capture `:error-mode :throw|:pass` governs source failures separately.
+
+Statistics retain schema version 1 and their existing fields: `:stop-reason`,
+`:error`, `:state` where applicable and all counters. `:packets :decode-errors`
+counts the existing truthy `:decode-error` after built-in transformation, before
+`:xform`; unsupported best-effort decoding and extension diagnostics alone do not
+increment it. No diagnostic counters are added to reduction, capture or fan-out
+statistics. Packet diagnostics are the primary record; reducers can collect them.
+
 ## `paclo.core`
 
 ### `bpf`
@@ -50,6 +197,8 @@ Internal namespaces (not covered by compatibility guarantees):
     `:decode? true`. Key presence matters: `nil`, other collection types and
     non-function elements throw `ex-info` at construction. Raw and flow modes
     reject explicit selection, including `[]`
+  - `:extension-error-mode`: full-decode hook failure policy; see
+    [structured diagnostics](#structured-diagnostics)
 - `:decode?` and `:decode-mode` are mutually exclusive; unsupported
   decode modes and combined options throw `ex-info` at construction
 - With full decode, omission of `:extensions` uses the current process-wide
@@ -328,6 +477,7 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
 ```clojure
 (apply! m)
 (apply! m extensions)
+(apply! m extensions error-mode)
 ```
 
 - Applies hooks only when `m` is a map with `:decoded` and without `:decode-error`
@@ -340,7 +490,10 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
   hooks when processing packets. The two-argument arity applies only the
   supplied functions, in their supplied order, with the same eligibility and
   failure policy. Core validates `:extensions` at construction; this lower-level
-  function does not validate configuration.
+  function does not validate configuration. The third arity takes `:ignore`
+  or `:report`, with nil extensions selecting current global hooks; the two-argument
+  arity retains its previous nil-as-empty behavior. Reporting follows the
+  [diagnostics contract](#structured-diagnostics).
 
 ## Supported protocol annotations
 
