@@ -13,7 +13,7 @@
    [clojure.string :as str]
    [paclo.capture :as capture]
    [paclo.decode-ext :as decode-ext]
-   [paclo.flow :as flow]
+   [paclo.flow.project :as flow]
    [paclo.linktype :as linktype]
    [paclo.parse :as parse]
    [paclo.pcap  :as pcap])

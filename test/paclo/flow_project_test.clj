@@ -1,9 +1,9 @@
-(ns paclo.flow-test
+(ns paclo.flow-project-test
   (:require
    [clojure.test :refer [deftest is]]
    [paclo.core :as core]
    [paclo.dev.perf-data :as data]
-   [paclo.flow :as flow]
+   [paclo.flow.project :as flow]
    [paclo.test-util :as test-util]))
 
 (deftest projects-ipv4-udp-with-numeric-addresses

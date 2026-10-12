@@ -1,4 +1,4 @@
-(ns paclo.flow
+(ns paclo.flow.project
   "Internal low-allocation flow projection for Ethernet IP packets."
   (:require
    [paclo.linktype :as linktype]))

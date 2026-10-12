@@ -4,7 +4,7 @@
    [paclo.core :as core]
    [paclo.decode-ext :as decode-ext]
    [paclo.dev.perf-data :as data]
-   [paclo.flow :as flow]
+   [paclo.flow.project :as flow]
    [paclo.parse :as parse]
    [paclo.pcap :as pcap]))
 
