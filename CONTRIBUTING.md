@@ -79,6 +79,16 @@ environment smoke command calls `shutdown-agents` when complete.
 
 ## Verification by change
 
+Maintained documentation examples carry `<!-- paclo-doc-test: <id> -->` markers
+immediately before their code fences. The executable-example checker discovers
+these in the root README and current `docs/` pages (excluding `docs/archive/`).
+Register each new ID, its language, and its result check in
+`dev/script/verify_doc_examples.py`; unknown, missing, or duplicate IDs fail.
+Run `python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'`
+for the parser and, after compiling Java, run
+`python3 dev/script/verify_doc_examples.py` for the actual offline examples.
+
+
 | Change | Required local evidence |
 | --- | --- |
 | Docs only | Markdown lint; execute changed examples where applicable |
