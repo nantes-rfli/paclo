@@ -659,5 +659,123 @@ release retired keys. A late event before the watermark is classified. Limits
 bound pending and retired cardinality; no silent eviction. Finish emits unfinished
 queries and clears retention. Only standard unfragmented UDP/53 with at most one
 question is supported. The [full contract](cljdoc-api-contract.md#paclodns) defines
-all event/error shapes and assumptions. P07-B will migrate dns-rtt/dns-qps and
-own CLI output, quantiles, Top-N and execution adapters.
+all event/error shapes and assumptions. The DNS CLIs below use these APIs and
+own output, quantiles, Top-N and execution adapters.
+
+## Bounded DNS CLI reports (P07-B)
+
+The repository examples now use P07-A's pure analysis APIs. `dns-rtt` decodes
+with explicitly selected `annotate-dns`, projects `dns/packet->event`, and uses
+`dns/advance`, `step` and `finish`. `dns-qps` extracts groups from full-decode DNS
+app data and uses `window/advance`, `step` and `finish`. It counts packets,
+including queries and responses; it does not count DNS transactions. A packet
+with insufficient question information for RTT can still contribute to QPS.
+QPS rows contain counts per bucket; divide by bucket seconds to obtain a rate.
+Bytes always mean captured `caplen`, not wire length. The QPS client/server
+labels preserve the existing source/destination IP grouping semantics.
+
+Both CLIs retain their positional arguments, `_` placeholders, formats, filters,
+rankings, alert and Punycode options. RTT EDN emits a vector for pairs/qstats
+and a map for stats; JSONL emits one map per line. QPS also supports CSV with
+`t_ms,key,count,bytes`. Analysis and execution metadata go to stderr.
+
+### Event time and strict matching
+
+Native `:ts-sec`/`:ts-usec` are converted to exact integer microseconds. RTT
+samples stay in microseconds until display in milliseconds. There is no legacy,
+floating timestamp or wall-clock fallback. Before admitting each delivered
+packet, the adapter advances the watermark to maximum observed packet time
+minus `--reorder-us` (default 0). This expires state across idle gaps and never
+moves backward. For windows, allowed lateness is zero: the reorder allowance
+is applied once. DNS input older than watermark is late; QPS input remains
+eligible until its window end is at/before watermark. EOF calls `finish`.
+QPS emits retained tail windows and reports `:open-tail-windows`; these were
+not closed by the watermark. Wall time controls async cancellation only.
+
+DNS pairs require the full endpoint/version/ID/question key. Missing questions,
+unsupported/incomplete packets, unmatched responses, negative RTT and late
+input never become guessed pairs. Identical pending queries are retries using
+the earliest query time. Completed/expired identical keys remain quarantined
+until their first-query deadline plus reuse delay; immediate reuse/duplicate
+responses are diagnostics. Response-before-query is not buffered. Configure
+`--timeout-us` and `--reuse-delay-us` (both default 5000000) for the traffic's
+horizon. Counts for timeout, unfinished, ambiguity, reuse, duplicate responses,
+late/ineligible input and completed-query retransmissions appear in stderr
+`:diagnostics`. This cannot disambiguate identical overlapping requests or
+arbitrarily delayed duplicates beyond the configured horizon.
+
+### Memory and failure policy
+
+| State | Option | Default | Policy |
+| --- | --- | --- | --- |
+| Pending DNS queries | `--max-pending` | 100000 | Fail on new key beyond limit |
+| Retired DNS keys | `--max-retired` | 100000 | Fail; never silently evict quarantine |
+| pairs candidates | positional topN | 50 | Retain only smallest topN RTTs |
+| stats/qstats integer RTT samples, total | `--max-samples` | 1000000 | Exact nearest-rank percentiles; fail beyond limit |
+| qstats question groups | `--max-qnames` | 100000 | Fail beyond limit |
+| Active QPS windows | `--max-windows` | 10000 | Fail beyond limit |
+| Active window/group combinations, total | `--max-groups` | 200000 | Independent from output bound |
+| Finalized QPS rows, and final filled rows | `--max-buckets` | 200000 | Fail instead of truncating |
+
+Exact percentiles need a sample per matched pair. qstats stores samples only
+in its groups, with the same total sample bound; pairs retains no sample
+history. Set topN no greater than max-samples. Counters do not retain completed
+events or raw packets. Limits count entries, not caller-supplied string bytes;
+sorting, filling and serialization need additional bounded working space.
+All bounds and bucket width must be positive. Reorder and async timeout are
+nonnegative. Empty-bucket fill keeps every group in occupied windows and adds
+`:_all` only in wholly empty windows. Empty-per-key takes
+precedence and fills the full bucket/key product. Promoting arithmetic checks
+the complete row count before generating either fill, including huge gaps.
+
+No stdout report is emitted until analysis, finish, ranking and fill succeed.
+Capacity/read/reducer errors exit 5 without a result. Usage exits 1, missing
+input 2, invalid enum 3, invalid flags/numeric options 4. Cancellation and drops
+may emit a partial report with exit 0; stderr `:complete? false` makes this
+explicit. `:complete? true` means all delivered source packets were processed,
+not that all network transactions have responses. Late/unsupported packets
+are separately counted.
+
+### Delivery and migration
+
+Sync uses `core/reduce-packets`; async uses one owning reduction producer and
+an explicitly bounded fixed channel. Both call the same pure packet step and
+finish functions. Buffer mode applies backpressure; dropping mode uses `offer!`
+and counts packets that could not enter the channel. Dropped packets are not
+analyzed. Timeout 0 delivers nothing and does not open the source. Cancellation
+stops reads, releases blocked puts, closes the capture and joins the producer;
+source and reducer exceptions propagate. Independent runs do not share extension
+registration or analysis state. Matching and aggregation are reproducible for
+the same delivered packet order, reorder allowance and limits.
+
+Intentional changes: RTT no longer reports nil from the old sec/usec bug; average
+no longer truncates fractional milliseconds. Strict question matching, retries,
+expiry and quarantine may reduce pair counts compared with the old ID-only
+matcher. Async execution metadata is never counted as a pair. QPS removes
+floating/partial timestamp fallbacks, floors negative times correctly, orders
+count ties by printed key, preserves simultaneous groups during empty fill,
+and fails on output overflow instead of silently truncating. Punycode decoding
+also handles xn-- labels following a plain leading label. The existing QPS
+fixture snapshot is unchanged. The before/after contract tables are in the
+[CLI migration design](../dev/p07-b-design.md).
+
+<!-- paclo-doc-test: usage-bounded-dns-cli -->
+
+```clojure
+(require '[clojure.edn :as edn]
+         '[examples.dns-rtt :as rtt] '[examples.dns-qps :as qps])
+(let [stats (edn/read-string
+             (with-out-str
+               (rtt/-main "test/resources/dns-sample.pcap" "_" "_" "stats")))
+      rows (edn/read-string
+            (with-out-str
+              (qps/-main "test/resources/dns-sample.pcap" "_" "1000" "rcode" "edn"
+                         "--async" "--async-buffer" "1")))]
+  {:pairs (:pairs stats) :average-ms (get-in stats [:rtt :avg])
+   :dns-packets (reduce + (map :count rows))})
+```
+
+Offline input now runs to EOF rather than inheriting the capture API's default
+100-packet/10-second limits (old QPS inherited both; old RTT inherited 10 seconds).
+The adapter supplies an effectively unbounded, overflow-safe duration; only
+explicit async timeout/cancellation or a report limit ends delivery early.

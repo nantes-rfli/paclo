@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and explicit annotations, matches endpoint/version/ID/question keys, tracks
   earliest-query retries, classifies ambiguity/unmatched/negative RTT and bounds
   retired-key quarantine against immediate ID reuse/duplicate responses.
-  Existing DNS CLI migration/reporting remains P07-B; no capture behavior changes.
+  Capture behavior is unchanged; CLI migration is described below.
 
 - P06: public `paclo.flow/key`, `aggregate-rf`, and `top-n` for canonical numeric
   IPv4/IPv6 identity, unidirectional/bidirectional normalization, immutable exact
@@ -60,6 +60,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fan-out branches. Existing registration and best-effort parsing remain intact.
 - Two-argument `paclo.decode-ext/apply!` for supplied functions, sharing the
   existing decode eligibility, exception isolation and non-map result policy.
+
+### Changed
+
+- P07-B: DNS RTT/QPS examples delegate to `paclo.dns`/`paclo.window`, use explicit
+  DNS extensions and one shared sync/async reducer adapter. Event time is exact
+  native microseconds; monotonic max-time minus `--reorder-us` drives expiry.
+  New pending/retired/window/group/sample/qname limits bound analysis and reports.
+  pairs retains only topN candidates; stats/qstats keep bounded exact samples.
+  QPS max-buckets bounds finalized and empty-filled output; overflow now exits 5
+  before stdout instead of silently truncating. Cancellation/drop reports carry
+  incomplete metadata; source/reducer failures close and join the owning producer.
+- RTT now uses strict question-aware correlation, earliest-query retries,
+  expiry and retired-key quarantine. Missing questions, negative RTT and late or
+  unmatched responses are diagnostic counts, never guessed pairs. This can change
+  historical pair counts. Fix native timestamp keys and fractional average;
+  async metadata no longer contaminates statistics. QPS remains packet counts,
+  fixes negative/large timestamps and empty fill losing simultaneous groups,
+  adds deterministic ties and decodes Punycode in non-leading labels. Offline
+  reports now read to EOF, removing inherited 100-packet/10-second capture caps.
+- Measured DNS advance allocation improvement: remove only expired retired keys
+  instead of reconstructing every live quarantine entry at each watermark;
+  immutable snapshots, expiry boundaries and the public API remain unchanged.
 
 ### Fixed
 

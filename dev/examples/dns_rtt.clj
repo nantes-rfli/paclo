@@ -1,425 +1,144 @@
 (ns examples.dns-rtt
   (:require
-   [clojure.core.async :as async]
-   [clojure.data.json :as json]
    [clojure.string :as str]
    [examples.common :as ex]
-   [paclo.core :as core]
-   [paclo.proto.dns-ext :as dns-ext]))
+   [examples.dns-cli :as cli]
+   [paclo.dns :as dns]))
 
-;; -------- usage/help --------
+(def defaults
+  {:mode :pairs :topn 50 :metric :pairs :max-pending 100000 :max-retired 100000
+   :timeout-us 5000000 :reuse-delay-us 5000000 :max-samples 1000000 :max-qnames 100000})
 
 (defn- usage []
   (binding [*out* *err*]
-    (println "Usage:")
-    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt <in.pcap>"
-             " [<bpf-string>] [<topN>] [<mode>] [<metric>] [<format>] [<alert%>]"
-             " [--client <prefix>] [--server <prefix>] [--async] [--async-buffer N] [--async-mode buffer|dropping] [--async-timeout-ms MS]")
-    (println)
-    (println "Defaults:")
-    (println "  <bpf-string> = 'udp and port 53'")
-    (println "  <topN>       = 50 (used by pairs/qstats)")
-    (println "  <mode>       = pairs | stats | qstats   (default: pairs)")
-    (println "  <metric>     = pairs | with-rtt | p50 | p95 | p99 | avg | max (qstats only; default: pairs)")
-    (println "  <format>     = edn | jsonl (default: edn)")
-    (println "  <alert%>     = NXDOMAIN+SERVFAIL threshold (example: 5 -> 5%)")
-    (println "  --client/-c  <prefix>   : 192.168.4.28  or  192.168.4.28:5")
-    (println "  --server/-s  <prefix>   : 1.1.1.1       or  1.1.1.1:53")
-    (println "  async        = opt-in (backpressure/drop/cancel). Defaults: buffer=1024, mode=buffer")
-    (println "  Tips         = optional args can be skipped with '_' (e.g., '_' for <alert%>)")
-    (println)
-    (println "Examples:")
-    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap")
-    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 10")
-    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 50 stats jsonl 2.5")
-    (println "  clojure -M:dev:dns-ext -m examples.dns-rtt test/resources/dns-sample.pcap 'udp and port 53' 20 qstats p95 jsonl --server 1.1.1.1:53")))
+    (println "Usage: clojure -M:dev:dns-ext -m examples.dns-rtt <in.pcap> [bpf] [topN] [pairs|stats|qstats] [metric] [edn|jsonl] [alert%]")
+    (println "Options: --client/-c PREFIX --server/-s PREFIX --reorder-us N --timeout-us N --reuse-delay-us N --max-pending N --max-retired N --max-samples N --max-qnames N")
+    (println "Delivery: --async --async-buffer N --async-mode buffer|dropping --async-timeout-ms MS; use '_' to skip positionals.")))
 
-;; -------- tiny helpers --------
+(def ^:private rcode-names
+  {0 :noerror 1 :formerr 2 :servfail 3 :nxdomain 4 :notimp 5 :refused
+   6 :yxdomain 7 :yxrrset 8 :nxrrset 9 :notauth 10 :notzone})
+(def ^:private qtype-names {1 :A 2 :NS 5 :CNAME 6 :SOA 12 :PTR 15 :MX 16 :TXT 28 :AAAA 33 :SRV 64 :SVCB 65 :HTTPS})
 
-(defn- micros [{:keys [sec usec]}]
-  (when (and (number? sec) (number? usec))
-    (+ (* (long sec) 1000000) (long usec))))
+(defn- rcode-name [n] (get rcode-names n (if (nil? n) :unknown (keyword (str "rcode-" n)))))
+(defn- endpoint [{:keys [ip port]}] (str ip ":" port))
+(defn- pair-order [row]
+  [(:rtt-us row) (:client row) (:server row) (:id row) (:qname row) (:qtype row) (:rcode row)])
+(defn- match-filter? [prefix value] (or (nil? prefix) (str/starts-with? value prefix)))
 
-(defn- endpoint [m side]
-  (let [ip (get-in m [:decoded :l3 (case side :src :src :dst :dst)])
-        p  (get-in m [:decoded :l3 :l4 (case side :src :src-port :dst :dst-port)])]
-    (str ip (when p (str ":" p)))))
+(defn init [options]
+  (let [opts (merge defaults cli/execution-defaults options)]
+    (doseq [k [:topn :max-samples :max-qnames]]
+      (when-not (and (integer? (k opts)) (pos? (k opts)))
+        (throw (ex-info "invalid report bound" {:reason :invalid-options :option k}))))
+    (cli/limit! :max-samples (:topn opts) (:max-samples opts))
+    {:options opts :reorder-us (:reorder-us opts)
+     :analysis (dns/init opts) :diagnostics {} :pairs 0 :rcode {} :samples [] :qstats {} :candidates []}))
 
-(defn- starts-opt? [s] (and (string? s) (str/starts-with? s "-")))
+(defn- consume [state event]
+  (let [state (if (pos? (or (:retransmissions event) 0))
+                (update-in state [:diagnostics :retransmissions] (fnil +' 0) (:retransmissions event))
+                state)]
+    (if (not= :match (:kind event))
+      (cli/diagnostic state event)
+      (let [q (:query event) r (:response event) opts (:options state)
+            row {:id (:id q) :qname (:qname q) :qtype (:qtype q)
+                 :client (endpoint (:src q)) :server (endpoint (:dst q))
+                 :rtt-us (:rtt-us event) :rcode (rcode-name (:rcode r))}]
+        (if-not (and (match-filter? (:client opts) (:client row))
+                     (match-filter? (:server opts) (:server row)))
+          state
+          (let [n (inc' (:pairs state))
+                base (-> state (assoc :pairs n) (update-in [:rcode (:rcode row)] (fnil inc' 0)))]
+            (case (:mode opts)
+              :pairs (update base :candidates
+                             #(vec (take (:topn opts) (sort-by pair-order (conj % row)))))
+              :stats (do (cli/limit! :max-samples n (:max-samples opts))
+                         (update base :samples conj (:rtt-us row)))
+              :qstats
+              (let [name (:qname row) group (get-in base [:qstats name])]
+                (cli/limit! :max-samples n (:max-samples opts))
+                (cli/limit! :max-qnames (+ (count (:qstats base)) (if group 0 1)) (:max-qnames opts))
+                (-> base
+                    (update-in [:qstats name :samples] (fnil conj []) (:rtt-us row))
+                    (update-in [:qstats name :rcode (:rcode row)] (fnil inc' 0)))))))))))
 
-;; -------- DNS header parse --------
+(defn step [state packet]
+  (let [s (cli/advance-packet state packet dns/advance consume)]
+    (if-let [event (dns/packet->event packet)]
+      (cli/transition s (dns/step (:analysis s) event) consume)
+      (update-in s [:diagnostics :ineligible-packet] (fnil inc' 0)))))
 
-(defn- u8 [^bytes ba ^long i]
-  (when (and ba (<= 0 i) (< i (alength ba)))
-    (bit-and 0xFF (aget ba i))))
+(defn finish [state]
+  (cli/transition state (dns/finish (:analysis state)) consume))
 
-(defn- u16 [^bytes ba ^long i]
-  (when-let [hi (u8 ba i)]
-    (when-let [lo (u8 ba (inc i))]
-      (bit-or (bit-shift-left hi 8) lo))))
+(defn- milliseconds [us] (when (some? us) (/ (double us) 1000.0)))
+(defn- nearest-rank [xs p]
+  (when (seq xs) (nth xs (dec (max 1 (long (Math/ceil (* p (count xs)))))))))
 
-(defn- parse-dns-header
-  "Parse DNS header fields from payload.
-  Returns {:id <u16> :qr? <bool>} or nil."
-  [^bytes ba]
-  (when (and ba (<= 12 (alength ba)))
-    (let [id    (u16 ba 0)
-          flags (u16 ba 2)]
-      (when (and id flags)
-        {:id id :qr? (pos? (bit-and flags 0x8000))}))))
+(defn- summarize-rtt [samples]
+  (let [xs (vec (sort samples)) n (count xs)]
+    {:count n :min (milliseconds (first xs)) :p50 (milliseconds (nearest-rank xs 0.5))
+     :p95 (milliseconds (nearest-rank xs 0.95)) :p99 (milliseconds (nearest-rank xs 0.99))
+     :avg (when (pos? n) (milliseconds (/ (reduce +' 0 xs) n))) :max (milliseconds (peek xs))}))
 
-;; -------- pairing key & pretty endpoints --------
+(defn- summarize-rcode [counts n]
+  {:counts counts :ratio (into {} (map (fn [[k v]] [k (double (/ v (max 1 n)))]) counts))})
 
-(defn- canon-key
-  "Canonical key for DNS transaction pairing: [id endpoint-a endpoint-b]."
-  [m id]
-  (let [a (endpoint m :src)
-        b (endpoint m :dst)]
-    (if (neg? (compare a b))
-      [id a b]
-      [id b a])))
+(defn report [state]
+  (let [{:keys [mode metric topn]} (:options state)]
+    (case mode
+      :pairs (mapv (fn [row] (-> row (dissoc :rtt-us)
+                                 (assoc :rtt-ms (milliseconds (:rtt-us row))
+                                        :qtype (get qtype-names (:qtype row) (keyword (str "TYPE" (:qtype row)))))))
+                   (:candidates state))
+      :stats {:pairs (:pairs state) :with-rtt (:pairs state)
+              :rtt (summarize-rtt (:samples state)) :rcode (summarize-rcode (:rcode state) (:pairs state))}
+      :qstats (let [rows (map (fn [[q {:keys [samples rcode]}]]
+                                {:qname q :pairs (count samples) :with-rtt (count samples)
+                                 :rtt (summarize-rtt samples) :rcode (summarize-rcode rcode (count samples))})
+                              (:qstats state))
+                    value (fn [row] (if (#{:pairs :with-rtt} metric) (metric row) (get-in row [:rtt metric])))]
+                (vec (take topn (sort-by (fn [r] [(- (value r)) (:qname r)]) rows)))))))
 
-(defn- classify-client-server
-  "Classify client/server by port 53 when possible; otherwise use stable lexical order."
-  [m]
-  (let [sp (get-in m [:decoded :l3 :l4 :src-port])
-        dp (get-in m [:decoded :l3 :l4 :dst-port])]
-    (cond
-      (= 53 sp) {:client (endpoint m :dst) :server (endpoint m :src)}
-      (= 53 dp) {:client (endpoint m :src) :server (endpoint m :dst)}
-      :else     (let [a (endpoint m :src) b (endpoint m :dst)]
-                  (if (neg? (compare a b))
-                    {:client a :server b}
-                    {:client b :server a})))))
+(defn- alert! [state threshold]
+  (when threshold
+    (let [counts (:rcode state) ne (get counts :nxdomain 0) sf (get counts :servfail 0)
+          pct (* 100.0 (/ (+ ne sf) (double (max 1 (:pairs state)))))]
+      (when (>= pct threshold)
+        (binding [*out* *err*]
+          (println "WARNING: DNS error rate" (format "%.2f%%" pct)
+                   ">= threshold" (format "%.2f%%" (double threshold))
+                   "details" (pr-str {:nxdomain ne :servfail sf :total (:pairs state)})))))))
 
-;; -------- stats helpers --------
-
-(defn- nearest-rank
-  "Nearest-rank percentile(p 0.0..100.0)"
-  [sorted-xs p]
-  (let [n (count sorted-xs)]
-    (when (pos? n)
-      (let [rank (int (Math/ceil (* (/ (double p) 100.0) (long n))))
-            idx  (max 0 (min (dec n) (dec rank)))]
-        (nth sorted-xs idx)))))
-
-(defn- summarize-rtt [rows]
-  (let [xs   (->> rows (keep :rtt-ms) sort vec)
-        n    (count xs)
-        sum  (reduce + 0.0 xs)]
-    {:count n
-     :min   (when (pos? n) (first xs))
-     :p50   (nearest-rank xs 50.0)
-     :p95   (nearest-rank xs 95.0)
-     :p99   (nearest-rank xs 99.0)
-     :avg   (when (pos? n) (/ (long sum) (long n)))
-     :max   (when (pos? n) (peek xs))}))
-
-(defn- summarize-rcode [rows]
-  (let [pairs (count rows)
-        cnts  (frequencies (map #(or (:rcode %) :unknown) rows))
-        ratio (into {} (for [[k c] cnts]
-                         [k (double (/ (long c) (long (max 1 pairs))))]))]
-    {:counts cnts
-     :ratio  ratio}))
-
-(defn- summarize-qstats
-  "Summarize rows by qname. Output shape:
-   [{:qname \"example.com\", :pairs 123, :with-rtt 100,
-     :rtt {...}, :rcode {...}} ...]"
-  [rows]
-  (->> (group-by #(or (:qname %) :unknown) rows)
-       (map (fn [[q xs]]
-              (let [rtt (summarize-rtt xs)
-                    rc  (summarize-rcode xs)]
-                {:qname (if (= :unknown q) nil q)
-                 :pairs (count xs)
-                 :with-rtt (:count rtt)
-                 :rtt rtt
-                 :rcode rc})))
-       vec))
-
-(defn- metric->keyfn
-  "Metric selector for qstats ranking. Missing values sort as negative infinity."
-  [metric]
-  (case metric
-    :pairs     (fn [{:keys [pairs]}]     (long (or pairs 0)))
-    :with-rtt  (fn [{:keys [with-rtt]}]  (long (or with-rtt 0)))
-    :p50       (fn [{:keys [rtt]}]       (double (or (:p50 rtt) Double/NEGATIVE_INFINITY)))
-    :p95       (fn [{:keys [rtt]}]       (double (or (:p95 rtt) Double/NEGATIVE_INFINITY)))
-    :p99       (fn [{:keys [rtt]}]       (double (or (:p99 rtt) Double/NEGATIVE_INFINITY)))
-    :avg       (fn [{:keys [rtt]}]       (double (or (:avg rtt) Double/NEGATIVE_INFINITY)))
-    :max       (fn [{:keys [rtt]}]       (double (or (:max rtt) Double/NEGATIVE_INFINITY)))
-    ;; default
-    (fn [{:keys [pairs]}] (long (or pairs 0)))))
-
-(defn- overall-error-rate
-  "Compute NXDOMAIN/SERVFAIL ratio and counts from rows."
-  [rows]
-  (let [pairs (max 1 (count rows))
-        cnts  (frequencies (map #(or (:rcode %) :unknown) rows))
-        ne    (long (get cnts :nxdomain 0))
-        sf    (long (get cnts :servfail 0))
-        rate  (/ (+ ne sf) (double pairs))]
-    {:rate rate :counts {:nxdomain ne :servfail sf :total pairs}}))
-
-;; -------- option parsing --------
-
-(defn- parse-filters
-  "Parse endpoint prefix filters from --client/-c and --server/-s."
-  [opts]
-  (loop [m {:client nil :server nil}
-         xs (seq opts)]
-    (if (nil? xs)
-      m
-      (let [[a & more] xs]
-        (cond
-          (and (#{"--client" "-c"} a) (seq more))
-          (recur (assoc m :client (first more)) (next more))
-
-          (and (#{"--server" "-s"} a) (seq more))
-          (recur (assoc m :server (first more)) (next more))
-
-          :else
-          (recur m (next xs)))))))
-
-(defn- drop-client-server-opts
-  "Remove client/server filter flags before passing args to async option parser."
-  [opts]
-  (loop [xs opts acc []]
-    (if (empty? xs)
-      acc
-      (let [[a & more] xs]
-        (cond
-          (#{"--client" "-c"} a) (recur more acc)
-          (#{"--server" "-s"} a) (recur more acc)
-          :else (recur (rest xs) (conj acc a)))))))
-
-(defn- parse-positionals
-  "Parse positional arguments in order [:bpf :topn :mode :metric :fmt :alert].
-   '_' skips a positional; first option token starts :tail."
-  [xs]
-  (loop [order [:bpf :topn :mode :metric :fmt :alert]
-         acc   {:bpf nil :topn nil :mode nil :metric nil :fmt nil :alert nil :tail []}
-         more  xs]
-    (if (empty? more)
-      acc
-      (let [t (first more)]
-        (if (starts-opt? t)
-          (assoc acc :tail more)
-          (if (empty? order)
-            (assoc acc :tail more)
-            (recur (rest order)
-                   (assoc acc (first order) (when-not (ex/blank? t) t))
-                   (rest more))))))))
-
-;; -------- endpoint filter --------
-
-(defn- match-prefix? [^String prefix ^String s]
-  (or (nil? prefix)
-      (and (string? s) (str/starts-with? s prefix))))
-
-(defn- apply-endpoint-filters
-  "Apply optional client/server prefix filters to computed rows."
-  [{cf :client sf :server} rows]
-  (if (and (nil? cf) (nil? sf))
-    rows
-    (filterv (fn [row]
-               (let [c (:client row)
-                     s (:server row)]
-                 (and (match-prefix? cf c)
-                      (match-prefix? sf s))))
-             rows)))
-
-;; -------- main --------
-
-(defn -main
-  "Compute DNS transaction RTTs by pairing queries with responses.
-   - default BPF: 'udp and port 53'
-   - pairing key: DNS id + canonicalized endpoints
-   - qname/qtype/rcode come from dns-ext on best effort
-   - mode=pairs returns top-N rows by RTT ordering
-   - mode=stats returns aggregate RTT and RCODE stats
-   - mode=qstats returns per-qname aggregates
-   - format=edn | jsonl
-   - alert% emits warning when NXDOMAIN+SERVFAIL rate exceeds threshold
-   - --client/--server filter endpoint prefixes (IP or IP:PORT)"
-  [& args]
-  (let [[in & rest-args] args]
-    (when (nil? in) (usage) (System/exit 1))
-    (let [{:keys [bpf topn mode metric fmt alert tail]} (parse-positionals rest-args)
-          bpf    (or bpf "udp and port 53")
-          topN   (or (ex/parse-long* topn) 50)
-          mode   (keyword (or mode "pairs"))
-          metric (keyword (or metric "pairs"))
-          fmt    (ex/parse-format fmt)
-          alert% (ex/parse-double* alert)
-          fopts  (parse-filters tail)
-          async-tail (drop-client-server-opts tail)
-          {:keys [async? async-buffer async-mode async-timeout-ms]} (ex/parse-async-opts async-tail {:default-buffer 1024 :default-mode :buffer})
-          _      (dns-ext/register!)]
-      (ex/ensure-one-of! "mode"   mode   #{:pairs :stats :qstats})
-      (ex/ensure-one-of! "format" fmt    #{:edn :jsonl})
-      ;; Build rows, optionally via async ingestion.
-      (let [rows-all
-            (if-not async?
-              (->> (core/packets {:path in
-                                  :filter bpf
-                                  :decode? true
-                                  :max Long/MAX_VALUE})
-                   (reduce
-                    (fn [{:keys [pending out]} m]
-                      (let [ba (get-in m [:decoded :l3 :l4 :payload])]
-                        (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
-                          (let [k (canon-key m id)]
-                            (if (not qr?) ; query
-                              (if (contains? pending k)
-                                {:pending pending :out out}
-                                (let [app (get-in m [:decoded :l3 :l4 :app])
-                                      t   (micros m)
-                                      es  (classify-client-server m)]
-                                  {:pending (assoc pending k
-                                                   (merge es
-                                                          {:t t
-                                                           :id id
-                                                           :qname (:qname app)
-                                                           :qtype (:qtype-name app)}))
-                                   :out out}))
-                              ;; response
-                              (if-let [{qt :t :as q} (get pending k)]
-                                (let [rt     (micros m)
-                                      app    (get-in m [:decoded :l3 :l4 :app])
-                                      rcode  (some-> (:rcode-name app) keyword)
-                                      rtt-ms (when (and (number? qt) (number? rt))
-                                               (double (/ (unchecked-subtract (long rt) (long qt)) 1000.0)))]
-                                  {:pending (dissoc pending k)
-                                   :out (conj out
-                                              (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
-                                                          (assoc :rcode rcode))
-                                                (and (number? rtt-ms) (not (neg? (double rtt-ms))))
-                                                (assoc :rtt-ms rtt-ms)))})
-                                {:pending pending :out out})))
-                          {:pending pending :out out})))
-                    {:pending {} :out []})
-                   :out)
-              (let [dropped    (atom 0)
-                    cancelled? (atom false)
-                    buf (case async-mode
-                          :dropping (async/dropping-buffer async-buffer)
-                          (async/buffer async-buffer))
-                    pkt-ch (async/chan buf)
-                    cancel-ch (when async-timeout-ms (async/timeout async-timeout-ms))]
-                (async/thread
-                  (try
-                    (doseq [m (core/packets {:path in :filter bpf :decode? true :max Long/MAX_VALUE})]
-                      (when cancel-ch
-                        (let [[_ port] (async/alts!! [cancel-ch] :default [:ok nil])]
-                          (when port (reset! cancelled? true))))
-                      (when-not @cancelled?
-                        (if (= async-mode :dropping)
-                          (when-not (async/offer! pkt-ch m)
-                            (swap! dropped inc))
-                          (async/>!! pkt-ch m))))
-                    (finally (async/close! pkt-ch))))
-                (loop [pending {} out []]
-                  (if-let [m (async/<!! pkt-ch)]
-                    (let [ba (get-in m [:decoded :l3 :l4 :payload])]
-                      (if-let [{:keys [id qr?]} (parse-dns-header ^bytes ba)]
-                        (let [k (canon-key m id)]
-                          (if (not qr?)
-                            (if (contains? pending k)
-                              (recur pending out)
-                              (let [app (get-in m [:decoded :l3 :l4 :app])
-                                    t   (micros m)
-                                    es  (classify-client-server m)]
-                                (recur (assoc pending k (merge es {:t t :id id :qname (:qname app) :qtype (:qtype-name app)})) out)))
-                            (if-let [{qt :t :as q} (get pending k)]
-                              (let [rt     (micros m)
-                                    app    (get-in m [:decoded :l3 :l4 :app])
-                                    rcode  (some-> (:rcode-name app) keyword)
-                                    rtt-ms (when (and (number? qt) (number? rt))
-                                             (double (/ (unchecked-subtract (long rt) (long qt)) 1000.0)))]
-                                (recur (dissoc pending k)
-                                       (conj out (cond-> (-> (select-keys q [:id :qname :qtype :client :server])
-                                                             (assoc :rcode rcode))
-                                                   (and (number? rtt-ms) (not (neg? (double rtt-ms))))
-                                                   (assoc :rtt-ms rtt-ms)))))
-                              (recur pending out))))
-                        (recur pending out)))
-                    (conj out {:dangling (count pending)
-                               :async? async?
-                               :async-mode async-mode
-                               :async-buffer async-buffer
-                               :async-timeout-ms async-timeout-ms
-                               :async-cancelled? @cancelled?
-                               :async-dropped @dropped})))))
-            rows (apply-endpoint-filters fopts rows-all)]
-
-        ;; Optional error-rate alert.
-        (when alert%
-          (let [{:keys [rate counts]} (overall-error-rate rows)
-                pct (unchecked-multiply 100.0 (double rate))]
-            (when (>= pct (double alert%))
-              (binding [*out* *err*]
-                (println "WARNING: DNS error rate"
-                         (format "%.2f%%" pct)
-                         ">= threshold" (format "%.2f%%" alert%)
-                         "details" (pr-str counts))))))
-
-        (case mode
-          :stats
-          (let [rtt (summarize-rtt rows)
-                rc  (summarize-rcode rows)
-                out {:pairs (count rows)
-                     :with-rtt (:count rtt)
-                     :rtt rtt
-                     :rcode rc}]
-            (case fmt
-              :jsonl (do (json/write out *out*) (println))
-              (println (pr-str out)))
-            (binding [*out* *err*]
-              (println "mode=stats bpf=" (pr-str bpf)
-                       " format=" (name fmt)
-                       " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts))
-                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
-                                         " dropped=" (:async-dropped (last rows-all))
-                                         " cancelled=" (:async-cancelled? (last rows-all)))))))
-
-          :qstats
-          (let [qs    (summarize-qstats rows)
-                keyf  (metric->keyfn metric)
-                ranked (->> qs (sort-by keyf >) (take topN) vec)]
-            (case fmt
-              :jsonl (doseq [row ranked] (json/write row *out*) (println))
-              (println (pr-str ranked)))
-            (binding [*out* *err*]
-              (println "mode=qstats metric=" (name metric)
-                       " topN=" topN
-                       " qnames=" (count qs)
-                       " bpf=" (pr-str bpf)
-                       " format=" (name fmt)
-                       " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts))
-                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
-                                         " dropped=" (:async-dropped (last rows-all))
-                                         " cancelled=" (:async-cancelled? (last rows-all)))))))
-
-          ;; default: pairs
-          (let [sorted (->> rows
-                            (sort-by (fn [{x :rtt-ms}]
-                                       (if (number? x) x Double/POSITIVE_INFINITY)))
-                            (take topN) vec)]
-            (case fmt
-              :jsonl (doseq [row sorted] (json/write row *out*) (println))
-              (println (pr-str sorted)))
-            (binding [*out* *err*]
-              (println "pairs=" (count rows)
-                       " topN=" topN
-                       " bpf=" (pr-str bpf)
-                       " format=" (name fmt)
-                       " client=" (pr-str (:client fopts))
-                       " server=" (pr-str (:server fopts))
-                       (when async? (str " async=true buffer=" async-buffer " async-mode=" (name async-mode)
-                                         " dropped=" (:async-dropped (last rows-all))
-                                         " cancelled=" (:async-cancelled? (last rows-all))))))))))))
+(defn -main [& args]
+  (let [[positional flags] (split-with #(not (str/starts-with? % "-")) args)
+        [path bpf top mode metric fmt alert] positional]
+    (when-not path (usage) (System/exit 1))
+    (let [path (ex/require-file! path)
+          opts (cli/parse-flags flags defaults
+                                {"--client" [:client :text] "-c" [:client :text]
+                                 "--server" [:server :text] "-s" [:server :text]
+                                 "--timeout-us" [:timeout-us 1] "--reuse-delay-us" [:reuse-delay-us 1]
+                                 "--max-pending" [:max-pending 1] "--max-retired" [:max-retired 1]
+                                 "--max-samples" [:max-samples 1] "--max-qnames" [:max-qnames 1]})
+          opts (assoc opts :topn (cli/positional-number "topN" top 50 1)
+                      :mode (keyword (if (ex/blank? mode) "pairs" mode))
+                      :metric (keyword (if (ex/blank? metric) "pairs" metric)))
+          fmt (ex/parse-format fmt)
+          threshold (when-not (ex/blank? alert) (ex/parse-double* alert))]
+      (when (and (not (ex/blank? alert)) (or (nil? threshold) (not (<= 0.0 threshold 100.0))))
+        (ex/error-exit! "alert% requires a number from 0 to 100" 4))
+      (ex/ensure-one-of! "mode" (:mode opts) #{:pairs :stats :qstats})
+      (ex/ensure-one-of! "metric" (:metric opts) #{:pairs :with-rtt :p50 :p95 :p99 :avg :max})
+      (try
+        (let [{:keys [state execution]} (cli/run (cli/capture-options path (if (ex/blank? bpf) "udp and port 53" bpf)) step (init opts) opts)
+              state (finish state) rows (report state)]
+          (alert! state threshold)
+          (ex/emit fmt rows)
+          (binding [*out* *err*]
+            (println (pr-str (merge (cli/metadata state execution opts)
+                                    {:pairs (:pairs state) :mode (:mode opts) :qnames (count (:qstats state))})))
+            (when (:async? opts)
+              (println (str "async=true dropped=" (:dropped execution) " cancelled=" (:cancelled? execution))))))
+        (catch Exception error (ex/error-exit! (str (.getMessage error) " " (pr-str (ex-data error))) 5))))))

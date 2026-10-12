@@ -1136,3 +1136,111 @@ P07-A PR and platform verification:
   acceptance; next plan action is review/merge, then P07-B CLI migration.
 - This evidence-only follow-up updates plan/log; final evidence-head CI is
   checked separately in the PR description after it completes.
+
+## P07-B start — 2026-10-12
+
+- Clean supplied checkout; doctor passed on macOS x86_64/JDK21/Clojure 1.12.1,
+  native offline read 4 packets/438 bytes; lint tools available. Read required
+  contribution/API/plan/design/log, analysis core, examples and CLI tests/fixtures.
+- Fetched main, verified GitHub PR #35 MERGED at `2e15af7`, created
+  `codex/p07-b-dns-cli` on latest main. No extra worktree or unrelated changes.
+  P07-A done; P07-B in-progress. P06 issue #34 untouched.
+- Pre-implementation contract tables and finite retention/failure/execution
+  decisions are in [P07-B design](p07-b-design.md). Old CLI sources saved outside
+  the checkout for same-input before/after measurements.
+
+P07-B implementation and verification — 2026-10-13:
+
+- RTT now projects full decode with explicit DNS extension into paclo.dns, using
+  strict endpoint/ID/question correlation, advance-before-admission watermarks,
+  retry/quarantine/timeout/finish diagnostics and integer microsecond samples.
+  Removed header byte readers, ad hoc keys/pending maps and duplicated async
+  matcher. Display conversion fixes native RTT and fractional mean; sample
+  fixture RTTs are independently fixed at 10.241/15.817 ms, average 13.029 ms.
+- QPS uses full DNS app groups directly in paclo.window, never dns/step. Preserves
+  packet/captured-byte counts, formats and source/destination grouping. Removes
+  private time/window aggregation, floating fallbacks and silent truncation.
+  Empty fill keeps simultaneous groups and preflights full row count, including
+  huge timestamps/gaps; Punycode handles non-leading labels. Existing QPS
+  snapshot unchanged; added an RTT stats snapshot with exact native time values.
+- Finite pending/retired, sample/qname, active window/group and finalized/filled
+  row budgets; pairs stores only topN, qstats samples only in groups. Exact
+  nearest-rank percentiles fail on overflow, not approximate or truncate. No
+  report stdout before successful analysis/finish/fill; error exit 5. Entry
+  bounds and additional sorting/serialization space are documented.
+- Shared example-only dns-cli adapter owns sync reduction and one async producer
+  using reduction, fixed channel, stop-aware puts and observable offer! drops.
+  Both use identical pure packet steps. Reader errors propagate; consumer errors
+  and cancellation close stop/channel and join producer. Timeout 0 does not open
+  input. Partial cancellation/drop output is marked complete? false on stderr;
+  metadata is never a DNS pair. No global DNS registration or library API change.
+- Found inherited source limits: old QPS read at most 100 packets; both examples
+  inherited a 10-second capture duration. New offline adapters read to EOF with
+  explicit packet/duration settings; half Long/MAX avoids duration-deadline
+  overflow. A real generated 120-packet PCAP passes in sync and capacity-one async.
+- Final focused `bash dev/script/codex.sh test -n examples.dns-cli-test`: 19 tests,
+  132 assertions, 400 test.check cases passed (Top-N/reference/determinism,
+  exact quantiles/mean, packet window boundaries/totals, sample capacity failure).
+  Covers retry/reuse/missing questions/negative/late/unmatched/expiry, each
+  retention limit, fill, filters/alert/RCODE, EDN/JSONL/CSV/Punycode, native input,
+  independent analyses, deterministic drops, timeout/cancel, source/reducer errors,
+  native close and producer join. Existing compatibility/smoke focused run passed
+  31 tests/84 assertions before the added RTT snapshot.
+- Final `bash dev/script/codex.sh check`: JUnit 10/10, Clojure 375 tests/2753
+  assertions, offline smoke 4 packets/438 bytes passed. Final `lint` passed:
+  clj-kondo 0 errors/warnings, Eastwood 0 exceptions (209 existing/all-linters
+  warnings including boxed math), clean-ns/format dry-runs and Markdown lint.
+  No lint suppression, performance/coverage threshold or CI job changed.
+- `bash dev/script/codex.sh perf`: unchanged mid-50k/74-byte decode gate passed
+  at 918.2 ms, below existing 1000 ms warning/1200 ms failure thresholds. This
+  gate does not measure DNS CLI throughput. CLI measurements are recorded below.
+- Final doc runner: all 20 real offline examples passed, retaining the previous
+  19 and adding one RTT/QPS CLI example. Parser unit tests passed 15/15; Markdown
+  lint, local links and git diff --check passed. Existing P07-A examples now also
+  have required-ID protection. README/usage/changelog and design describe all
+  intended changes. Public API contract unchanged, so no contract edits needed.
+- Initial focused failures corrected test timestamps to respect watermark order,
+  primitive timeout stub signature, and alert helper's double formatting. An
+  intermediate run overlapped a formatter rewrite and returned a reader error;
+  the serialized final focused/full checks passed without a source syntax repair.
+  Kondo initially required declaring the new defspec var; final lint passed.
+  Initial sandbox Markdown lint failed DNS lookup at registry.npmjs.org; approved
+  ordinary environment run succeeded. Failed attempts are not counted as passes.
+- A measured follow-up replaces DNS advance's whole retired-map reconstruction
+  with reduce-kv/dissoc of expired keys only. No public contract or CLI-specific
+  core option changes; a mixed-quarantine expiry regression protects boundaries.
+  Final checks, package and isolated before/after measurements are rerun below.
+  GitHub platform, Java quality/coverage and performance-shard results will be
+  recorded on the independent PR's checks/description. No live capture, other
+  platforms or real-NIC performance is inferred from these local offline checks.
+  P07-B awaits independent review/merge; P08 still needs fixture-backed scope.
+
+P07-B measured follow-up and final verification:
+
+- [Performance comparison](p07-b-performance.md) records the same-input baseline,
+  final sync/async CLI rates and whole-process thread allocation estimates,
+  high-cardinality retained entries/serialized sizes, coarse heap peaks and
+  output-only cost. Baseline QPS source limits are normalized to the full 1000
+  packets; old nil RTT statistics are not analytically equivalent. Final CLI
+  comparison runs are serial with no concurrent test/doc workload.
+- Initial bounded RTT pair sync allocation was 68.26 MB/1000 packets. The measured
+  retired-map reconstruction was replaced by persistent removal only at expiry,
+  preserving mixed-quarantine boundary behavior and immutable snapshots.
+  Final allocation/timing and limitations are in the comparison; the remaining
+  bounded quarantine scan is not claimed to meet high-cardinality targets.
+- After that core-only implementation change, combined DNS/CLI focused tests
+  passed 35 tests/335 assertions with 1000 property cases. Final `check` passed
+  JUnit 10/10, 376 Clojure tests/2760 assertions and offline smoke. Final unchanged
+  `perf` passed at 634.2 ms. Neither public API nor P06 issue #34 changed.
+- `bash dev/script/codex.sh package` passed serially; independent JAR-only consumer
+  in /private/tmp/p07-consumer passed with -Srepro, jar: namespace resources,
+  real PCAP two DNS matches/four packets, EDN and watermark release. An initial
+  package invocation used the consumer directory with a relative wrapper path
+  and failed before building; rerunning with the absolute wrapper succeeded.
+  Package was followed by `check` to restore compiled Java tests.
+- Final core-inclusive lint again passed (kondo zero errors/warnings, Eastwood
+  209 all-linters warnings/zero exceptions, clean-ns/format dry checks, 30-file
+  Markdown lint). Parser tests 15/15 and local links passed again. Explicit
+  client 10.0.0.1/server 1.1.1.1 CLI filter returned one exact 15.817 ms pair.
+  Full final documentation execution and independent PR/CI links are recorded
+  in the PR description. No outstanding local gate failure remains.

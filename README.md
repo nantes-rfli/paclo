@@ -221,7 +221,7 @@ Notes:
 clojure -M:dev:dns-ext -e "(require '[paclo.proto.dns-ext :as dns-ext]) (dns-ext/register!) (println :dns-ext-ok)"
 ```
 
-## CLI reference (stable v1.0)
+## CLI reference
 
 ### dns-topn
 
@@ -238,6 +238,12 @@ clojure -M:dev:dns-ext -m examples.dns-qps test/resources/dns-sample.pcap
 clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 200 qname edn --max-buckets 100000 --warn-buckets-threshold 50000 --emit-empty-per-key
 clojure -M:dev:dns-ext -m examples.dns-qps in.pcap _ 500 rrtype jsonl --async --async-mode dropping --async-buffer 256
 ```
+
+Both DNS CLIs use bounded analysis: RTT delegates strict transaction matching to
+`paclo.dns`; QPS counts DNS packets through `paclo.window`. `--reorder-us` controls
+the event-time watermark. Exact statistics and finalized output have finite
+limits and fail before output on overflow. See [DNS CLI reporting](docs/usage.md#bounded-dns-cli-reports-p07-b)
+for defaults, cancellation/drop metadata and intentional migration changes.
 
 ### dns-rtt
 
