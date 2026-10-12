@@ -104,8 +104,10 @@ registration changes after construction, and legacy behavior.
 
 ## P04: Data contracts and diagnostics
 
-Status: **in-progress**. Contracts, diagnostics and opt-in hook reporting are
-implemented with local verification. CI evidence is tracked in the work log; review
+Status: **in-progress**. [PR #31](https://github.com/nantes-rfli/paclo/pull/31)
+implements contracts, diagnostics and opt-in hook reporting. Local checks and all
+12 implementation-commit CI jobs passed, including supported-platform tests.
+CI evidence is tracked in the work log; review
 and merge remain required. P05 is the next feature after P04 acceptance.
 
 Document packet and flow key types, timestamp units, missing/unsupported values,

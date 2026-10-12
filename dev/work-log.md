@@ -610,3 +610,29 @@ Final delivery checks after the success-path adjustment:
   SKIP_FMT and SKIP_KONDO flags; Markdown lint remains enabled. CI/PR evidence
   is recorded after creation. Review, live capture, real-NIC throughput and other
   unlisted platforms remain unverified. No merge or release action is authorized.
+
+PR delivery:
+
+- Implementation commit `df782ac4337e895fba2b75da97bad52285f0a877`, branch
+  `codex/p04-data-diagnostics`, based on latest fetched main / P03 merge e778895.
+  Created [PR #31](https://github.com/nantes-rfli/paclo/pull/31) against main and
+  attached it to this chat. No merge or release action was performed.
+- Re-executed `python3 dev/script/verify_doc_examples.py` at the implementation
+  commit: all 13 examples passed, including all 12 P03 examples. Working tree
+  was clean immediately after the implementation commit/PR creation.
+
+- [Implementation CI run 38210310136](https://github.com/nantes-rfli/paclo/actions/runs/38210310136)
+  at df782ac: all 12 jobs passed, including Linux x64/JDK21, macOS ARM64/JDK17,
+  Linux ARM64/JDK21 monitor, build-checks, documentation-checks, three performance
+  shards/results, build aggregate, Eastwood and coverage. Existing Java quality,
+  pinned lint, namespace-load and performance gates were not changed.
+- P04 remains in-progress pending independent review and merge; P05 remains
+  blocked and is the next feature after acceptance. This follow-up commit records
+  evidence and the PR link only; its own CI is tracked in PR #31, distinct from
+  the tested implementation SHA above. No live capture/real-NIC claim is made.
+
+- Downloaded the three supported-platform job logs: each actually ran 309 tests /
+  1,619 assertions with zero failures/errors. Build-checks also ran SpotBugs,
+  CheckStyle and JaCoCo; the unchanged Java line coverage gate passed at 41.1%
+  against the existing 25% threshold. Initial evidence commit Markdown lint
+  found one overlong plan line; wrapped it and reran the hook before delivery.
