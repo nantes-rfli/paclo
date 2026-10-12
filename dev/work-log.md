@@ -987,3 +987,21 @@ P06 PR and first CI follow-up:
   98 assertions. Focused clj-kondo passed with zero errors/warnings; pinned
   clean-ns/format found no changes; Markdown lint and diff checks passed.
   The analysis/decoder source and JAR consumer are unchanged by this CLI fix.
+
+P06 verified implementation and CI:
+
+- Final implementation head `64b0df6`: local `bash dev/script/codex.sh check`
+  passed JUnit 10/10, Clojure 334 tests / 2355 assertions and offline smoke.
+  Final Markdown line wrapping was fixed before the successful commit hook.
+- [CI run 38234734283](https://github.com/nantes-rfli/paclo/actions/runs/38234734283)
+  **passed all 12 jobs** on `64b0df6`: build-checks and aggregate, documentation,
+  Linux x64/JDK21 and macOS ARM64/JDK17 compatibility, Linux ARM64/JDK21 monitor,
+  three performance shards and merger, Eastwood and coverage. Zero-timeout
+  regression passed on every supported/monitored platform. No failing/skipped
+  job remains in this run. This verifies offline native/platform behavior and
+  the existing gates, not live/real-NIC throughput.
+- The final evidence update changes only this log and plan. The PR description
+  records implementation CI and the final evidence head's checks after they
+  complete; no behavior, dependency, version or gate changes. PR #33 remains
+  open for independent review. P06 remains in-progress pending acceptance/merge,
+  with P07 the next feature after acceptance.

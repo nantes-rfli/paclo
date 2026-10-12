@@ -146,7 +146,7 @@ the next supported types. Validate native calls on the existing platform matrix.
 
 ## P06: Reusable flow analysis
 
-Status: **in-progress** (implementation and local verification complete;
+Status: **in-progress** (implementation, local verification and implementation CI complete;
 independent review and merge remain required).
 [PR #33](https://github.com/nantes-rfli/paclo/pull/33) contains the implementation.
 Three public functions in
@@ -156,7 +156,8 @@ Full decode retains its legacy display descriptor; CLI delegates analysis,
 adds --max-flows and preserves display formats. Tests include 650 property
 cases, real PCAP processing paths and independent fan-out; all 16 executable
 documentation examples pass, including the previous 14. Local performance gate
-and clean JAR consumer pass. Measurement evidence and limitations are in the
+and clean JAR consumer pass. All 12 implementation CI jobs passed on `64b0df6`,
+including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21. Measurement evidence and limitations are in the
 work log; persistent analysis costs more than the old unchecked mutable CLI.
 After P06 acceptance, the next feature is **P07**, bounded windows and DNS
 correlation; those behaviors are not part of P06.
