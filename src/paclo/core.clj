@@ -94,27 +94,52 @@
 ;; Stream API
 (def ^:private ETH_MIN_HDR 14)
 
+(defn ^:private error-diagnostic [stage error]
+  (let [data (ex-data error)
+        reason (:reason data)
+        location (or (:location data)
+                     (when (contains? data :offset)
+                       (select-keys data [:offset :required :available])))]
+    (cond-> {:stage stage
+             :reason (if (contains? #{:short-frame :truncated-header
+                                      :malformed-packet :unsupported-ethertype}
+                                    reason)
+                       reason :unexpected-failure)}
+      (and (map? location)
+           (every? integer? (map location [:offset :required :available])))
+      (assoc :location (select-keys location [:offset :required :available]))
+      (integer? (:ethertype data)) (assoc :ethertype (:ethertype data)))))
+
 (defn ^:private decode-result
   "Call `parse/packet->clj` and return a tagged result map."
   [^bytes ba]
   (try
     {:ok true :value (parse/packet->clj ba)}
     (catch Throwable e
-      {:ok false :error (or (.getMessage e) (str e))})))
+      {:ok false :error (or (.getMessage e) (str e))
+       :diagnostic (error-diagnostic :decode e)})))
 
 (defn ^:private decode-packet
   [m extend-packet]
   (let [ba ^bytes (:bytes m)]
     (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
-      (let [{:keys [ok value error]} (decode-result ba)
-            m' (cond-> m
-                 ok       (assoc :decoded value)
-                 (not ok) (assoc :decode-error error))]
-        (if (contains? m' :decoded)
-          (extend-packet m')
-          m'))
-      (assoc m :decode-error
-             (str "frame too short: " (when ba (alength ba)) " bytes")))))
+      (let [{:keys [ok value error diagnostic]} (decode-result ba)]
+        (if ok
+          (let [diagnostics (:paclo.parse/diagnostics (meta value))]
+            (extend-packet
+             (cond-> (assoc m :decoded value)
+               diagnostics (update :diagnostics (fnil into [])
+                                   (mapv #(assoc % :stage :decode) diagnostics)))))
+          (-> m
+              (assoc :decode-error error)
+              (update :diagnostics (fnil conj []) diagnostic))))
+      (-> m
+          (assoc :decode-error
+                 (str "frame too short: " (when ba (alength ba)) " bytes"))
+          (update :diagnostics (fnil conj [])
+                  {:stage :decode :reason :short-frame
+                   :location {:offset 0 :required ETH_MIN_HDR
+                              :available (if ba (alength ba) 0)}})))))
 
 (defn ^:private normalize-filter [filter]
   (cond
@@ -125,13 +150,16 @@
 
 (defn ^:private flow-packet [packet]
   (try
-    (flow/project-packet packet)
+    (cond-> (flow/project-packet packet)
+      (contains? packet :diagnostics) (assoc :diagnostics (:diagnostics packet)))
     (catch Throwable error
       {:ts-sec (:ts-sec packet)
        :ts-usec (:ts-usec packet)
        :caplen (:caplen packet)
        :len (:len packet)
-       :decode-error (or (.getMessage error) (str error))})))
+       :decode-error (or (.getMessage error) (str error))
+       :diagnostics (conj (vec (:diagnostics packet))
+                          (error-diagnostic :flow error))})))
 
 (defn ^:private apply-xform
   "Apply transducer `xf` with `sequence` when present; otherwise return `s`."
@@ -139,13 +167,20 @@
   (if (some? xf) (sequence xf s) s))
 
 (defn ^:private validate-decode-opts
-  [{:keys [decode? decode-mode extensions] :as opts}]
+  [{:keys [decode? decode-mode extensions extension-error-mode] :as opts}]
   (when (and decode? decode-mode)
     (throw (ex-info ":decode? and :decode-mode cannot be combined"
                     {:decode? decode? :decode-mode decode-mode})))
   (when-not (contains? #{nil :flow} decode-mode)
     (throw (ex-info "unsupported :decode-mode"
                     {:decode-mode decode-mode})))
+  (when (contains? opts :extension-error-mode)
+    (when-not (true? decode?)
+      (throw (ex-info ":extension-error-mode requires :decode? true"
+                      {:decode? decode? :decode-mode decode-mode})))
+    (when-not (contains? #{:ignore :report} extension-error-mode)
+      (throw (ex-info ":extension-error-mode must be :ignore or :report"
+                      {:extension-error-mode extension-error-mode}))))
   (when (contains? opts :extensions)
     (when-not (true? decode?)
       (throw (ex-info ":extensions requires :decode? true"
@@ -171,15 +206,23 @@
      continues with later functions. Configuration errors throw `ex-info` when
      constructed; extensions run only after successful full decoding.
 
-   The two decode options are mutually exclusive. Decode failures are returned as
-   packet maps containing `:decode-error`."
-  [{:keys [decode? decode-mode extensions] :as opts}]
+   - `:extension-error-mode :ignore|:report` requires `:decode? true` when
+     supplied. Default :ignore preserves hook failure isolation; :report appends
+     EDN diagnostics with zero-based execution indices, without stopping hooks.
+
+   The two decode options are mutually exclusive. Decode failures retain string
+   `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
+   Best-effort unsupported/incomplete decoded data can also carry diagnostics.
+   Published packet bytes are mutable shared arrays; treat them as read-only."
+  [{:keys [decode? decode-mode extensions extension-error-mode] :as opts}]
   (validate-decode-opts opts)
   (cond
     (= decode-mode :flow) (map flow-packet)
-    decode? (let [extend-packet (if (contains? opts :extensions)
-                                  #(decode-ext/apply! % extensions)
-                                  decode-ext/apply!)]
+    decode? (let [extend-packet (if (= :report extension-error-mode)
+                                  #(decode-ext/apply! % extensions :report)
+                                  (if (contains? opts :extensions)
+                                    #(decode-ext/apply! % extensions)
+                                    decode-ext/apply!))]
               (map #(decode-packet % extend-packet)))
     :else identity))
 
@@ -210,6 +253,7 @@
   - `:decode-mode :flow`: project packets to flat, numeric flow maps
   - `:extensions`: ordered function vector for `:decode? true`, as in `packet-xf`;
     omission uses global hooks and `[]` disables extensions
+  - `:extension-error-mode`: opt-in :report of hook failures, as in `packet-xf`
   - `:xform`: transducer applied after decode and extensions via `sequence`
   - live queue: `:queue-cap`, opt-in `:queue-mode :dropping`, and
     `:on-queue-stats`
@@ -243,7 +287,9 @@
 
    Processing behavior matches `reduce-packets`. The statistics map has a
    schema version, source, timing, packet counts, optional live libpcap
-   counters, the stop reason, and a data-only error description."
+   counters, the stop reason, and a data-only error description. Schema v1
+   decode-errors count string decode failures; extension diagnostics are packet
+   data available to the reducer and do not change this counter."
   [{:keys [xform] :as opts} rf init]
   (let [opts* (normalized-opts opts)
         decode-errors (LongAdder.)
@@ -277,8 +323,9 @@
 
    The returned opaque handle implements `java.io.Closeable` and should be
    owned by `with-open`. Startup is synchronous through source open and BPF
-   installation. Packet delivery is single-consumer. Decode and `:extensions`
-   options follow `packet-xf`; invalid configuration fails before source open."
+   installation. Packet delivery is single-consumer. Decode, `:extensions` and
+   `:extension-error-mode` follow `packet-xf`; invalid configuration fails before
+   source open."
   [opts]
   (let [opts* (normalized-opts opts)]
     (Capture. (capture/start opts*)

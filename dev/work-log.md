@@ -460,3 +460,153 @@ PR and CI evidence:
 - This follow-up commit changes only the accepted plan and verification log.
   Its checks are tracked in PR #30; the completed implementation-run results
   above refer specifically to `57b2998`, not to an untested later SHA.
+
+## P04 — design and baseline (2026-10-12)
+
+- Clean supplied checkout; doctor passed on macOS x86_64 / Temurin 21.
+  Fetched main and started `codex/p04-data-diagnostics` at `e778895`.
+  GitHub confirms PR #30 merged at 2026-10-12 05:26:12 UTC; its final
+  [CI run 38207387923](https://github.com/nantes-rfli/paclo/actions/runs/38207387923)
+  passed all 12 jobs, including Linux x64, macOS ARM64 and Linux ARM64.
+  Historical P03 evidence above is retained. P04 remains in-progress until merge.
+- Canonical raw/full/flow contracts live in docs/cljdoc-api-contract.md.
+  Capture metadata remains unchanged; flow includes present nil metadata fields
+  and omits bytes/decoded. Published arrays remain mutable shared references.
+- Add top-level `:diagnostics`, a vector of EDN maps, only on observed issues.
+  Required stable keywords: `:stage` (:decode, :flow, :extension) and `:reason`
+  (:short-frame, :truncated-header, :malformed-packet, :unsupported-ethertype,
+  :extension-exception, :extension-non-map, :unexpected-failure).
+  Locations use absolute frame byte offsets and required/available byte counts;
+  omit location where unavailable. Unknown failures are unexpected-failure.
+- Parser checks classify at the source, preserving legacy message text and decoded
+  values. Internal map metadata carries nonfatal parser diagnostics to the facade;
+  no diagnostic vector is allocated on normal success. Unknown L4 protocol alone
+  is a best-effort unknown-l4 value, not a formal failure; unknown Ethernet input
+  is unsupported, and known incomplete headers are truncated.
+- Opt-in `:extension-error-mode :report` appends failures with zero-based execution
+  index for explicit and global hooks. Default ignore retains prior outputs.
+  Keep apply!'s one/two argument calls and share its hook runner with a third
+  policy arity (nil extension selection means current global registry in that
+  arity only). No registry keys or arbitrary exception data enter diagnostics.
+  Reporting never adopts failed results and subsequent hooks still execute.
+- Capture `:error-mode` is independent. Reject policy options without literal
+  `:decode? true` and invalid modes before source acquisition.
+- Statistics schema v1 and decode-error counters are unchanged. Diagnostics are
+  packet data; reducers may accumulate them. EDN compatibility applies to
+  diagnostics, not byte arrays in whole packets. No new dependency/schema validator,
+  buffer copying, per-packet stack traces or link-type support is introduced.
+
+P04 implementation and verification:
+
+- Added classifications at header checks and the existing flow exceptions, without
+  regex/message parsing. Partial UDP/VLAN/IPv6 data retains its previous shape;
+  internal parser metadata carries nonfatal findings to top-level packet diagnostics.
+  Errors with no established classification use unexpected-failure.
+- Kept the normal extension path's vector reduction after initial measurements
+  exposed an avoidable sequence allocation; report mode alone tracks indices.
+  Shared apply-hook isolates both modes. Added primitive hints on header guards
+  and advances to avoid boxing/reflection introduced by classification helpers.
+- Added `paclo.diagnostics-test`: real DNS/TLS/metadata PCAPs and a temporary
+  real PCAP containing IPv6, short Ethernet/IPv4/IPv6 and unknown Ethernet input
+  agree across all five public paths. Tests cover raw types/units/truncation,
+  missing/preserved metadata, numeric IPv4/IPv6, missing fragment/non-TCP ports,
+  partial UDP/VLAN/IPv6 chains, malformed versions/options, unknown L3/L4,
+  unexpected errors, explicit/global hook failures, continuation/order/indices,
+  early validation, reducer/xform ordering, shared read-only fan-out arrays,
+  unchanged v1 counts and EDN round trips. Two properties run 200 random framed
+  inputs and 100 extension compositions. No timing sleeps or new dependencies.
+- Focused command covering all four requested namespaces plus diagnostics:
+  `bash dev/script/codex.sh test -n paclo.packet-xf-test -n paclo.flow-test
+  -n paclo.decode-ext-test -n paclo.decode-ext-prop-test -n paclo.diagnostics-test`
+  passed 35 tests / 327 assertions after type-hint cleanup. Diagnostics alone
+  passed 11 tests / 266 assertions. Final delivery checks follow below.
+- The existing flow-error equality test now includes the additive diagnostic;
+  every original metadata field and the exact `bad flow` error string is retained.
+- Compared against the P03 parser from a temporary `git archive e778895` source
+  snapshot, using 1,000 seeded arbitrary inputs and 258 UDP/TCP prefix lengths.
+  All 1,258 pre-existing results and error strings match after removing the new
+  diagnostics. This is additional local characterization, not a new source backend.
+- Canonical contract is in docs/cljdoc-api-contract.md; usage/extensions link
+  there. Updated relevant public docstrings and Unreleased changelog. Added a
+  reducer diagnostic example and protected all 12 P03 documentation IDs in the
+  verifier's required set. All 13 executable examples pass. Local Markdown links,
+  13 Python verifier parser tests and Markdown lint (27 documents) pass.
+- Initial checks found a parenthesis error, expected additive test data, nested
+  array/sequence comparison mistakes in new tests, redundant lets and a missing
+  preloaded EDN alias for compiled documentation expressions. Fixed these and
+  reran checks; no gate/threshold was weakened. Final lint after type hints has
+  zero kondo warnings/errors; Eastwood has the pre-existing 60 warnings and zero
+  exceptions; clean-ns/format report no changes. Local lint tools are newer than
+  CI's unchanged pinned versions, as documented for P03.
+- The complete check before the allocation cleanup passed JUnit 8 tests and
+  Clojure 309 tests / 1,619 assertions, plus offline native smoke. Final checks
+  validate the allocation cleanup as well. No Java/native boundary, dependency,
+  workflow, release version, tag or publication changed.
+- Follow-up allocation characterization in one JVM (50 warm-ups / five runs)
+  found equal parser and facade allocation in P03/P04 for successful UDP input.
+  Separate-JVM microbench allocation differences therefore include JIT/context
+  effects; they do not demonstrate allocation of diagnostic data on success.
+  Simplified the facade into explicit success/failure branches to avoid testing
+  each failure condition on normal success. Focused P03/P04 regressions after
+  this adjustment passed 45 tests / 461 assertions, and kondo remains clean.
+  Final performance and complete-check results below refer to this adjustment.
+
+P04 final performance (offline only):
+
+- Final `bash dev/script/codex.sh perf` passed: 50,000 / 74-byte frames,
+  479.4 ms against unchanged 1,000 ms warning / 1,200 ms failure budgets.
+  Earlier passing runs were 518.0 and 508.9 ms.
+- Same macOS 15.4.1 x86_64 host, Temurin 21.0.12.1, Clojure 1.12.1,
+  libpcap 1.10.1. Baseline is P03 merge `e778895`, loaded from a temporary
+  source archive (not a worktree); revised is this uncommitted P04 source.
+  JVM metadata reports HEAD e778895 for both because measurements precede commit.
+- Existing perf-worker scenarios: identical 50,000-packet mixed UDP-64/TCP-512
+  PCAP, two warm-ups and five measured runs per separate JVM, serial execution
+  without concurrent tests/lint. Commands use `clojure -Sdeps <source-paths>
+  -M:perf-worker --mode offline --scenario <scenario> --path /private/tmp/p04-mixed.pcap
+  --count 50000 --warmups 2 --runs 5`. Every run processed all packets with zero
+  decode errors. Lazy full decode uses the default blocking queue; offline workers
+  do not expose queue-drop counters. Reducers have no producer queue.
+
+| Scenario | Before pps | After pps | Change | Before alloc B/packet | After alloc B/packet | Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| raw-reduce | 954576.6 | 995596.6 | +4.3% | 1019.6 | 1018.1 | -0.2% |
+| full-decode | 125163.9 | 165450.4 | +32.2% | 5899.3 | 6115.1 | +3.7% |
+| full-reduce | 173512.2 | 186717.4 | +7.6% | 5919.7 | 5918.1 | -0.0% |
+| flow-project | 610429.1 | 523583.1 | -14.2% | 1499.6 | 1498.1 | -0.1% |
+
+- Separate pure transformation/extension comparison: 10,000 ordinary UDP-64
+  packet maps, 20 warm-ups / 10 measured reductions per mode. Median pps:
+  raw 13,058,231 -> 27,600,369; full 356,528 -> 358,965;
+  flow 3,159,960 -> 3,459,143; one identity extension in ignore mode
+  346,796 -> 360,269. Normal full/extension allocation was 3,519.7 -> 3,687.7
+  B/packet in these separate JVMs; raw/flow allocation was unchanged at
+  23.7 / 367.7 B/packet. Report success was 3,727.7 B/packet (40 B over ignore)
+  due to indexed traversal; it allocates no diagnostic vector on success.
+  P03 ignores the previously unknown report option, so only P04's reporting
+  behavior is meaningful for that extra mode. No packet bytes are copied.
+- Earlier short pure runs produced differing allocation/throughput values;
+  one same-JVM comparison with 50 warm-ups showed identical old/new allocation
+  for both parse and facade. Existing-worker repeats also varied: flow was
+  initially -0.2% and then -14.2%; full decode varied +8.0% to +32.2%.
+  These observations do not establish a stable speedup/regression; the flow
+  difference warrants longer isolated profiling if it persists in future runs.
+  The existing gate passes and all thresholds are unchanged. These are local
+  offline observations, not live capture or real-NIC performance validation.
+- Reports/scripts remain under `/private/tmp/p04-performance*`, with supporting
+  characterization in `/private/tmp/p04-alloc.edn` and `/private/tmp/p04-compat.clj`.
+  The default vector-reduction adjustment removed avoidable sequence iteration;
+  the final full-decode branch change reduced repeated success-path conditions.
+
+Final delivery checks after the success-path adjustment:
+
+- `bash dev/script/codex.sh check`: passed JUnit 8 tests, Clojure 309 tests /
+  1,619 assertions, zero failures/errors, and offline native smoke.
+- `bash dev/script/codex.sh lint`: passed kondo zero warnings/errors, Eastwood
+  60 existing warnings / zero exceptions, clean-ns/format no changes and Markdown
+  lint. `python3 dev/script/verify_doc_links.py`, all 13 executable documentation
+  examples, 13 Python verifier parser tests and `git diff --check` passed.
+- Commit reuses these completed checks through the hook's documented SKIP_TESTS,
+  SKIP_FMT and SKIP_KONDO flags; Markdown lint remains enabled. CI/PR evidence
+  is recorded after creation. Review, live capture, real-NIC throughput and other
+  unlisted platforms remain unverified. No merge or release action is authorized.

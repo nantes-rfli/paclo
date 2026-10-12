@@ -30,28 +30,50 @@
   []
   (map first @hooks))
 
-(defn- apply-hook [m f]
-  (try
-    (let [result (f m)]
-      (if (map? result) result m))
-    (catch Throwable _ m)))
+(defn- failure [m index reason error]
+  (update m :diagnostics (fnil conj [])
+          (cond-> {:stage :extension :reason reason :index index}
+            error (assoc :exception-class (.getName (class error))
+                         :message (or (.getMessage ^Throwable error) (str error))))))
+
+(defn- apply-hook
+  ([m f] (apply-hook m f nil false))
+  ([m f index report?]
+   (try
+     (let [result (f m)]
+       (if (map? result)
+         result
+         (if report? (failure m index :extension-non-map nil) m)))
+     (catch Throwable error
+       (if report? (failure m index :extension-exception error) m)))))
 
 (defn apply!
   "Apply post-decode functions to packet map `m`.
 
-  With one argument, consult the current global hooks in registration order.
-  With `extensions`, apply only those functions in their supplied order,
-  including duplicates. An empty collection leaves the packet unchanged.
-  Core's `:extensions` option validates its vector at pipeline construction.
+  One argument consults current global hooks. Two arguments select only the
+  supplied functions, including duplicates; an empty collection disables hooks.
+  Both arities ignore exceptions and non-map results, preserving the last map.
+  The third arity accepts :ignore or :report; nil extensions there selects global
+  hooks. :report appends EDN diagnostics with zero-based execution indices.
+  Later hooks continue. Core validates options at pipeline construction.
 
-  Exceptions are swallowed and non-map return values are ignored; subsequent
-  functions receive the last successful map. Functions are skipped unless `m`
-  contains `:decoded` and does not contain `:decode-error`."
+  Functions are skipped unless `m` contains :decoded and lacks :decode-error."
   ([m]
-   (apply! m (map second @hooks)))
+   (apply! m nil :ignore))
   ([m extensions]
+   (apply! m (or extensions []) :ignore))
+  ([m extensions error-mode]
    (if (and (map? m)
             (contains? m :decoded)
             (not (contains? m :decode-error)))
-     (reduce apply-hook m extensions)
+     (let [functions (if (nil? extensions) (map second @hooks) extensions)
+           report? (= :report error-mode)]
+       (if report?
+         (loop [remaining (seq functions) index 0 result m]
+           (if remaining
+             (recur (next remaining) (inc index)
+                    (apply-hook result (first remaining) index true))
+             result))
+         ;; Retain vector reduction's allocation-free iteration in default mode.
+         (reduce apply-hook m functions)))
      m)))

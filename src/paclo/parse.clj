@@ -7,6 +7,24 @@
 (declare l4-parse)
 (declare maybe-attach-dns)
 
+(defn- truncated [^ByteBuffer b ^long required]
+  {:reason :truncated-header
+   :location {:offset (.position b) :required required :available (.remaining b)}})
+
+(defn- require-header! [^ByteBuffer b ^long required]
+  (when (< (.remaining b) required)
+    ;; Preserve the facade's former BufferUnderflowException error string.
+    (throw (ex-info "java.nio.BufferUnderflowException" (truncated b required)))))
+
+(defn- diagnosed [m diagnostic]
+  (with-meta m {::diagnostics [diagnostic]}))
+
+(defn- advance-header! [^ByteBuffer b ^long length]
+  (try
+    (.position b (+ (.position b) length))
+    (catch IllegalArgumentException error
+      (throw (ex-info (.getMessage error) (truncated b length) error)))))
+
 (defn- u8  ^long [^ByteBuffer b] (bit-and (.get b) 0xFF))
 (defn- u16 ^long [^ByteBuffer b] (bit-and (.getShort b) 0xFFFF))
 (defn- u32 ^long [^ByteBuffer b] (bit-and (.getInt b) 0xFFFFFFFF))
@@ -165,6 +183,7 @@
                            (bit-and 0xFF (aget tpa 3))))})))))
 
 (defn- ipv4 [^ByteBuffer b]
+  (require-header! b 20)
   (let [vihl (u8 b)
         version (bit-shift-right vihl 4)
         ihl (* 4 (bit-and vihl 0x0F))
@@ -178,7 +197,7 @@
         src (ipv4-addr b)
         dst (ipv4-addr b)]
     (when (> ihl 20)
-      (.position b (+ (.position b) (- ihl 20))))
+      (advance-header! b (- ihl 20)))
     (let [mf? (pos? (bit-and flags-frag 0x2000))
           frag-off (bit-and flags-frag 0x1FFF)         ;; In 8-byte units
           frag? (or mf? (pos? frag-off))
@@ -186,15 +205,19 @@
           l4buf (or (limited-slice b payload-len) (.duplicate b))
           l4 (if (pos? frag-off)
                {:type :ipv4-fragment :offset frag-off :payload (remaining-bytes l4buf)}
-               (l4-parse proto l4buf))]
-      {:type :ipv4 :version version :ihl ihl
-       :tos tos :total-length total-len
-       :id id :flags-frag flags-frag
-       :ttl ttl :protocol proto :header-checksum hdr-csum
-       :src src :dst dst
-       :frag? frag? :frag-offset (when frag? frag-off)       ;; Fragment metadata
-       :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4)
-       :l4 l4})))
+               (l4-parse proto l4buf))
+          result {:type :ipv4 :version version :ihl ihl
+                  :tos tos :total-length total-len
+                  :id id :flags-frag flags-frag
+                  :ttl ttl :protocol proto :header-checksum hdr-csum
+                  :src src :dst dst
+                  :frag? frag? :frag-offset (when frag? frag-off)       ;; Fragment metadata
+                  :flow-key (make-flow-key {:src src :dst dst :protocol proto} l4)
+                  :l4 l4}
+          diagnostic (or (when (or (not= version 4) (< ihl 20) (< total-len ihl))
+                           {:reason :malformed-packet})
+                         (first (::diagnostics (meta l4))))]
+      (if diagnostic (diagnosed result diagnostic) result))))
 
 (def ^:private ipv6-ext?
   #{0   ;; Hop-by-Hop Options
@@ -224,7 +247,8 @@
 
         (= nh 44) ;; Fragment
         (if (< (.remaining dup) 8)
-          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+           :diagnostic (truncated dup 8)}
           (let [next (bit-and 0xFF (.get dup)) ; Next Header
                 _    (.get dup)                ; Reserved
                 offfl (bit-and 0xFFFF (.getShort dup))
@@ -236,7 +260,8 @@
 
         (= nh 51) ;; AH = NextHdr(1) + PayloadLen(1) + data((plen+2)*4 - 2)
         (if (< (.remaining dup) 2)
-          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+           :diagnostic (truncated dup 2)}
           (let [next (bit-and 0xFF (.get dup))
                 plen (bit-and 0xFF (.get dup))
                 total (* (+ plen 2) 4)
@@ -244,7 +269,10 @@
                 adv  (min skip (.remaining dup))]
             (.position dup (+ (.position dup) adv))
             (if (< adv skip)
-              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+               :diagnostic {:reason :truncated-header
+                            :location {:offset (- (.position dup) adv)
+                                       :required skip :available adv}}}
               (recur next frag? frag-off))))
 
         (= nh 50) ;; ESP is terminal here (payload not decoded)
@@ -252,21 +280,24 @@
 
         (ipv6-ext? nh)
         (if (< (.remaining dup) 2)
-          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+          {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+           :diagnostic (truncated dup 2)}
           (let [next (bit-and 0xFF (.get dup))    ;; NextHdr
                 hlen (bit-and 0xFF (.get dup))    ;; HdrExtLen
                 total (* (+ hlen 1) 8)            ;; Total extension header length
                 opt-len (max 0 (- total 2))]
             (cond
               (> opt-len (.remaining dup))
-              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off}
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+               :diagnostic (truncated dup opt-len)}
 
               (or (= nh 0) (= nh 60))
               (if (valid-ipv6-options-tlv? dup opt-len)
                 (do
                   (.position dup (+ (.position dup) opt-len))
                   (recur next frag? frag-off))
-                {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})
+                {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+                 :diagnostic {:reason :malformed-packet}})
 
               (= nh 43)
               (do
@@ -274,12 +305,14 @@
                 (recur next frag? frag-off))
 
               :else
-              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off})))
+              {:final-nh nil :buf dup :frag? frag? :frag-offset frag-off
+               :diagnostic {:reason :unexpected-failure}})))
 
         :else
         {:final-nh nh :buf dup :frag? frag? :frag-offset frag-off}))))
 
 (defn- ipv6 [^ByteBuffer b]
+  (require-header! b 40)
   (let [vtcfl (u32 b)
         version (bit-shift-right vtcfl 28)
         tclass  (bit-and (bit-shift-right vtcfl 20) 0xFF)
@@ -294,23 +327,27 @@
         srcC  (ipv6-compress-str src-w)      ;; Compressed representation
         dstC  (ipv6-compress-str dst-w)
         l4buf (or (limited-slice b payload-len) (.duplicate b))
-        {:keys [final-nh buf frag? frag-offset]}
+        {:keys [final-nh buf frag? frag-offset diagnostic]}
         (parse-ipv6-ext-chain! l4buf next-hdr)
         l4 (if (and frag? (pos? (long (or frag-offset 0))))
              {:type :ipv6-fragment :offset frag-offset :payload (remaining-bytes buf)}
              (l4-parse final-nh buf))
         flow-key (when final-nh
-                   (make-flow-key {:src src :dst dst :next-header final-nh} l4))]
-    {:type :ipv6
-     :version version :traffic-class tclass :flow-label flabel
-     :payload-length payload-len :next-header final-nh :hop-limit hop-limit
-     :src src :dst dst
-     :src-compact srcC :dst-compact dstC         ;; Additional compact fields
-     :frag? frag? :frag-offset (when frag? frag-offset)
-     :l4 l4
-     :flow-key flow-key}))
+                   (make-flow-key {:src src :dst dst :next-header final-nh} l4))
+        result {:type :ipv6
+                :version version :traffic-class tclass :flow-label flabel
+                :payload-length payload-len :next-header final-nh :hop-limit hop-limit
+                :src src :dst dst
+                :src-compact srcC :dst-compact dstC         ;; Additional compact fields
+                :frag? frag? :frag-offset (when frag? frag-offset)
+                :l4 l4
+                :flow-key flow-key}
+        diagnostic (or diagnostic (when (not= version 6) {:reason :malformed-packet})
+                       (first (::diagnostics (meta l4))))]
+    (if diagnostic (diagnosed result diagnostic) result)))
 
 (defn- tcp-header [^ByteBuffer b]
+  (require-header! b 20)
   (let [src (u16 b)
         dst (u16 b)
         seq (u32 b)
@@ -331,20 +368,22 @@
         flags-str (apply str (keep (fn [[present ch]] (when present ch))
                                    [[urg \U] [ackf \A] [psh \P] [rst \R] [syn \S] [fin \F]]))]
     (when (> hdr-len 20)
-      (.position b (+ (.position b) (- hdr-len 20))))
-    {:type :tcp
-     :src-port src :dst-port dst
-     :seq seq :ack ack
-     :flags {:urg urg :ack ackf :psh psh :rst rst :syn syn :fin fin}
-     :flags-str flags-str
-     :window win :checksum csum :urgent-pointer urgp
-     :header-len hdr-len
-     :data-len (remaining-len b)
-     :payload (remaining-bytes b)}))
+      (advance-header! b (- hdr-len 20)))
+    (let [result {:type :tcp
+                  :src-port src :dst-port dst
+                  :seq seq :ack ack
+                  :flags {:urg urg :ack ackf :psh psh :rst rst :syn syn :fin fin}
+                  :flags-str flags-str
+                  :window win :checksum csum :urgent-pointer urgp
+                  :header-len hdr-len
+                  :data-len (remaining-len b)
+                  :payload (remaining-bytes b)}]
+      (if (< hdr-len 20) (diagnosed result {:reason :malformed-packet}) result))))
 
 (defn- udp-header [^ByteBuffer b]
   (if (< (.remaining b) 8)
-    {:type :unknown-l4 :reason :truncated-udp :data-len 0 :payload []}
+    (diagnosed {:type :unknown-l4 :reason :truncated-udp :data-len 0 :payload []}
+               (truncated b 8))
     (let [src (u16 b)
           dst (u16 b)
           len (u16 b)
@@ -438,6 +477,7 @@
     (when (not= c 0) (str "code-" c))))
 
 (defn- icmpv4-header [^ByteBuffer b]
+  (require-header! b 4)
   (let [t (u8 b) code (u8 b) csum (u16 b)
         tname (icmpv4-type-name t)
         cname (icmpv4-code-name t code)
@@ -448,6 +488,7 @@
      :payload (remaining-bytes b)}))
 
 (defn- icmpv6-header [^ByteBuffer b]
+  (require-header! b 4)
   (let [t (u8 b) code (u8 b) csum (u16 b)
         tname (icmpv6-type-name t)
         cname (icmpv6-code-name t code)
@@ -551,7 +592,7 @@
               {:type :unknown-l4 :proto proto :payload (remaining-bytes b)}))]
     (maybe-attach-dns m)))
 
-(defn packet->clj
+(defn- decode-frame
   "Decode bytes into a Clojure map.
    - Parses Ethernet and strips 0..N VLAN tags
    - Decodes minimal L3/L4 structures (IPv4/IPv6/ARP, TCP/UDP/ICMP)
@@ -567,7 +608,7 @@
         (if (< (.remaining b) 4)
           {:type :ethernet :src src :dst dst :eth eth
            :vlan-tags (persistent! tags)
-           :l3 {:type :unknown-l3 :eth eth}}
+           :l3 (diagnosed {:type :unknown-l3 :eth eth} (truncated b 4))}
           (let [tci (u16 b)
                 next-eth (u16 b)
                 tag {:tpid eth
@@ -595,5 +636,15 @@
 
             :else
             (cond-> {:type :ethernet :src src :dst dst :eth final-eth
-                     :l3 {:type :unknown-l3 :eth final-eth}}
+                     :l3 (diagnosed {:type :unknown-l3 :eth final-eth}
+                                    {:reason :unsupported-ethertype :ethertype final-eth})}
               (seq vlan-tags) (assoc :vlan-tags vlan-tags))))))))
+
+(defn packet->clj
+  "Decode Ethernet bytes into best-effort nested L3/L4 data.
+   Internal metadata carries nonfatal diagnostics to the public packet facade."
+  [^bytes bytes]
+  (let [result (decode-frame bytes)]
+    (if-let [diagnostics (::diagnostics (meta (:l3 result)))]
+      (with-meta result {::diagnostics diagnostics})
+      result)))

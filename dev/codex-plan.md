@@ -25,8 +25,8 @@ Release labels are planning candidates, not scheduled or approved publications.
 | --- | --- | --- | --- | --- |
 | P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
 | P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | done |
-| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | in-progress |
-| P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | blocked |
+| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | done |
+| P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | in-progress |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | blocked |
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | blocked |
 | P07 | v1.5 | Bounded time windows and DNS request/response analysis | P03, P04, P06 | blocked |
@@ -34,8 +34,8 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P03 review and merge**. P02 was accepted
-through merge of PR #29. P04 is the next feature after P03 acceptance.
+Default next task: **P04 review and merge**. P03 was accepted through
+merge of PR #30 on 2026-10-12; P05 remains blocked until P04 acceptance.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -56,7 +56,7 @@ including Linux x64/JDK21, macOS ARM64/JDK17 and the Linux ARM64 monitor.
 Evidence is tracked in [the work log](work-log.md); the final evidence-only
 commit's checks are reported in the PR. Merge acceptance completes P02;
 this status update does not establish a separate independent review.
-The next feature is P03.
+P03 is now accepted; P04 is the current feature.
 
 Released v1.3.0 reads emit `:ts-sec`/`:ts-usec`; its writer consumes `:sec`/`:usec`.
 Passing a captured map directly to that writer replaces its time with wall-clock time.
@@ -76,11 +76,10 @@ and conflicting metadata. Use packet-byte equality rather than Java-array identi
 
 ## P03: Explicit extension composition
 
-Status: **in-progress**. [PR #30](https://github.com/nantes-rfli/paclo/pull/30)
-implements P03. Implementation commit `57b2998` passed all 12 CI jobs,
-including supported-platform tests. Review and merge remain outstanding;
-P04 stays blocked pending P03 acceptance. Final evidence-commit CI is reported
-in the PR; detailed design and verification are in [the work log](work-log.md).
+Status: **done**. [PR #30](https://github.com/nantes-rfli/paclo/pull/30)
+was merged on 2026-10-12 at `e778895`. Its final CI run passed all 12 jobs,
+including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21.
+Historical design and verification evidence is retained in [the work log](work-log.md).
 
 At the P03 baseline, `packet-xf` consulted the process-wide hook registry while
 processing packets. Registering a hook after constructing the same transducer
@@ -104,6 +103,10 @@ when supplied functions are pure. Test exceptions, non-map results, empty select
 registration changes after construction, and legacy behavior.
 
 ## P04: Data contracts and diagnostics
+
+Status: **in-progress**. Contracts, diagnostics and opt-in hook reporting are
+implemented with local verification. CI evidence is tracked in the work log; review
+and merge remain required. P05 is the next feature after P04 acceptance.
 
 Document packet and flow key types, timestamp units, missing/unsupported values,
 and metadata preservation. Use an additive contract; avoid requiring a heavy schema

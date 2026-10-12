@@ -442,3 +442,33 @@ Use `README.md` as the command index, and use this guide for API behavior.
 - Public API contract: `./cljdoc-api-contract.md`
 - Decode extensions: `./extensions.md`
 - Roadmap: `./ROADMAP.md`
+
+## Packet contracts and diagnostics
+
+See the [canonical packet contracts](cljdoc-api-contract.md#packet-data-contracts)
+for raw/full/flow types, missing values, mutable shared arrays and timestamp units.
+Decode failures retain `:decode-error` strings and add structured diagnostics.
+Best-effort unsupported/incomplete decoded values can also carry diagnostics.
+Use `:extension-error-mode :report` to observe isolated hook failures.
+
+This example collects EDN diagnostics through a reducer while a later hook still
+annotates every successfully decoded packet. The report retains statistics v1;
+extension failures alone do not increment its decode-error counter.
+
+<!-- paclo-doc-test: usage-structured-diagnostics -->
+
+```clojure
+(require '[clojure.edn :as edn])
+
+(let [{:keys [result stats]}
+      (core/reduce-packets-report
+       {:path "test/resources/dns-sample.pcap"
+        :decode? true
+        :extension-error-mode :report
+        :extensions [(fn [_] (throw (ex-info "annotation unavailable" {})))
+                     dns-ext/annotate-dns]}
+       (fn [acc packet] (into acc (:diagnostics packet))) [])]
+  {:reasons (mapv :reason result)
+   :edn-roundtrip? (= result (edn/read-string (pr-str result)))
+   :decode-errors (get-in stats [:packets :decode-errors])})
+```
