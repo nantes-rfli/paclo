@@ -180,7 +180,9 @@
   (time! watermark-us)
   (when (and (:watermark-us state) (< watermark-us (:watermark-us state))) (fail! :watermark-regression))
   (let [state (assoc state :watermark-us watermark-us
-                     :retired (into {} (filter (fn [[_ until]] (> until watermark-us))) (:retired state)))
+                     :retired (reduce-kv (fn [retained k until]
+                                           (if (<= until watermark-us) (dissoc retained k) retained))
+                                         (:retired state) (:retired state)))
         expired (filter (fn [[_ entry]] (<= (:deadline-us entry) watermark-us)) (ordered (:pending state)))]
     {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
      :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))

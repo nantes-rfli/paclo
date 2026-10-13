@@ -29,14 +29,14 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | done |
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | done |
-| P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | in-progress |
-| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | blocked |
+| P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
+| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | in-progress |
 | P08 | Later | Broader link-type and PCAPNG support | P05, concrete fixtures | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P07-A independent review and merge**. P06 was merged
-through PR #33 on 2026-10-12 at `0665c09`. P07-B awaits P07-A acceptance;
+Default next task: **P07-B independent review and merge**. P07-A
+was merged through PR #35 on 2026-10-12 at `2e15af7`;
 P08 still needs a fixture-backed scope decision.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
@@ -174,10 +174,9 @@ before recommending unbounded-duration aggregation. Confine optimized mutation.
 
 ## P07-A: Pure bounded time windows and DNS correlation
 
-Status: **in-progress** (implementation, local verification and CI complete;
-independent review/merge pending). `paclo.window` and `paclo.dns` provide ordinary
+Status: **done**. PR #35 merged on 2026-10-12 at `2e15af7`. `paclo.window` and `paclo.dns` provide ordinary
 immutable state transitions. [PR #35](https://github.com/nantes-rfli/paclo/pull/35)
-is ready for independent review; all 12 implementation CI jobs passed on `902eef8`.
+passed all 12 implementation CI jobs on `902eef8`.
 The [pre-implementation design](p07-a-design.md)
 fixes event time, explicit watermarks, lateness, retries, ambiguity, quarantine,
 expiry and required cardinality limits. Reuse existing DNS decode/annotation.
@@ -186,11 +185,19 @@ PCAP capture/reduction/fan-out paths. Do not migrate the existing DNS CLIs.
 
 ## P07-B: DNS CLI migration and bounded reporting
 
-Status: **blocked** by P07-A acceptance. Move dns-rtt/dns-qps onto the analysis
-APIs, remove sync/async duplication, preserve snapshots and document migration.
-Own CLI arguments, display, CSV/JSONL, p50/p95/p99, group Top-N and cancellation/
-dropping adapters. Exact all-history percentiles and Top-N can require unbounded
-memory; choose and document finite retention or approximation before adding them.
+Status: **in-progress** (implementation, local verification and all 12 implementation
+CI jobs complete on `30cd06a`; independent review/merge pending). The [CLI migration contract](p07-b-design.md)
+and [work log](work-log.md) document strict DNS RTT correlation, packet QPS
+windows, exact microseconds and max-event-time/reorder watermarks. CLI-only
+report state is bounded: topN pairs, exact samples/qname groups, active windows/
+groups and finalized/filled rows. Overflow fails before output. Sync/async
+share packet steps and one source-owning delivery adapter; cancellation/drop
+metadata never becomes analysis data. Corrected native RTT, average, empty fill,
+source EOF limits and deterministic ties are documented with regression tests.
+CI outcomes and platform/performance evidence are maintained on independent
+[PR #36](https://github.com/nantes-rfli/paclo/pull/36); no merge, version change,
+publication or P06 issue #34 change is authorized.
+P08 still requires a fixture-backed scope decision after P07-B acceptance.
 
 ## P08-P10: Evidence-driven expansion
 

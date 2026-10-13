@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MAX_WORKERS = 3
 REQUIRE = (
     "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] "
-    "'[paclo.flow :as flow] '[paclo.window :as window] '[paclo.dns :as dns] "
+    "'[paclo.flow :as flow] '[paclo.window :as window] '[paclo.dns :as dns] '[examples.dns-rtt :as rtt] '[examples.dns-qps :as qps] "
     "'[paclo.core :refer [packet-xf packets]] "
     "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
 )
@@ -37,6 +37,10 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "usage-bounded-dns-cli": Check(
+        "Bounded DNS CLI reports", "clojure",
+        "(and (= 2 (:pairs result)) (= 13.029 (:average-ms result)) (= 4 (:dns-packets result)))",
+    ),
     "readme-time-window": Check(
         "README pure time window", "clojure",
         '(and (= 1 (count result)) (= 0 (:start-us (first result))) '
@@ -131,6 +135,10 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "usage-bounded-dns-cli",
+    "readme-time-window",
+    "usage-time-windows",
+    "usage-dns-correlation",
     "readme-flow-analysis",
     "usage-flow-analysis",
     "usage-linktype-raw",

@@ -6,6 +6,7 @@
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
    [examples.dns-qps :as dns-qps]
+   [examples.dns-rtt :as dns-rtt]
    [examples.dns-topn :as dns-topn]
    [examples.flow-topn :as flow-topn]
    [examples.pcap-filter :as pcap-filter]
@@ -96,6 +97,10 @@
     (let [{:keys [out]} (run-main dns-topn/-main sample-abs)
           got (parse-first-edn out)]
       (is (= (:dns-topn snapshots) got))))
+
+  (testing "dns-rtt exact native timestamp snapshot"
+    (let [{:keys [out]} (run-main dns-rtt/-main sample-abs "_" "_" "stats")]
+      (is (= (:dns-rtt-stats snapshots) (parse-first-edn out)))))
 
   (testing "dns-qps snapshot"
     (let [{:keys [out]} (run-main dns-qps/-main sample-abs)

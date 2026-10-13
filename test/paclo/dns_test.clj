@@ -337,3 +337,18 @@
     (is (= (dns/step state (response query 20)) (dns/step restored (response query 20))))
     (is (= (dns/advance state 110) (dns/advance restored 110)))
     (is (= (dns/finish state) (dns/finish restored)))))
+
+(deftest mixed-quarantine-expiry-preserves-live-keys-and-snapshots
+  (let [other (assoc query :id 43 :time-us 20)
+        first-state (:state (dns/step (add (dns/init opts) query) (response query 11)))
+        state (:state (dns/step (add first-state other) (response other 21)))
+        before (dns/advance state 159)
+        at (dns/advance state 160)
+        after (dns/advance (:state at) 170)]
+    (is (= 2 (count (:retired state))))
+    (is (= (:retired state) (get-in before [:state :retired])))
+    (is (= 1 (count (get-in at [:state :retired]))))
+    (is (= [:id-reuse] (kinds (dns/step (:state at) (assoc other :time-us 160)))))
+    (is (= [] (kinds (dns/step (:state at) (assoc query :time-us 160)))))
+    (is (empty? (get-in after [:state :retired])))
+    (is (= 2 (count (:retired state))))))
