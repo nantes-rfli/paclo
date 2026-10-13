@@ -1304,3 +1304,72 @@ P07-B final implementation CI acceptance evidence:
   tracked in the PR description after they finish, separately from the passing
   implementation run. Supplied checkout is clean after committing/pushing evidence.
   Next action is independent P07-B review/acceptance, then P08 fixture-backed scope.
+
+## 2026-10-14: P08-A capture format investigation
+
+- Started with clean `git status --short --untracked-files=all` in the supplied
+  checkout. Read AGENTS, CONTRIBUTING, accepted plan, work log, public contract,
+  pcap/linktype/parse/flow-project/core, Java PcapLibrary and P05 tests/generator.
+  Also inspected the managed owner `paclo.capture` and unchanged CI jobs.
+- `bash dev/script/codex.sh doctor` passed: macOS x86_64, JDK 21.0.12.1,
+  Clojure 1.12.1, CLI 1.12.5.1654, real four-packet offline read. Native libpcap
+  is 1.10.1. This local machine is not macOS ARM64.
+- Initial sandbox `git fetch origin` could not write .git/FETCH_HEAD; ordinary
+  approved Git fetch succeeded. Created `codex/p08-a-capture-inventory` from
+  latest origin/main `8312d10` in the supplied checkout, without a new worktree.
+  `gh pr view 36 --json state,mergeCommit,url` confirmed MERGED at `8312d10`.
+  Updated P07-B to done and recorded P08-A in-progress before fixture work.
+- Added [the capability/design inventory](p08-a-capture-formats.md), 28 deterministic
+  synthetic Classic PCAP/PCAPNG fixtures and manifest, standard-library generation
+  with `--check`, native ctypes precision probes and JNR/public characterization
+  tests. Existing Ethernet/SLL/NULL fixtures and their generator remain unchanged.
+  No production API, decoder, Java binding, dependency or CI gate is changed;
+  performance issues #34/#37 are untouched.
+- Measured same-link/snaplen multi-interface and same-endian multi-section reads;
+  mixed link/snaplen and changed-endian sections fail after a valid prefix.
+  Nano APIs preserve 123456789 ns; current JNR default returns 123456 us.
+  Decimal/binary resolution and +7 second offset normalize correctly, while
+  interface/section identity and comments/options are absent. Unknown valid
+  blocks are skipped. SPB emits epoch zero despite having no timestamp.
+- Invalid blocks/caplen/interface produce native -1 and nonempty errors before
+  copying invalid packets; invalid IDB option length throws on open. Native
+  accepts original length 1 with caplen 64, but writer validation rejects it.
+  Public synchronous/lazy/managed reads currently hide negative native read
+  errors as clean EOF. This defect is explicitly characterized, not fixed or
+  described as safe diagnostic reporting in P08-A.
+- Public writer emits Classic Ethernet PCAP even for a .pcapng suffix and
+  non-Ethernet input. Internal explicit-DLT writer round trips the packet subset.
+  Recommended P08-B B1/B2: observable read errors and explicit single-DLT PCAP
+  output/mismatch rejection, before SLL/SLL2 decoder expansion. Future PCAPNG
+  fidelity needs a separate metadata source/contract and writer, not a format
+  flag that implies reconstruction of discarded information.
+- Initial focused test had a parenthesis error, corrected before execution.
+  First native test exposed an incorrect DLT_RAW assumption (14 on Darwin);
+  measured native DLT is 12. It also exposed changed-endian errors expressed as
+  block-size errors on 1.10.1; error-family match widened to cover that legitimate
+  version-specific diagnostic. Those attempts were failing checks, not passes.
+  Subsequent focused run passed 7 tests/312 assertions before the final extra
+  invalid-original-length and writer cases; final full checks are recorded below.
+- Initial sandbox GitHub and npm calls lacked network access; approved normal
+  network commands succeeded. Markdown lint found a line beginning #37 mistaken
+  for an ATX heading in the plan; wrapped that sentence and reran unchanged lint.
+  No toolchain, hook, threshold or required gate was relaxed.
+
+Final local verification and independent PR/CI evidence follow after completion.
+
+P08-A local verification before PR:
+
+- `bash dev/script/codex.sh check` passed JUnit 10/10, Clojure 385 tests/3093
+  assertions and offline smoke. Final test-only native type hints remove three
+  reflection warnings found by Eastwood; focused tests are rerun afterward.
+- Generator `--check` verified all 28 fixtures/manifest; Python compilation and
+  ctypes precision probe passed. Markdown lint passed 31 files after wrapping
+  the plan line; local Markdown links passed. Doc-example parser tests passed
+  15/15; maintained example execution is finishing separately.
+- An initial full lint reached zero kondo errors/warnings, clean-ns/format checks
+  and Eastwood zero exceptions, then hit sandbox npm network access. Final full
+  lint runs with ordinary approved network access; no gate is skipped.
+- First local performance gate failed at 1555.8 ms versus unchanged 1200 ms
+  budget while documentation JVM examples were still running. This is a failing
+  measurement, not a pass or a change to #34/#37. Rerun serially after all other
+  JVM verification finishes; report both results and the unchanged CI gate.
