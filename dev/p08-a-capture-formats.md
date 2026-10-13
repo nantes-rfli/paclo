@@ -64,8 +64,8 @@ writing an equal byte array into an incorrectly labeled file.
 
 DLT and savefile LINKTYPE are different namespaces. The initial test assumption
 that Darwin DLT_RAW was 14 failed: the actual macOS library returns 12, consistent
-with upstream Linux definitions. CI measurements are pending. OpenBSD constants
-cannot be generalized to macOS. See the
+with upstream Linux definitions. Both Linux CI architectures also returned 12.
+OpenBSD constants cannot be generalized to macOS. See the
 [upstream DLT definitions][dlt-header]. No arbitrary LINKTYPE-to-DLT conversion
 is proposed for ordinary packet maps.
 
@@ -147,9 +147,21 @@ string (observed for SPB), so classify by return code, not by nonempty geterr.
 | Environment | Native version and result |
 | --- | --- |
 | Local macOS 15.4.1 x86_64, JDK 21.0.12.1 | libpcap 1.10.1; focused inventory/precision observations recorded in work log |
-| GitHub Linux x64, JDK21 | Pending P08-A PR run; exact version/results to be recorded before completion |
-| GitHub macOS ARM64, JDK17 | Pending P08-A PR run; exact version/results to be recorded before completion |
-| GitHub Linux ARM64, JDK21 monitor | Pending P08-A PR run; exact version/results to be recorded before completion |
+| GitHub Ubuntu 24.04 x64, kernel 6.17.0-1022-azure, JDK 21.0.12.1 | libpcap 1.10.4 (TPACKET_V3); full suite 385 tests/3093 assertions passed |
+| GitHub macOS 26.6.2 ARM64, JDK 17.0.20.1 | libpcap 1.10.1; full suite 385 tests/3093 assertions passed |
+| GitHub Ubuntu 24.04 ARM64, kernel 6.17.0-1022-azure, JDK 21.0.12.1 | libpcap 1.10.4 (TPACKET_V3); full suite 385 tests/3093 assertions passed |
+
+All 28 fixture terminal outcomes, record bytes/lengths, DLTs and precision probe
+values agree across these three CI environments. macOS 1.10.1 leaves a stale SPB
+error string; Linux 1.10.4 leaves it empty. Both report EOF -2, and both reject the
+changed-endian section with a block-size error. This is a diagnostic difference,
+not a different packet capability.
+
+[Implementation run 38426344920, attempt 2][implementation-ci] passed all 12 jobs
+on `43138ba`. Attempt 1 could not acquire a macOS ARM64 hosted runner and cancelled
+that unexecuted job after 15m03s; the required aggregate failed correctly. Retrying
+only unsuccessful jobs obtained a runner, passed macOS tests and completed the
+aggregate. No platform label or gate was changed.
 
 The existing platform jobs discover the new Clojure test automatically, including
 its Python checks. The existing Linux ARM64 monitor is not a dependency of the
@@ -252,7 +264,10 @@ release compatibility assessment in P08-B; do not rename :ts-usec or :len.
 PCAPNG writing should require sufficient descriptors rather than invent them.
 If metadata is intentionally discarded, require an explicit loss policy and
 report what is omitted. No format can promise byte-identical file reconstruction
-from the current packet sequence.
+from the current packet sequence. The [native flush contract][flush-manual] returns
+an error status, but the current JNR binding declares it void. Output failure
+reporting was not exercised by these format round trips and remains a separate
+I/O risk; no successful-write guarantee beyond the measured cases is inferred.
 
 ## P08-B recommendation, priorities and acceptance
 
@@ -303,7 +318,8 @@ cannot supply lost section/interface/options data. No backend framework now.
 Open risks: version-dependent native validation and error text; default precision
 loss; SPB missing-time ambiguity; cross-endian NULL/native mutation; post-2038
 reader behavior; unknown-block preservation/order and bounded metadata sizes;
-partial output cleanup; JNR 64-bit header ABI portability; choosing future capture
+partial output cleanup and unvalidated flush-error reporting (the current
+`pcap_dump_flush` binding returns void); JNR 64-bit header ABI portability; choosing future capture
 metadata lifecycle and exact timestamp precedence. Live capture and platforms
 outside the measured matrix remain unverified. Full PCAPNG fidelity is deferred
 explicitly, not advertised as a read/write round trip.
@@ -317,3 +333,7 @@ explicitly, not advertised as a read/write round trip.
 [null-format]: https://www.tcpdump.org/linktypes/LINKTYPE_NULL.html
 [loop-format]: https://www.tcpdump.org/linktypes/LINKTYPE_LOOP.html
 [savefile-source]: https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/sf-pcap.c
+
+[flush-manual]: https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/pcap_dump_flush.3pcap
+
+[implementation-ci]: https://github.com/nantes-rfli/paclo/actions/runs/38426344920/attempts/2

@@ -36,8 +36,10 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-A capture format investigation**. P07-B merged through
-PR #36 on 2026-10-14 at `8312d10`. P08-B awaits a fixture-backed scope decision.
+Default next task: **P08-A independent review and merge**, then **P08-B/B1 native
+read errors versus EOF**. P07-B merged through PR #36 at `8312d10`. P08-A
+investigation and all implementation CI checks are complete in PR #38; review
+remains pending. The selected P08-B scope is documented, not implemented.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -200,8 +202,25 @@ remain separate. P08-A now inventories native I/O without adding decoders.
 
 ## P08-A: Capture format and link-type investigation
 
-Status: **in-progress**. Inventory code, native specification and fixture observations
-separately; select P08-B without publishing new decoders or writer APIs.
+Status: **in-progress** (investigation, implementation and verification complete;
+independent review/merge pending on [PR #38](https://github.com/nantes-rfli/paclo/pull/38)).
+The [capability inventory and design](p08-a-capture-formats.md) separate code,
+native specification and measured results. 28 deterministic fixtures and native
+precision probes pass on Linux x64/libpcap 1.10.4, macOS ARM64/libpcap 1.10.1
+and Linux ARM64/libpcap 1.10.4. All 12 implementation CI jobs passed on `43138ba`
+after retrying an unassigned macOS runner; no gate changed. No new public API
+or decoder was added. See the work log for initial failures and limitations.
+
+## P08-B: Explicit and safe capture I/O subset
+
+Status: **blocked** until P08-A review/merge. Recommended B1 first: propagate
+native read errors instead of silently returning an EOF prefix across all
+capture paths. Then B2: expose explicit single-DLT Classic PCAP writer options
+and reject known framing mismatches while retaining valid two-arity callers.
+Candidate files, compatibility effects and acceptance criteria are in the P08-A
+inventory. SLL/SLL2 shared framing and full/flow decode form the next slice;
+metadata-aware PCAPNG reader/writer and exact timestamps need separate contracts.
+Performance issues #34/#37 remain outside P08.
 
 ## P08-P10: Evidence-driven expansion
 

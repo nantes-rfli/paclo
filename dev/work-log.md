@@ -1373,3 +1373,75 @@ P08-A local verification before PR:
   budget while documentation JVM examples were still running. This is a failing
   measurement, not a pass or a change to #34/#37. Rerun serially after all other
   JVM verification finishes; report both results and the unchanged CI gate.
+
+P08-A final local checks and PR dispatch:
+
+- Final native type-hinted focused run passed 8 tests/331 assertions. Full
+  `check` previously passed 385 tests/3093 assertions, JUnit 10/10 and smoke;
+  the subsequent test-only type hint changes native method dispatch and was
+  verified by the focused run. No production source changed.
+- Final `bash dev/script/codex.sh lint` passed: kondo zero errors/warnings,
+  Eastwood 209 baseline warnings/zero exceptions (no new reflection warnings),
+  pinned clean-ns/format dry checks, Markdown lint 31 files. Maintained example
+  execution passed all 20 examples. `git diff --check` and local links passed.
+- Serial `bash dev/script/codex.sh perf` passed at 448.0 ms with the unchanged
+  1200 ms failure budget after verification JVMs exited. Earlier concurrent
+  1555.8 ms failure remains recorded; neither result is a performance improvement
+  claim or new target validation.
+- Committed `43138ba` and pushed the dedicated branch. Created and attached
+  independent [PR #38](https://github.com/nantes-rfli/paclo/pull/38). Commit-hook
+  Markdown lint passed; existing optional switches avoided repeating already
+  executed tests/format/kondo. Hooks/gates were not edited.
+- [Implementation CI run 38426344920](https://github.com/nantes-rfli/paclo/actions/runs/38426344920)
+  is running on `43138ba`. Platform version/diagnostic differences and final
+  outcomes will be recorded after the jobs finish. No merge, version/tag change,
+  publication, live capture or work on performance issues #34/#37.
+
+P08-A implementation CI attempt 1 and infrastructure retry:
+
+- Run `38426344920` on `43138ba` passed ten jobs, including Linux x64/JDK21,
+  Linux ARM64/JDK21 monitor, build-checks (Java quality/coverage and existing
+  performance gate), documentation, Eastwood, coverage, all three performance
+  shards and merger. Each Linux native platform suite passed 385 tests/3093
+  assertions. Ubuntu 24.04/kernel 6.17.0-1022-azure, JDK 21.0.12.1, libpcap
+  1.10.4 (TPACKET_V3), x64 and aarch64; precision probes also passed on both.
+- macOS ARM64 job `115396626458` remained queued for 15m03s, never acquired
+  a runner (empty runner name, no steps/logs), then was cancelled. Check
+  annotations explicitly report hosted runner acquisition failure and macOS
+  arm64 capacity constraints. The dependent required build aggregate failed;
+  this attempt is not passing CI and macOS ARM64 remains unverified.
+- Queried job/check annotations rather than treating the infrastructure failure
+  as a fixture failure. `gh run rerun 38426344920 --failed` retries only the
+  unsuccessful jobs on the same implementation commit; successful platform and
+  quality checks are retained. No runner/platform/gate change or bypass.
+- Diagnostic difference already measured: local macOS/libpcap 1.10.1 leaves a
+  stale error string after SPB, Linux/libpcap 1.10.4 leaves it empty. Both return
+  EOF -2 and equal packet data; changed-endian errors are block-size errors on
+  both measured versions. Native return code must determine terminal status.
+
+P08-A completed investigation and implementation CI:
+
+- [Run 38426344920, attempt 2](https://github.com/nantes-rfli/paclo/actions/runs/38426344920/attempts/2)
+  passed all 12 jobs on implementation `43138ba`. Retried macOS job
+  `115405230588` actually acquired a runner, passed compilation, 385 tests/3093
+  assertions and DNS smoke; dependent required build aggregate passed. Earlier
+  cancelled/no-runner attempt remains recorded, not counted as a passing run.
+- macOS 26.6.2 ARM64/aarch64, JDK 17.0.20.1, libpcap 1.10.1; its generator and
+  six precision probes passed. Linux x64/ARM64 are Ubuntu 24.04, JDK 21.0.12.1,
+  libpcap 1.10.4 (TPACKET_V3). All 28 fixture return-code/packet expectations,
+  DLT values (including Raw 12), bytes/lengths and timestamp conversions agree.
+  SPB leaves a stale native error string on both macOS hosts but not Linux;
+  EOF rc -2 determines success. No live or other-platform result is inferred.
+- Completed API/metadata/output comparison and ranked P08-B B1/B2 acceptance,
+  candidate files and unresolved risks. Additional code-only risk: existing
+  `pcap_dump_flush` JNR return type is void whereas the native API returns status;
+  write-failure reporting is not validated by successful format round trips.
+  This investigation does not change that binding or expand B1/B2 silently.
+- P08-A retains the plan's established in-progress status solely for independent
+  PR review/merge, as earlier feature slices did. Investigation, tests and design
+  are complete. P08-B remains blocked on that acceptance, with B1 read-error
+  distinction selected first and B2 explicit Classic output next. No merge is
+  authorized by this task; performance issues #34/#37 are untouched.
+- The final evidence-only commit updates matrix/plan/log. Its PR-head checks are
+  tracked in PR #38 separately from the passing implementation run. No production
+  file, new writer API, decoder, dependency, workflow/gate, release version or tag.
