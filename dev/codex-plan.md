@@ -33,14 +33,14 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
 | P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
 | P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
-| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | in-progress |
+| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
+| P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | in-progress |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-B2 independent review and merge** on
-[PR #42](https://github.com/nantes-rfli/paclo/pull/42).
-B2 implementation and verification are complete; all 12 implementation CI jobs
-passed on `75c5906`. Final evidence-head checks are maintained on the PR. Its in-progress status records review/merge.
+Default next task: **P08-C independent review and merge**.
+P08-B2 merged through [PR #42](https://github.com/nantes-rfli/paclo/pull/42)
+at `4998ddc`. Its implementation and verification evidence remains in the work log.
 P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
@@ -217,7 +217,7 @@ or decoder was added. See the work log for initial failures and limitations.
 ## P08-B: Explicit and safe capture I/O subset
 
 Status: B1 **done**, merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
-at `c729e19`; B2 **in-progress** for independent review/merge on
+at `c729e19`; B2 **done**, merged on
 [PR #42](https://github.com/nantes-rfli/paclo/pull/42).
 All 12 implementation CI jobs passed on `edc1c4e`, including Linux x64/JDK21,
 macOS ARM64/JDK17 and Linux ARM64/JDK21. Native read errors now throw by default;
@@ -240,8 +240,29 @@ JAR consumer checks pass. All 12 implementation CI jobs passed on `75c5906`, inc
 macOS ARM64/JDK17 and Linux ARM64. Final evidence-head checks are maintained on
 the PR; first-run lint configuration failure and correction are in the work log.
 No gate/version change. SLL/SLL2 shared full/flow framing forms the next slice
-after acceptance; PCAPNG metadata/writing and exact timestamps require separate
+in P08-C; PCAPNG metadata/writing and exact timestamps require separate
 contracts. Issue #40 and performance issues #34/#37 remain outside B2.
+
+## P08-C: Shared framing and Linux cooked decoding
+
+Status: **in-progress** for final verification and independent review/merge.
+Implementation starts from main `4998ddc` (P08-B2 merged).
+
+- Share bounds-checked Ethernet/VLAN, SLL (DLT 113), SLL2 (DLT 276) framing in
+  `paclo.linktype`; return packed L3 offset/protocol without a per-packet map on
+  the flow path. Full decode builds link-specific fields separately.
+- Reuse existing full IP/L4 parsers and numeric flow walkers; preserve Ethernet
+  shapes, absent-DLT legacy behavior, ownership, metadata and explicit extensions.
+- Add deterministic cooked IPv4/IPv6/protocol/fragment/malformed fixtures while
+  retaining P08-A's 28 fixtures and P05 inputs. Cover all public execution paths,
+  independent fan-out, flow aggregates and time-window/DNS composition.
+- Document fields and diagnostic boundaries; retain 22 maintained examples and
+  add runnable cooked samples. Measure Ethernet before/after and cooked decode
+  throughput/allocation, with unchanged performance gates.
+- Run focused/full/static/documentation/fixture/package/consumer checks, open an
+  independent PR and inspect all CI jobs including the native platform matrix.
+  Review/merge, releases, NULL/LOOP/Raw decoders, PCAPNG metadata/writer, exact
+  timestamps, issue #40 and performance issues #34/#37 are outside this task.
 
 ## P08-P10: Evidence-driven expansion
 

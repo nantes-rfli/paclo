@@ -19,7 +19,7 @@
         packets [{:id 1 :bytes (byte-array 14)}
                  {:id 2 :bytes (byte-array 5)}]]
     (with-redefs [parse/packet->clj
-                  (fn [_]
+                  (fn [_ _dlt]
                     (swap! decoded inc)
                     {:l2 {:type :ethernet}})
                   decode-ext/apply!
@@ -36,7 +36,7 @@
 
 (deftest packet-xf-preserves-full-decode-error-contract
   (with-redefs [parse/packet->clj
-                (fn [_]
+                (fn [_ _dlt]
                   (throw (RuntimeException. "invalid packet")))]
     (let [packet {:id 1 :bytes (byte-array 14)}
           result (first (sequence (core/packet-xf {:decode? true})

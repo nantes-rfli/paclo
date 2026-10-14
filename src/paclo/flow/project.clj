@@ -1,9 +1,7 @@
 (ns paclo.flow.project
-  "Internal low-allocation flow projection for Ethernet IP packets."
+  "Internal low-allocation flow projection for Ethernet and Linux cooked IP packets."
   (:require
    [paclo.linktype :as linktype]))
-
-(def ^:private ethernet-header-bytes 14)
 
 (defn- u8 ^long [^bytes frame ^long offset]
   (bit-and (aget frame (int offset)) 0xff))
@@ -35,27 +33,6 @@
                      :offset offset
                      :required required
                      :available (max 0 (- (alength frame) offset))}))))
-
-(defn- vlan-tpid? [^long ethertype]
-  (case ethertype
-    0x8100 true
-    0x88a8 true
-    0x9100 true
-    0x9200 true
-    false))
-
-(defn- ethernet-payload
-  ^long
-  [^bytes frame]
-  (require-bytes! frame 0 ethernet-header-bytes "truncated ethernet header")
-  (loop [offset ethernet-header-bytes
-         ethertype (u16 frame 12)]
-    (if (vlan-tpid? ethertype)
-      (do
-        (require-bytes! frame offset 4 "truncated VLAN header")
-        (recur (+ offset 4) (u16 frame (+ offset 2))))
-      (bit-or (bit-shift-left (long offset) 32)
-              (long ethertype)))))
 
 (defn- packed-ports
   [^bytes frame ^long offset ^long protocol non-first-fragment?]
@@ -152,10 +129,9 @@
         (require-bytes! frame offset 8 "truncated IPv6 fragment header")
         (let [following (u8 frame offset)
               fragment-field (u16 frame (+ offset 2))]
-          (recur (+ offset 8)
-                 following
-                 (pos? (bit-and fragment-field 0xfff8))
-                 (dec remaining-headers))))
+          (if (pos? (bit-and fragment-field 0xfff8))
+            {:offset (+ offset 8) :protocol following :non-first-fragment? true}
+            (recur (+ offset 8) following non-first-fragment? (dec remaining-headers)))))
 
       51
       (do
@@ -195,15 +171,18 @@
                 packed))))
 
 (defn- project
-  [^bytes frame packet]
-  (let [ethernet (ethernet-payload frame)
-        offset (unsigned-bit-shift-right ethernet 32)
-        ethertype (bit-and ethernet 0xffffffff)]
+  [^bytes frame packet dlt]
+  (let [framing (linktype/payload frame dlt)
+        offset (unsigned-bit-shift-right framing 32)
+        ethertype (bit-and framing 0xffffffff)]
     (case ethertype
       0x0800 (ipv4-flow frame offset packet)
       0x86dd (ipv6-flow frame offset packet)
-      (throw (ex-info "unsupported flow ethertype"
-                      {:reason :unsupported-ethertype :ethertype ethertype})))))
+      (if (= dlt 1)
+        (throw (ex-info "unsupported flow ethertype"
+                        {:reason :unsupported-ethertype :ethertype ethertype}))
+        (throw (ex-info "unsupported flow protocol"
+                        {:reason :unsupported-protocol :protocol ethertype}))))))
 
 (defn packet->flow
   "Project Ethernet IPv4/IPv6 bytes into numeric flow fields.
@@ -212,12 +191,11 @@
    `[high-long low-long]` pairs. Throws `ex-info` for unsupported or truncated
   packets so the public facade can represent the failure as data."
   [^bytes frame]
-  (project frame nil))
+  (project frame nil 1))
 
 (defn project-packet
   "Project a capture packet map into metadata plus numeric flow fields.
 
    The returned array-map deliberately excludes the raw bytes."
   [packet]
-  (linktype/require-ethernet! packet)
-  (project ^bytes (:bytes packet) packet))
+  (project ^bytes (:bytes packet) packet (linktype/packet-dlt packet)))

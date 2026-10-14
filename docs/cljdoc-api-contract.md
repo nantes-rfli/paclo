@@ -32,8 +32,9 @@ These contracts describe built-in transformations before user extensions and
 synchronous reductions, and managed capture. User functions can replace maps,
 remove keys, or change their shape; Paclo does not validate every output packet.
 Native captures identify their source link type. Full and flow decoding support
-Ethernet (including VLAN tags); other types remain readable as raw packets.
-Additional decoders and full PCAPNG metadata/file preservation remain P08.
+Ethernet/VLAN (DLT 1), SLL (113) and SLL2 (276) IPv4/IPv6; other types remain
+readable as raw packets. Additional decoders and full PCAPNG metadata/file
+preservation remain future work.
 The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
 native format acceptance, raw packet access, decoding and output fidelity.
 PCAPNG reads normalize timestamps to microseconds and omit section/interface
@@ -91,10 +92,11 @@ DLT values are platform libpcap constants, not necessarily the numeric LINKTYPE
 stored in a savefile global header (for example DLT_RAW varies by platform).
 Do not compare arbitrary savefile LINKTYPE codes directly to `:linktype`.
 The supported Linux/macOS fixtures use DLT_EN10MB 1, DLT_LINUX_SLL 113 and
-DLT_NULL 0. The actual native value is retained without name conversion.
+DLT_LINUX_SLL2 276 and DLT_NULL 0. The actual native value is retained without name conversion.
 
-Full/flow decode accepts explicit integer DLT_EN10MB (1). Explicit non-Ethernet,
-unknown, negative, nil or invalid values yield string `:decode-error`
+Full/flow decode accepts explicit integer DLT_EN10MB (1), DLT_LINUX_SLL (113)
+and DLT_LINUX_SLL2 (276). Other, unknown, negative, nil or invalid values yield
+string `:decode-error`
 `"unsupported linktype"` and append
 `{:stage :decode :reason :unsupported-linktype :linktype value}` (flow uses
 `:stage :flow`), without an Ethernet byte location. This check precedes short-frame classification.
@@ -120,9 +122,10 @@ The best-effort nested representation is:
 
 | Path | Built-in values |
 | --- | --- |
-| `:decoded` | Ethernet map: `:type :ethernet`, string MAC `:src`/`:dst`, numeric `:eth`, `:l3` |
+| `:decoded` | Ethernet map (unchanged): `:type :ethernet`, string MAC `:src`/`:dst`, numeric `:eth`, `:l3` |
 | `[:decoded :vlan-tags]` | Vector of maps with `:tpid`, `:pcp`, boolean `:dei`, `:vid`; normally absent without tags |
-| `[:decoded :l3]` | IPv4, IPv6, ARP or `{:type :unknown-l3 :eth number}` |
+| `:decoded` for DLT 113/276 | `:type :linux-sll` / `:linux-sll2`, numeric `:protocol`, link fields below, `:l3` |
+| `[:decoded :l3]` | IPv4, IPv6; Ethernet also ARP or `{:type :unknown-l3 :eth number}`; cooked unknown L3 uses `:protocol` |
 | `[:decoded :l3 :src]`, `:dst` | IP strings for IPv4/IPv6; IPv6 also has `:src-compact`/`:dst-compact` |
 | `[:decoded :l3 :protocol]` | IPv4 protocol number; absent for IPv6 |
 | `[:decoded :l3 :next-header]` | IPv6 final next-header number, or nil for an incomplete extension chain |
@@ -131,6 +134,21 @@ The best-effort nested representation is:
 | `[:decoded :l3 :l4 :payload]` | Usually byte-array; truncated UDP retains the legacy empty vector |
 | `[:decoded :l3 :l4 :app]` | Minimal DNS on UDP/53, possibly nil when fewer than 12 DNS bytes; otherwise absent |
 | `[:decoded :l3 :flow-key]` | Legacy string-address display descriptor, or nil after an incomplete IPv6 extension chain |
+
+SLL has numeric `:packet-type` (uint16), `:hardware-type` (uint16),
+`:address-length` (uint16, validated 0..8), `:protocol` (uint16), and `:address`
+(colon-separated lowercase hex for exactly the declared bytes; empty string at
+length 0). There is no fabricated `:src`/`:dst` MAC pair or `:eth`.
+SLL2 has the same semantic fields, with uint8 packet type/address length,
+plus uint16 `:reserved` (retained even when nonzero) and unsigned uint32
+`:interface-index`. That link-header index is not a PCAPNG interface ID.
+SLL/SLL2 recognize protocol 0x0800/0x86dd; other values, including ARP/VLAN,
+retain `{:type :unknown-l3 :protocol number}` and `:unsupported-protocol` in
+full decode; flow returns `"unsupported flow protocol"` and that diagnostic.
+Full/flow share framing offsets 16/20 and bounds/address validation. Full decode
+builds link details; flow constructs no full-decode or link-detail maps. Original
+packet arrays remain unchanged and retain identity in full decode. Existing L4
+payload copies remain; no whole-frame clone or synthetic Ethernet header is made.
 
 IPv4 includes header fields (`:version`, `:ihl` in bytes, `:total-length`, `:tos`,
 `:id`, `:flags-frag`, `:ttl`, `:header-checksum`); IPv6 includes `:version`,
@@ -169,7 +187,7 @@ DNS/TLS annotation functions follow the [extension contract](#supported-protocol
 Flow reads only the first four transport bytes needed for ports. It can succeed
 where full decode rejects a short TCP/UDP header. It skips supported IPv6 extension
 headers with a bounded chain and does not validate all lengths/checksums. Invalid
-IP version/header length, short frames/headers, and unsupported Ethertypes return
+IP version/header length, short frames/headers, and unsupported link protocols return
 the five metadata keys plus string `:decode-error` and `:diagnostics`, without
 flow fields. ARP is unsupported for flow projection. Neither success nor failure
 includes raw `:bytes` or nested `:decoded`. Existing diagnostics are retained.
@@ -184,13 +202,19 @@ partial/unsupported decode can have diagnostics and `:decoded` without an error.
 | Stage | Reason | Classification |
 | --- | --- | --- |
 | `:decode`, `:flow` | `:unsupported-linktype` | Explicit link type has no supported decoder; includes `:linktype` |
-| `:decode`, `:flow` | `:short-frame` | Fewer than 14 Ethernet bytes (missing full-decode bytes also uses zero available) |
+| `:decode`, `:flow` | `:short-frame` | Fewer than required link bytes: Ethernet 14, SLL 16, SLL2 20; missing bytes uses zero available |
 | `:decode`, `:flow` | `:truncated-header` | Known required header bytes are missing |
-| `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length or invalid IPv6 options; flow also bounds extension chains |
+| `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length, cooked address length above 8, or invalid IPv6 options; flow also bounds extension chains |
 | `:decode`, `:flow` | `:unsupported-ethertype` | Decoder has no implementation for this Ethertype; includes numeric `:ethertype` |
+| `:decode`, `:flow` | `:unsupported-protocol` | Unsupported SLL/SLL2 L3 protocol; includes numeric `:protocol` |
 | `:decode`, `:flow` | `:unexpected-failure` | Unclassified exception; no inference from its message |
 | `:extension` | `:extension-exception` | Hook threw; includes `:exception-class` and `:message` strings |
 | `:extension` | `:extension-non-map` | Hook returned any non-map value, including nil |
+
+Cooked address-length diagnostics include `:field :address-length` and numeric
+`:value`; their location identifies the length field at offset 4 (SLL, 2 bytes)
+or 11 (SLL2, 1 byte). Truncated IP/L4 offsets retain the original link-header
+length. Full decode may need more bytes than flow and may retain partial data.
 
 When known, `:location` is `{:offset integer :required integer :available integer}`:
 zero-based absolute frame byte offset of the required region, its required size,
@@ -810,7 +834,8 @@ Eligible input is unfragmented standard opcode-0 UDP/53, with a complete minimum
 DNS header, consistent UDP length and zero or one question. TCP streams, multiple
 questions/messages and fragment reassembly are excluded. Decode-error presence,
 any nonempty diagnostics (including extension reports), explicit unsupported
-linktype and incomplete/unsupported decode return nil. Eligible bad timestamps
+linktype and incomplete/unsupported decode return nil. Ethernet, SLL and SLL2
+full-decode DNS packets are eligible under the same rules. Eligible bad timestamps
 throw. Ineligible input returns nil before time validation. No bytes, native
 handles, Throwable, lazy packet references or arbitrary input fields survive.
 

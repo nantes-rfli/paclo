@@ -551,14 +551,25 @@ Native raw reads retain the actual libpcap DLT as integer `:linktype`. DLT is
 not necessarily the savefile's numeric LINKTYPE; see the
 [link-type contract](cljdoc-api-contract.md#link-type-dispatch). Detection happens
 once after open/activation; it does not infer framing from arbitrary bytes.
-Full decode and flow currently support Ethernet (DLT 1), including VLAN tags.
-SLL and BSD loopback bytes remain accessible in raw mode, while full/flow return
-`"unsupported linktype"` with `:unsupported-linktype` diagnostics and no IP/port
-fields. Full decode keeps bytes and skips DNS/TLS hooks; flow omits bytes.
-These failures increment existing decode-error counters without changing stats v1.
+Full decode and flow support Ethernet/VLAN (DLT 1), Linux SLL (113) and SLL2
+(276) IPv4/IPv6. TCP, UDP, ICMP, fragments and IPv6 extension headers use the
+existing parsers. Full decode adds `:linux-sll` or `:linux-sll2` link maps and
+retains bytes; flow keeps numeric IP/port fields and omits bytes. Explicit
+DNS/TLS extensions work under the shared `[:decoded :l3 :l4]` path.
+
+NULL/LOOP/Raw IP and unknown/invalid DLTs remain unsupported for full/flow, with
+`"unsupported linktype"` and `:unsupported-linktype` diagnostics. Raw access is
+unchanged. Short cooked headers report `:short-frame` with required lengths
+16/20 at offset 0. Address lengths above 8 report `:malformed-packet` with
+`:field :address-length`; unknown cooked protocols report `:unsupported-protocol`.
+Locations are absolute byte offsets in the original frame. IP/L4 truncation
+uses existing diagnostics; flow needs only four transport bytes for TCP/UDP ports.
+Thrown decode failures increment existing error counters without changing stats v1;
+best-effort full results may carry diagnostics without `:decode-error`.
 
 This repository example reads the bundled Linux cooked fixture and inspects its
-link type and a flow diagnostic:
+link type and flow diagnostics. Its first packet now decodes; the short and
+Ethernet-looking records still fail:
 
 <!-- paclo-doc-test: usage-linktype-raw -->
 
@@ -575,9 +586,33 @@ link type and a flow diagnostic:
 For external packet maps, omission of `:linktype` retains the legacy Ethernet
 assumption. Explicit nil/unknown/invalid values are rejected by full/flow; raw
 `packet-xf {}` remains identity. Do not mutate shared packet arrays in fan-out.
-The writer remains Ethernet-only and does not preserve source `:linktype` or
-convert non-Ethernet bytes. Additional decoders, PCAPNG, interface metadata and
-complete source-file round trips remain P08 work.
+Use `core/write-pcap!` with the matching native DLT to write a single-DLT
+Classic PCAP, as in the [explicit writer example](#write-pcap).
+The writer preserves bytes without converting framing. PCAPNG metadata/output,
+additional decoders and complete source-file round trips remain future work.
+
+Cooked headers expose numeric `:packet-type`, `:hardware-type`, `:address-length`,
+`:protocol` and a colon-separated hex `:address` string containing exactly that
+many bytes (0..8; empty string for 0). SLL2 additionally has unsigned
+`:interface-index` and numeric `:reserved`. The address is not an Ethernet
+source/destination MAC pair; interface index is not a PCAPNG interface ID.
+
+This SLL2 sample projects IPv4 and IPv6 traffic into the existing bounded flow
+aggregate. The first eight fixture records are valid DNS, TLS and ICMP packets:
+
+<!-- paclo-doc-test: usage-cooked-flow -->
+
+```clojure
+(require '[paclo.core :as core] '[paclo.flow :as flow])
+
+(let [rf (flow/aggregate-rf {:max-flows 8})
+      packets (core/reduce-packets {:path "test/resources/cooked/sll2.pcap"
+                                    :max 8 :decode-mode :flow} conj [])
+      aggregate (reduce rf (rf) packets)]
+  {:versions (set (map :ip-version packets))
+   :linktypes (set (map :linktype packets))
+   :top (flow/top-n aggregate 8)})
+```
 
 ## Reusable flow analysis
 

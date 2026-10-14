@@ -153,7 +153,7 @@
     (is (not (contains? event :bytes)))
     (doseq [p [(assoc packet :diagnostics [{:stage :extension :reason :extension-exception}])
                (assoc packet :diagnostics [{:stage :decode :reason :unsupported-linktype}])
-               (assoc packet :decode-error nil) (assoc packet :linktype 113)
+               (assoc packet :decode-error nil) (assoc packet :linktype 0)
                (assoc-in packet [:decoded :l3 :frag?] true)
                (assoc-in packet [:decoded :l3 :l4 :app] nil)
                (assoc-in packet [:decoded :l3 :l4 :app :opcode] 1)

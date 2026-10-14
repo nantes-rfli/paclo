@@ -93,8 +93,6 @@
       (throw (ex-info "unsupported bpf form" {:form form})))))
 
 ;; Stream API
-(def ^:private ETH_MIN_HDR 14)
-
 (defn ^:private error-diagnostic [stage error]
   (let [data (ex-data error)
         reason (:reason data)
@@ -104,22 +102,27 @@
     (cond-> {:stage stage
              :reason (if (contains? #{:short-frame :truncated-header
                                       :malformed-packet :unsupported-ethertype
-                                      :unsupported-linktype}
+                                      :unsupported-linktype :unsupported-protocol}
                                     reason)
                        reason :unexpected-failure)}
       (and (map? location)
            (every? integer? (map location [:offset :required :available])))
       (assoc :location (select-keys location [:offset :required :available]))
       (contains? data :linktype) (assoc :linktype (:linktype data))
-      (integer? (:ethertype data)) (assoc :ethertype (:ethertype data)))))
+      (integer? (:ethertype data)) (assoc :ethertype (:ethertype data))
+      (integer? (:protocol data)) (assoc :protocol (:protocol data))
+      (:field data) (assoc :field (:field data) :value (:value data)))))
 
 (defn ^:private decode-result
   "Call `parse/packet->clj` and return a tagged result map."
-  [^bytes ba]
+  [^bytes ba dlt]
   (try
-    {:ok true :value (parse/packet->clj ba)}
+    (linktype/require-link-header! ba dlt)
+    {:ok true :value (parse/packet->clj ba dlt)}
     (catch Throwable e
-      {:ok false :error (or (.getMessage e) (str e))
+      {:ok false :error (if (= :short-frame (:reason (ex-data e)))
+                          (str "frame too short: " (when ba (alength ba)) " bytes")
+                          (or (.getMessage e) (str e)))
        :diagnostic (error-diagnostic :decode e)})))
 
 (defn ^:private decode-packet
@@ -131,25 +134,17 @@
         (update :diagnostics (fnil conj [])
                 {:stage :decode :reason :unsupported-linktype
                  :linktype (:linktype m)}))
-    (let [ba ^bytes (:bytes m)]
-      (if (and ba (>= (long (alength ba)) (long ETH_MIN_HDR)))
-        (let [{:keys [ok value error diagnostic]} (decode-result ba)]
-          (if ok
-            (let [diagnostics (:paclo.parse/diagnostics (meta value))]
-              (extend-packet
-               (cond-> (assoc m :decoded value)
-                 diagnostics (update :diagnostics (fnil into [])
-                                     (mapv #(assoc % :stage :decode) diagnostics)))))
-            (-> m
-                (assoc :decode-error error)
-                (update :diagnostics (fnil conj []) diagnostic))))
+    (let [{:keys [ok value error diagnostic]}
+          (decode-result (:bytes m) (:linktype m 1))]
+      (if ok
+        (let [diagnostics (:paclo.parse/diagnostics (meta value))]
+          (extend-packet
+           (cond-> (assoc m :decoded value)
+             diagnostics (update :diagnostics (fnil into [])
+                                 (mapv #(assoc % :stage :decode) diagnostics)))))
         (-> m
-            (assoc :decode-error
-                   (str "frame too short: " (when ba (alength ba)) " bytes"))
-            (update :diagnostics (fnil conj [])
-                    {:stage :decode :reason :short-frame
-                     :location {:offset 0 :required ETH_MIN_HDR
-                                :available (if ba (alength ba) 0)}}))))))
+            (assoc :decode-error error)
+            (update :diagnostics (fnil conj []) diagnostic))))))
 
 (defn ^:private normalize-filter [filter]
   (cond
@@ -224,7 +219,7 @@
    The two decode options are mutually exclusive. Decode failures retain string
    `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
    Native captures supply integer DLT `:linktype`. Full/flow support Ethernet
-   (DLT 1); explicit other/invalid values yield unsupported-linktype diagnostics.
+   (DLT 1), SLL (113) and SLL2 (276); other/invalid explicit DLTs are unsupported.
    Missing :linktype retains legacy Ethernet input for standalone transforms.
    Best-effort unsupported/incomplete decoded data can also carry diagnostics.
    Published packet bytes are mutable shared arrays; treat them as read-only."

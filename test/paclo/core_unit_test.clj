@@ -25,8 +25,8 @@
 
 (deftest decode-result-captures-errors
   (let [f (deref #'core/decode-result)
-        res (with-redefs [parse/packet->clj (fn [_] (throw (Exception. "oops")))]
-              (f (byte-array 0)))]
+        res (with-redefs [parse/packet->clj (fn [_ _dlt] (throw (Exception. "oops")))]
+              (f (byte-array 14) 1))]
     (is (false? (:ok res)))
     (is (re-find #"oops" (:error res)))))
 
@@ -36,7 +36,7 @@
         seq-out [{:bytes (byte-array (repeat 20 0)) :id 1}
                  {:bytes (byte-array 5) :id 2}]]
     (with-redefs [pcap/capture->seq (fn [_] seq-out)
-                  parse/packet->clj (fn [_] (swap! parse-called inc) {:parsed true})
+                  parse/packet->clj (fn [_ _dlt] (swap! parse-called inc) {:parsed true})
                   dx/apply! (fn [m] (swap! hook-called inc) (assoc m :hook true))]
       (let [out (doall (core/packets {:path "dummy" :decode? true}))]
         (is (= 1 @parse-called))

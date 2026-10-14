@@ -128,6 +128,8 @@ def main():
         else:
             path.write_bytes(content)
     print(('Verified' if args.check else 'Generated') + f' {len(cases)} capture fixtures and manifest')
+    from make_cooked_fixtures import generate
+    generate(args.check)
 
 
 if __name__ == '__main__':

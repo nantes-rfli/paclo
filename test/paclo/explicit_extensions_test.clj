@@ -94,7 +94,7 @@
   (let [calls (atom 0)
         xf (core/packet-xf {:decode? true
                             :extensions [(fn [m] (swap! calls inc) m)]})]
-    (with-redefs [parse/packet->clj (fn [_] (throw (ex-info "invalid packet" {})))]
+    (with-redefs [parse/packet->clj (fn [_ _dlt] (throw (ex-info "invalid packet" {})))]
       (is (= "invalid packet" (:decode-error (transform xf)))))
     (with-redefs [parse/packet->clj (constantly {})]
       (let [out (into [] xf [{:bytes (byte-array 3)}

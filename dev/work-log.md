@@ -1695,3 +1695,114 @@ P08-B2 implementation verification complete; independent review/merge pending:
   review/merge; next is that acceptance, then a separate SLL/SLL2 decode slice.
   Issue #40, PCAPNG metadata/writing, exact nanoseconds and performance #34/#37
   remain outside this completed implementation. No merge/version/tag/release.
+
+## 2026-10-14: P08-C shared framing and cooked decoding
+
+Started with a clean supplied checkout, `git status --short --untracked-files=all`
+and successful `bash dev/script/codex.sh doctor`. Read AGENTS, CONTRIBUTING,
+API contract, accepted plan, P08-A inventory, full/flow/core sources, P05/P06
+regressions and deterministic generator. Fetched origin/main and verified PR #42
+was merged at `4998ddcf191a523febd7da9efef6bb956cb7ca53` (GitHub mergedAt
+2026-10-14T04:09:40Z). Created `codex/p08-c-shared-framing` from that main in the
+supplied checkout; no extra worktree. B2 is done; C is the reviewable next slice.
+
+Implementation:
+
+- `paclo.linktype` owns DLT validation, minimum sizes, Ethernet/VLAN and SLL/SLL2
+  bounds/length validation and packed L3 offset/protocol. Successful framing
+  constructs no map or packet-byte copy. Full-only link construction reads
+  details from validated offsets; Ethernet MAC/VLAN shapes and partial VLAN
+  diagnostics are retained. Removed duplicate full/flow VLAN framing and the
+  Ethernet-only facade length constant. No generic internal directory/registry.
+- SLL/SLL2 full maps honestly name their link wrapper, preserve numeric wire
+  fields and represent exactly 0..8 address bytes as lowercase colon-separated
+  hex (empty string at zero). SLL2 uint32 interface index and reserved are retained;
+  the index is not PCAPNG interface identity. Only cooked IPv4/IPv6 protocols
+  are decoded; cooked ARP/VLAN/other values are unsupported protocols.
+- Existing full IP/L4 parsers and numeric flow walkers are reused. No fabricated
+  Ethernet header, default dependency, public backend, input clone, borrowed
+  buffer or resource/lifecycle change. Existing L4 payload copies remain.
+  Full keeps the source array; flow excludes bytes and nested decode/link maps.
+- Additive `:unsupported-protocol` includes numeric protocol; bad cooked address
+  length uses `:malformed-packet`, `:field :address-length`, `:value` and the
+  absolute length-field location. Short link headers require 16/20 bytes at
+  offset zero. Ethernet error strings and best-effort VLAN shapes stay compatible.
+  Shared minimum-header validation also retains the facade's skip-parser/skip-hook
+  behavior on short input. Full/flow IP/L4 depth differences remain explicit.
+- P07 DNS projection used an Ethernet-only metadata guard; changed it to shared
+  supported-DLT validation. Explicit DNS/TLS functions work unchanged. Noninitial
+  IPv6 numeric projection now stops at the fragment header, matching full decode
+  when its following extension header is absent. No reassembly or analysis redesign.
+
+Fixtures and tests:
+
+- P08-A's 28 files/manifest and P05 captures remain byte-identical. The original
+  generator now also checks four new cooked captures (Classic and single-DLT
+  PCAPNG for each DLT) plus a separate manifest. Each has 26 deterministic records:
+  IPv4/IPv6 DNS request/response, TCP/TLS, ICMP, first/later fragments and extension
+  chains, address lengths 0/8, unknown protocol, short link/IP/L4/extension headers,
+  invalid IHL/version/address length and Ethernet-looking adversarial bytes.
+- All core transformation/lazy/reduction/report/managed paths agree, including
+  PCAPNG equivalence, Classic write/read bytes/time/length/DLT round trips and
+  independent full/flow bounded fan-out. Tests verify raw/full array identity,
+  no mutation, numeric keys/aggregates/Top-N, window counts, IPv4/IPv6 DNS RTT and
+  TLS SNI. Explicit depth tests demonstrate four-port-byte flow success while
+  full decode diagnoses a short TCP/UDP header. Six oversized address-length
+  cases and 300 cooked property cases check link-independent IP data and safe
+  truncated prefixes/absolute locations/EDN/ownership.
+- Existing P05/P06/P07 expectations are updated for now-supported cooked traffic;
+  parser stubs accept the new internal DLT argument. Initial focused/full runs
+  exposed the old DNS guard, outdated rejection expectations/stub arities and
+  parser-skip assumptions; those were corrected before successful verification.
+
+Verification so far (local macOS 15.4.1 x86_64, libpcap 1.10.1, JDK 21.0.12.1,
+Clojure 1.12.1; offline only):
+
+- Focused wrapper tests: 72 tests / 1579 assertions, then the expanded cooked
+  namespace: 7 tests / 878 assertions, all passed. `bash dev/script/codex.sh check`
+  passed 412 tests / 5164 assertions, 10 JUnit tests and real offline smoke.
+- `bash dev/script/codex.sh lint`: kondo zero errors/warnings, Eastwood zero
+  exceptions with the existing boxed-math warnings, clean-ns/format dry checks,
+  Markdown lint all passed. First sandbox-only npm calls could not resolve
+  registry.npmjs.org; the authorized network-enabled rerun succeeded. A single
+  extra Markdown blank line was fixed; no lint suppression/gate change.
+- `clojure -M:spotbugs`, `-M:checkstyle`, `-M:jacoco`, and
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate` passed; line coverage 43.8%.
+- `python3 test/resources/make_capture_format_fixtures.py --check`, Markdown lint,
+  `python3 dev/script/verify_doc_links.py`, the documentation-parser unittest
+  (15 tests), and `git diff --check` passed. All 24 executable examples passed,
+  preserving the original 22 IDs and adding cooked full/flow samples. The new
+  README example's trailing comment initially swallowed the verifier's closing
+  form; removed that trailing comment and reran the full example gate successfully.
+
+Performance, packaging, commit/PR and CI evidence follow below. Live capture,
+other unmeasured platforms and real-NIC throughput are not established by these
+checks. NULL/LOOP/Raw decoding, PCAPNG metadata/writer, exact timestamps, issue #40,
+performance issues #34/#37, version updates, publication and merge remain outside C.
+
+Final performance/packaging evidence:
+
+- `paclo.dev.framing-perf` compares baseline/current in one warmed JVM, alternates
+  sample order and records current-thread allocation, checksums, array identity
+  and unchanged input bytes. Two final independent runs, their method and every
+  row are retained in [P08-C performance](p08-c-performance.md). Ethernet full
+  allocation falls 416 bytes/packet; flow is 280 bytes for all three DLTs.
+  Full throughput is measurably lower (UDP 4.9–7.7%, TCP 8.4–9.8%); this is
+  disclosed as the CPU cost of shared framing/link construction, not a speedup.
+  Ethernet flow ranges from -4.3% to +0.6% for TCP; UDP outcomes are in the report.
+  Investigated early regressions, removed boxed DLT comparison and extra hot-path
+  packing calls, and reused the local full-parser ByteBuffer for address reads.
+  No whole-frame copy, second full ByteBuffer or intermediate full link map.
+- Final `bash dev/script/codex.sh perf` passed at 514.7 ms with the unchanged
+  1000/1200 ms warning/failure budgets. Measurements ran after other local checks;
+  they do not resolve aggregation issues #34/#37 or establish live throughput.
+- `bash dev/script/codex.sh package` builds the unchanged snapshot-version JAR;
+  JAR inspection includes linktype/full/numeric-flow/DNS and native bindings.
+  Restore Java test classes with `prepare` after packaging. The independent
+  `/private/tmp/paclo-c-consumer` uses `clojure -Srepro` and only the packaged JAR,
+  checks jar: resource origins, cooked IPv4/IPv6 flow aggregates, DNS/window
+  composition, array identity and matching-DLT Classic PCAP round trips.
+- The installed local hook refers to removed `script/fmt.sh` and interactive clj
+  without rlwrap. A command-local hook shim invokes the same full tests through
+  noninteractive `clojure` and the maintained `dev/script/fmt.sh`; no test or
+  formatter is skipped, and the repository/global hook configuration is unchanged.

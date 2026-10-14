@@ -175,10 +175,10 @@
             right (future (transduce identity rf b))]
         (is (= expected (deref left 10000 :timeout)))
         (is (= expected (deref right 10000 :timeout)))))
-    (testing "P05 unsupported fixture is skipped with diagnostics intact"
+    (testing "P05 cooked fixture decodes its valid record and skips malformed records"
       (let [result (core/reduce-packets-report (assoc opts :path "test/resources/linktype-sll.pcap") rf (rf))]
-        (is (= {:seen 3 :aggregated 0 :skipped 3} (get-in result [:result :summary])))
-        (is (= 3 (get-in result [:stats :packets :decode-errors])))))))
+        (is (= {:seen 3 :aggregated 1 :skipped 2} (get-in result [:result :summary])))
+        (is (= 2 (get-in result [:stats :packets :decode-errors])))))))
 
 (deftest ipv6-word-order-and-ip-version-identity
   (doseq [[a b] [[[0 2] [0 1]] [[0 -1] [0 1]] [[-1 0] [0 -1]]]]

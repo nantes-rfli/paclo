@@ -1,6 +1,7 @@
 (ns paclo.parse
   (:require
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [paclo.linktype :as linktype])
   (:import
    [java.nio ByteBuffer ByteOrder]))
 
@@ -29,33 +30,7 @@
 (defn- u16 ^long [^ByteBuffer b] (bit-and (.getShort b) 0xFFFF))
 (defn- u32 ^long [^ByteBuffer b] (bit-and (.getInt b) 0xFFFFFFFF))
 
-(def ^:private hex-digits "0123456789abcdef")
-
-(defn- mac [^ByteBuffer b]
-  (let [result (char-array 17)]
-    (dotimes [index 6]
-      (let [value (u8 b)
-            output (* index 3)]
-        (aset-char result output
-                   (.charAt ^String hex-digits
-                            (int (bit-shift-right value 4))))
-        (aset-char result (inc output)
-                   (.charAt ^String hex-digits
-                            (int (bit-and value 0x0f))))
-        (when (< index 5)
-          (aset-char result (+ output 2) \:))))
-    (String. result)))
-
 (def ETH-IPv4 0x0800)
-(def ETH-IPv6 0x86DD)
-(def ETH-ARP  0x0806)
-
-(def ETH-VLAN-8100 0x8100)  ;; 802.1Q
-(def ETH-VLAN-88A8 0x88A8)  ;; 802.1ad (QinQ outer)
-(def ETH-VLAN-9100 0x9100)  ;; Additional TPID seen on some environments
-(def ETH-VLAN-9200 0x9200)
-(def ^:private VLAN-TPIDs #{ETH-VLAN-8100 ETH-VLAN-88A8 ETH-VLAN-9100 ETH-VLAN-9200})
-
 (defn- ipv4-addr [^ByteBuffer b]
   (str (u8 b) "." (u8 b) "." (u8 b) "." (u8 b)))
 
@@ -593,59 +568,43 @@
               {:type :unknown-l4 :proto proto :payload (remaining-bytes b)}))]
     (maybe-attach-dns m)))
 
-(defn- decode-frame
-  "Decode bytes into a Clojure map.
-   - Parses Ethernet and strips 0..N VLAN tags
-   - Decodes minimal L3/L4 structures (IPv4/IPv6/ARP, TCP/UDP/ICMP)
-   - Adds minimal DNS summary under `:app` for UDP/53 traffic
-   - Adds `:vlan-tags` when tags exist"
-  [^bytes bytes]
-  (let [b (-> (ByteBuffer/wrap bytes) (.order ByteOrder/BIG_ENDIAN))
-        dst (mac b) src (mac b)
-        first-eth (u16 b)]
-    (loop [eth first-eth
-           tags (transient [])]
-      (if (VLAN-TPIDs eth)
-        (if (< (.remaining b) 4)
-          {:type :ethernet :src src :dst dst :eth eth
-           :vlan-tags (persistent! tags)
-           :l3 (diagnosed {:type :unknown-l3 :eth eth} (truncated b 4))}
-          (let [tci (u16 b)
-                next-eth (u16 b)
-                tag {:tpid eth
-                     :pcp  (bit-and (bit-shift-right tci 13) 0x7)    ;; 3bit
-                     :dei  (pos? (bit-and tci 0x1000))               ;; 1bit
-                     :vid  (bit-and tci 0x0FFF)}]                    ;; 12bit
-            (recur next-eth (conj! tags tag))))
-        (let [final-eth eth
-              vlan-tags (persistent! tags)]
-          (cond
-            (= final-eth ETH-IPv4)
-            (let [l3 (ipv4 b)]
-              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
-                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
+(defn- l3-parse [^ByteBuffer b protocol ethernet?]
+  (case (long protocol)
+    0x0800 (ipv4 b)
+    0x86dd (ipv6 b)
+    0x0806 (if ethernet?
+             (or (arp b) {:type :arp})
+             (diagnosed {:type :unknown-l3 :protocol protocol}
+                        {:reason :unsupported-protocol :protocol protocol}))
+    (if ethernet?
+      (diagnosed {:type :unknown-l3 :eth protocol}
+                 {:reason :unsupported-ethertype :ethertype protocol})
+      (diagnosed {:type :unknown-l3 :protocol protocol}
+                 {:reason :unsupported-protocol :protocol protocol}))))
 
-            (= final-eth ETH-IPv6)
-            (let [l3 (ipv6 b)]
-              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
-                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
-
-            (= final-eth ETH-ARP)
-            (let [l3 (or (arp b) {:type :arp})]
-              (cond-> {:type :ethernet :src src :dst dst :eth final-eth :l3 l3}
-                (seq vlan-tags) (assoc :vlan-tags vlan-tags)))
-
-            :else
-            (cond-> {:type :ethernet :src src :dst dst :eth final-eth
-                     :l3 (diagnosed {:type :unknown-l3 :eth final-eth}
-                                    {:reason :unsupported-ethertype :ethertype final-eth})}
-              (seq vlan-tags) (assoc :vlan-tags vlan-tags))))))))
+(defn- decode-frame [^bytes bytes dlt]
+  (let [framing (try (linktype/payload bytes dlt)
+                     (catch clojure.lang.ExceptionInfo error
+                       (if-let [partial (:framing (ex-data error))]
+                         partial
+                         (throw error))))
+        offset (unsigned-bit-shift-right framing 32)
+        protocol (bit-and framing 0xffffffff)
+        b (doto (ByteBuffer/wrap bytes)
+            (.order ByteOrder/BIG_ENDIAN)
+            (.position offset))]
+    (if (and (= dlt 1) (linktype/vlan-protocol? protocol))
+      (let [header (linktype/header b dlt framing
+                                    (diagnosed {:type :unknown-l3 :eth protocol} (truncated b 4)))]
+        (assoc header :vlan-tags (or (:vlan-tags header) [])))
+      (linktype/header b dlt framing (l3-parse b protocol (= dlt 1))))))
 
 (defn packet->clj
-  "Decode Ethernet bytes into best-effort nested L3/L4 data.
+  "Decode Ethernet (default), SLL or SLL2 bytes into nested L3/L4 data.
    Internal metadata carries nonfatal diagnostics to the public packet facade."
-  [^bytes bytes]
-  (let [result (decode-frame bytes)]
-    (if-let [diagnostics (::diagnostics (meta (:l3 result)))]
-      (with-meta result {::diagnostics diagnostics})
-      result)))
+  ([bytes] (packet->clj bytes 1))
+  ([^bytes bytes dlt]
+   (let [result (decode-frame bytes dlt)]
+     (if-let [diagnostics (::diagnostics (meta (:l3 result)))]
+       (with-meta result {::diagnostics diagnostics})
+       result))))

@@ -1,7 +1,8 @@
 (ns paclo.dns
   "Pure UDP DNS event projection and bounded ordered-stream correlation."
   (:require
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [paclo.linktype :as linktype])
   (:import
    [java.util Locale]))
 
@@ -69,7 +70,7 @@
   (let [l3 (get-in packet [:decoded :l3]) l4 (:l4 l3) app (:app l4)]
     (when (and (map? packet) (not (contains? packet :decode-error))
                (empty? (:diagnostics packet))
-               (or (not (contains? packet :linktype)) (= 1 (:linktype packet)))
+               (not (linktype/unsupported? packet))
                (contains? #{:ipv4 :ipv6} (:type l3)) (not (:frag? l3))
                (= :udp (:type l4)) (or (= 53 (:src-port l4)) (= 53 (:dst-port l4)))
                (integer? (:length l4)) (integer? (:data-len l4))
