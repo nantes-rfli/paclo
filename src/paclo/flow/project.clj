@@ -1,5 +1,5 @@
 (ns paclo.flow.project
-  "Internal low-allocation flow projection for Ethernet and Linux cooked IP packets."
+  "Internal low-allocation flow projection for Ethernet, cooked and bare IP packets."
   (:require
    [paclo.linktype :as linktype]))
 
@@ -29,7 +29,7 @@
   [^bytes frame ^long offset ^long required reason]
   (when (> (+ offset required) (alength frame))
     (throw (ex-info reason
-                    {:reason (if (zero? offset) :short-frame :truncated-header)
+                    {:reason :truncated-header
                      :offset offset
                      :required required
                      :available (max 0 (- (alength frame) offset))}))))

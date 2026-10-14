@@ -34,11 +34,15 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
 | P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
 | P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
-| P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | in-progress |
+| P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
+| P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | in-progress |
+| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-C independent review and merge**.
+Default next task: **P08-D1 independent review and merge**.
+P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
+at `9d83bb2` on 2026-10-14.
 P08-B2 merged through [PR #42](https://github.com/nantes-rfli/paclo/pull/42)
 at `4998ddc`. Its implementation and verification evidence remains in the work log.
 P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
@@ -245,7 +249,7 @@ contracts. Issue #40 and performance issues #34/#37 remain outside B2.
 
 ## P08-C: Shared framing and Linux cooked decoding
 
-Status: **in-progress** solely for independent review/merge on
+Status: **done**, merged on 2026-10-14 at `9d83bb2` through
 [PR #43](https://github.com/nantes-rfli/paclo/pull/43). Implementation `5d5e848`
 and all local gates are complete. [CI run 38525529813](https://github.com/nantes-rfli/paclo/actions/runs/38525529813)
 passed all 12 jobs, including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64.
@@ -255,8 +259,8 @@ and four new captures, 412 tests, 300 cooked property cases, 24 executable docs,
 JAR consumer and unchanged quality/performance gates pass. See the
 [performance comparison](p08-c-performance.md) for the measured Ethernet CPU cost
 and allocation reductions, and [work log](work-log.md) for complete evidence.
-Final evidence-head checks are maintained on the PR. No review/merge, release,
-live/NIC throughput or unmeasured-platform validation is implied.
+Final evidence-head checks remain on PR #43. These offline checks do not imply
+release, live/NIC throughput or unmeasured-platform validation.
 
 - Share bounds-checked Ethernet/VLAN, SLL (DLT 113), SLL2 (DLT 276) framing in
   `paclo.linktype`; return packed L3 offset/protocol without a per-packet map on
@@ -273,6 +277,35 @@ live/NIC throughput or unmeasured-platform validation is implied.
   independent PR and inspect all CI jobs including the native platform matrix.
   Review/merge, releases, NULL/LOOP/Raw decoders, PCAPNG metadata/writer, exact
   timestamps, issue #40 and performance issues #34/#37 are outside this task.
+
+## P08-D1: Raw IP full and flow decoding
+
+Status: **in-progress** for final PR/CI and independent review. Implementation
+starts from P08-C main `9d83bb2`; local regressions, executable docs, fixtures and
+[performance evidence](p08-d1-performance.md) are recorded in the work log.
+No NULL/LOOP decoder, version update, release or merge is included.
+
+- Add bare IPv4/IPv6 framing at offset zero to `paclo.linktype`, using the version
+  nibble and measured Linux/macOS native DLT_RAW 12; reject savefile code 101
+  and guessed mappings on other systems. Use `{:type :raw-ip :l3 ...}`.
+- Reuse full IP/L4 and fast numeric projection, with extensions, fragments,
+  structured absolute diagnostics and all capture/analysis paths unchanged.
+- Deterministic fixtures, property regressions, executable full/flow docs,
+  Ethernet/cooked/Raw throughput and allocation, all existing gates, packaged
+  consumer, independent PR and supported-platform CI are required.
+- Keep the P08-C Ethernet full slowdown (4.9–9.8%) visible and track improvement
+  in [issue #44](https://github.com/nantes-rfli/paclo/issues/44). Do not loosen
+  performance gates or implement NULL/LOOP here.
+
+## P08-D2: NULL/LOOP decoding
+
+Status: **blocked** by P08-D1. Next feature after D1 review/merge.
+[The handoff](p08-d2-null-loop.md) records host/network byte order, origin AF
+values, native DLT versus LINKTYPE and libpcap pseudoheader conversion.
+Measure cross-endian Classic PCAP bytes and all IPv6 AF variants on the native
+Linux x64/macOS ARM64/Linux ARM64 matrix before selecting dispatch semantics.
+No unverified-platform implementation or capture-container byte-order inference
+from packet maps is authorized by this plan sketch.
 
 ## P08-P10: Evidence-driven expansion
 

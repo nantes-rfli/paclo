@@ -37,6 +37,15 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-raw-ip-full": Check(
+        "README Raw IP full decode", "clojure",
+        '(= {:linktypes #{12} :links #{:raw-ip} :versions #{4 6}} result)',
+    ),
+    "usage-raw-ip-flow": Check(
+        "Usage Raw IP bounded flow aggregate", "clojure",
+        '(and (= #{4 6} (:versions result)) (= #{12} (:linktypes result)) '
+        '(= 8 (reduce + (map :packets (:top result)))))',
+    ),
     "readme-cooked-decode": Check(
         "README SLL/SLL2 decoding", "clojure",
         '(= [{:linktype 113 :link :linux-sll :ip :ipv4 :port 53} '

@@ -552,12 +552,13 @@ not necessarily the savefile's numeric LINKTYPE; see the
 [link-type contract](cljdoc-api-contract.md#link-type-dispatch). Detection happens
 once after open/activation; it does not infer framing from arbitrary bytes.
 Full decode and flow support Ethernet/VLAN (DLT 1), Linux SLL (113) and SLL2
-(276) IPv4/IPv6. TCP, UDP, ICMP, fragments and IPv6 extension headers use the
+(276), and Raw IP (native DLT 12 on Linux/macOS) IPv4/IPv6. TCP, UDP, ICMP,
+fragments and IPv6 extension headers use the
 existing parsers. Full decode adds `:linux-sll` or `:linux-sll2` link maps and
 retains bytes; flow keeps numeric IP/port fields and omits bytes. Explicit
 DNS/TLS extensions work under the shared `[:decoded :l3 :l4]` path.
 
-NULL/LOOP/Raw IP and unknown/invalid DLTs remain unsupported for full/flow, with
+NULL/LOOP and unknown/invalid DLTs remain unsupported for full/flow, with
 `"unsupported linktype"` and `:unsupported-linktype` diagnostics. Raw access is
 unchanged. Short cooked headers report `:short-frame` with required lengths
 16/20 at offset 0. Address lengths above 8 report `:malformed-packet` with
@@ -566,6 +567,33 @@ Locations are absolute byte offsets in the original frame. IP/L4 truncation
 uses existing diagnostics; flow needs only four transport bytes for TCP/UDP ports.
 Thrown decode failures increment existing error counters without changing stats v1;
 best-effort full results may carry diagnostics without `:decode-error`.
+
+Raw IP has no link header: IP starts at offset 0 and the first byte's version
+nibble selects IPv4 or IPv6. Full results use `{:type :raw-ip :l3 ...}` without
+MAC, Ethertype or cooked fields. Flow uses the existing numeric IP projection,
+without full decode or extra frame copies. Native DLT_RAW is 12 on the measured
+Linux/macOS matrix; savefile LINKTYPE_RAW 101 is converted by libpcap when opening
+files, and is rejected as explicit packet DLT. Other platforms remain unsupported.
+Empty Raw IP reports `:short-frame` at offset 0 with one required byte; an invalid
+version reports `:malformed-packet`, `:field :ip-version` and `:value`, never
+falls back to Ethernet. Short IP headers report `:truncated-header` at offset 0.
+Unknown IP protocols and incomplete transport headers retain the existing
+[partial-parser behavior](cljdoc-api-contract.md#full-decode-packets).
+Classic PCAP output uses `{:linktype 12}`; libpcap writes savefile code 101.
+NULL/LOOP decoding remains planned separately.
+
+<!-- paclo-doc-test: usage-raw-ip-flow -->
+
+```clojure
+(require '[paclo.core :as core] '[paclo.flow :as flow])
+
+(let [packets (core/reduce-packets {:path "test/resources/raw-ip/raw.pcap"
+                                  :max 8 :decode-mode :flow} conj [])
+      rf (flow/aggregate-rf {:max-flows 100})]
+  {:versions (set (map :ip-version packets))
+   :linktypes (set (map :linktype packets))
+   :top (flow/top-n (reduce rf (rf) packets) 10)})
+```
 
 This repository example reads the bundled Linux cooked fixture and inspects its
 link type and flow diagnostics. Its first packet now decodes; the short and

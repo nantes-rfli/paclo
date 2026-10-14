@@ -266,7 +266,7 @@
     (is (= [1 1 1 1 113 113 113 113 0 0 0 0] @calls))))
 
 (defspec unsupported-input-never-decodes-as-ethernet 150
-  (prop/for-all [dlt (gen/one-of [(gen/such-that #(not (contains? #{1 113 276} %)) gen/small-integer)
+  (prop/for-all [dlt (gen/one-of [(gen/such-that #(not (contains? #{1 12 113 276} %)) gen/small-integer)
                                   (gen/elements [nil "1" :ethernet 1.0])])
                  octets (gen/vector gen/byte 0 160)
                  sec gen/small-integer

@@ -1,8 +1,13 @@
 (ns paclo.linktype
-  "Link-header interpretation shared by full decoding and numeric projection.
+  "Link framing shared by full decoding and numeric projection.
    Native DLT values are not arbitrary savefile LINKTYPE values."
   (:import
    [java.nio ByteBuffer]))
+
+(def ^:private raw-supported?
+  ;; P08-A measured native DLT_RAW=12 on Linux/macOS. OpenBSD uses 14;
+  ;; savefiles use LINKTYPE_RAW=101. Leave unverified platforms unsupported.
+  (contains? #{"Linux" "Mac OS X"} (System/getProperty "os.name")))
 
 (defn unsupported?
   "Absence retains legacy Ethernet input; explicit values must be supported DLTs."
@@ -10,7 +15,9 @@
   (let [dlt (:linktype packet)]
     (if (nil? dlt)
       (contains? packet :linktype)
-      (not (and (integer? dlt) (or (= dlt 1) (contains? #{113 276} dlt)))))))
+      (not (and (integer? dlt)
+                (or (= dlt 1) (contains? #{113 276} dlt)
+                    (and (= dlt 12) raw-supported?)))))))
 
 (defn packet-dlt
   [packet]
@@ -25,20 +32,23 @@
 (defn- u16 ^long [^bytes frame ^long offset]
   (bit-or (bit-shift-left (u8 frame offset) 8) (u8 frame (inc offset))))
 
-(defn header-size ^long [^long dlt]
+(defn minimum-size
+  "Minimum bytes for framing; Raw IP has no header, but needs a version byte."
+  ^long [^long dlt]
   (cond
     (= dlt 1) 14
     (= dlt 113) 16
     (= dlt 276) 20
+    (and (= dlt 12) raw-supported?) 1
     :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
 
-(defn require-link-header!
-  "Validate the minimum link header before invoking either parser."
+(defn require-framing!
+  "Validate the minimum framing bytes; bare IP needs one version byte."
   ^long [^bytes frame ^long dlt]
-  (let [required (header-size dlt)]
+  (let [required (minimum-size dlt)]
     (when (or (nil? frame) (< (alength frame) required))
       (throw (ex-info (case dlt 1 "truncated ethernet header" 113 "truncated SLL header"
-                            276 "truncated SLL2 header")
+                            276 "truncated SLL2 header" 12 "empty Raw IP packet")
                       {:reason :short-frame :offset 0 :required required
                        :available (if frame (alength frame) 0)})))
     required))
@@ -55,12 +65,22 @@
 (defn vlan-protocol? [^long protocol]
   (case protocol (0x8100 0x88a8 0x9100 0x9200) true false))
 
+(defn- raw-protocol ^long [^bytes frame]
+  ;; Reuse IP dispatch tokens internally, without a synthetic link field.
+  (let [version (unsigned-bit-shift-right (u8 frame 0) 4)]
+    (case version
+      4 0x0800
+      6 0x86dd
+      (throw (ex-info "invalid Raw IP version"
+                      {:reason :malformed-packet :field :ip-version :value version
+                       :offset 0 :required 1 :available (alength frame)})))))
+
 (defn payload
   "Return packed unsigned L3 offset (high 32 bits) and protocol (low 32 bits).
    Checks framing only; throws classified errors at absolute packet offsets.
    No input copying or link-detail map allocation on the successful fast path."
   ^long [^bytes frame ^long dlt]
-  (require-link-header! frame dlt)
+  (require-framing! frame dlt)
   (cond
     (= dlt 1) (loop [offset 14 protocol (u16 frame 12)]
                 (if (vlan-protocol? protocol)
@@ -79,6 +99,7 @@
     (= dlt 276) (do
                   (require-address! frame 11 1 (u8 frame 11))
                   (packed 20 (u16 frame 0)))
+    (= dlt 12) (raw-protocol frame)
     :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
 
 (def ^:private hex-digits "0123456789abcdef")
@@ -124,4 +145,5 @@
                     {:type :linux-sll2 :protocol protocol :reserved (u16 frame 2)
                      :interface-index (bit-or (bit-shift-left (u16 frame 4) 16) (u16 frame 6))
                      :hardware-type (u16 frame 8) :packet-type (u8 frame 10)
-                     :address-length length :address (address buffer 12 length) :l3 l3}))))
+                     :address-length length :address (address buffer 12 length) :l3 l3})
+      (= dlt 12) {:type :raw-ip :l3 l3})))
