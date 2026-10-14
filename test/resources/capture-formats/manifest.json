@@ -1,0 +1,387 @@
+[
+  {
+    "file": "ethernet.pcap",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "sll2.pcap",
+    "linktype": 276,
+    "records": [
+      {
+        "hex": "08000000000000070001000600010203040500004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 70,
+        "len": 70
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "raw.pcap",
+    "linktype": "raw",
+    "records": [
+      {
+        "hex": "4500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 50,
+        "len": 50
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "loop.pcap",
+    "linktype": 108,
+    "records": [
+      {
+        "hex": "000000024500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 54,
+        "len": 54
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "ethernet-nano.pcap",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "ethernet-big-endian.pcap",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "single.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "big-endian.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "multi-interface.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      },
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "multi-linktype.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "error",
+    "error-pattern": "different.*type|type.*different"
+  },
+  {
+    "file": "multi-snaplen.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "error",
+    "error-pattern": "snapshot length|snaplen"
+  },
+  {
+    "file": "nano.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "mixed-resolution.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      },
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "binary-resolution.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 125976,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "offset.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000007,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "multi-section.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      },
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "mixed-endian-section.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "error",
+    "error-pattern": "byte order|endianness|block size"
+  },
+  {
+    "file": "unknown-block.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "truncated.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 16,
+        "len": 1500
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "invalid-original-length.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 1700000000,
+        "ts-usec": 123456,
+        "caplen": 64,
+        "len": 1
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "simple-packet.pcapng",
+    "linktype": 1,
+    "records": [
+      {
+        "hex": "000102030405060708090a0b08004500003200010000401100000a0000010a0000022ee00035001e000000000000000000000000000000000000000000000000",
+        "ts-sec": 0,
+        "ts-usec": 0,
+        "caplen": 64,
+        "len": 64
+      }
+    ],
+    "terminal": "eof",
+    "error-pattern": null
+  },
+  {
+    "file": "bad-interface.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "interface"
+  },
+  {
+    "file": "bad-caplen.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "capture length|snaplen"
+  },
+  {
+    "file": "short-block.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "block"
+  },
+  {
+    "file": "bad-trailer.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "block|length"
+  },
+  {
+    "file": "cut-block.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "truncated|block"
+  },
+  {
+    "file": "bad-idb-option.pcapng",
+    "linktype": 1,
+    "records": [],
+    "terminal": "open-error",
+    "error-pattern": "if_tsresol"
+  },
+  {
+    "file": "bad-pcap-length.pcap",
+    "linktype": 1,
+    "records": [],
+    "terminal": "error",
+    "error-pattern": "invalid.*length|truncated"
+  }
+]

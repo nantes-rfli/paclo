@@ -34,6 +34,12 @@ remove keys, or change their shape; Paclo does not validate every output packet.
 Native captures identify their source link type. Full and flow decoding support
 Ethernet (including VLAN tags); other types remain readable as raw packets.
 Additional decoders and full PCAPNG metadata/file preservation remain P08.
+The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
+native format acceptance, raw packet access, decoding and output fidelity.
+PCAPNG reads normalize timestamps to microseconds and omit section/interface
+identity, comments and options. Mixed link types or snaplen can stop native reads
+with an error; current public loops can present that prefix as normal EOF.
+No complete PCAPNG read/write round trip is guaranteed.
 
 ### Raw capture packets
 

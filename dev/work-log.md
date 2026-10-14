@@ -1304,3 +1304,144 @@ P07-B final implementation CI acceptance evidence:
   tracked in the PR description after they finish, separately from the passing
   implementation run. Supplied checkout is clean after committing/pushing evidence.
   Next action is independent P07-B review/acceptance, then P08 fixture-backed scope.
+
+## 2026-10-14: P08-A capture format investigation
+
+- Started with clean `git status --short --untracked-files=all` in the supplied
+  checkout. Read AGENTS, CONTRIBUTING, accepted plan, work log, public contract,
+  pcap/linktype/parse/flow-project/core, Java PcapLibrary and P05 tests/generator.
+  Also inspected the managed owner `paclo.capture` and unchanged CI jobs.
+- `bash dev/script/codex.sh doctor` passed: macOS x86_64, JDK 21.0.12.1,
+  Clojure 1.12.1, CLI 1.12.5.1654, real four-packet offline read. Native libpcap
+  is 1.10.1. This local machine is not macOS ARM64.
+- Initial sandbox `git fetch origin` could not write .git/FETCH_HEAD; ordinary
+  approved Git fetch succeeded. Created `codex/p08-a-capture-inventory` from
+  latest origin/main `8312d10` in the supplied checkout, without a new worktree.
+  `gh pr view 36 --json state,mergeCommit,url` confirmed MERGED at `8312d10`.
+  Updated P07-B to done and recorded P08-A in-progress before fixture work.
+- Added [the capability/design inventory](p08-a-capture-formats.md), 28 deterministic
+  synthetic Classic PCAP/PCAPNG fixtures and manifest, standard-library generation
+  with `--check`, native ctypes precision probes and JNR/public characterization
+  tests. Existing Ethernet/SLL/NULL fixtures and their generator remain unchanged.
+  No production API, decoder, Java binding, dependency or CI gate is changed;
+  performance issues #34/#37 are untouched.
+- Measured same-link/snaplen multi-interface and same-endian multi-section reads;
+  mixed link/snaplen and changed-endian sections fail after a valid prefix.
+  Nano APIs preserve 123456789 ns; current JNR default returns 123456 us.
+  Decimal/binary resolution and +7 second offset normalize correctly, while
+  interface/section identity and comments/options are absent. Unknown valid
+  blocks are skipped. SPB emits epoch zero despite having no timestamp.
+- Invalid blocks/caplen/interface produce native -1 and nonempty errors before
+  copying invalid packets; invalid IDB option length throws on open. Native
+  accepts original length 1 with caplen 64, but writer validation rejects it.
+  Public synchronous/lazy/managed reads currently hide negative native read
+  errors as clean EOF. This defect is explicitly characterized, not fixed or
+  described as safe diagnostic reporting in P08-A.
+- Public writer emits Classic Ethernet PCAP even for a .pcapng suffix and
+  non-Ethernet input. Internal explicit-DLT writer round trips the packet subset.
+  Recommended P08-B B1/B2: observable read errors and explicit single-DLT PCAP
+  output/mismatch rejection, before SLL/SLL2 decoder expansion. Future PCAPNG
+  fidelity needs a separate metadata source/contract and writer, not a format
+  flag that implies reconstruction of discarded information.
+- Initial focused test had a parenthesis error, corrected before execution.
+  First native test exposed an incorrect DLT_RAW assumption (14 on Darwin);
+  measured native DLT is 12. It also exposed changed-endian errors expressed as
+  block-size errors on 1.10.1; error-family match widened to cover that legitimate
+  version-specific diagnostic. Those attempts were failing checks, not passes.
+  Subsequent focused run passed 7 tests/312 assertions before the final extra
+  invalid-original-length and writer cases; final full checks are recorded below.
+- Initial sandbox GitHub and npm calls lacked network access; approved normal
+  network commands succeeded. Markdown lint found a line beginning #37 mistaken
+  for an ATX heading in the plan; wrapped that sentence and reran unchanged lint.
+  No toolchain, hook, threshold or required gate was relaxed.
+
+Final local verification and independent PR/CI evidence follow after completion.
+
+P08-A local verification before PR:
+
+- `bash dev/script/codex.sh check` passed JUnit 10/10, Clojure 385 tests/3093
+  assertions and offline smoke. Final test-only native type hints remove three
+  reflection warnings found by Eastwood; focused tests are rerun afterward.
+- Generator `--check` verified all 28 fixtures/manifest; Python compilation and
+  ctypes precision probe passed. Markdown lint passed 31 files after wrapping
+  the plan line; local Markdown links passed. Doc-example parser tests passed
+  15/15; maintained example execution is finishing separately.
+- An initial full lint reached zero kondo errors/warnings, clean-ns/format checks
+  and Eastwood zero exceptions, then hit sandbox npm network access. Final full
+  lint runs with ordinary approved network access; no gate is skipped.
+- First local performance gate failed at 1555.8 ms versus unchanged 1200 ms
+  budget while documentation JVM examples were still running. This is a failing
+  measurement, not a pass or a change to #34/#37. Rerun serially after all other
+  JVM verification finishes; report both results and the unchanged CI gate.
+
+P08-A final local checks and PR dispatch:
+
+- Final native type-hinted focused run passed 8 tests/331 assertions. Full
+  `check` previously passed 385 tests/3093 assertions, JUnit 10/10 and smoke;
+  the subsequent test-only type hint changes native method dispatch and was
+  verified by the focused run. No production source changed.
+- Final `bash dev/script/codex.sh lint` passed: kondo zero errors/warnings,
+  Eastwood 209 baseline warnings/zero exceptions (no new reflection warnings),
+  pinned clean-ns/format dry checks, Markdown lint 31 files. Maintained example
+  execution passed all 20 examples. `git diff --check` and local links passed.
+- Serial `bash dev/script/codex.sh perf` passed at 448.0 ms with the unchanged
+  1200 ms failure budget after verification JVMs exited. Earlier concurrent
+  1555.8 ms failure remains recorded; neither result is a performance improvement
+  claim or new target validation.
+- Committed `43138ba` and pushed the dedicated branch. Created and attached
+  independent [PR #38](https://github.com/nantes-rfli/paclo/pull/38). Commit-hook
+  Markdown lint passed; existing optional switches avoided repeating already
+  executed tests/format/kondo. Hooks/gates were not edited.
+- [Implementation CI run 38426344920](https://github.com/nantes-rfli/paclo/actions/runs/38426344920)
+  is running on `43138ba`. Platform version/diagnostic differences and final
+  outcomes will be recorded after the jobs finish. No merge, version/tag change,
+  publication, live capture or work on performance issues #34/#37.
+
+P08-A implementation CI attempt 1 and infrastructure retry:
+
+- Run `38426344920` on `43138ba` passed ten jobs, including Linux x64/JDK21,
+  Linux ARM64/JDK21 monitor, build-checks (Java quality/coverage and existing
+  performance gate), documentation, Eastwood, coverage, all three performance
+  shards and merger. Each Linux native platform suite passed 385 tests/3093
+  assertions. Ubuntu 24.04/kernel 6.17.0-1022-azure, JDK 21.0.12.1, libpcap
+  1.10.4 (TPACKET_V3), x64 and aarch64; precision probes also passed on both.
+- macOS ARM64 job `115396626458` remained queued for 15m03s, never acquired
+  a runner (empty runner name, no steps/logs), then was cancelled. Check
+  annotations explicitly report hosted runner acquisition failure and macOS
+  arm64 capacity constraints. The dependent required build aggregate failed;
+  this attempt is not passing CI and macOS ARM64 remains unverified.
+- Queried job/check annotations rather than treating the infrastructure failure
+  as a fixture failure. `gh run rerun 38426344920 --failed` retries only the
+  unsuccessful jobs on the same implementation commit; successful platform and
+  quality checks are retained. No runner/platform/gate change or bypass.
+- Diagnostic difference already measured: local macOS/libpcap 1.10.1 leaves a
+  stale error string after SPB, Linux/libpcap 1.10.4 leaves it empty. Both return
+  EOF -2 and equal packet data; changed-endian errors are block-size errors on
+  both measured versions. Native return code must determine terminal status.
+
+P08-A completed investigation and implementation CI:
+
+- [Run 38426344920, attempt 2](https://github.com/nantes-rfli/paclo/actions/runs/38426344920/attempts/2)
+  passed all 12 jobs on implementation `43138ba`. Retried macOS job
+  `115405230588` actually acquired a runner, passed compilation, 385 tests/3093
+  assertions and DNS smoke; dependent required build aggregate passed. Earlier
+  cancelled/no-runner attempt remains recorded, not counted as a passing run.
+- macOS 26.6.2 ARM64/aarch64, JDK 17.0.20.1, libpcap 1.10.1; its generator and
+  six precision probes passed. Linux x64/ARM64 are Ubuntu 24.04, JDK 21.0.12.1,
+  libpcap 1.10.4 (TPACKET_V3). All 28 fixture return-code/packet expectations,
+  DLT values (including Raw 12), bytes/lengths and timestamp conversions agree.
+  SPB leaves a stale native error string on both macOS hosts but not Linux;
+  EOF rc -2 determines success. No live or other-platform result is inferred.
+- Completed API/metadata/output comparison and ranked P08-B B1/B2 acceptance,
+  candidate files and unresolved risks. Additional code-only risk: existing
+  `pcap_dump_flush` JNR return type is void whereas the native API returns status;
+  write-failure reporting is not validated by successful format round trips.
+  This investigation does not change that binding or expand B1/B2 silently.
+- P08-A retains the plan's established in-progress status solely for independent
+  PR review/merge, as earlier feature slices did. Investigation, tests and design
+  are complete. P08-B remains blocked on that acceptance, with B1 read-error
+  distinction selected first and B2 explicit Classic output next. No merge is
+  authorized by this task; performance issues #34/#37 are untouched.
+- The final evidence-only commit updates matrix/plan/log. Its PR-head checks are
+  tracked in PR #38 separately from the passing implementation run. No production
+  file, new writer API, decoder, dependency, workflow/gate, release version or tag.

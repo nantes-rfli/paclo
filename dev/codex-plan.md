@@ -30,14 +30,16 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | done |
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | done |
 | P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
-| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | in-progress |
-| P08 | Later | Broader link-type and PCAPNG support | P05, concrete fixtures | blocked |
+| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
+| P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | in-progress |
+| P08-B | Later | Implement the selected capture I/O safety slice | P08-A | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P07-B independent review and merge**. P07-A
-was merged through PR #35 on 2026-10-12 at `2e15af7`;
-P08 still needs a fixture-backed scope decision.
+Default next task: **P08-A independent review and merge**, then **P08-B/B1 native
+read errors versus EOF**. P07-B merged through PR #36 at `8312d10`. P08-A
+investigation and all implementation CI checks are complete in PR #38; review
+remains pending. The selected P08-B scope is documented, not implemented.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -185,8 +187,8 @@ PCAP capture/reduction/fan-out paths. Do not migrate the existing DNS CLIs.
 
 ## P07-B: DNS CLI migration and bounded reporting
 
-Status: **in-progress** (implementation, local verification and all 12 implementation
-CI jobs complete on `30cd06a`; independent review/merge pending). The [CLI migration contract](p07-b-design.md)
+Status: **done**. PR #36 merged on 2026-10-14 at `8312d10`; all 12 implementation
+CI jobs passed on `30cd06a`. The [CLI migration contract](p07-b-design.md)
 and [work log](work-log.md) document strict DNS RTT correlation, packet QPS
 windows, exact microseconds and max-event-time/reorder watermarks. CLI-only
 report state is bounded: topN pairs, exact samples/qname groups, active windows/
@@ -194,10 +196,31 @@ groups and finalized/filled rows. Overflow fails before output. Sync/async
 share packet steps and one source-owning delivery adapter; cancellation/drop
 metadata never becomes analysis data. Corrected native RTT, average, empty fill,
 source EOF limits and deterministic ties are documented with regression tests.
-CI outcomes and platform/performance evidence are maintained on independent
-[PR #36](https://github.com/nantes-rfli/paclo/pull/36); no merge, version change,
-publication or P06 issue #34 change is authorized.
-P08 still requires a fixture-backed scope decision after P07-B acceptance.
+CI outcomes and platform/performance evidence are maintained on
+[PR #36](https://github.com/nantes-rfli/paclo/pull/36). Performance issues #34 and #37
+remain separate. P08-A now inventories native I/O without adding decoders.
+
+## P08-A: Capture format and link-type investigation
+
+Status: **in-progress** (investigation, implementation and verification complete;
+independent review/merge pending on [PR #38](https://github.com/nantes-rfli/paclo/pull/38)).
+The [capability inventory and design](p08-a-capture-formats.md) separate code,
+native specification and measured results. 28 deterministic fixtures and native
+precision probes pass on Linux x64/libpcap 1.10.4, macOS ARM64/libpcap 1.10.1
+and Linux ARM64/libpcap 1.10.4. All 12 implementation CI jobs passed on `43138ba`
+after retrying an unassigned macOS runner; no gate changed. No new public API
+or decoder was added. See the work log for initial failures and limitations.
+
+## P08-B: Explicit and safe capture I/O subset
+
+Status: **blocked** until P08-A review/merge. Recommended B1 first: propagate
+native read errors instead of silently returning an EOF prefix across all
+capture paths. Then B2: expose explicit single-DLT Classic PCAP writer options
+and reject known framing mismatches while retaining valid two-arity callers.
+Candidate files, compatibility effects and acceptance criteria are in the P08-A
+inventory. SLL/SLL2 shared framing and full/flow decode form the next slice;
+metadata-aware PCAPNG reader/writer and exact timestamps need separate contracts.
+Performance issues #34/#37 remain outside P08.
 
 ## P08-P10: Evidence-driven expansion
 
