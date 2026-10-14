@@ -56,6 +56,20 @@ at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
+## CI maintenance: Issue #48
+
+Status: **in-progress**, implementation and local regression checks complete;
+Linux CI and independent PR review remain. This is a separate maintenance item
+from the feature queue. Start: latest main `2e7e357` after PR #47 merged.
+Compile Java/native prerequisites in the dedicated Eastwood job, fail on
+reported analysis/linter errors, and require Eastwood in the `build` aggregate.
+Preserve all lint roots/rules/excludes and existing quality/performance gates.
+Four isolated JVM probes cover complete analysis, informational warnings,
+evaluation failure and analysis failure with a dependent namespace unanalyzed.
+Detailed commands, full namespace inventory and CI timing comparison are in
+[the work log](work-log.md). Next for this item: Linux CI and independent review.
+P08-E2/E3 and other feature implementation are outside this task.
+
 ## P01: Documentation and API discovery
 
 Status: **done**. PR #17 was merged on 2026-10-11, documenting the
