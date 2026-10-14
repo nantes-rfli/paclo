@@ -2124,3 +2124,78 @@ Implementation publication and supported-platform CI:
   only. P08-D2 remains in-progress solely for independent review/merge; final
   evidence-head checks are maintained on PR #46. No merge, release, tag, version
   change, live/NIC claim or unsupported-platform mapping was performed.
+
+## P08-E1 design and local verification (2026-10-15)
+
+- Started with a clean supplied checkout. `bash dev/script/codex.sh doctor`
+  passed: macOS 15.4.1 x86_64, Temurin 21.0.12.1, Clojure 1.12.1, real offline
+  native read. All optional lint tools are available. Fetched main and created
+  `codex/p08-e1-pcapng-contracts` at `ccebcad`. Verified PR #46 merged
+  2026-10-14 15:06:49 UTC (2026-10-15 JST), merge SHA
+  `ccebcad829fe9dc8ef786a24489be4a2ae8bfff8`. No extra worktree.
+- Read contributing/v1/accepted plan, P08-A/D2 evidence, native capture/core/
+  framing implementation and existing fixture generators/tests. Added
+  `p08-e1-pcapng-contracts.md` as the authoritative proposed metadata/time/
+  reader/writer contract. P08-A stays historical evidence; v1 stays implemented
+  behavior. Corrected D2 merged status and added E1/E2/E3 dependencies/handoffs.
+- Decision: separate closeable single-consumer ordered event reduction, qualified
+  Section/Interface references, owned bytes/options, no global descriptor cache.
+  Exact ticks use arbitrary integer arithmetic with decimal/binary resolution
+  and signed offset; compatibility microseconds floor exact time. Absence is
+  explicit and different from epoch zero. Separate writer modes preserve known
+  semantics, require explicit losses/authoring, reject unrepresentable time,
+  missing metadata, no-copy/context conflicts and publish paths atomically.
+  Unknown semantics and byte-identical file reproduction are not guaranteed.
+- Added ten small deterministic captures and SHA-256 manifest, six Python
+  physical-wire/arithmetic tests (500 seeded random cases plus boundaries), and
+  three Clojure characterization tests automatically discovered by current CI.
+  Existing 47 fixtures and quality gates are unchanged. Large metadata is built
+  only in test memory: 4096/4097 IDBs and >8 MiB opaque data. These tests verify
+  corpus/math, not a future parser memory ceiling or writer preservation.
+- Initial focused run disproved an assumed SPB [0 0] with nonzero offset:
+  installed libpcap 1.10.1 returns **[-7 0]** for SPB under interface-0 offset
+  -7. Corrected the native characterization/manifest and recorded this observation
+  separately from the proposed absent-time contract. Fixed a test looking for
+  nested error data: current report flattens :reason. Final focused
+  `bash dev/script/codex.sh test -n paclo.pcapng-contract-design-test`:
+  **3 tests / 9 assertions, zero failures/errors**, plus six Python tests.
+- `python3 test/resources/make_pcapng_contract_fixtures.py --check` and
+  `python3 test/resources/test_pcapng_contract_fixtures.py`: passed. Rich native
+  output is [1699999993 123456], [1700000000 125976], [-7 0], only existing six
+  raw keys, lengths 64/1500, 64/64, 64/64. Mixed endian/DLT/snaplen capture
+  yields one valid packet then :pcap-read-failed, not successful EOF.
+- `bash dev/script/codex.sh check`: **431 Clojure tests / 15,747 assertions**,
+  **10 JUnit tests**, real offline smoke all passed. Includes original native
+  inventory/precision probes and unchanged decode/writer/lifecycle regressions.
+- `python3 dev/script/verify_doc_links.py`: passed. Full
+  `dev/script/mdlint.sh`: 36 files, zero errors (registry access used the approved
+  network invocation). First full lint reached kondo zero errors/warnings,
+  Eastwood zero exceptions with existing warning classes, clean namespaces,
+  then found one new-test indentation difference; corrected and reran.
+- E2 implements the reviewed bounded source/exact contracts and proves actual
+  lifecycle/state ceilings. E3 adds writer/atomic failure tests and semantic
+  round trips. Detailed steps/acceptance are in the E1 document. No production
+  reader/writer, public API, version, dependency or CI configuration changes.
+  No performance issue, issue #40, P09/P10, release, live capture or NIC work.
+  E1 remains in-progress solely for independent review/merge; next implementation
+  item is E2 after that prerequisite. Other platforms remain unmeasured in E1
+  until its CI actually runs; prior D2 matrix evidence is not E1 validation.
+- Final `bash dev/script/codex.sh lint` passed with approved network access:
+  kondo zero errors/warnings, Eastwood 254 existing warnings/zero exceptions,
+  clean-ns and format no differences, full Markdown zero errors. Restricted
+  attempts failed only at npm registry DNS (ENOTFOUND registry.npmjs.org);
+  this was resolved by the network-enabled run, not counted as a passing check.
+- `python3 dev/script/verify_doc_examples.py`: all **28 maintained examples**
+  passed. Proposed E1 snippets are explicitly nonimplemented design examples
+  in dev docs, not advertised runnable public API.
+- Wire corpus sizes measured with the in-memory generator: 4096 IDBs produce
+  345156 bytes; 4097 produce 345240; >8 MiB opaque case produces 8388764.
+  These are encoded sizes, not JVM heap/allocation/throughput measurements.
+  `git diff --check` passed. Generated Python bytecode was removed; no unrelated
+  work or production files were changed.
+- Initial commit stopped before creation because the existing pre-commit hook
+  invokes `clj`, whose interactive launcher requires unavailable rlwrap here.
+  After the full equivalent tests and lint/format passed via `clojure`, used
+  the hook's existing SKIP_TESTS/SKIP_FMT/SKIP_KONDO switches to avoid duplicate
+  checks; hook Markdown lint remains enabled. No hook or gate configuration
+  changes, missing-tool success claims or interactive package installation.

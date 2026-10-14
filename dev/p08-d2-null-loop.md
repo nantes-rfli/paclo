@@ -194,5 +194,6 @@ all AF/endian/adversarial records. Fixture, 500 new property cases, writer,
 capture-path, fan-out, DNS/TLS and P06/P07 tests pass on each platform. All 28
 documentation examples, Java quality/coverage and existing performance gates
 also pass. This does not extend validation to live/NIC capture or other OSes.
-Independent review/merge remains on [PR #46](https://github.com/nantes-rfli/paclo/pull/46);
-final evidence-head checks are maintained there.
+[PR #46](https://github.com/nantes-rfli/paclo/pull/46) merged at `ccebcad`
+on 2026-10-15 JST; final evidence-head checks are maintained there.
+[P08-E1](p08-e1-pcapng-contracts.md) now owns the future PCAPNG metadata/time design.

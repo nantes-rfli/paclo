@@ -1,0 +1,37 @@
+{
+  "purpose": "physical design corpus; future-reader expectations are not implemented",
+  "sha256": {
+    "rich.pcapng": "81d107b98581b4aacab8f338b79a7b929ea3e638b00c867e3c4de04d048459b1",
+    "mixed-sections.pcapng": "5622f9bab2427f8c8b184da11de9df04b0bd7aa85a35e65066c853b1783634f6",
+    "timestamp-extremes.pcapng": "c2c9c38e2cdfb45635f3e55a7b91c080410e42c39d423a63143efcf3d90e102c",
+    "spb-truncated.pcapng": "92c709703c5289735bf9ba2bedd5bdbf2734480ef26af3f3e0adfa7d0e1c7370",
+    "forward-interface.pcapng": "9929184f9b0e83afb95e832e75da1e993622b4a30f8476cfef3fce337c14520e",
+    "unaligned-length.pcapng": "00897cbe038757b9c89a0c1b717bc602bd5974e102113842f7974e69ee184f30",
+    "oversized-length.pcapng": "1aad26e47910fec6df0cdbf319b960bf9bdcb10ebc755aa7ac52c52215d49ba5",
+    "option-overrun.pcapng": "8496e5cf1562d89c2e17af908e08d85818c3ee07a0f07fa3c647e72565d74be9",
+    "bad-offset-length.pcapng": "f966edba5f4ad41773876d9e1663131c82c04feb40d946bf01d359b0e9ff55da",
+    "duplicate-resolution.pcapng": "da10c2da0ff4012e0a4454ef20615c0bb4cc84e8ee9c0536b6604218dcf6da44"
+  },
+  "rich-native-microseconds": [
+    [
+      1699999993,
+      123456
+    ],
+    [
+      1700000000,
+      125976
+    ],
+    [
+      -7,
+      0
+    ]
+  ],
+  "future-reader-rejections": {
+    "forward-interface.pcapng": "undefined-interface",
+    "unaligned-length.pcapng": "invalid-block-length",
+    "oversized-length.pcapng": "limit-exceeded",
+    "option-overrun.pcapng": "invalid-option-length",
+    "bad-offset-length.pcapng": "invalid-option-length",
+    "duplicate-resolution.pcapng": "duplicate-option"
+  }
+}

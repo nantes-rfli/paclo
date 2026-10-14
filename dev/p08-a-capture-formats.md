@@ -5,6 +5,10 @@ fixtures, characterization tests and design evidence only. No production decoder
 native binding, public writer API, dependency or quality gate changes.
 Performance issues #34 and #37 are outside this investigation.
 
+Current follow-up: [P08-E1](p08-e1-pcapng-contracts.md) owns the detailed future
+metadata/time/reader/writer contract. This inventory preserves historical A
+measurements; B1/B2 and C/D1/D2 implemented later error, writer and framing changes.
+
 ## Evidence boundaries
 
 Three kinds of evidence must remain separate:
