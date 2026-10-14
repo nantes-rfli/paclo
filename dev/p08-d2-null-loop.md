@@ -79,3 +79,34 @@ and copies supplied bytes; decoding must not silently normalize published arrays
 No NULL/LOOP bytes were normalized or decoded by Paclo in D1. D2 feasibility is
 supported by existing framing dispatch and the format definitions; exact native
 byte handling remains an unfinished measurement prerequisite.
+
+## D2 pre-implementation probe
+
+The D2 branch starts at merged D1 main `0d06dd1`. Twelve captures in
+`test/resources/null-loop/` vary Classic file / PCAPNG section order independently
+of NULL pseudoheader order; LOOP always uses big endian, with one deliberately
+little-endian negative record. Each NULL capture has 61 records, each LOOP has
+62. AFs 2/24/28/30, unknown 999/10, AF/version mismatch, 0–3 framing bytes,
+malformed/truncated IP/L4, fragments, extensions, DNS and TLS are included.
+
+`paclo.null-loop-native-test` independently extracts physical Classic record and
+PCAPNG EPB bytes, copies `pcap_next_ex`'s pointer bytes directly, and compares both
+with public raw packets and the deterministic manifest. It prints native DLT,
+OS/version, JVM architecture/version, host order, library version and distinct
+pseudoheaders. Bounded reads close in finally. Fixture regeneration runs in CI.
+
+Local macOS 15.4.1 x86_64 / libpcap 1.10.1 / little-endian / JDK 21.0.12.1:
+all three byte representations agree on all 12 files, including deliberately
+opposed container/header order. Native DLTs are 0 and 108; neither pseudoheader
+is normalized. Linux x64/macOS ARM64/Linux ARM64 results are pending before
+implementation. This local measurement does not establish their behavior.
+
+Proposed interpretation, subject to those results: NULL recognizes a unique
+member of `{2,24,28,30}` under the two uint32 orders; LOOP recognizes only the
+big-endian interpretation. Byte reversal of every known AF is outside that set,
+so no four bytes can match two supported AFs. Zero matches fails explicitly;
+there is no version-only acceptance. IP version must then match AF (2 → 4,
+24/28/30 → 6). Origin OS is not deduced from AF. No container-order metadata
+exists in packet maps, so container/header consistency and original file
+encoding cannot be validated or reconstructed. Standalone and live packet
+framing follow the same byte contract, without a live/NIC validation claim.

@@ -1982,3 +1982,18 @@ Supported-platform CI confirmation:
   review/merge; D2 is the next feature after acceptance, with AF/endian/native
   probes still required. No release, merge, live/NIC validation or speculative
   unmeasured-platform mapping.
+
+## P08-D2 native probe prerequisite (2026-10-14)
+
+- Started clean on D1 branch; fetched main and verified PR #45 merged at
+  `0d06dd1`. Created `codex/p08-d2-null-loop` from that main; doctor passed
+  (macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1).
+- Added 12 deterministic NULL/LOOP Classic/PCAPNG captures: container endian
+  varies independently from NULL pseudoheader endian, AF 2/24/28/30, unknown
+  999/10, mismatches, short framing and complete Raw IP adversarial corpus.
+- `bash dev/script/codex.sh test -n paclo.null-loop-native-test`: 2 tests,
+  49 assertions, no failures/errors. Direct physical record extraction,
+  `pcap_next_ex` pointer bytes and public raw bytes match for every record.
+  Local libpcap 1.10.1 leaves both pseudoheaders unchanged; DLTs 0/108.
+- This commit adds probes only. Linux x64/macOS ARM64/Linux ARM64 evidence is
+  required before decoder implementation; source inference alone is insufficient.
