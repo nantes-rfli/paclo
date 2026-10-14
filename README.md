@@ -17,15 +17,39 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - Roadmap status: v1.3.0 released (see `docs/ROADMAP.md`)
 
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
-support non-Ethernet PCAPs; full/flow decode supports Ethernet and returns
-`:unsupported-linktype` diagnostics for other explicit types. Standalone
+support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
+Linux SLL (113) and SLL2 (276) IPv4/IPv6. Other explicit types produce
+`:unsupported-linktype` diagnostics. Standalone
 `packet-xf` without the key retains its Ethernet assumption. P08-B2 extends
 `core/write-pcap!` with `{:linktype native-DLT :snaplen positive-integer}`.
 Two arguments default to Ethernet (1) and snaplen 65536. Explicit packet DLTs
 must match the writer; non-Ethernet maps now require a matching option. Bytes
 without linktype metadata trust the caller's selected DLT; no bytes are sniffed
-or converted. See the [raw capture example](docs/usage.md#reading-non-ethernet-captures)
+or converted. See the [cooked capture examples](docs/usage.md#reading-non-ethernet-captures)
 and [writer contract](docs/cljdoc-api-contract.md#write-pcap).
+
+Decode SLL and SLL2 with the same transducer; each retains its own link header:
+
+<!-- paclo-doc-test: readme-cooked-decode -->
+
+```clojure
+(require '[paclo.core :as core])
+
+(mapv (fn [path]
+        (let [packet (first (core/reduce-packets
+                            {:path path :max 1 :decode? true :extensions []} conj []))]
+          {:linktype (:linktype packet)
+           :link (:type (:decoded packet))
+           :ip (get-in packet [:decoded :l3 :type])
+           :port (get-in packet [:decoded :l3 :l4 :dst-port])}))
+      ["test/resources/cooked/sll.pcap" "test/resources/cooked/sll2.pcap"])
+```
+
+TCP/UDP/ICMP, fragments, IPv6 extension headers and explicit DNS/TLS extensions
+reuse the existing IP/L4 parsers. Flow projection retains numeric fields and
+works with `paclo.flow` aggregates. NULL/LOOP/Raw IP decoding is unsupported.
+Cooked addresses describe one link-layer address, not an Ethernet MAC pair;
+SLL2 `:interface-index` is separate from a PCAPNG interface ID.
 
 Write and read back Linux cooked packets with their native DLT (113):
 

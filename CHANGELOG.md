@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P08-C: shared Ethernet/VLAN, Linux SLL (DLT 113) and SLL2 (276) framing for
+  full decode and numeric flow projection. Cooked IPv4/IPv6 reuse TCP/UDP/ICMP,
+  fragment/extension and DNS/TLS parsers. Full maps use `:linux-sll`/`:linux-sll2`
+  with protocol, packet/hardware types, bounded address and SLL2 reserved/interface
+  index; Ethernet output is unchanged. The interface index is not PCAPNG metadata.
+  Flow aggregates and time-window/DNS analysis accept cooked traffic. Short link
+  headers report required 16/20 bytes, invalid address lengths report malformed
+  fields, and unknown cooked protocols use additive `:unsupported-protocol`.
+  No frame copy/conversion, registry, dependency, release or stats-schema change.
+  Noninitial IPv6 flow fragments stop at their fragment header, matching full
+  decode even when the next extension header is absent from that fragment.
+  NULL/LOOP/Raw IP decoding and PCAPNG metadata/output remain unsupported.
+
 - P08-B2: three-argument `core/write-pcap!` accepts explicit native `:linktype`
   and positive `:snaplen` (signed native int range). The existing two-argument
   form defaults to Ethernet (1)/65536. Single-DLT Classic PCAP preserves ordered

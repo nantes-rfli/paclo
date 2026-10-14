@@ -37,6 +37,16 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-cooked-decode": Check(
+        "README SLL/SLL2 decoding", "clojure",
+        '(= [{:linktype 113 :link :linux-sll :ip :ipv4 :port 53} '
+        '{:linktype 276 :link :linux-sll2 :ip :ipv4 :port 53}] result)',
+    ),
+    "usage-cooked-flow": Check(
+        "Usage SLL2 bounded flow aggregate", "clojure",
+        '(and (= #{4 6} (:versions result)) (= #{276} (:linktypes result)) '
+        '(= 8 (reduce + (map :packets (:top result)))))',
+    ),
     "readme-explicit-pcap-writer": Check(
         "README explicit native-DLT writer", "clojure",
         '(and (= 3 (:count result)) (= [113 113 113] (:linktypes result)) (:preserved? result))',
@@ -82,8 +92,8 @@ CHECKS = {
         "Usage non-Ethernet raw linktype", "clojure",
         '(and (= [113 113 113] (:linktypes result)) '
         '(= [66 2 64] (:captured-lengths result)) '
-        '(= (vec (repeat 3 [{:stage :flow :reason :unsupported-linktype :linktype 113}])) '
-        '(:diagnostics result)) (not (:flow-has-bytes? result)))',
+        '(= [nil :short-frame :malformed-packet] '
+        '(mapv #(-> % first :reason) (:diagnostics result))) (not (:flow-has-bytes? result)))',
     ),
     "usage-structured-diagnostics": Check(
         "Usage structured diagnostics", "clojure",

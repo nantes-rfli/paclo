@@ -99,7 +99,7 @@
     (aset-byte ba 14 (byte 0x35))
     (doseq [opts [{:decode? true :extensions []} {:decode-mode :flow}]]
       (is (= :malformed-packet (get-in (transform opts {:bytes ba}) [:diagnostics 0 :reason])))))
-  (with-redefs [parse/packet->clj (fn [_] (throw (ex-info "unclassified" {:reason :not-known :location {:offset identity}})))]
+  (with-redefs [parse/packet->clj (fn [_ _dlt] (throw (ex-info "unclassified" {:reason :not-known :location {:offset identity}})))]
     (let [result (transform {:decode? true} {:bytes (byte-array 14)})]
       (is (= "unclassified" (:decode-error result)))
       (is (= [{:stage :decode :reason :unexpected-failure}] (:diagnostics result))))))
