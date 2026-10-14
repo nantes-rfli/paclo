@@ -86,6 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- P08-B1: native `pcap_next_ex` failures now propagate across synchronous,
+  lazy and managed reads instead of looking like EOF. `:pass` keeps the valid
+  prefix and reports failed/error termination; stats v1 adds native reason,
+  phase, return code and message while retaining class/message fields.
+  Non-report callers can observe failures through `:on-error`.
+- Failed offline/live/configured setup closes its native handle once, including
+  BPF/netmask failures, without masking the original cause. Lazy terminal/error
+  notification no longer blocks on a full packet queue. Early abandonment of
+  still-running lazy delivery remains issue #40; managed capture supports close.
+
 - P02: `write-pcap!` accepts read packet maps directly, preserving packet bytes,
   timestamps, captured lengths and original lengths, including truncated records.
   `:ts-sec`/`:ts-usec` takes precedence over legacy `:sec`/`:usec`; raw bytes,

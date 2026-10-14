@@ -2,6 +2,7 @@
   "P08-A characterization: native acceptance is distinct from public preservation."
   (:require
    [clojure.data.json :as json]
+   [clojure.edn :as edn]
    [clojure.java.shell :as shell]
    [clojure.test :refer [deftest is testing]]
    [paclo.core :as core]
@@ -89,23 +90,90 @@
                 (is (identical? (:bytes packet) (:bytes result))))))
           (is (= snapshots (mapv record-data packets))))))))
 
-(deftest native-read-failures-currently-look-like-public-eof
-  ;; Characterizes a known limitation, not the desired P08-B contract.
-  (doseq [{:keys [file records terminal]} cases :when (= "error" terminal)]
-    (testing file
-      (let [path (str directory file)
-            report (core/reduce-packets-report (options path) conj [])]
-        (is (= records (mapv record-data (:result report))))
-        (is (= :eof (get-in report [:stats :stop-reason])))
-        (is (nil? (get-in report [:stats :error])))
-        (is (= records (mapv record-data (core/packets (options path)))))
-        (with-open [^Closeable capture (core/start-capture (options path))]
-          (is (= records (mapv record-data (core/capture-packets capture)))))))))
+(defn- caught [f]
+  (try (f) nil (catch clojure.lang.ExceptionInfo error error)))
 
-(deftest malformed-open-is-an-exception
-  (let [path (str directory "bad-idb-option.pcapng")]
-    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"if_tsresol"
-                          (core/reduce-packets (options path) conj [])))))
+(defn- assert-read-error [data]
+  (is (= {:reason :pcap-read-failed :phase :pcap-next-ex :rc -1}
+         (select-keys data [:reason :phase :rc])))
+  (is (string? (:native-error data))))
+
+(defn- assert-terminal-stats [stats failed?]
+  (is (= 1 (:schema-version stats)))
+  (is (= (if failed? :failed :closed) (:state stats)))
+  (is (= (if failed? :error :eof) (:stop-reason stats)))
+  (is (= stats (edn/read-string (pr-str stats))))
+  (if failed?
+    (assert-read-error (:error stats))
+    (is (nil? (:error stats)))))
+
+(defn- assert-public-pass [opts records failed?]
+  (let [errors (atom [])
+        config (assoc opts :error-mode :pass :on-error #(swap! errors conj %))
+        report (core/reduce-packets-report config conj [])]
+    (is (= records (mapv record-data (:result report))))
+    (is (= records (mapv record-data (core/reduce-packets config conj []))))
+    (is (= records (mapv record-data (core/packets config))))
+    (assert-terminal-stats (:stats report) failed?)
+    (with-open [^Closeable capture (core/start-capture config)]
+      (is (= records (mapv record-data (core/capture-packets capture))))
+      (assert-terminal-stats (core/capture-stats capture) failed?))
+    (is (= (if failed? 4 0) (count @errors)))
+    (doseq [error @errors] (assert-read-error (ex-data error)))))
+
+(defn- assert-public-throw [opts]
+  (let [errors (atom [])
+        config (assoc opts :on-error #(swap! errors conj %))]
+    (doseq [run [#(core/reduce-packets % conj [])
+                 #(core/reduce-packets-report % conj [])
+                 #(dorun (core/packets %))]]
+      (assert-read-error (ex-data (caught #(run config)))))
+    (with-open [^Closeable capture (core/start-capture config)]
+      (assert-read-error (ex-data (caught #(dorun (core/capture-packets capture)))))
+      (assert-terminal-stats (core/capture-stats capture) true))
+    (is (= 4 (count @errors)))
+    (doseq [error @errors] (assert-read-error (ex-data error)))))
+
+(deftest public-terminal-contract-for-all-fixtures
+  (is (= 28 (count cases)))
+  (doseq [{:keys [file records terminal]} cases]
+    (testing file
+      (let [opts (assoc (options (str directory file)) :queue-cap 1)]
+        (case terminal
+          "open-error"
+          ;; Open failures stay synchronous even under :pass.
+          (doseq [mode [:throw :pass]
+                  run [#(core/reduce-packets % conj [])
+                       #(core/reduce-packets-report % conj [])
+                       core/packets core/start-capture]]
+            (is (= :pcap-open-failed
+                   (:reason (ex-data (caught #(run (assoc opts :error-mode mode))))))))
+          "error"
+          (do (assert-public-pass opts records true)
+              (assert-public-throw opts))
+          "eof"
+          (do (assert-public-pass opts records false)
+              (let [report (core/reduce-packets-report opts conj [])]
+                (is (= records (mapv record-data (:result report))))
+                (assert-terminal-stats (:stats report) false))
+              (is (= records (mapv record-data (core/packets opts))))
+              (with-open [^Closeable capture (core/start-capture opts)]
+                (is (= records (mapv record-data (core/capture-packets capture))))
+                (assert-terminal-stats (core/capture-stats capture) false))))))))
+
+(deftest prefix-stops-before-unread-native-error
+  (let [opts (options (str directory "multi-linktype.pcapng"))]
+    (doseq [[config rf expected] [[opts (fn [result packet] (reduced (conj result packet))) :reduced]
+                                  [(assoc opts :stop? (constantly true)) conj :predicate]
+                                  [(assoc opts :max 1) conj :max-packets]]]
+      (let [report (core/reduce-packets-report config rf [])]
+        (is (= 1 (count (:result report))))
+        (is (= expected (get-in report [:stats :stop-reason])))
+        (is (nil? (get-in report [:stats :error])))))
+    (is (= 1 (count (core/packets (assoc opts :stop? (constantly true) :queue-cap 1)))))
+    (with-open [^Closeable capture (core/start-capture (assoc opts :stop? (constantly true) :queue-cap 1))]
+      (is (= 1 (count (core/capture-packets capture))))
+      (is (= :predicate (:stop-reason (core/capture-stats capture)))))))
 
 (deftest public-writer-is-classic-ethernet-regardless-of-suffix-or-source
   (doseq [source ["single.pcapng" "multi-interface.pcapng" "nano.pcapng" "truncated.pcapng" "sll2.pcap" "raw.pcap"]]

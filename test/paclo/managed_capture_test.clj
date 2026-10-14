@@ -255,3 +255,77 @@
                           #":stop\\?"
                           (core/start-capture
                            {:path "trace.pcap" :stop? 42})))))
+
+(deftest managed-error-finishes-with-full-queue-and-failing-callback
+  (doseq [mode [:throw :pass]]
+    (let [closed (promise)
+          callbacks (atom 0)
+          error (ex-info "pcap_next_ex failed"
+                         {:reason :pcap-read-failed :phase :pcap-next-ex
+                          :rc -1 :native-error "injected read failure"})]
+      (with-redefs [pcap/datalink (constantly 1)
+                    pcap/open-offline (fn [_ _] :handle)
+                    pcap/loop-n-or-ms! (fn [_ _ handler]
+                                         (handler {:caplen 1})
+                                         (throw error))
+                    pcap/close! (fn [_] (deliver closed true))
+                    pcap/breakloop! (fn [_] nil)]
+        (with-open [^java.io.Closeable capture
+                    (core/start-capture
+                     {:path "dummy" :queue-cap 1 :error-mode mode
+                      :on-error (fn [_]
+                                  (swap! callbacks inc)
+                                  (throw (Exception. "callback failed")))})]
+          (is (true? (deref closed 2000 false)))
+          ;; Delivery waits for terminal state; no queue slot is required to
+          ;; publish the error, and the valid prefix remains available in pass.
+          (if (= mode :pass)
+            (is (= [{:caplen 1}] (vec (core/capture-packets capture))))
+            (try
+              (dorun (core/capture-packets capture))
+              (is false "expected native read error")
+              (catch clojure.lang.ExceptionInfo caught
+                (is (identical? error (.getCause caught)))
+                (is (= :pcap-read-failed (:reason (ex-data caught)))))))
+          (let [stats (core/capture-stats capture)]
+            (is (= :failed (:state stats)))
+            (is (= :error (:stop-reason stats)))
+            (is (= -1 (get-in stats [:error :rc]))))
+          (core/stop-capture! capture)
+          (is (= :error (:stop-reason (core/capture-stats capture))))
+          (is (= 1 @callbacks)))))))
+
+(deftest synchronous-read-and-startup-errors-survive-cleanup-failure
+  (doseq [stage [:read :datalink]]
+    (let [error (ex-info "original error" {:phase stage})
+          cleanup (Exception. "close failed")
+          closed (atom 0)]
+      (with-redefs [pcap/open-offline (fn [& _] :handle)
+                    pcap/datalink (fn [_] (if (= stage :datalink) (throw error) 1))
+                    pcap/loop-n-or-ms! (fn [_ _ _] (throw error))
+                    pcap/close! (fn [_] (swap! closed inc) (throw cleanup))]
+        (try
+          (core/reduce-packets {:path "dummy"} conj [])
+          (is false "expected original error")
+          (catch Throwable caught
+            (is (identical? error caught))
+            (is (= [cleanup] (vec (.getSuppressed caught))))))
+        (is (= 1 @closed))))))
+
+(deftest all-managed-startup-failures-retain-cause-and-close-once
+  (doseq [stage [:datalink :ready :producer]]
+    (let [error (Exception. "startup failed")
+          cleanup (Exception. "close failed")
+          closed (atom 0)]
+      (with-redefs [pcap/open-offline (fn [_ _] :handle)
+                    pcap/datalink (fn [_] (if (= stage :datalink) (throw error) 1))
+                    clojure.core/future-call (fn [_] (throw error))
+                    pcap/close! (fn [_] (swap! closed inc) (throw cleanup))]
+        (try
+          (core/start-capture {:path "dummy"
+                               :on-ready #(when (= stage :ready) (throw error))})
+          (is false "expected startup error")
+          (catch Throwable caught
+            (is (identical? error caught))
+            (is (= [cleanup] (vec (.getSuppressed caught))))))
+        (is (= 1 @closed))))))

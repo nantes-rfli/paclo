@@ -1445,3 +1445,108 @@ P08-A completed investigation and implementation CI:
 - The final evidence-only commit updates matrix/plan/log. Its PR-head checks are
   tracked in PR #38 separately from the passing implementation run. No production
   file, new writer API, decoder, dependency, workflow/gate, release version or tag.
+
+## 2026-10-14 — P08-B1 implementation started
+
+Baseline: latest main `8663e69` (merged P08-A PR #38); clean supplied checkout.
+Branch: `codex/p08-b1-native-errors`. Reviewed issues #39/#40, P08-A inventory,
+28-fixture manifest, native Java binding, capture loops and v1 error contract.
+`bash dev/script/codex.sh doctor` passed on macOS x86_64/JDK 21.0.12.1,
+Clojure 1.12.1/system libpcap 1.10.1. GitHub CLI required sandbox network
+escalation; no credentials or gates changed. P08-A is done; B1 is in progress.
+
+Contract: `:reason :pcap-read-failed`, `:phase :pcap-next-ex`, native `:rc` and
+`:native-error` on original ex-info and background wrapper ex-data; reports keep
+schema v1/class/message and add these fields. Pass retains valid prefix with
+failed/error stats; non-report callers use on-error. No synthetic decode data.
+EOF classification never consults native text. Native loops share validation.
+Newly acquired handles close once on setup failure through one ownership helper;
+cleanup errors are suppressed on the original error. Successful setup transfers
+ownership. Lazy terminal state is outside the queue, with a final queue recheck;
+packet-delivery abandonment while blocked remains issue #40, not solved here.
+The duplicate lazy stop-predicate invocation was removed: loop owns the predicate.
+Managed drain also rechecks queued data after terminal observation.
+
+Focused checks so far: capture-format-test 8 tests/1242 assertions; pcap-loop-test
+28 tests/142 assertions; managed-capture-test 12 tests/76 assertions, all passing.
+Tests cover all 28 real fixtures, throw/pass/public paths, valid prefixes,
+capacity-one terminal signaling, unexpected return codes, failing notification,
+BPF compile/set and netmask failure instrumentation, configured failure, exact
+close and suppressed cleanup errors. Full quality/CI evidence follows below.
+
+Local verification update:
+
+- Focused ownership/loop tests: `bash dev/script/codex.sh test -n
+  paclo.pcap-unit-test -n paclo.pcap-loop-test -n paclo.managed-capture-test`:
+  92 tests, 355 assertions, zero failures/errors.
+- `bash dev/script/codex.sh check`: 10 JUnit tests, 397 Clojure tests /
+  4148 assertions, offline smoke all passed. The first full run found six
+  historical tests expecting swallowed native errors; those now assert native
+  exceptions (the packet/timeout-only test now ends with normal EOF).
+- `bash dev/script/codex.sh lint`: passed, including clj-kondo (zero errors /
+  warnings), Eastwood, namespace/format dry runs and Markdown. Eastwood reports
+  existing warnings; no analyzer exception or gate relaxation. Initial namespace
+  ordering/test-local-shadow findings were corrected before the passing run.
+- `python3 test/resources/make_capture_format_fixtures.py --check`: all 28
+  fixtures/manifest reproduced.
+- `dev/script/mdlint.sh`: passed after removing one added blank line. Initial
+  sandbox DNS failure for registry.npmjs.org was resolved by rerunning the same
+  mandatory command with network escalation.
+- `python3 dev/script/verify_doc_links.py`: passed.
+- `python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'`:
+  15 parser tests passed. Task-generated Python bytecode files were removed.
+- `git diff --check`: passed.
+
+Performance, Java quality, executable examples and supported-platform CI are
+pending at this checkpoint. Live/NIC capture and hardware throughput have not
+been validated; configured/live ownership is covered with deterministic doubles.
+The managed startup owner now spans DLT, allocation, ready callback and producer
+submission; every injected failure retains the cause and closes once.
+
+`bash dev/script/codex.sh perf` passed: 50,000 synthetic 74-byte Ethernet
+packets, full decode 623.4 ms (warning 1000 ms, failure 1200 ms), macOS x86_64 /
+JDK21/system libpcap 1.10.1. This is the existing offline gate, not a real-NIC
+measurement or a claim about issues #34/#37. CI scenario measurements pending.
+
+Java quality checks passed, run serially: `clojure -M:spotbugs`,
+`clojure -M:checkstyle`, `clojure -M:jacoco`, and
+`JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`. Line coverage was 43.8%,
+above the unchanged 25% CI threshold.
+
+Initial commit was stopped before creation by the existing pre-commit hook:
+its `clj -M:test` interactive wrapper requires missing `rlwrap`. The noninteractive
+Clojure runner is installed and passed all tests. A task-local `/tmp` `clj`
+launcher forwards unchanged arguments to `/usr/local/bin/clojure` for this
+commit's full hook run; no hook or test/format/Markdown/kondo gate is skipped.
+
+`python3 dev/script/verify_doc_examples.py`: all 20 maintained executable
+examples passed. All requested local checks are now successful. The full
+pre-commit hook and implementation-commit supported-platform CI remain to run.
+
+P08-B1 implementation verification complete; independent review/merge pending:
+
+- [PR #41](https://github.com/nantes-rfli/paclo/pull/41), implementation commit
+  `edc1c4ebac6120fda15970e42cb7a51e24f37407`, includes `Fixes #39`.
+- Full existing pre-commit hook passed: unchanged test arguments through the
+  noninteractive launcher, 397 tests / 4148 assertions, namespace cleaning,
+  formatting, Markdown and clj-kondo. The supplied checkout was clean afterward.
+- [Implementation CI run 38498710156](https://github.com/nantes-rfli/paclo/actions/runs/38498710156)
+  succeeded in all 12 jobs: build-checks, documentation-checks, eastwood-lint,
+  coverage, Linux x64/JDK21 and macOS ARM64/JDK17 compatibility, Linux ARM64
+  monitor, three performance shards, 27-scenario merger and required build
+  aggregate. No failed/skipped job is counted as validation and no gate changed.
+- Linux x64 and ARM64: JDK 21.0.12.1/libpcap 1.10.4; macOS ARM64:
+  JDK 17.0.20.1/libpcap 1.10.1. Each platform passed 397 tests / 4148 assertions,
+  including all 28 format fixtures and native error/ownership regression tests.
+- CI offline full-decode gate: 50,000 packets, 374.3 ms (warning 1000 ms,
+  failure 1200 ms). CI JaCoCo: 43.8% line coverage (threshold 25%). All 27
+  quick-profile performance scenarios produced and merged successfully.
+- The current evidence update changes plan/log only; its final head checks are
+  monitored on PR #41. PR review/merge remains explicitly pending and no merge,
+  release or version update was performed.
+
+Next: independent review/acceptance of B1, then P08-B2 explicit single-DLT
+Classic PCAP writer options/framing validation. Issue #40 packet-delivery
+abandonment, SLL/SLL2 decoding, PCAPNG metadata/writing, exact timestamps and
+performance issues #34/#37 remain outside this change. Offline/double tests and
+CI do not establish live capture behavior, NIC throughput or performance targets.

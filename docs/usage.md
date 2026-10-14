@@ -415,6 +415,33 @@ Use `README.md` as the command index, and use this guide for API behavior.
 - `:decode? true` does not throw on parse failure.
 - Decode failures are represented as `:decode-error` in each packet map.
 - Invalid API inputs (for example unsupported `:filter` type) throw `ex-info`.
+Native reads distinguish EOF from failure. A corrupted Classic PCAP or PCAPNG
+can contain valid packets before libpcap fails; the default `:error-mode :throw`
+throws instead of returning that prefix as a successful capture. The exception's
+`ex-data` includes `:reason :pcap-read-failed`, `:phase :pcap-next-ex`, the native
+`:rc`, and `:native-error` (string or nil). Use the keyword/code, not diagnostic
+text, to classify failures. No synthetic packet or decode-error count is added.
+
+With `:error-mode :pass`, valid prefix packets remain available. Inspect
+`reduce-packets-report` or `capture-stats`: failed reads have `:state :failed`,
+`:stop-reason :error`, and structured `:error` alongside existing class/message
+fields; stats stay schema version 1. For `packets` or `reduce-packets`, provide
+`:on-error` to record failures when choosing `:pass`. The callback receives the
+original read exception once; its own exception cannot replace the read failure.
+A prefix alone does not prove EOF. Count/time/predicate/reduced stops can also
+leave an unread corrupt tail.
+
+Failed open/configuration, netmask resolution, BPF setup and DLT acquisition
+release the native handle owned by setup. Successful initialization transfers
+ownership to reduction, the lazy producer, or the managed capture. Cleanup does
+not hide the original setup/read cause. Source-open errors stay synchronous in
+`:pass`, as do managed/reduction setup errors. Legacy lazy post-open BPF/DLT/ready
+failures follow its background error policy. Lazy error/completion signaling
+cannot block behind a full queue, but
+abandoning lazy packet delivery while the producer is blocked remains
+[Issue #40](https://github.com/nantes-rfli/paclo/issues/40); use `with-open` managed
+capture when consuming only a prefix.
+
 - Managed capture startup errors are thrown synchronously by `start-capture`.
 - Managed background errors set state to `:failed`, appear as data in
   `capture-stats`, and throw from the packet stream unless
