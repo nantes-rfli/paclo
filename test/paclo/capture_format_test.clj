@@ -175,30 +175,48 @@
       (is (= 1 (count (core/capture-packets capture))))
       (is (= :predicate (:stop-reason (core/capture-stats capture)))))))
 
-(deftest public-writer-is-classic-ethernet-regardless-of-suffix-or-source
-  (doseq [source ["single.pcapng" "multi-interface.pcapng" "nano.pcapng" "truncated.pcapng" "sll2.pcap" "raw.pcap"]]
-    (testing source
-      (let [packets (core/reduce-packets (options (str directory source)) conj [])
+(deftest public-writer-conversion-contract-for-all-fixtures
+  (is (= 28 (count cases)))
+  (doseq [{:keys [file records terminal]} cases]
+    (testing file
+      (let [path (str directory file)
+            dlt (or (:linktype (native-inventory path)) 1)
             ^File output (File/createTempFile "paclo-p08-" ".pcapng")]
         (try
-          (core/write-pcap! packets (.getPath output))
+          ;; Delay source acquisition until the writer owns its resources.
+          (let [packets (lazy-seq (core/packets (options path)))
+                run #(core/write-pcap! packets (.getPath output) {:linktype dlt})]
+            (if (and (= "eof" terminal) (not= "invalid-original-length.pcapng" file))
+              (is (nil? (run)))
+              (is (instance? clojure.lang.ExceptionInfo (caught run)))))
           (let [encoded (Files/readAllBytes (.toPath output))
                 restored (core/reduce-packets (options (.getPath output)) conj [])]
             (is (contains? #{"d4c3b2a1" "a1b2c3d4"} (hex (byte-array (take 4 encoded)))))
-            (is (= (mapv record-data packets) (mapv record-data restored)))
-            (is (every? #(= 1 (:linktype %)) restored)))
+            (is (= (if (= "invalid-original-length.pcapng" file) [] records)
+                   (mapv record-data restored)))
+            ;; Native DLT, not the savefile's numeric LINKTYPE_RAW.
+            (is (= dlt (:linktype (native-inventory (.getPath output)))))
+            (is (every? #(= dlt (:linktype %)) restored)))
           (finally (.delete output)))))))
 
-(deftest internal-writer-can-use-a-single-native-dlt
-  (doseq [source ["sll2.pcap" "raw.pcap" "loop.pcap" "../linktype-sll.pcap" "../linktype-null.pcap"]]
-    (let [packets (core/reduce-packets (options (str directory source)) conj [])
-          ^File output (File/createTempFile "paclo-p08-dlt-" ".pcap")]
-      (try
-        (pcap/bytes-seq->pcap! packets {:out (.getPath output) :linktype (:linktype (first packets))})
-        (let [restored (core/reduce-packets (options (.getPath output)) conj [])]
-          (is (= (mapv record-data packets) (mapv record-data restored)))
-          (is (= (mapv :linktype packets) (mapv :linktype restored))))
-        (finally (.delete output))))))
+(deftest public-single-native-dlt-roundtrips
+  (doseq [source ["ethernet.pcap" "sll2.pcap" "raw.pcap" "loop.pcap"
+                  "../linktype-sll.pcap" "../linktype-null.pcap"]]
+    (testing source
+      (let [packets (core/reduce-packets (options (str directory source)) conj [])
+            ^File output (File/createTempFile "paclo-p08-dlt-" ".pcap")
+            dlt (:linktype (first packets))]
+        (try
+          (core/write-pcap! (map identity packets) (.getPath output)
+                            {:linktype dlt :snaplen (apply max (map :caplen packets))})
+          (let [restored (core/reduce-packets (options (.getPath output)) conj [])]
+            (is (= (mapv record-data packets) (mapv record-data restored)))
+            (is (= (mapv :linktype packets) (mapv :linktype restored))))
+          (when-not (= 1 dlt)
+            (is (= :linktype-mismatch
+                   (:reason (ex-data (caught #(core/write-pcap! packets (.getPath output)))))))
+            (is (empty? (core/reduce-packets (options (.getPath output)) conj []))))
+          (finally (.delete output)))))))
 
 (deftest fixtures-and-native-precision-are-reproducible
   (doseq [command [["python3" "test/resources/make_capture_format_fixtures.py" "--check"]

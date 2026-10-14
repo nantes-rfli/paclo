@@ -32,16 +32,14 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
 | P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
 | P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
-| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | in-progress |
-| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | blocked |
+| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
+| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | in-progress |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-B1 independent review and merge** on
-[PR #41](https://github.com/nantes-rfli/paclo/pull/41), then **P08-B2 explicit
-single-DLT Classic PCAP writing**. P08-A merged through PR #38 at `8663e69`.
-B1 implementation and all 12 implementation CI jobs passed on `edc1c4e`;
-its in-progress status now records pending independent review/merge only.
+Default next task: **P08-B2 explicit single-DLT Classic PCAP writing**.
+P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
+at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -215,8 +213,8 @@ or decoder was added. See the work log for initial failures and limitations.
 
 ## P08-B: Explicit and safe capture I/O subset
 
-Status: **in-progress** for B1 (implementation and verification complete;
-independent review/merge pending on [PR #41](https://github.com/nantes-rfli/paclo/pull/41)).
+Status: B1 **done**, merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
+at `c729e19`; B2 **in-progress**.
 All 12 implementation CI jobs passed on `edc1c4e`, including Linux x64/JDK21,
 macOS ARM64/JDK17 and Linux ARM64/JDK21. Native read errors now throw by default;
 pass retains the valid prefix with failed/error stats and structured native
@@ -227,8 +225,8 @@ while blocked delivering packets remains issue #40. All 28 format fixtures and
 ownership/callback/full-queue regression tests pass. Detailed local/CI evidence
 is in the work log. No new decoder, writer behavior or version was added.
 
-B2 remains blocked pending B1 acceptance: expose explicit single-DLT Classic
-PCAP writer options and reject known framing mismatches while retaining valid
+B2 exposes explicit single-DLT Classic
+PCAP writer options and rejects known framing mismatches while retaining valid
 two-arity callers. Candidate files, compatibility effects and acceptance
 criteria are in the P08-A inventory. SLL/SLL2 shared framing and full/flow decode
 form the next slice; metadata-aware PCAPNG reader/writer and exact timestamps

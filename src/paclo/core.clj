@@ -396,8 +396,14 @@
 
 ;; Writer
 (defn write-pcap!
-  "Write packet bytes and metadata to an Ethernet PCAP file.
-   Source :linktype is ignored; non-Ethernet bytes require format conversion.
+  "Write packet bytes and metadata to single-DLT Classic PCAP (microseconds).
+   Options: :linktype is a native DLT integer (default 1, Ethernet);
+   :snaplen is an integer in 1..2147483647 (default 65536).
+   Reject unknown options, invalid explicit packet :linktype, DLT mismatch,
+   and captured lengths exceeding snaplen before writing that record.
+   Missing packet :linktype trusts the caller's selected DLT; bytes are not sniffed
+   or converted. A suffix never selects PCAPNG. PCAPNG interfaces, comments and
+   sections are lost; complete source-file reproduction is not guaranteed.
 
   `packets` can contain:
   - `byte-array`
@@ -409,12 +415,17 @@
   throw ex-info. Absent pairs and partial legacy pairs use current time.
   Explicit caplen must equal byte-array length; len defaults to that length
   and must be an integer in caplen..4294967295. Invalid bytes throw ex-info.
-  Preserves packet order, bytes, timestamps and lengths, including truncation;
-  source global headers, link types, snaplen and precision are not preserved.
+  Preserves packet order, bytes, timestamps and lengths, including truncation.
+  Failure may leave partial output; I/O failure can leave an incomplete record.
+  Output is not atomic.
+  Native flush/stream failures throw; void native close cannot report OS close errors.
+  Successful flush is not an fsync/durability guarantee.
   Older libpcap readers may expose post-2038 seconds as negative; those values
   are rejected by writer validation. See the API contract's portability note."
-  [packets out]
-  (pcap/bytes-seq->pcap! packets {:out out}))
+  ([packets out]
+   (write-pcap! packets out {}))
+  ([packets out options]
+   (pcap/bytes-seq->pcap! packets (assoc (pcap/writer-options options) :out out))))
 
 (defn list-devices
   "Return available capture devices as

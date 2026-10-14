@@ -59,8 +59,24 @@
       (core/write-pcap! [(byte-array 1)] "out.pcap")
       (let [[ps opts] @called]
         (is (= [0] (vec (first ps))))
-        (is (= {:out "out.pcap"} opts))))))
+        (is (= {:out "out.pcap" :linktype 1 :snaplen 65536} opts))))))
 
 (deftest list-devices-delegates
   (with-redefs [pcap/list-devices (fn [] [:devs])]
     (is (= [:devs] (core/list-devices)))))
+
+(deftest writer-rejects-invalid-options-before-acquisition
+  (with-redefs [pcap/open-dead (fn [& _] (throw (AssertionError. "must not acquire")))]
+    (doseq [options [nil [] {:format :pcapng} {:out "override"} {:linktyp 113}
+                     {:linktype nil} {:linktype -1} {:linktype 1.0}
+                     {:linktype "1"} {:linktype true} {:linktype 2147483648N}
+                     {:linktype 999999999999999999999999N}
+                     {:snaplen nil} {:snaplen 0} {:snaplen -1} {:snaplen 1.0}
+                     {:snaplen "2"} {:snaplen true} {:snaplen 2147483648N}
+                     {:snaplen 999999999999999999999999N}]]
+      (is (thrown? clojure.lang.ExceptionInfo (core/write-pcap! [] "unused" options)))))
+  (with-redefs [pcap/bytes-seq->pcap! (fn [packets options] [packets options])]
+    (is (= [[] {:out "out" :linktype 113 :snaplen 2147483647}]
+           (core/write-pcap! [] "out" {:linktype 113 :snaplen 2147483647})))
+    (is (= [[] {:out "out" :linktype 0 :snaplen 65536}]
+           (core/write-pcap! [] "out" {:linktype 0})))))

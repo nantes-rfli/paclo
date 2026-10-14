@@ -1550,3 +1550,92 @@ Classic PCAP writer options/framing validation. Issue #40 packet-delivery
 abandonment, SLL/SLL2 decoding, PCAPNG metadata/writing, exact timestamps and
 performance issues #34/#37 remain outside this change. Offline/double tests and
 CI do not establish live capture behavior, NIC throughput or performance targets.
+
+## 2026-10-14 — P08-B2 explicit single-DLT writer
+
+Baseline: latest main `c729e19` (P08-B1 PR #41 merged), clean supplied checkout;
+branch `codex/p08-b2-single-dlt-writer`. Reviewed AGENTS, contribution/API contract,
+plan/work log, P08-A inventory, core/pcap/native binding and all requested tests.
+`bash dev/script/codex.sh doctor` passed on macOS 15.4.1 x86_64/JDK 21.0.12.1,
+Clojure 1.12.1/system libpcap 1.10.1. `prepare` passed after Java binding change.
+B1 is done; B2 implementation/verification is in progress.
+
+Three-argument public write-pcap! delegates to the existing internal writer.
+Only native DLT/snaplen options are accepted; validate signed native int range
+without coercion/overflow. Defaults 1/65536; explicit packet DLT must match;
+missing metadata trusts caller framing. Reject excess caplen instead of truncating;
+retain timestamps/length validation and order. Incremental output can leave an
+empty file or valid prefix. No byte conversion, sniffing, suffix selection,
+PCAPNG writer/metadata or exact-nanosecond behavior. The pipeline benchmark had
+stripped source framing/timestamp/length fields; it now retains writer metadata
+so it cannot bypass known-DLT rejection. Other two-argument call sites retain
+source metadata or generate Ethernet; non-Ethernet maps intentionally fail.
+
+Native binding now captures int pcap_dump_flush status. Shared ownership cleanup
+attempts every cleanup even if flush/close throws; original error remains primary
+and later exceptions are suppressed. Dead-handle null and dump-open failures are
+reported (native message for dump-open). The other internal dumper owner was
+updated because throwing flush would otherwise leak its resources. Native
+pcap_dump and pcap_dump_close return void: no per-record status or observable OS
+close-only status, no fsync/durability guarantee. Specification references:
+[flush manual](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/pcap_dump_flush.3pcap)
+and [close manual](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/pcap_dump_close.3pcap).
+This small binding fix stays in B2; no separate large native task is required.
+
+Focused tests: `bash dev/script/codex.sh test -n paclo.pcap-unit-test -n
+paclo.core-unit-test -n paclo.pcap-roundtrip-test -n paclo.capture-format-test`:
+75 tests / 1644 assertions, zero failures/errors. All 28 fixtures exercise
+conversion or failure/prefix behavior; native DLT readback (including RAW 12
+versus savefile LINKTYPE_RAW 101), bytes/order/time/caplen/len retained. SLL/NULL
+three-record fixtures include truncated packets. Tests cover byte-array/map/lazy/
+empty inputs, options/mismatch/snaplen failure, source/dump exceptions, failed
+acquisition and flush/close failures with exact cleanup and suppressed errors.
+Real /dev/full flush failure is exercised on Linux CI; unavailable on macOS.
+All 20 previous executable examples remain; two explicit SLL writer/readback
+examples are registered for CI (22 total). Full local gates and CI follow below.
+
+Native source inspection found an additional small fix necessary: libpcap 1.10.5
+pcap_dump_flush checks only fflush, not earlier fwrite failures retained by
+ferror. Linux/macOS now inspect borrowed pcap_dump_file through system libc,
+without taking FILE ownership or reading stale pcap_geterr. A zero flush rc plus
+nonzero :stdio-error is still :pcap-write-failed. The system-libc binding is lazy;
+Windows C runtime FILE interoperability is not claimed. Linux /dev/full tests
+cover 64/8192/65536-byte writes; deterministic doubles cover sticky-error detection
+and cleanup. Native close-only failures remain unobservable through void close.
+[Native implementation](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/sf-pcap.c).
+Additional focused native/roundtrip tests passed: 60 tests / 230 assertions.
+
+Initial broader checks: check passed 10 JUnit tests, 403 Clojure tests / 4348
+assertions and offline smoke before the final stream-error enhancement. Lint's
+Clojure checks passed but Markdown's npm fetch failed sandbox DNS for
+registry.npmjs.org; rerun with network escalation. The first concurrent doc-example
+run encountered source/class changes during final enhancement (transient parse/
+missing compiled class failures in two examples); all examples will rerun after
+compilation, with no active edits. Neither attempt is counted as final validation.
+
+Final local source checks passed: `bash dev/script/codex.sh check` (10 JUnit;
+405 Clojure tests / 4358 assertions; offline smoke), `bash dev/script/codex.sh
+lint` (kondo zero errors/warnings, Eastwood 211 all-linter warnings / zero
+exceptions, clean-ns/format dry checks, Markdown), and
+`python3 dev/script/verify_doc_examples.py` (all 22 examples). Markdown lint,
+local link verification and the 15 example-parser unit tests passed with network
+escalation for npm. Java quality passed SpotBugs/CheckStyle/JaCoCo; line coverage
+43.8%, unchanged threshold 25%. `git diff --check` passed. Documentation clarifies
+that actual I/O failures can leave incomplete records/headers; only successful
+validation/source-error cleanup on healthy output yields a readable prefix.
+Final performance/package/clean-consumer and GitHub CI evidence follows.
+
+`bash dev/script/codex.sh perf` passed at 597.0 ms for the existing 50,000-packet
+74-byte synthetic full-decode gate (warning 1000 ms / failure 1200 ms), with other
+local verification processes finished. This is offline evidence on macOS x86_64,
+not real-NIC throughput or resolution of issues #34/#37. `package` passed serially;
+JAR contains core/pcap and both native interfaces, including PcapStdioLibrary.
+A clean -Srepro consumer in /private/tmp/paclo-b2-consumer uses only the packaged
+JAR, asserts the core resource is loaded from jar:, and verifies all six DLT
+round trips plus default non-Ethernet rejection. Java test classes are restored
+with prepare after package. No dependency/version/release change.
+
+The commit hook's interactive clj launcher requires unavailable rlwrap; as in B1,
+a task-local /private/tmp/paclo-b2-tools/clj forwards unchanged arguments to the
+installed noninteractive Clojure CLI. The full hook will run all existing tests,
+namespace/format, Markdown and kondo gates; none is skipped or weakened.

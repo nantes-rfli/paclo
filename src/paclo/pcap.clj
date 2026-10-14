@@ -12,7 +12,8 @@
     PcapHeader
     PcapLibrary
     PcapStat
-    PcapStatsLibrary]))
+    PcapStatsLibrary
+    PcapStdioLibrary]))
 
 (def ^:private ^jnr.ffi.Runtime rt (jnr.ffi.Runtime/getSystemRuntime))
 (def ^:private ^PcapLibrary lib
@@ -32,6 +33,11 @@
         libname (if (.contains os "win") "wpcap" "pcap")
         loader  (LibraryLoader/create PcapConfigLibrary)]
     (.load loader libname)))
+
+(def ^:private stdio-lib
+  ;; Linux/macOS libpcap and JNR share system libc. Do not inspect Windows FILE*
+  ;; across C runtime boundaries; Windows is outside the supported native matrix.
+  (delay (.load (LibraryLoader/create PcapStdioLibrary) "c")))
 
 ;; --- constants (use before any functions) ---
 (def ^:const PCAP_ERRBUF_SIZE 256)
@@ -267,26 +273,36 @@
 ;; Macros below reference these fns; declare them so macro expansion can resolve.
 (declare open-dumper dump! flush-dumper! close-dumper!)
 
+(defn call-with-cleanup
+  "Run body, then every cleanup in order. Preserve the first failure and
+   attach subsequent cleanup failures as suppressed exceptions."
+  [body cleanups]
+  (let [failure (volatile! nil)
+        result (try (body)
+                    (catch Throwable error (vreset! failure error) nil))]
+    (doseq [cleanup cleanups]
+      (try
+        (cleanup)
+        (catch Throwable error
+          (if-let [^Throwable primary @failure]
+            (when-not (identical? primary error)
+              (.addSuppressed primary error))
+            (vreset! failure error)))))
+    (if-let [error @failure] (throw error) result)))
+
 (defmacro with-pcap
-  "Example: (with-pcap [h (open-live {:device \"en0\"})]
-         (loop-n! h 10 prn))"
+  "Run body owning a handle; close once without masking the body failure."
   [[sym open-expr] & body]
   `(let [~sym ~open-expr]
-     (try
-       ~@body
-       (finally
-         (close! ~sym)))))
+     (call-with-cleanup (fn [] ~@body) [(fn [] (close! ~sym))])))
 
 (defmacro with-dumper
-  "Example: (with-dumper [d (open-dumper h \"out.pcap\")]
-         (dump! d hdr data))"
+  "Run body owning a dumper; flush and close even when either step fails."
   [[sym open-expr] & body]
   `(let [~sym ~open-expr]
-     (try
-       ~@body
-       (finally
-         (flush-dumper! ~sym)
-         (close-dumper! ~sym)))))
+     (call-with-cleanup (fn [] ~@body)
+                        [(fn [] (flush-dumper! ~sym))
+                         (fn [] (close-dumper! ~sym))])))
 
 (defmacro with-live
   "Example: (with-live [h {:device \"en0\" :filter \"tcp\"}]
@@ -323,6 +339,29 @@
     (throw (ex-info (str "invalid " field ": expected integer in 0.." upper)
                     {:field field :value value :min 0 :max upper})))
   (long value))
+
+(defn writer-options
+  "Validate explicit single-DLT Classic PCAP options before acquiring resources.
+   DLT-to-savefile support is checked by native pcap_dump_open."
+  [opts]
+  (when-not (map? opts)
+    (throw (ex-info "writer options must be a map" {:reason :invalid-options :options opts})))
+  (when-let [unknown (seq (remove #{:linktype :snaplen} (keys opts)))]
+    (throw (ex-info "unknown writer options" {:reason :invalid-options :keys (vec unknown)})))
+  (let [{:keys [linktype snaplen]} (merge {:linktype DLT_EN10MB :snaplen 65536} opts)]
+    (checked-integer :linktype linktype Integer/MAX_VALUE)
+    (when-not (and (integer? snaplen) (<= 1 snaplen Integer/MAX_VALUE))
+      (throw (ex-info "invalid :snaplen: expected integer in 1..2147483647"
+                      {:field :snaplen :value snaplen :min 1 :max Integer/MAX_VALUE})))
+    {:linktype linktype :snaplen snaplen}))
+
+(defn- validate-framing!
+  [packet linktype]
+  (when (and (map? packet) (contains? packet :linktype))
+    (let [source (checked-integer :linktype (:linktype packet) Integer/MAX_VALUE)]
+      (when-not (= source linktype)
+        (throw (ex-info "packet :linktype must match writer :linktype"
+                        {:reason :linktype-mismatch :linktype source :writer-linktype linktype}))))))
 
 (defn- packet-timestamp [p]
   (let [ts-sec? (contains? p :ts-sec)
@@ -409,7 +448,12 @@
   ([]
    (open-dead DLT_EN10MB 65536))
   ([linktype snaplen]
-   (.pcap_open_dead lib (int linktype) (int snaplen))))
+   (let [handle (.pcap_open_dead lib (int linktype) (int snaplen))]
+     (when (nil? handle)
+       (throw (ex-info "pcap_open_dead failed"
+                       {:reason :pcap-open-dead-failed :phase :pcap-open-dead
+                        :linktype linktype :snaplen snaplen})))
+     handle)))
 
 (defn ^:private bytes->ptr [^bytes ba]
   (let [^Pointer m (Memory/allocate rt (long (alength ba)))]
@@ -431,29 +475,23 @@
     hdr))
 
 (defn bytes-seq->pcap!
-  "Write a sequence of packet bytes to a PCAP file.
-   packets: byte-arrays or maps with :bytes, optional :ts-sec/:ts-usec
-            (preferred) or :sec/:usec, :caplen and original :len.
-   Missing timestamps use now; invalid explicit metadata throws ex-info.
-   opts: {:out \"out.pcap\" :linktype DLT_* :snaplen 65536}"
-  [packets {:keys [out linktype snaplen]
-            :or   {linktype DLT_EN10MB snaplen 65536}}]
-  (when (str/blank? out)
-    (throw (ex-info "bytes-seq->pcap!: :out is required" {})))
-  (let [pcap (open-dead linktype snaplen)]
-    (try
-      (let [d (open-dumper pcap out)]
-        (try
-          (doseq [p packets]
-            (let [[^bytes ba sec usec caplen len] (ensure-bytes-timestamp p)
-                  hdr (mk-hdr sec usec caplen len)
-                  dat (bytes->ptr ba)]
-              (dump! d hdr dat)))
-          (finally
-            (flush-dumper! d)
-            (close-dumper! d))))
-      (finally
-        (close! pcap)))))
+  "Write byte-arrays or packet maps as single-DLT Classic PCAP (microseconds).
+   Validate explicit framing, timestamps and lengths before each record.
+   opts: {:out \"out.pcap\" :linktype native-DLT :snaplen 65536}.
+   Failure can leave partial output; output is not atomic."
+  [packets {:keys [out] :as opts}]
+  (let [{:keys [linktype snaplen]} (writer-options (dissoc opts :out))]
+    (when-not (and (string? out) (not (str/blank? out)))
+      (throw (ex-info "bytes-seq->pcap!: :out is required" {})))
+    (with-pcap [handle (open-dead linktype snaplen)]
+      (with-dumper [d (open-dumper handle out)]
+        (doseq [packet packets]
+          (validate-framing! packet linktype)
+          (let [[^bytes ba sec usec caplen len] (ensure-bytes-timestamp packet)]
+            (when (> (long caplen) (long snaplen))
+              (throw (ex-info ":caplen must be <= :snaplen"
+                              {:caplen caplen :snaplen snaplen})))
+            (dump! d (mk-hdr sec usec caplen len) (bytes->ptr ba))))))))
 
 (defn lookupnet
   "Resolve network address/mask for device `dev`.
@@ -526,14 +564,25 @@
 (defn open-dumper ^Pointer [^Pointer pcap ^String path]
   (let [^Pointer d (.pcap_dump_open lib pcap path)]
     (when (nil? d)
-      (throw (ex-info "pcap_dump_open failed" {:path path})))
+      (throw (ex-info "pcap_dump_open failed"
+                      {:path path :reason :pcap-dump-open-failed :phase :pcap-dump-open
+                       :native-error (try (.pcap_geterr lib pcap) (catch Throwable _ nil))})))
     d))
 
 (defn dump! [^Pointer dumper ^Pointer hdr ^Pointer data]
   (.pcap_dump lib dumper hdr data))
 
 (defn flush-dumper! [^Pointer dumper]
-  (.pcap_dump_flush lib dumper))
+  (let [rc (.pcap_dump_flush lib dumper)
+        ;; fflush can succeed after pcap_dump's ignored fwrite already failed.
+        ;; Check sticky ferror as well; do not invent a pcap_geterr message here.
+        stdio-error (when (and (zero? rc)
+                               (not (.startsWith (System/getProperty "os.name" "") "Windows")))
+                      (.ferror ^PcapStdioLibrary @stdio-lib (.pcap_dump_file lib dumper)))]
+    (when (or (not (zero? rc)) (and stdio-error (not (zero? stdio-error))))
+      (throw (ex-info "pcap_dump_flush failed"
+                      (cond-> {:reason :pcap-write-failed :phase :pcap-dump-flush :rc rc}
+                        stdio-error (assoc :stdio-error stdio-error)))))))
 
 (defn close-dumper! [^Pointer dumper]
   (.pcap_dump_close lib dumper))
@@ -553,43 +602,38 @@
     :or {max 100 snaplen 65536 promiscuous? true timeout-ms 10
          max-time-ms 10000 idle-max-ms 3000}}
    out]
-  (let [pcap   (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})
-        dumper (open-dumper pcap out)
-        ^PointerByReference hdr-ref (PointerByReference.)
+  (let [^PointerByReference hdr-ref (PointerByReference.)
         ^PointerByReference dat-ref (PointerByReference.)
         t0 (System/currentTimeMillis)
         max-long (long max)
         max-time-long (long max-time-ms)
         idle-max-long (long idle-max-ms)]
-    (try
-      (when filter
-        (if (some? device)
-          (set-bpf-on-device! pcap device filter)
-          (set-bpf! pcap filter)))
-      (loop [n 0 idle 0]
-        (let [now (System/currentTimeMillis)]
-          (cond
-            (>= n max-long) n
-            (>= (- now t0) max-time-long) n
-            (>= idle idle-max-long) n
-            :else
-            (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-                  status (read-status pcap rc)]
-              (cond
-                (= status :packet)
-                (do
-                  (let [^Pointer hdr (.getValue hdr-ref)
-                        ^Pointer dat (.getValue dat-ref)]
-                    (dump! dumper hdr dat))
-                  (recur (inc n) 0))
-                (= status :timeout) ; timeout
-                (recur n (+ idle (long timeout-ms)))
-                :else    ; eof or error
-                n)))))
-      (finally
-        (flush-dumper! dumper)
-        (close-dumper! dumper)
-        (close! pcap)))))
+    (with-pcap [pcap (open-live {:device device :snaplen snaplen :promiscuous? promiscuous? :timeout-ms timeout-ms})]
+      (with-dumper [dumper (open-dumper pcap out)]
+        (when filter
+          (if (some? device)
+            (set-bpf-on-device! pcap device filter)
+            (set-bpf! pcap filter)))
+        (loop [n 0 idle 0]
+          (let [now (System/currentTimeMillis)]
+            (cond
+              (>= n max-long) n
+              (>= (- now t0) max-time-long) n
+              (>= idle idle-max-long) n
+              :else
+              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
+                    status (read-status pcap rc)]
+                (cond
+                  (= status :packet)
+                  (do
+                    (let [^Pointer hdr (.getValue hdr-ref)
+                          ^Pointer dat (.getValue dat-ref)]
+                      (dump! dumper hdr dat))
+                    (recur (inc n) 0))
+                  (= status :timeout) ; timeout
+                  (recur n (+ idle (long timeout-ms)))
+                  :else    ; eof or error
+                  n)))))))))
 
 (defn- macos-device->desc []
   (let [os (.. System (getProperty "os.name") toLowerCase)
