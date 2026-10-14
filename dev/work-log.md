@@ -1639,3 +1639,36 @@ The commit hook's interactive clj launcher requires unavailable rlwrap; as in B1
 a task-local /private/tmp/paclo-b2-tools/clj forwards unchanged arguments to the
 installed noninteractive Clojure CLI. The full hook will run all existing tests,
 namespace/format, Markdown and kondo gates; none is skipped or weakened.
+
+PR handoff and CI correction:
+
+- Implementation `c08fe6d8903303dc525c5418f203cddab7a69d91`; full existing
+  pre-commit hook passed 405 tests / 4358 assertions and all formatting/Markdown/
+  kondo gates without skips. Created/attached independent
+  [PR #42](https://github.com/nantes-rfli/paclo/pull/42). No merge/release/tag.
+- [Initial CI run 38506051039](https://github.com/nantes-rfli/paclo/actions/runs/38506051039)
+  passed 10 jobs including all three native platforms, documentation, coverage,
+  three performance shards/27-scenario merger and Eastwood. build-checks failed
+  kondo on resource-macro binding symbols; required aggregate failed correctly.
+  This is not an all-pass run. Native Linux /dev/full tests passed in both Linux
+  architectures; all six DLT round trips pass across the supported matrix.
+- Root cause was an existing local `.clj-kondo/config.edn` excluded by gitignore,
+  not runtime behavior. It already maps the four resource macros to normal let
+  binding analysis; local lint therefore passed while clean CI lacked it. Track
+  that exact narrow macro-analysis config and retain ignored caches. No linter
+  suppression, workflow edit, threshold change or ignored body validation.
+- Final head CI outcomes are maintained in PR #42's checks/description, including
+  all 12 jobs, native versions and coverage/performance results. The plan records
+  implementation/local verification complete and independent review/merge pending;
+  subsequent SLL/SLL2 decoding is a separate slice. No live/NIC or unmeasured
+  platform validation is claimed.
+
+The same cold lint also passed using the exact CI clj-kondo version 2025.10.23,
+downloaded from its official release to /private/tmp/paclo-b2-kondo and verified
+against the release SHA256: `clj-kondo --lint src test dev --cache false`, zero
+errors/warnings. The initial matrix logs confirm Linux x64/ARM64 JDK21 /
+libpcap 1.10.4: 405 tests / 4364 assertions (including real /dev/full); macOS
+ARM64 JDK17 / libpcap 1.10.1: 405 tests / 4358 assertions. That run's Java line
+coverage was 43.8% (threshold 25%); offline decode gate 608.3 ms; all 27 performance
+scenarios merged. These passing jobs do not change the initial run's failed
+aggregate; final head must pass all 12 jobs and is tracked in PR #42.

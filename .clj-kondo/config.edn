@@ -1,0 +1,5 @@
+{:lint-as
+ {paclo.pcap/with-pcap     clojure.core/let
+  paclo.pcap/with-dumper   clojure.core/let
+  paclo.pcap/with-live     clojure.core/let
+  paclo.pcap/with-offline  clojure.core/let}}
