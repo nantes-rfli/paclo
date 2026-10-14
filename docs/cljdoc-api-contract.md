@@ -32,7 +32,8 @@ These contracts describe built-in transformations before user extensions and
 synchronous reductions, and managed capture. User functions can replace maps,
 remove keys, or change their shape; Paclo does not validate every output packet.
 Native captures identify their source link type. Full and flow decoding support
-Ethernet/VLAN (DLT 1), SLL (113) and SLL2 (276) IPv4/IPv6; other types remain
+Ethernet/VLAN (DLT 1), SLL (113), SLL2 (276) and Raw IP (native DLT 12 on
+Linux/macOS) IPv4/IPv6; other types remain
 readable as raw packets. Additional decoders and full PCAPNG metadata/file
 preservation remain future work.
 The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
@@ -92,10 +93,10 @@ DLT values are platform libpcap constants, not necessarily the numeric LINKTYPE
 stored in a savefile global header (for example DLT_RAW varies by platform).
 Do not compare arbitrary savefile LINKTYPE codes directly to `:linktype`.
 The supported Linux/macOS fixtures use DLT_EN10MB 1, DLT_LINUX_SLL 113 and
-DLT_LINUX_SLL2 276 and DLT_NULL 0. The actual native value is retained without name conversion.
+DLT_LINUX_SLL2 276, DLT_RAW 12 and DLT_NULL 0. The actual native value is retained without name conversion.
 
-Full/flow decode accepts explicit integer DLT_EN10MB (1), DLT_LINUX_SLL (113)
-and DLT_LINUX_SLL2 (276). Other, unknown, negative, nil or invalid values yield
+Full/flow decode accepts explicit integer DLT_EN10MB (1), DLT_LINUX_SLL (113),
+DLT_LINUX_SLL2 (276), and DLT_RAW (12) on Linux/macOS. Other, unknown, negative, nil or invalid values yield
 string `:decode-error`
 `"unsupported linktype"` and append
 `{:stage :decode :reason :unsupported-linktype :linktype value}` (flow uses
@@ -107,7 +108,8 @@ neither bytes nor flow/IP/port fields. Raw mode passes packets through unchanged
 Standalone `packet-xf` cannot detect framing from arbitrary bytes: when the
 `:linktype` key is absent, it preserves the legacy Ethernet assumption.
 Explicit presence (including nil) is different from absence. A supplied DLT is
-trusted as metadata; Paclo does not sniff bytes or convert packet formats.
+trusted as metadata; only explicit Raw IP dispatch inspects the IP version byte.
+Paclo does not detect a link type from bytes or convert packet formats.
 
 ### Full decode packets
 
@@ -124,6 +126,7 @@ The best-effort nested representation is:
 | --- | --- |
 | `:decoded` | Ethernet map (unchanged): `:type :ethernet`, string MAC `:src`/`:dst`, numeric `:eth`, `:l3` |
 | `[:decoded :vlan-tags]` | Vector of maps with `:tpid`, `:pcp`, boolean `:dei`, `:vid`; normally absent without tags |
+| `:decoded` for DLT 12 on Linux/macOS | `{:type :raw-ip :l3 ...}`; no synthetic link fields |
 | `:decoded` for DLT 113/276 | `:type :linux-sll` / `:linux-sll2`, numeric `:protocol`, link fields below, `:l3` |
 | `[:decoded :l3]` | IPv4, IPv6; Ethernet also ARP or `{:type :unknown-l3 :eth number}`; cooked unknown L3 uses `:protocol` |
 | `[:decoded :l3 :src]`, `:dst` | IP strings for IPv4/IPv6; IPv6 also has `:src-compact`/`:dst-compact` |
@@ -149,6 +152,20 @@ Full/flow share framing offsets 16/20 and bounds/address validation. Full decode
 builds link details; flow constructs no full-decode or link-detail maps. Original
 packet arrays remain unchanged and retain identity in full decode. Existing L4
 payload copies remain; no whole-frame clone or synthetic Ethernet header is made.
+
+Raw IP has no link header. Shared framing reads the version nibble at offset 0
+and dispatches to the same full IP/L4 parsers and numeric flow walkers. DLT_RAW
+12 was measured on Linux x64/ARM64 and macOS ARM64; other operating systems
+remain unsupported, without guessed DLT mappings. Savefile LINKTYPE_RAW 101
+is mapped by libpcap, never accepted as packet `:linktype` or converted by Paclo.
+Invalid version nibbles fail before parsing or extensions, with
+`"invalid Raw IP version"`, `:malformed-packet`, `:field :ip-version`, `:value`
+and location `{:offset 0 :required 1 :available array-length}`. No Ethernet fallback.
+Empty/missing bytes use `:short-frame` with one required byte; short IPv4/IPv6
+base headers use `:truncated-header` at offset 0 with 20/40 required bytes.
+Flow and full retain their existing different parsing depths and partial-result
+semantics, including unknown IP protocols, fragments and extension chains.
+NULL/LOOP decoding remains unsupported.
 
 IPv4 includes header fields (`:version`, `:ihl` in bytes, `:total-length`, `:tos`,
 `:id`, `:flags-frag`, `:ttl`, `:header-checksum`); IPv6 includes `:version`,
@@ -202,7 +219,7 @@ partial/unsupported decode can have diagnostics and `:decoded` without an error.
 | Stage | Reason | Classification |
 | --- | --- | --- |
 | `:decode`, `:flow` | `:unsupported-linktype` | Explicit link type has no supported decoder; includes `:linktype` |
-| `:decode`, `:flow` | `:short-frame` | Fewer than required link bytes: Ethernet 14, SLL 16, SLL2 20; missing bytes uses zero available |
+| `:decode`, `:flow` | `:short-frame` | Fewer than required link bytes: Ethernet 14, SLL 16, SLL2 20; Raw IP requires one version byte; missing bytes uses zero available |
 | `:decode`, `:flow` | `:truncated-header` | Known required header bytes are missing |
 | `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length, cooked address length above 8, or invalid IPv6 options; flow also bounds extension chains |
 | `:decode`, `:flow` | `:unsupported-ethertype` | Decoder has no implementation for this Ethertype; includes numeric `:ethertype` |
@@ -834,7 +851,7 @@ Eligible input is unfragmented standard opcode-0 UDP/53, with a complete minimum
 DNS header, consistent UDP length and zero or one question. TCP streams, multiple
 questions/messages and fragment reassembly are excluded. Decode-error presence,
 any nonempty diagnostics (including extension reports), explicit unsupported
-linktype and incomplete/unsupported decode return nil. Ethernet, SLL and SLL2
+linktype and incomplete/unsupported decode return nil. Ethernet, SLL, SLL2 and Raw IP
 full-decode DNS packets are eligible under the same rules. Eligible bad timestamps
 throw. Ineligible input returns nil before time validation. No bytes, native
 handles, Throwable, lazy packet references or arbitrary input fields survive.

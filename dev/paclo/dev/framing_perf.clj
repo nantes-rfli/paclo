@@ -1,6 +1,6 @@
 (ns paclo.dev.framing-perf
-  "Same-JVM P08-C full/flow framing comparison; transformation only, no native I/O.
-   clojure -M:dev -m paclo.dev.framing-perf 4998ddc
+  "Same-JVM P08-C/D1 full/flow framing comparison; transformation only, no native I/O.
+   clojure -M:dev -m paclo.dev.framing-perf 9d83bb2 [native-DLT]
    Alternates baseline/current samples after warming both; no threshold changes."
   (:require
    [clojure.java.shell :as shell]
@@ -34,15 +34,16 @@
   (ns-resolve 'paclo.dev.framing-baseline-core 'packet-xf))
 
 (defn- packet [^bytes ethernet dlt]
-  (let [header-size (case dlt 1 14 113 16 276 20)
+  (let [header-size (case dlt 1 14 12 0 113 16 276 20)
         bytes (if (= dlt 1)
                 ethernet
                 (let [frame (byte-array (+ header-size (- (alength ethernet) 14)))]
-                  (if (= dlt 113)
-                    (do (aset-byte frame 3 (byte 1)) (aset-byte frame 5 (byte 6))
-                        (System/arraycopy ethernet 12 frame 14 2))
-                    (do (aset-byte frame 9 (byte 1)) (aset-byte frame 11 (byte 6))
-                        (System/arraycopy ethernet 12 frame 0 2)))
+                  (cond
+                    (= dlt 12) nil
+                    (= dlt 113) (do (aset-byte frame 3 (byte 1)) (aset-byte frame 5 (byte 6))
+                                    (System/arraycopy ethernet 12 frame 14 2))
+                    :else (do (aset-byte frame 9 (byte 1)) (aset-byte frame 11 (byte 6))
+                              (System/arraycopy ethernet 12 frame 0 2)))
                   (System/arraycopy ethernet 14 frame header-size (- (alength ethernet) 14))
                   frame))]
     {:bytes bytes :linktype dlt :caplen (alength ^bytes bytes) :len (alength ^bytes bytes)
@@ -66,25 +67,30 @@
         allocated (- (.getCurrentThreadAllocatedBytes bean) before)]
     {:ns elapsed :allocation allocated :checksum checksum}))
 
-(defn -main [& [ref]]
+(defn -main [& [ref dlt-filter]]
   (try
     (let [ref (or ref "4998ddc") legacy-xf (baseline-xf ref)
+          selected (when dlt-filter (parse-long dlt-filter))
           ^ThreadMXBean bean (ManagementFactory/getThreadMXBean)]
+      (when (and dlt-filter (not (contains? #{1 12 113 276} selected)))
+        (throw (ex-info "unsupported benchmark DLT" {:dlt dlt-filter})))
       (when-not (.isThreadAllocatedMemorySupported bean)
         (throw (ex-info "allocation measurement unavailable" {})))
       (.setThreadAllocatedMemoryEnabled bean true)
       (println (pr-str {:baseline ref :jdk (System/getProperty "java.version")
                         :clojure (clojure-version) :os (System/getProperty "os.name")
                         :arch (System/getProperty "os.arch") :packets packet-count
-                        :warmups 5 :runs 7 :scope :packet-xf-only :drops 0}))
+                        :warmups 5 :runs 7 :scope :packet-xf-only :drops 0 :dlt-filter selected}))
       (doseq [[traffic size] [[:udp 64] [:tcp 512]]
               mode [:full :flow]]
         (let [ethernet (data/ethernet-ipv4-frame size traffic)
               options (if (= :full mode) {:decode? true :extensions []} {:decode-mode :flow})
-              variants (into [{:implementation :baseline :dlt 1 :xf (legacy-xf options)
-                               :packet (packet ethernet 1)}]
+              baseline-dlts (remove #((ns-resolve 'paclo.dev.framing-baseline-linktype 'unsupported?)
+                                      {:linktype %}) (if selected [selected] [1 113 276]))
+              variants (into (mapv (fn [dlt] {:implementation :baseline :dlt dlt :xf (legacy-xf options)
+                                              :packet (packet ethernet dlt)}) baseline-dlts)
                              (map (fn [dlt] {:implementation :current :dlt dlt :xf (core/packet-xf options)
-                                             :packet (packet ethernet dlt)}) [1 113 276]))
+                                             :packet (packet ethernet dlt)}) (if selected [selected] [1 113 276 12])))
               variants (mapv #(assoc % :inputs (vec (repeat packet-count (:packet %)))
                                      :snapshot (aclone ^bytes (:bytes (:packet %)))) variants)
               samples (atom {})]

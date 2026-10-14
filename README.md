@@ -18,7 +18,7 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
-Linux SLL (113) and SLL2 (276) IPv4/IPv6. Other explicit types produce
+Linux SLL (113), SLL2 (276) and Raw IP (native DLT 12 on Linux/macOS) IPv4/IPv6. Other explicit types produce
 `:unsupported-linktype` diagnostics. Standalone
 `packet-xf` without the key retains its Ethernet assumption. P08-B2 extends
 `core/write-pcap!` with `{:linktype native-DLT :snaplen positive-integer}`.
@@ -47,9 +47,27 @@ Decode SLL and SLL2 with the same transducer; each retains its own link header:
 
 TCP/UDP/ICMP, fragments, IPv6 extension headers and explicit DNS/TLS extensions
 reuse the existing IP/L4 parsers. Flow projection retains numeric fields and
-works with `paclo.flow` aggregates. NULL/LOOP/Raw IP decoding is unsupported.
+works with `paclo.flow` aggregates. NULL/LOOP decoding is unsupported.
 Cooked addresses describe one link-layer address, not an Ethernet MAC pair;
 SLL2 `:interface-index` is separate from a PCAPNG interface ID.
+
+Raw IP begins at byte zero, with no link header. The version nibble selects the
+same IPv4/IPv6 parsers; full decode wraps them in `{:type :raw-ip :l3 ...}`.
+Savefile LINKTYPE_RAW 101 is translated by libpcap to native DLT 12 on the
+measured Linux/macOS matrix. Supply native DLT metadata/options, not 101;
+unverified platforms remain unsupported. No Ethernet or SLL fields are synthesized.
+
+<!-- paclo-doc-test: readme-raw-ip-full -->
+
+```clojure
+(require '[paclo.core :as core])
+
+(let [packets (core/reduce-packets {:path "test/resources/raw-ip/raw.pcap"
+                                  :max 8 :decode? true :extensions []} conj [])]
+  {:linktypes (set (map :linktype packets))
+   :links (set (map #(get-in % [:decoded :type]) packets))
+   :versions (set (map #(get-in % [:decoded :l3 :version]) packets))})
+```
 
 Write and read back Linux cooked packets with their native DLT (113):
 

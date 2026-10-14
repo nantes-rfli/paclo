@@ -1838,3 +1838,147 @@ Implementation handoff and supported-platform CI:
   than characterizing all variation as small. It changes only plan/log/performance
   prose. Its checks are maintained on PR #43, alongside the complete implementation
   run. P08-C stays in-progress solely for independent review/merge; no merge here.
+
+## 2026-10-14 — P08-D1 Raw IP implementation
+
+Started with a clean supplied checkout, fetched latest main and confirmed P08-C
+PR #43 merged at `9d83bb2`. Created `codex/p08-d1-raw-ip` from that commit;
+no extra worktree, version/tag/release or merge. Read the contributing/API/plan,
+P08-A capability inventory, P08-C performance report, framing/full/project/core
+sources, fixture generators and related tests. Doctor passed on local macOS
+15.4.1 x86_64, Temurin 21.0.12.1, Clojure 1.12.1, libpcap 1.10.1.
+
+Implementation decisions:
+
+- `paclo.linktype` owns the OS-scoped native DLT_RAW guard (12 on Linux/macOS),
+  the single-byte version bound and zero-offset dispatch. Savefile 101 and
+  guessed unverified-OS mappings are rejected. Raw IP full wrapper is exactly
+  `{:type :raw-ip :l3 ...}`; no synthetic MAC/Ethertype/cooked fields.
+- Reuse the existing full IPv4/IPv6/L4 parsers and numeric flow walkers. Full
+  retains array identity; flow creates no link-detail/full maps. Existing L4
+  payload copies remain. No raw-specific IP parser, native I/O change, frame
+  clone, extension policy change, analysis API change or quality-gate change.
+- Flow's IP bounds classification now uses `:truncated-header` even at offset
+  zero; link framing separately owns `:short-frame`. Invalid Raw version uses
+  `:malformed-packet`, `:field :ip-version`, numeric `:value` and offset 0.
+  Existing partial parsing depth/unknown-L4 behavior is retained and documented.
+- Reuse cooked fixture IP/L4 builders and packets, generating Classic PCAP in
+  both byte orders and PCAPNG with LINKTYPE_RAW 101. Add bare malformed/options/
+  extension/unknown-protocol/adversarial cases. The original generator's --check
+  now covers all 28 original, four cooked and three Raw captures.
+- Update the README/usage/API/changelog and register two runnable Raw examples,
+  retaining all previous 24 examples. Mark C done; register D1 and D2, with
+  D2's source-backed AF/endian/native-conversion probe requirements in
+  [the handoff](p08-d2-null-loop.md). NULL/LOOP decoding is unchanged.
+- Existing [issue #44](https://github.com/nantes-rfli/paclo/issues/44) already
+  tracks C's Ethernet full throughput slowdown (4.9–9.8%); no duplicate Issue
+  or unrelated performance optimization is added.
+
+Verification progress:
+
+- Initial focused cooked/linktype/Raw tests passed 23 tests / 2016 assertions,
+  including 200 Raw property cases. Added randomized adversarial arrays and
+  exact empty/IP/L4/extension absolute-location assertions afterward.
+- First full check found four obsolete P08-A assertions that Raw decoding was
+  unsupported; updated that capability expectation. A rerun passed 417 tests /
+  5737 assertions, 10 JUnit tests and offline smoke. The subsequently expanded
+  Raw/capture-format focused run passed 14 tests / 1950 assertions.
+- All 26 executable doc examples passed. Fixture --check and 15 doc-parser
+  unittests passed. Link verifier and diff whitespace check passed.
+- First lint completed kondo (zero errors/warnings), Eastwood (zero exceptions,
+  existing boxed-math warnings), namespace/format checks, but npm needed network
+  access. The network-enabled Markdown rerun found one long plan line; wrapped
+  it and reran full lint. No warning suppression or threshold change.
+- A separate JVM with `-J-Dos.name=OpenBSD` loading only `paclo.linktype` rejected
+  DLTs 12, 14 and 101 (`:unverified-os-dlts-rejected`). This tests the guard, not
+  actual OpenBSD/libpcap behavior.
+
+Final performance, packaging, PR and native CI evidence follows below. Live/NIC
+throughput and unmeasured platforms remain unvalidated; D2 cross-endian NULL/AF
+runtime probes are pending separately.
+
+Final measurement and local delivery verification:
+
+- Kept Ethernet/cooked literal-set checks before the OS-scoped Raw guard.
+  Renamed internal header-size/require-link-header to minimum-size/require-framing
+  because Raw has no link header but requires one version byte. Kept Raw version
+  validation in a small framing helper, separate from the shared dispatch body.
+  Focused final Raw regression: 6 tests / 578 assertions, 200 property cases pass.
+- Two final mixed-DLT JVM runs and eight controlled single-DLT JVMs are retained
+  in [the D1 performance report](p08-d1-performance.md). Every final sample is
+  included. Mixed baseline/current have different framing profiles (three versus
+  four DLTs); observed negative medians prompted same-DLT controls. Do not infer
+  a particular JIT cause from these timings. Earlier source-version experiments
+  are distinguished in the report; no outcome was discarded from a final run.
+- Controlled Ethernet full medians versus C: UDP -0.5% to +2.3%, TCP -2.1% to
+  +0.7%. All matching existing-link allocations agree within each run. All Flow
+  variants allocate 280 bytes/packet. Raw full UDP 573.6–594.8 kpps / 2960–3000
+  bytes, TCP 390.0–405.4 kpps / 4896–4976 bytes; Raw flow 4.046–4.118 Mpps UDP,
+  4.074–4.321 Mpps TCP. Full input identity and byte snapshots pass; drops zero.
+  Negative/mixed variation is disclosed, not called universal equivalence.
+- Final `bash dev/script/codex.sh perf` passed at 574.0 ms, against unchanged
+  1000/1200 ms budgets. This does not resolve C's measured slowdown or issue #44.
+- SpotBugs, CheckStyle, JaCoCo and `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`
+  passed, with 43.8% Java line coverage; no Java source change. Full check runs
+  with the expanded tests passed 418 tests / 5759–5760 assertions plus 10 JUnit
+  tests and offline smoke; final-source check/lint/docs reruns follow below.
+- Package built the unchanged snapshot-version JAR; inspected full/flow/linktype,
+  DNS/TLS and native resources. The isolated `/private/tmp/paclo-d1-consumer`,
+  using only this JAR with `clojure -Srepro`, checked jar: resource origins,
+  IPv4/IPv6 Raw decode, DNS/TLS, flow keys/aggregates/Top-N, DNS correlation,
+  bounded windows, byte identity, code-101 rejection and Classic writer round
+  trip, printing `:clean-raw-ip-jar-consumer-ok`. Repackage the final helper
+  source and repeat this consumer before committing; prepare restores test classes.
+- D2 investigation found the pinned 1.10.5 post-processing switch has no NULL or
+  LOOP case. Record metadata byte swapping therefore does not prove packet AF
+  normalization. The handoff distinguishes this source inference from pending
+  installed-library/cross-platform byte probes. No NULL/LOOP implementation.
+
+Independent PR creation and CI confirmation remain next. The installed local
+hook still invokes removed `script/fmt.sh` and interactive clj; reuse the previous
+command-local shim, which runs the full noninteractive tests and maintained
+formatter without skipping checks or changing repository/global hook settings.
+
+- Final-source `bash dev/script/codex.sh check` passed **418 tests / 5760
+  assertions**, 10 JUnit tests and real offline smoke. Final full lint passed
+  kondo with zero errors/warnings, Eastwood with zero exceptions and the existing
+  warnings, clean-ns/format checks and Markdown lint. All **26 executable docs**
+  passed again. Fixture --check verified 35 captures; the 15 documentation-parser
+  unittests, link verifier, separate Markdown lint and diff whitespace check pass.
+
+- Final snapshot JAR rebuild and independent consumer passed again. Java test
+  classes are restored with `bash dev/script/codex.sh prepare` after packaging.
+  JAR resource inspection and final local links/diff/Markdown checks are clean.
+
+Implementation publication:
+
+- Committed `bc2e9a0a84517bd2b8dd35716c63de0c9747fe84` after the compatibility
+  hook passed 418 tests / 5760 assertions and all formatter checks; checkout clean.
+- Pushed `codex/p08-d1-raw-ip` and created/attached
+  [PR #45](https://github.com/nantes-rfli/paclo/pull/45). No merge, release or tag.
+- [Implementation CI run 38543025204](https://github.com/nantes-rfli/paclo/actions/runs/38543025204)
+  started on the implementation head. Native matrix and complete quality/perf
+  results are recorded below after actual completion; a pending job is not a pass.
+
+Supported-platform CI confirmation:
+
+- Implementation CI run **38543025204** passed **all 12 jobs** on `bc2e9a0`.
+  Inspected every job/step: no failed step, including coverage's existing
+  continue-on-error path. Build/Java/static gates, docs/cljdoc load, both
+  compatibility jobs, ARM64 monitor, Eastwood, coverage, three performance shards,
+  27-scenario results merge and required aggregate all succeeded.
+- Linux x64 and Linux ARM64: kernel 6.17.0-1022-azure, Temurin 21.0.12.1,
+  libpcap 1.10.4 (TPACKET_V3), **418 tests / 5766 assertions** each. macOS 26.6.2
+  ARM64: Temurin 17.0.20.1, libpcap 1.10.1, **418 / 5760**. Each verified the
+  original 28, four cooked and three Raw captures, including empty records,
+  both Classic byte orders, PCAPNG, writer preservation and Raw decoding/analysis.
+  The six extra Linux assertions cover existing /dev/full writer checks.
+- All **26 executable examples** pass in CI; 10 JUnit tests and Java quality
+  gates pass, JaCoCo 43.8% against unchanged 25% threshold. Existing mid-50k
+  performance gate passes at **722.9 ms** (1000/1200 ms budgets); all 27 existing
+  quick scenarios merge. CI/local times are distinct observations, not speedups.
+- This evidence update changes only plan/log/performance prose. Its final-head
+  checks are maintained on PR #45. D1 stays in-progress solely for independent
+  review/merge; D2 is the next feature after acceptance, with AF/endian/native
+  probes still required. No release, merge, live/NIC validation or speculative
+  unmeasured-platform mapping.

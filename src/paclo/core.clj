@@ -117,7 +117,7 @@
   "Call `parse/packet->clj` and return a tagged result map."
   [^bytes ba dlt]
   (try
-    (linktype/require-link-header! ba dlt)
+    (linktype/require-framing! ba dlt)
     {:ok true :value (parse/packet->clj ba dlt)}
     (catch Throwable e
       {:ok false :error (if (= :short-frame (:reason (ex-data e)))
@@ -219,7 +219,8 @@
    The two decode options are mutually exclusive. Decode failures retain string
    `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
    Native captures supply integer DLT `:linktype`. Full/flow support Ethernet
-   (DLT 1), SLL (113) and SLL2 (276); other/invalid explicit DLTs are unsupported.
+   (DLT 1), SLL (113), SLL2 (276) and Raw IP (12 on Linux/macOS).
+   Other/invalid explicit DLTs are unsupported.
    Missing :linktype retains legacy Ethernet input for standalone transforms.
    Best-effort unsupported/incomplete decoded data can also carry diagnostics.
    Published packet bytes are mutable shared arrays; treat them as read-only."

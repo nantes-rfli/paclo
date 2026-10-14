@@ -130,6 +130,8 @@ def main():
     print(('Verified' if args.check else 'Generated') + f' {len(cases)} capture fixtures and manifest')
     from make_cooked_fixtures import generate
     generate(args.check)
+    from make_raw_ip_fixtures import generate as generate_raw
+    generate_raw(args.check)
 
 
 if __name__ == '__main__':

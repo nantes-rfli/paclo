@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P08-D1: Raw IP IPv4/IPv6 full decode and numeric flow projection for native
+  DLT_RAW 12 on Linux/macOS. Bare IP starts at offset zero; the version nibble
+  selects existing IP/L4 parsers, and full results use `{:type :raw-ip :l3 ...}`
+  without synthetic link fields or a whole-frame copy. DNS/TLS extensions and
+  P06/P07 analysis compose unchanged. Empty, invalid-version and truncated
+  packets use structured diagnostics with absolute offsets; invalid versions
+  never fall back to Ethernet. Savefile LINKTYPE_RAW 101 is not a packet DLT.
+  NULL/LOOP decoding and unverified-platform DLT mappings remain deferred.
 - P08-C: shared Ethernet/VLAN, Linux SLL (DLT 113) and SLL2 (276) framing for
   full decode and numeric flow projection. Cooked IPv4/IPv6 reuse TCP/UDP/ICMP,
   fragment/extension and DNS/TLS parsers. Full maps use `:linux-sll`/`:linux-sll2`
@@ -20,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   No frame copy/conversion, registry, dependency, release or stats-schema change.
   Noninitial IPv6 flow fragments stop at their fragment header, matching full
   decode even when the next extension header is absent from that fragment.
-  NULL/LOOP/Raw IP decoding and PCAPNG metadata/output remain unsupported.
+  NULL/LOOP decoding and PCAPNG metadata/output remain unsupported.
 
 - P08-B2: three-argument `core/write-pcap!` accepts explicit native `:linktype`
   and positive `:snaplen` (signed native int range). The existing two-argument
@@ -116,7 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   original error; native dead-handle/dumper open errors are observable. Failure
   may leave a partial file. Native void close cannot report OS close-only errors;
   flush is not a durability guarantee. Regression tests include all 28 P08-A
-  fixtures and native Ethernet/SLL/SLL2/NULL/LOOP/Raw IP round trips.
+  fixtures and native Ethernet/SLL/SLL2/NULL/LOOP round trips.
 
 - P08-B1: native `pcap_next_ex` failures now propagate across synchronous,
   lazy and managed reads instead of looking like EOF. `:pass` keeps the valid

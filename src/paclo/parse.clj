@@ -600,7 +600,7 @@
       (linktype/header b dlt framing (l3-parse b protocol (= dlt 1))))))
 
 (defn packet->clj
-  "Decode Ethernet (default), SLL or SLL2 bytes into nested L3/L4 data.
+  "Decode Ethernet (default), SLL, SLL2 or Raw IP bytes into nested L3/L4 data.
    Internal metadata carries nonfatal diagnostics to the public packet facade."
   ([bytes] (packet->clj bytes 1))
   ([^bytes bytes dlt]
