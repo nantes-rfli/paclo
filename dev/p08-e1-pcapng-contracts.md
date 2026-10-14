@@ -456,7 +456,30 @@ construction produces 345156 bytes for 4096 IDBs, 345240 for 4097 IDBs, and
 8388764 bytes for the oversized opaque case. These are wire sizes, not heap
 measurements; parser boundedness remains E2 work.
 Native precision and complete existing inventory are rerun by the full suite.
-Cross-platform E1 measurements are recorded only after CI actually runs.
+Implementation `baaade4` / [PR #47](https://github.com/nantes-rfli/paclo/pull/47)
+completed [CI run 38591738169](https://github.com/nantes-rfli/paclo/actions/runs/38591738169).
+All 12 jobs report success; actual platform tests and native observations follow.
+
+| CI platform | Native/JDK | Suite and E1 result |
+| --- | --- | --- |
+| Linux x64, kernel 6.17.0-1022-azure | libpcap 1.10.4, JDK 21.0.12.1 | 431 tests / 15753 assertions; rich timestamps match local |
+| macOS ARM64, 26.6.2 | libpcap 1.10.1, JDK 17.0.20.1 | 431 / 15747; rich timestamps match local |
+| Linux ARM64, kernel 6.17.0-1022-azure | libpcap 1.10.4, JDK 21.0.12.1 | 431 / 15753; rich timestamps match local |
+
+The six additional Linux assertions are existing /dev/full writer checks. All
+platforms pass the six Python corpus/oracle tests and confirm SPB **[-7 0]**.
+Documentation runs all 28 examples; build, Java quality/coverage, packaging and
+existing performance jobs report success. No live/NIC or other-OS validation.
+
+**CI limitation:** the dedicated Eastwood job exits successfully after
+ClassNotFoundException `paclo.jnr.PcapConfigLibrary`; 92 namespaces are left
+unanalyzed. Latest main `ccebcad` has the same missing-class exception and 91
+unanalyzed namespaces on [baseline run 38586471628](https://github.com/nantes-rfli/paclo/actions/runs/38586471628).
+The job does not compile bindings before analyzing namespaces. Its green status
+is not complete lint evidence. E1 keeps CI configuration unchanged and records
+this existing limitation; the full local lint compiled bindings and completed
+with zero exceptions. Future CI maintenance should compile bindings and enforce
+an exception-free Eastwood exit without weakening gates.
 
 ## P08-E2 implementation plan and acceptance
 

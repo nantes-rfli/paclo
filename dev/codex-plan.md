@@ -338,7 +338,8 @@ precision and container-order inference remain outside this item.
 
 ## P08-E1: Metadata-aware PCAPNG and exact timestamp design
 
-Status: **in-progress** for independent review/merge. Design, deterministic
+Status: **in-progress** for independent review/merge on
+[PR #47](https://github.com/nantes-rfli/paclo/pull/47). Design, deterministic
 fixtures and characterization are complete in this task; no new public API or
 production reader/writer is implemented. Baseline is D2 main `ccebcad`.
 The [E1 contract and handoff](p08-e1-pcapng-contracts.md) is authoritative for

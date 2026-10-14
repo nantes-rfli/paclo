@@ -2199,3 +2199,32 @@ Implementation publication and supported-platform CI:
   the hook's existing SKIP_TESTS/SKIP_FMT/SKIP_KONDO switches to avoid duplicate
   checks; hook Markdown lint remains enabled. No hook or gate configuration
   changes, missing-tool success claims or interactive package installation.
+
+## P08-E1 PR and implementation CI evidence (2026-10-15)
+
+- Implementation commit `baaade4` is published on
+  [PR #47](https://github.com/nantes-rfli/paclo/pull/47). The requested title and
+  description include design rationale, alternatives, measured native loss and
+  E2/E3 acceptance. No merge performed; E1 waits only for independent review/merge.
+- [CI run 38591738169](https://github.com/nantes-rfli/paclo/actions/runs/38591738169)
+  reports all 12 jobs successful. Read its actual logs with `gh run view --log`:
+  Linux x64/JDK21 and ARM64/JDK21/libpcap 1.10.4 pass 431 tests / 15753
+  assertions; macOS ARM64/JDK17/libpcap 1.10.1 passes 431 / 15747. The six
+  additional Linux assertions exercise existing /dev/full writer checks.
+  All three run six Python tests and emit exactly the local rich timestamps,
+  including absent-on-disk SPB normalized to [-7 0]. Full documentation executes
+  28 examples; build/Java quality/coverage/packaging/performance jobs succeed.
+- Log inspection uncovered an existing dedicated Eastwood job limitation despite
+  its green status: ClassNotFoundException paclo.jnr.PcapConfigLibrary, one
+  exception, 92 namespaces unanalyzed. Confirmed unchanged main `ccebcad` has
+  the same exception and 91 unanalyzed namespaces on
+  [baseline CI run 38586471628](https://github.com/nantes-rfli/paclo/actions/runs/38586471628).
+  This job lacks Java compilation and does not fail on the analysis exception.
+  It is **not counted as completed lint**. Full local lint compiled the classes
+  and finished with zero exceptions; CI configuration remains unchanged per E1
+  scope. A separate CI maintenance task should compile bindings and enforce
+  complete analysis. PR/design disclose the exact limitation.
+- This evidence follow-up edits documentation only; final PR-head check status
+  is maintained on the PR. E2 actual ownership/state bounds and E3 preservation/
+  publication remain unimplemented, not validated by E1 tests. No live/NIC,
+  other platform, release, performance target or issue #40 claim is added.
