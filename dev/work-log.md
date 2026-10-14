@@ -1522,3 +1522,31 @@ commit's full hook run; no hook or test/format/Markdown/kondo gate is skipped.
 `python3 dev/script/verify_doc_examples.py`: all 20 maintained executable
 examples passed. All requested local checks are now successful. The full
 pre-commit hook and implementation-commit supported-platform CI remain to run.
+
+P08-B1 implementation verification complete; independent review/merge pending:
+
+- [PR #41](https://github.com/nantes-rfli/paclo/pull/41), implementation commit
+  `edc1c4ebac6120fda15970e42cb7a51e24f37407`, includes `Fixes #39`.
+- Full existing pre-commit hook passed: unchanged test arguments through the
+  noninteractive launcher, 397 tests / 4148 assertions, namespace cleaning,
+  formatting, Markdown and clj-kondo. The supplied checkout was clean afterward.
+- [Implementation CI run 38498710156](https://github.com/nantes-rfli/paclo/actions/runs/38498710156)
+  succeeded in all 12 jobs: build-checks, documentation-checks, eastwood-lint,
+  coverage, Linux x64/JDK21 and macOS ARM64/JDK17 compatibility, Linux ARM64
+  monitor, three performance shards, 27-scenario merger and required build
+  aggregate. No failed/skipped job is counted as validation and no gate changed.
+- Linux x64 and ARM64: JDK 21.0.12.1/libpcap 1.10.4; macOS ARM64:
+  JDK 17.0.20.1/libpcap 1.10.1. Each platform passed 397 tests / 4148 assertions,
+  including all 28 format fixtures and native error/ownership regression tests.
+- CI offline full-decode gate: 50,000 packets, 374.3 ms (warning 1000 ms,
+  failure 1200 ms). CI JaCoCo: 43.8% line coverage (threshold 25%). All 27
+  quick-profile performance scenarios produced and merged successfully.
+- The current evidence update changes plan/log only; its final head checks are
+  monitored on PR #41. PR review/merge remains explicitly pending and no merge,
+  release or version update was performed.
+
+Next: independent review/acceptance of B1, then P08-B2 explicit single-DLT
+Classic PCAP writer options/framing validation. Issue #40 packet-delivery
+abandonment, SLL/SLL2 decoding, PCAPNG metadata/writing, exact timestamps and
+performance issues #34/#37 remain outside this change. Offline/double tests and
+CI do not establish live capture behavior, NIC throughput or performance targets.

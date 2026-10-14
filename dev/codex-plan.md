@@ -37,8 +37,11 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-B1 native read failures and failed-open ownership**.
-P08-A merged through PR #38 at `8663e69`. P08-B2 follows B1 acceptance.
+Default next task: **P08-B1 independent review and merge** on
+[PR #41](https://github.com/nantes-rfli/paclo/pull/41), then **P08-B2 explicit
+single-DLT Classic PCAP writing**. P08-A merged through PR #38 at `8663e69`.
+B1 implementation and all 12 implementation CI jobs passed on `edc1c4e`;
+its in-progress status now records pending independent review/merge only.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -212,14 +215,24 @@ or decoder was added. See the work log for initial failures and limitations.
 
 ## P08-B: Explicit and safe capture I/O subset
 
-Status: **in-progress** for B1; B2 remains blocked pending B1 acceptance. Propagate
-native read errors instead of silently returning an EOF prefix across all
-capture paths. Then B2: expose explicit single-DLT Classic PCAP writer options
-and reject known framing mismatches while retaining valid two-arity callers.
-Candidate files, compatibility effects and acceptance criteria are in the P08-A
-inventory. SLL/SLL2 shared framing and full/flow decode form the next slice;
-metadata-aware PCAPNG reader/writer and exact timestamps need separate contracts.
-Performance issues #34/#37 remain outside P08.
+Status: **in-progress** for B1 (implementation and verification complete;
+independent review/merge pending on [PR #41](https://github.com/nantes-rfli/paclo/pull/41)).
+All 12 implementation CI jobs passed on `edc1c4e`, including Linux x64/JDK21,
+macOS ARM64/JDK17 and Linux ARM64/JDK21. Native read errors now throw by default;
+pass retains the valid prefix with failed/error stats and structured native
+reason/phase/return code/message in schema v1. One setup owner closes failed
+offline/live/configured opens exactly once without masking the cause (issue #39).
+Lazy terminal/error notification lives outside the packet queue; abandonment
+while blocked delivering packets remains issue #40. All 28 format fixtures and
+ownership/callback/full-queue regression tests pass. Detailed local/CI evidence
+is in the work log. No new decoder, writer behavior or version was added.
+
+B2 remains blocked pending B1 acceptance: expose explicit single-DLT Classic
+PCAP writer options and reject known framing mismatches while retaining valid
+two-arity callers. Candidate files, compatibility effects and acceptance
+criteria are in the P08-A inventory. SLL/SLL2 shared framing and full/flow decode
+form the next slice; metadata-aware PCAPNG reader/writer and exact timestamps
+need separate contracts. Performance issues #34/#37 remain outside P08.
 
 ## P08-P10: Evidence-driven expansion
 
