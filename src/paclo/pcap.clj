@@ -3,7 +3,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str])
   (:import
-   [java.util.concurrent LinkedBlockingQueue]
+   [java.util.concurrent LinkedBlockingQueue TimeUnit]
    [java.util.concurrent.atomic AtomicInteger LongAdder]
    [jnr.ffi LibraryLoader Memory Pointer]
    [jnr.ffi.byref IntByReference PointerByReference]
@@ -37,6 +37,25 @@
 (def ^:const PCAP_ERRBUF_SIZE 256)
 
 (declare close!)
+
+(defn close-after-error!
+  "Close an owned handle without masking an earlier failure."
+  [handle ^Throwable error]
+  (try
+    (close! handle)
+    (catch Throwable cleanup
+      (when-not (identical? error cleanup)
+        (.addSuppressed error cleanup)))))
+
+(defn initialize-handle
+  "Own a newly acquired handle until initialize returns successfully.
+   On failure close once, retaining the original cause and suppressed cleanup error."
+  [handle initialize]
+  (try
+    (initialize handle)
+    (catch Throwable error
+      (close-after-error! handle error)
+      (throw error))))
 
 (defn ^:private lookup-netmask
   "Resolve netmask from a device name. Returns 0 on lookup failure."
@@ -111,8 +130,7 @@
                        "pcap_open_offline failed"))]
            (throw (ex-info msg
                            {:path abs :reason :pcap-open-failed :err raw}))))
-       (apply-filter! pcap opts)
-       pcap))))
+       (initialize-handle pcap #(apply-filter! % opts))))))
 
 (defn- config-error!
   [^Pointer pcap phase rc]
@@ -131,38 +149,37 @@
       (throw (ex-info "pcap_create failed"
                       {:device device
                        :err (.getString err (long 0))})))
-    (try
-      (config-error! handle :pcap-set-snaplen
-                     (.pcap_set_snaplen config-lib handle (int snaplen)))
-      (config-error! handle :pcap-set-promisc
-                     (.pcap_set_promisc config-lib
-                                        handle
-                                        (if promiscuous? 1 0)))
-      (config-error! handle :pcap-set-timeout
-                     (.pcap_set_timeout config-lib handle (int timeout-ms)))
-      (when buffer-size
-        (config-error! handle :pcap-set-buffer-size
-                       (.pcap_set_buffer_size config-lib
-                                              handle
-                                              (int buffer-size))))
-      (when (some? immediate?)
-        (config-error! handle :pcap-set-immediate-mode
-                       (.pcap_set_immediate_mode config-lib
+    (initialize-handle
+     handle
+     (fn [handle]
+       (try
+         (config-error! handle :pcap-set-snaplen
+                        (.pcap_set_snaplen config-lib handle (int snaplen)))
+         (config-error! handle :pcap-set-promisc
+                        (.pcap_set_promisc config-lib
+                                           handle
+                                           (if promiscuous? 1 0)))
+         (config-error! handle :pcap-set-timeout
+                        (.pcap_set_timeout config-lib handle (int timeout-ms)))
+         (when buffer-size
+           (config-error! handle :pcap-set-buffer-size
+                          (.pcap_set_buffer_size config-lib
                                                  handle
-                                                 (if immediate? 1 0))))
-      (config-error! handle :pcap-activate
-                     (.pcap_activate config-lib handle))
-      handle
-      (catch UnsatisfiedLinkError error
-        (close! handle)
-        (throw (ex-info
-                "configured live capture is unsupported by installed libpcap"
-                {:device device
-                 :reason :unsupported-live-configuration}
-                error)))
-      (catch Throwable error
-        (close! handle)
-        (throw error)))))
+                                                 (int buffer-size))))
+         (when (some? immediate?)
+           (config-error! handle :pcap-set-immediate-mode
+                          (.pcap_set_immediate_mode config-lib
+                                                    handle
+                                                    (if immediate? 1 0))))
+         (config-error! handle :pcap-activate
+                        (.pcap_activate config-lib handle))
+         handle
+         (catch UnsatisfiedLinkError error
+           (throw (ex-info
+                   "configured live capture is unsupported by installed libpcap"
+                   {:device device
+                    :reason :unsupported-live-configuration}
+                   error))))))))
 
 (defn open-live
   [{:keys [device snaplen promiscuous? timeout-ms netmask
@@ -192,9 +209,12 @@
     (when (nil? pcap)
       (throw (ex-info "pcap_open_live failed"
                       {:device device :err (.getString ^Pointer err (long 0))})))
-    (let [resolved-mask (or netmask (when device (lookup-netmask device)))
-          opts*         (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
-      (apply-filter! pcap opts*))))
+    (initialize-handle
+     pcap
+     (fn [handle]
+       (let [resolved-mask (or netmask (when device (lookup-netmask device)))
+             opts* (if (some? resolved-mask) (assoc opts :netmask resolved-mask) opts)]
+         (apply-filter! handle opts*))))))
 
 (defn close! [^Pointer pcap] (.pcap_close lib pcap))
 
@@ -359,6 +379,18 @@
     -2 :eof
     :error))
 
+(defn- read-status
+  [^Pointer handle rc]
+  (let [status (rc->status rc)]
+    (when (= :error status)
+      (throw (ex-info "pcap_next_ex failed"
+                      {:reason :pcap-read-failed
+                       :phase :pcap-next-ex
+                       :rc rc
+                       :native-error (try (.pcap_geterr lib handle)
+                                          (catch Throwable _ nil))})))
+    status))
+
 (defn rc->status-detail
   "Return a map {:rc rc :status <kw> :summary <string|nil>} that is convenient for
    logging when pcap_next_ex finishes with EOF (-2) or an error (-1/others)."
@@ -473,7 +505,7 @@
          ^PointerByReference dat-ref (PointerByReference.)]
      (loop []
        (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-             status (rc->status rc)]
+             status (read-status pcap rc)]
          (cond
            (= status :packet)
            (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
@@ -542,7 +574,7 @@
             (>= idle idle-max-long) n
             :else
             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-                  status (rc->status rc)]
+                  status (read-status pcap rc)]
               (cond
                 (= status :packet)
                 (do
@@ -674,7 +706,7 @@
          (loop [count 0 idle 0]
            (when (< count n)
              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-                   status (rc->status rc)]
+                   status (read-status pcap rc)]
                (cond
                  (= status :packet)
                  (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
@@ -719,7 +751,7 @@
          (loop [idle 0]
            (when (< (System/currentTimeMillis) deadline)
              (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-                   status (rc->status rc)]
+                   status (read-status pcap rc)]
                (cond
                  (= status :packet)
                  (let [packet (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
@@ -768,7 +800,7 @@
           (when (and (< count n-long)
                      (< (System/currentTimeMillis) deadline))
             (let [rc (.pcap_next_ex lib pcap hdr-ref dat-ref)
-                  status (rc->status rc)]
+                  status (read-status pcap rc)]
               (cond
                 (= status :packet)
                 (let [pkt (read-packet (.getValue hdr-ref) (.getValue dat-ref) linktype)]
@@ -840,9 +872,10 @@
 ;; -----------------------------------------
 ;; -----------------------------------------
 
-(defn- throwable->data [^Throwable error]
-  {:class (.getName (class error))
-   :message (or (.getMessage error) (str error))})
+(defn throwable->data [^Throwable error]
+  (merge {:class (.getName (class error))
+          :message (or (.getMessage error) (str error))}
+         (select-keys (ex-data error) [:reason :phase :rc :native-error])))
 
 (defn- capture-source [{:keys [device path]}]
   (if device
@@ -954,8 +987,14 @@
             :pcap @final-pcap-stats
             :stop-reason reason
             :error (some-> @failure throwable->data)}}))
+      (catch Throwable error
+        ;; Include startup failures in cleanup without replacing their cause.
+        (when-not @failure (reset! failure error))
+        (throw error))
       (finally
-        (close! handle)))))
+        (if-let [error @failure]
+          (close-after-error! handle error)
+          (close! handle))))))
 
 (defn reduce-capture
   "Synchronously reduce live or offline packets without a queue or lazy seq.
@@ -1024,8 +1063,7 @@
         blocked     (LongAdder.)
         blocked-ns  (LongAdder.)
         max-depth   (AtomicInteger.)
-        sentinel    ::end-of-capture
-        make-error-item (fn [^Throwable ex] {:type :paclo/capture-error :ex ex})
+        terminal    (atom nil)
         record-max-depth!
         (fn [known-depth]
           ;; Queue consumers may drain an item between offer/put and size.
@@ -1098,10 +1136,7 @@
             (when on-ready
               (on-ready))
             (loop-n-or-ms! h {:linktype linktype :n max :ms max-time-ms :idle-max-ms idle-max-ms :timeout-ms timeout-ms :stop? stop?}
-                           (fn [pkt]
-                             (enqueue-packet! pkt)
-                             (when (and stop? (stop? pkt))
-                               (breakloop! h)))))
+                           enqueue-packet!))
           (catch Throwable ex
             (when on-error (try (on-error ex) (catch Throwable _)))
             (reset! captured-error ex))
@@ -1120,21 +1155,26 @@
               (close! h)
               (catch Throwable ex
                 (when on-error (try (on-error ex) (catch Throwable _)))))
-            (when-let [ex @captured-error]
-              (.put q (make-error-item ex)))
-            (.put q sentinel)))))
+            ;; Completion does not consume queue capacity. Even an abandoned
+            ;; full queue cannot block error signaling after handle closure.
+            (reset! terminal {:error @captured-error})))))
     (letfn [(drain []
               (lazy-seq
-               (let [x (.take q)]
-                 (cond
-                   (identical? x sentinel) '()
-                   (and (map? x) (= (:type x) :paclo/capture-error))
-                   (if (= error-mode :pass)
+               (if-let [x (.poll q (long 25) TimeUnit/MILLISECONDS)]
+                 (cons x (drain))
+                 (if-let [finished @terminal]
+                   ;; Recheck after observing completion: the producer may
+                   ;; enqueue its last packet between poll and the atom read.
+                   (if-not (.isEmpty q)
                      (drain)
-                     (throw (ex-info "capture->seq background error"
-                                     {:source :capture->seq}
-                                     (:ex x))))
-                   :else (cons x (drain))))))]
+                     (if-let [ex (:error finished)]
+                       (if (= error-mode :pass)
+                         '()
+                         (throw (ex-info "capture->seq background error"
+                                         (assoc (ex-data ex) :source :capture->seq)
+                                         ex)))
+                       '()))
+                   (drain)))))]
       (drain))))
 
 ;; ------------------------------------------------------------

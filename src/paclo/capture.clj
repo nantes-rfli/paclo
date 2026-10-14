@@ -69,9 +69,8 @@
     {:type :path
      :path (.getAbsolutePath (io/file path))}))
 
-(defn- error-map [^Throwable error]
-  {:class (.getName (class error))
-   :message (or (.getMessage error) (str error))})
+(defn- error-map [error]
+  (pcap/throwable->data error))
 
 (defn- update-max-depth! [^AtomicInteger maximum ^long depth]
   (loop [observed (.get maximum)]
@@ -118,14 +117,16 @@
                    (.increment delivered)
                    (cons packet (drain)))
                  (if (contains? terminal-states @state)
-                   (if-let [error @failure]
-                     (if (= :pass (:error-mode opts))
-                       '()
-                       (throw
-                        (ex-info "managed capture background error"
-                                 {:source :managed-capture}
-                                 error)))
-                     '())
+                   (if-not (.isEmpty queue)
+                     (drain)
+                     (if-let [error @failure]
+                       (if (= :pass (:error-mode opts))
+                         '()
+                         (throw
+                          (ex-info "managed capture background error"
+                                   (assoc (ex-data error) :source :managed-capture)
+                                   error)))
+                       '()))
                    (drain)))))]
       (drain)))
 
@@ -300,89 +301,82 @@
                   (update :max-time-ms #(or % default-max-time-ms))
                   (update :idle-max-ms #(or % default-idle-max-ms))
                   validate-opts)
-        handle (open-handle opts*)
-        linktype (try
-                   (pcap/datalink handle)
+        handle (open-handle opts*)]
+    (pcap/initialize-handle
+     handle
+     (fn [handle]
+       (let [linktype (pcap/datalink handle)
+             queue (LinkedBlockingQueue. (int (:queue-cap opts*)))
+             capture
+             (ManagedCapture.
+              handle opts* queue
+              (atom :starting)
+              (atom nil)
+              (atom nil)
+              (atom nil)
+              (atom nil)
+              (atom nil)
+              (atom false)
+              (atom false)
+              (LongAdder.)
+              (LongAdder.)
+              (LongAdder.)
+              (LongAdder.)
+              (LongAdder.)
+              (LongAdder.)
+              (AtomicInteger.)
+              (System/currentTimeMillis))]
+         (when-let [on-ready (:on-ready opts*)]
+           (on-ready))
+         (reset! (.-state capture) :running)
+         (let [running
+               (future
+                 (try
+                   (pcap/loop-n-or-ms!
+                    handle
+                    {:linktype linktype
+                     :n (:max opts*)
+                     :ms (:max-time-ms opts*)
+                     :idle-max-ms (:idle-max-ms opts*)
+                     :timeout-ms (:timeout-ms opts*)
+                     :stop?
+                     (fn [packet]
+                       (cond
+                         (some? @(.-stop-reason capture)) true
+                         (and (:stop? opts*) ((:stop? opts*) packet))
+                         (do
+                           (compare-and-set! (.-stop-reason capture)
+                                             nil
+                                             :predicate)
+                           true)
+                         :else false))}
+                    (fn [packet]
+                      (.increment ^LongAdder (.-captured capture))
+                      (enqueue! capture packet)))
+                   (compare-and-set! (.-stop-reason capture)
+                                     nil
+                                     (final-stop-reason
+                                      capture
+                                      (.sum ^LongAdder (.-captured capture))))
                    (catch Throwable error
-                     (pcap/close! handle)
-                     (throw error)))
-        queue (LinkedBlockingQueue. (int (:queue-cap opts*)))
-        capture
-        (ManagedCapture.
-         handle opts* queue
-         (atom :starting)
-         (atom nil)
-         (atom nil)
-         (atom nil)
-         (atom nil)
-         (atom nil)
-         (atom false)
-         (atom false)
-         (LongAdder.)
-         (LongAdder.)
-         (LongAdder.)
-         (LongAdder.)
-         (LongAdder.)
-         (LongAdder.)
-         (AtomicInteger.)
-         (System/currentTimeMillis))]
-    (try
-      (when-let [on-ready (:on-ready opts*)]
-        (on-ready))
-      (reset! (.-state capture) :running)
-      (let [running
-            (future
-              (try
-                (pcap/loop-n-or-ms!
-                 handle
-                 {:linktype linktype
-                  :n (:max opts*)
-                  :ms (:max-time-ms opts*)
-                  :idle-max-ms (:idle-max-ms opts*)
-                  :timeout-ms (:timeout-ms opts*)
-                  :stop?
-                  (fn [packet]
-                    (cond
-                      (some? @(.-stop-reason capture)) true
-                      (and (:stop? opts*) ((:stop? opts*) packet))
-                      (do
-                        (compare-and-set! (.-stop-reason capture)
-                                          nil
-                                          :predicate)
-                        true)
-                      :else false))}
-                 (fn [packet]
-                   (.increment ^LongAdder (.-captured capture))
-                   (enqueue! capture packet)))
-                (compare-and-set! (.-stop-reason capture)
-                                  nil
-                                  (final-stop-reason
-                                   capture
-                                   (.sum ^LongAdder (.-captured capture))))
-                (catch Throwable error
-                  (reset! (.-failure capture) error)
-                  (reset! (.-stop-reason capture) :error)
-                  (when-let [on-error (:on-error opts*)]
-                    (try (on-error error) (catch Throwable _))))
-                (finally
-                  (try
-                    (finish! capture)
-                    (catch Throwable error
-                      (when-not @(.-failure capture)
-                        (reset! (.-failure capture) error)
-                        (reset! (.-stop-reason capture) :error)))
-                    (finally
-                      (reset! (.-state capture)
-                              (if @(.-failure capture)
-                                :failed
-                                :closed)))))))]
-        (reset! (.-producer capture) running)
-        capture)
-      (catch Throwable error
-        (try
-          (close-handle-once! capture)
-          (catch Throwable _))
-        (throw error)))))
+                     (reset! (.-failure capture) error)
+                     (reset! (.-stop-reason capture) :error)
+                     (when-let [on-error (:on-error opts*)]
+                       (try (on-error error) (catch Throwable _))))
+                   (finally
+                     (try
+                       (finish! capture)
+                       (catch Throwable error
+                         (when-not @(.-failure capture)
+                           (reset! (.-failure capture) error)
+                           (reset! (.-stop-reason capture) :error)))
+                       (finally
+                         (reset! (.-state capture)
+                                 (if @(.-failure capture)
+                                   :failed
+                                   :closed)))))))]
+           (reset! (.-producer capture) running)
+           capture))))))
 
 (defn packet-seq
   "Return the single-consumer packet sequence for a managed capture."

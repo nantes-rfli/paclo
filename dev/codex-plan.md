@@ -31,15 +31,14 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P06 | v1.5 | Reusable flow keys and aggregates | P04 | done |
 | P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
 | P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
-| P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | in-progress |
-| P08-B | Later | Implement the selected capture I/O safety slice | P08-A | blocked |
+| P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
+| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | in-progress |
+| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-A independent review and merge**, then **P08-B/B1 native
-read errors versus EOF**. P07-B merged through PR #36 at `8312d10`. P08-A
-investigation and all implementation CI checks are complete in PR #38; review
-remains pending. The selected P08-B scope is documented, not implemented.
+Default next task: **P08-B1 native read failures and failed-open ownership**.
+P08-A merged through PR #38 at `8663e69`. P08-B2 follows B1 acceptance.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -202,8 +201,8 @@ remain separate. P08-A now inventories native I/O without adding decoders.
 
 ## P08-A: Capture format and link-type investigation
 
-Status: **in-progress** (investigation, implementation and verification complete;
-independent review/merge pending on [PR #38](https://github.com/nantes-rfli/paclo/pull/38)).
+Status: **done**. [PR #38](https://github.com/nantes-rfli/paclo/pull/38)
+merged on 2026-10-14 at `8663e69`.
 The [capability inventory and design](p08-a-capture-formats.md) separate code,
 native specification and measured results. 28 deterministic fixtures and native
 precision probes pass on Linux x64/libpcap 1.10.4, macOS ARM64/libpcap 1.10.1
@@ -213,7 +212,7 @@ or decoder was added. See the work log for initial failures and limitations.
 
 ## P08-B: Explicit and safe capture I/O subset
 
-Status: **blocked** until P08-A review/merge. Recommended B1 first: propagate
+Status: **in-progress** for B1; B2 remains blocked pending B1 acceptance. Propagate
 native read errors instead of silently returning an EOF prefix across all
 capture paths. Then B2: expose explicit single-DLT Classic PCAP writer options
 and reject known framing mismatches while retaining valid two-arity callers.

@@ -38,7 +38,8 @@ The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
 native format acceptance, raw packet access, decoding and output fidelity.
 PCAPNG reads normalize timestamps to microseconds and omit section/interface
 identity, comments and options. Mixed link types or snaplen can stop native reads
-with an error; current public loops can present that prefix as normal EOF.
+with a native read error; public readers propagate it by default. `:pass`
+retains the valid prefix and exposes failure through callbacks/report statistics.
 No complete PCAPNG read/write round trip is guaranteed.
 
 ### Raw capture packets
@@ -306,6 +307,56 @@ statistics. Packet diagnostics are the primary record; reducers can collect them
 - Errors:
   - throws `ex-info` for invalid `:filter` type
   - libpcap open/filter/capture errors may propagate
+
+### Capture read failures and ownership
+
+All native read paths distinguish packet (`1`), timeout (`0`), EOF (`-2`)
+and failure (`-1` or another unexpected return code). EOF is determined by
+return code, even if libpcap retains an old error string. Native read failures
+are capture-level `ex-info`, never fabricated packets or decode diagnostics:
+
+```clojure
+{:reason :pcap-read-failed :phase :pcap-next-ex
+ :rc -1 :native-error "native diagnostic text"}
+```
+
+`:native-error` is a string when available, otherwise nil; its content is
+platform-dependent and must not be parsed for control flow. Packet diagnostics
+continue to describe packet transformation failures separately.
+
+- Default `:error-mode :throw` propagates failure, including after a valid prefix.
+  Synchronous readers throw the original exception. Lazy/managed streams retain
+  their existing background-error wrapper message/cause and copy structured
+  fields into the wrapper's `ex-data`. Lazy transformation can read ahead;
+  callers cannot assume every valid prefix packet is delivered before throwing.
+- `:error-mode :pass` ends delivery/reduction with the valid prefix. Reports and
+  managed snapshots mark `:state :failed`, `:stop-reason :error`, with non-nil
+  `:error`. Schema version remains 1; `:error` preserves `:class`/`:message` and
+  adds `:reason`, `:phase`, `:rc`, `:native-error` for native read failures.
+- Non-report `packets` and `reduce-packets` users select `:on-error` to observe
+  failure under `:pass`, or choose the reporting/managed API. A prefix alone
+  cannot distinguish EOF from failure in `:pass`.
+- `:on-error` receives the original failure once for that read failure. Exceptions
+  from this notification callback are isolated and do not replace the failure.
+  Separate final statistics/cleanup failures may produce separate notifications.
+- Source-open failures stay synchronous regardless of `:error-mode`. Managed
+  and synchronous-reduction setup failures also throw synchronously; legacy lazy
+  post-open BPF/DLT/ready failures follow its background error policy.
+  Newly acquired offline/live/configured handles belong to initialization until
+  setup succeeds.
+  Configuration, netmask resolution, BPF compilation/installation and DLT setup
+  failures close the owned handle once. Cleanup errors do not replace an earlier
+  cause; failed-open/synchronous cleanup exceptions are attached as suppressed.
+- Lazy termination/error notification does not require a queue slot. Queued
+  packets can drain before terminal failure. Abandoning a lazy sequence while
+  its producer is still blocked delivering packets remains the separate
+  [Issue #40](https://github.com/nantes-rfli/paclo/issues/40); use managed capture
+  with `with-open` for deterministic early cleanup.
+
+`reduced`, `:stop?`, count/time limits and cancellation remain normal stops.
+A limit can stop before a later corrupt record is read; this does not validate
+the unread remainder. Normal EOF has no error and reports `:eof` when no earlier
+configured stop applies.
 
 ### `reduce-packets`
 
