@@ -245,8 +245,18 @@ contracts. Issue #40 and performance issues #34/#37 remain outside B2.
 
 ## P08-C: Shared framing and Linux cooked decoding
 
-Status: **in-progress** for final verification and independent review/merge.
-Implementation starts from main `4998ddc` (P08-B2 merged).
+Status: **in-progress** solely for independent review/merge on
+[PR #43](https://github.com/nantes-rfli/paclo/pull/43). Implementation `5d5e848`
+and all local gates are complete. [CI run 38525529813](https://github.com/nantes-rfli/paclo/actions/runs/38525529813)
+passed all 12 jobs, including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64.
+Full/flow share packed framing, cooked IP/L4 parsers and diagnostics; raw arrays,
+Ethernet shapes, extensions and P06/P07 composition are preserved. 28 original
+and four new captures, 412 tests, 300 cooked property cases, 24 executable docs,
+JAR consumer and unchanged quality/performance gates pass. See the
+[performance comparison](p08-c-performance.md) for the measured Ethernet CPU cost
+and allocation reductions, and [work log](work-log.md) for complete evidence.
+Final evidence-head checks are maintained on the PR. No review/merge, release,
+live/NIC throughput or unmeasured-platform validation is implied.
 
 - Share bounds-checked Ethernet/VLAN, SLL (DLT 113), SLL2 (DLT 276) framing in
   `paclo.linktype`; return packed L3 offset/protocol without a per-packet map on

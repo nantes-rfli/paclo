@@ -1806,3 +1806,35 @@ Final performance/packaging evidence:
   without rlwrap. A command-local hook shim invokes the same full tests through
   noninteractive `clojure` and the maintained `dev/script/fmt.sh`; no test or
   formatter is skipped, and the repository/global hook configuration is unchanged.
+
+Implementation handoff and supported-platform CI:
+
+- Committed `5d5e848ff23960a4ac0f7354187dce4c5afdc0fb` after the full local hook
+  passed 412 tests / 5184 assertions and all maintained formatter checks. Final
+  full lint, fixture/link/parser checks and diff checks also pass. Packaged JAR's
+  independent consumer printed `:clean-jar-consumer-ok`; `prepare` restored tests.
+- Created and attached [PR #43](https://github.com/nantes-rfli/paclo/pull/43).
+  Automatic approval initially rejected PR publication because it did not
+  recognize authorization. A read-only check of the user's delegated attachment
+  confirmed its explicit section 16 instruction to create an independent PR and
+  its matching repository destination; retry of the same action was approved.
+  No approval bypass, merge, version, tag, release or publication of a library.
+- [Implementation CI run 38525529813](https://github.com/nantes-rfli/paclo/actions/runs/38525529813)
+  passed **all 12 jobs** on `5d5e848`, with no failed steps (including coverage's
+  continue-on-error job). Build/Java/static checks, documentation, both
+  compatibility jobs, Linux ARM64 monitor, Eastwood, coverage, three performance
+  shards, the 27-scenario merger and required aggregate all succeeded.
+- Linux x64 and Linux ARM64: kernel 6.17.0-1022-azure, JDK 21.0.12.1, libpcap
+  1.10.4 (TPACKET_V3), each 412 tests / 5190 assertions. macOS 26.6.2 ARM64:
+  JDK 17.0.20.1, libpcap 1.10.1, 412 / 5184. Every P08-A/cooked fixture, precise
+  record preservation and decoding/analysis path agrees across this native matrix;
+  the six additional Linux assertions cover existing /dev/full writer checks.
+- CI: 10 JUnit tests, 43.8% Java lines against unchanged 25% gate; all 24 docs
+  examples pass; existing 50k gate passes at 989.3 ms against 1000/1200 ms budgets.
+  All 27 existing quick performance scenarios merge successfully. Local and CI
+  times are separate observations, not directly interchangeable speed comparisons.
+- This final evidence update records completion, identifies PR #43 as the next
+  independent review/merge item and states the UDP flow range explicitly rather
+  than characterizing all variation as small. It changes only plan/log/performance
+  prose. Its checks are maintained on PR #43, alongside the complete implementation
+  run. P08-C stays in-progress solely for independent review/merge; no merge here.

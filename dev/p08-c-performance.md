@@ -38,8 +38,9 @@ reductions; these are not statistical confidence intervals.
 | TCP-512 | flow | 3430.3–3683.0 | 3281.7–3706.9 | -4.3–0.6% | 280 → 280 |
 
 Full decode allocates 416 fewer bytes/packet (11.8% UDP / 7.5% TCP). Flow remains
-280 bytes/packet for every DLT. Ethernet flow variation is small across these runs;
-full decode retains a measurable CPU cost for shared framing and link construction.
+280 bytes/packet for every DLT. Ethernet UDP flow varies from -11.3% to -0.7%
+across these runs; TCP flow varies from -4.3% to +0.6%. Full decode retains a
+measurable throughput cost after the shared framing/link construction refactor.
 It is not claimed faster or performance-equivalent. The unchanged end-to-end
 50,000-packet gate passes at 514.7 ms (warning 1000 / failure 1200 ms).
 
