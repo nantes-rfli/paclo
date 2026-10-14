@@ -18,7 +18,7 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
-Linux SLL (113), SLL2 (276) and Raw IP (native DLT 12 on Linux/macOS) IPv4/IPv6. Other explicit types produce
+Linux SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108) IPv4/IPv6 on Linux/macOS. Other explicit types produce
 `:unsupported-linktype` diagnostics. Standalone
 `packet-xf` without the key retains its Ethernet assumption. P08-B2 extends
 `core/write-pcap!` with `{:linktype native-DLT :snaplen positive-integer}`.
@@ -47,7 +47,7 @@ Decode SLL and SLL2 with the same transducer; each retains its own link header:
 
 TCP/UDP/ICMP, fragments, IPv6 extension headers and explicit DNS/TLS extensions
 reuse the existing IP/L4 parsers. Flow projection retains numeric fields and
-works with `paclo.flow` aggregates. NULL/LOOP decoding is unsupported.
+works with `paclo.flow` aggregates.
 Cooked addresses describe one link-layer address, not an Ethernet MAC pair;
 SLL2 `:interface-index` is separate from a PCAPNG interface ID.
 
@@ -67,6 +67,32 @@ unverified platforms remain unsupported. No Ethernet or SLL fields are synthesiz
   {:linktypes (set (map :linktype packets))
    :links (set (map #(get-in % [:decoded :type]) packets))
    :versions (set (map #(get-in % [:decoded :l3 :version]) packets))})
+```
+
+NULL/LOOP have a four-byte address-family header and IP at offset 4. NULL
+accepts a unique known AF under either byte order; LOOP requires big endian.
+AF 2 is IPv4, 24/28/30 are IPv6; unknown AFs (including 10) and AF/version
+mismatches fail explicitly. Full uses `{:type :null :address-family 2 :l3 ...}`
+or `:type :loop`; flow keeps the usual numeric fields. Raw bytes are preserved.
+Measured Linux x64/ARM64 and macOS ARM64 libraries leave these headers unchanged.
+Other OS mappings remain unsupported. Packet maps omit original container byte
+order, so decoding cannot verify container/header consistency or reproduce its
+encoding. See the [NULL/LOOP contract](docs/cljdoc-api-contract.md#nullloop-framing).
+
+<!-- paclo-doc-test: readme-null-loop-full -->
+
+```clojure
+(require '[paclo.core :as core])
+
+(mapv (fn [path]
+        (let [packet (first (core/reduce-packets
+                            {:path path :max 1 :decode? true :extensions []} conj []))]
+          {:linktype (:linktype packet)
+           :link (:type (:decoded packet))
+           :af (get-in packet [:decoded :address-family])
+           :ip (get-in packet [:decoded :l3 :version])}))
+      ["test/resources/null-loop/null-header-be-file-le.pcap"
+       "test/resources/null-loop/loop-header-be-file-be.pcapng"])
 ```
 
 Write and read back Linux cooked packets with their native DLT (113):

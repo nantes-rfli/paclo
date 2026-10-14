@@ -70,17 +70,13 @@
       (is (= expected lazy-result reduce-result (data-value (:result report)) managed-result))
       (is (= 1 (:schema-version (:stats report)) (:schema-version stats)))
       (is (= count* (get-in report [:stats :packets :captured])))
-      (is (= (if (and (not= 1 dlt) (seq config)) (if (= 113 dlt) 2 count*) 0)
+      (is (= (if (and (not= 1 dlt) (seq config)) 2 0)
              (get-in report [:stats :packets :decode-errors])
              (get-in stats [:packets :decode-errors])))
       (when (and (= 0 dlt) (seq config))
-        (doseq [packet (:result report)]
-          (is (= "unsupported linktype" (:decode-error packet)))
-          (is (= [{:stage (if (:decode? config) :decode :flow)
-                   :reason :unsupported-linktype :linktype dlt}]
-                 (:diagnostics packet)))
-          (is (not-any? #(contains? packet %) [:decoded :ip-version :src-ip :dst-ip :src-port :dst-port]))
-          (is (= (boolean (:decode? config)) (contains? packet :bytes))))))))
+        (is (nil? (:decode-error (first (:result report)))))
+        (is (= [nil :short-frame :unsupported-address-family]
+               (mapv #(-> % :diagnostics first :reason) (:result report))))))))
 
 (deftest linktype-precedes-length-and-skips-all-extension-policies
   (let [calls (atom [])
@@ -88,7 +84,7 @@
         frame (data/ethernet-ipv4-frame 64 :udp)]
     (dx/register! ::hook hook)
     (try
-      (doseq [dlt [0 9999 -1 nil "1" 1.0 :ethernet]
+      (doseq [dlt [9999 -1 nil "1" 1.0 :ethernet]
               bytes [frame (byte-array 2)]
               config [{:decode? true} {:decode? true :extensions [hook]}
                       {:decode? true :extension-error-mode :report}
@@ -114,12 +110,12 @@
 (deftest unsupported-dispatch-retains-diagnostic-order-without-calling-parser
   (let [calls (atom 0)
         prior {:stage :extension :reason :extension-non-map :hook-index 0}
-        packet {:bytes (data/ethernet-ipv4-frame 64 :udp) :linktype 0
+        packet {:bytes (data/ethernet-ipv4-frame 64 :udp) :linktype 9999
                 :diagnostics [prior]}]
     (with-redefs [parse/packet->clj (fn [_] (swap! calls inc) {:type :ethernet})]
       (doseq [[config stage] [[{:decode? true :extensions []} :decode]
                               [{:decode-mode :flow} :flow]]]
-        (is (= [prior {:stage stage :reason :unsupported-linktype :linktype 0}]
+        (is (= [prior {:stage stage :reason :unsupported-linktype :linktype 9999}]
                (:diagnostics (transform config packet)))))
       (is (zero? @calls)))))
 
@@ -164,8 +160,8 @@
           (is (= (mapv :linktype raw-result) (mapv :linktype full-result) (mapv :linktype flow-result)))
           (is (every? #(= dlt (:linktype %)) raw-result))
           (is (not-any? :decode-error raw-result))
-          (is (= (if (= 113 dlt) 2 count*) (count (filter :decode-error full-result))))
-          (is (= (if (= 113 dlt) 2 count*) (count (filter :decode-error flow-result))))
+          (is (= 2 (count (filter :decode-error full-result))))
+          (is (= 2 (count (filter :decode-error flow-result))))
           (is (= 1 (:schema-version (stream/stats fanout)))))))))
 
 (defn- pointer ^Pointer []
@@ -266,7 +262,7 @@
     (is (= [1 1 1 1 113 113 113 113 0 0 0 0] @calls))))
 
 (defspec unsupported-input-never-decodes-as-ethernet 150
-  (prop/for-all [dlt (gen/one-of [(gen/such-that #(not (contains? #{1 12 113 276} %)) gen/small-integer)
+  (prop/for-all [dlt (gen/one-of [(gen/such-that #(not (contains? #{0 1 12 108 113 276} %)) gen/small-integer)
                                   (gen/elements [nil "1" :ethernet 1.0])])
                  octets (gen/vector gen/byte 0 160)
                  sec gen/small-integer

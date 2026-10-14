@@ -552,13 +552,13 @@ not necessarily the savefile's numeric LINKTYPE; see the
 [link-type contract](cljdoc-api-contract.md#link-type-dispatch). Detection happens
 once after open/activation; it does not infer framing from arbitrary bytes.
 Full decode and flow support Ethernet/VLAN (DLT 1), Linux SLL (113) and SLL2
-(276), and Raw IP (native DLT 12 on Linux/macOS) IPv4/IPv6. TCP, UDP, ICMP,
+(276), Raw IP (12), NULL (0) and LOOP (108) IPv4/IPv6 on Linux/macOS. TCP, UDP, ICMP,
 fragments and IPv6 extension headers use the
 existing parsers. Full decode adds `:linux-sll` or `:linux-sll2` link maps and
 retains bytes; flow keeps numeric IP/port fields and omits bytes. Explicit
 DNS/TLS extensions work under the shared `[:decoded :l3 :l4]` path.
 
-NULL/LOOP and unknown/invalid DLTs remain unsupported for full/flow, with
+Unknown/invalid DLTs remain unsupported for full/flow, with
 `"unsupported linktype"` and `:unsupported-linktype` diagnostics. Raw access is
 unchanged. Short cooked headers report `:short-frame` with required lengths
 16/20 at offset 0. Address lengths above 8 report `:malformed-packet` with
@@ -580,7 +580,6 @@ falls back to Ethernet. Short IP headers report `:truncated-header` at offset 0.
 Unknown IP protocols and incomplete transport headers retain the existing
 [partial-parser behavior](cljdoc-api-contract.md#full-decode-packets).
 Classic PCAP output uses `{:linktype 12}`; libpcap writes savefile code 101.
-NULL/LOOP decoding remains planned separately.
 
 <!-- paclo-doc-test: usage-raw-ip-flow -->
 
@@ -593,6 +592,46 @@ NULL/LOOP decoding remains planned separately.
   {:versions (set (map :ip-version packets))
    :linktypes (set (map :linktype packets))
    :top (flow/top-n (reduce rf (rf) packets) 10)})
+```
+
+NULL/LOOP use native DLT 0/108 on the measured Linux/macOS platforms, with
+IP at offset 4. Full wrappers use `:type :null` / `:loop`, numeric
+`:address-family` and `:l3`. NULL recognizes a unique AF in either byte order;
+LOOP is strictly big endian. AF 2 selects IPv4, 24/28/30 select IPv6, then the
+IP version is checked. Linux AF_INET6 10 is not accepted. The origin OS is not
+inferred, and arrays retain their bytes and reference in full decode.
+
+Short pseudoheaders use `:short-frame` (offset 0, required 4); unknown AFs use
+`:unsupported-address-family`; valid IP versions inconsistent with AF use
+`:address-family-mismatch`; other invalid versions use `:malformed-packet`.
+Known AF with no IP byte uses `:truncated-header` at offset 4, required 1;
+short base IP headers require 20/40 at offset 4. Later IP/L4/extension diagnostics
+retain absolute offsets and existing partial-parser semantics. See the
+[complete NULL/LOOP contract](cljdoc-api-contract.md#nullloop-framing).
+
+Both Classic PCAP and supported single-linktype PCAPNG have been measured under
+both container orders, including NULL headers in the opposite order. Installed
+libpcap on Linux x64/ARM64 and macOS ARM64 leaves pseudoheader bytes unchanged.
+Standalone and live packets use the same framing contract; live/NIC behavior
+is not newly validated. Other operating systems, including OpenBSD's different
+DLT_LOOP assignment, remain unsupported. Packet maps do not preserve source
+container order, so the decoder cannot validate its consistency with NULL or
+reproduce original file encoding. Classic writing with `{:linktype 0}` or
+`{:linktype 108}` preserves supplied bytes, without endian normalization.
+
+<!-- paclo-doc-test: usage-null-loop-flow -->
+
+```clojure
+(require '[paclo.core :as core] '[paclo.flow :as flow])
+
+(mapv (fn [path]
+        (let [packets (core/reduce-packets {:path path :max 14 :decode-mode :flow} conj [])
+              rf (flow/aggregate-rf {:max-flows 100})]
+          {:versions (set (map :ip-version packets))
+           :linktypes (set (map :linktype packets))
+           :summary (:summary (reduce rf (rf) packets))}))
+      ["test/resources/null-loop/null-header-le-file-be.pcap"
+       "test/resources/null-loop/loop-header-be-file-le.pcapng"])
 ```
 
 This repository example reads the bundled Linux cooked fixture and inspects its

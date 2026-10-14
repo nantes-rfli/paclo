@@ -35,12 +35,12 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
 | P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
 | P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
-| P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | in-progress |
-| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | blocked |
+| P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
+| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | in-progress |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-D1 independent review and merge**.
+Default next task: **P08-D2 independent review and merge**.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
 at `9d83bb2` on 2026-10-14.
 P08-B2 merged through [PR #42](https://github.com/nantes-rfli/paclo/pull/42)
@@ -280,8 +280,8 @@ release, live/NIC throughput or unmeasured-platform validation.
 
 ## P08-D1: Raw IP full and flow decoding
 
-Status: **in-progress** solely for independent review/merge
-on [PR #45](https://github.com/nantes-rfli/paclo/pull/45). Implementation `bc2e9a0`
+Status: **done**, merged on 2026-10-14 at `0d06dd1` through
+[PR #45](https://github.com/nantes-rfli/paclo/pull/45). Implementation `bc2e9a0`
 starts from P08-C main `9d83bb2`. Local check passes 418 tests, 10 JUnit tests,
 35 captures, 200 Raw property cases and all 26 executable examples. Package and
 isolated JAR consumer pass. The [performance evidence](p08-d1-performance.md)
@@ -306,13 +306,29 @@ Final evidence-head checks are maintained on the PR. No release or merge here.
 
 ## P08-D2: NULL/LOOP decoding
 
-Status: **blocked** by P08-D1. Next feature after D1 review/merge.
-[The handoff](p08-d2-null-loop.md) records host/network byte order, origin AF
-values, native DLT versus LINKTYPE and libpcap pseudoheader conversion.
-Measure cross-endian Classic PCAP bytes and all IPv6 AF variants on the native
-Linux x64/macOS ARM64/Linux ARM64 matrix before selecting dispatch semantics.
-No unverified-platform implementation or capture-container byte-order inference
-from packet maps is authorized by this plan sketch.
+Status: **in-progress** solely for independent review/merge on
+[PR #46](https://github.com/nantes-rfli/paclo/pull/46).
+Probe-only `9e36c04` passed all 12 CI jobs on
+[run 38577395767](https://github.com/nantes-rfli/paclo/actions/runs/38577395767)
+before decoder edits. Linux x64/macOS ARM64/Linux ARM64 all return the stored
+NULL/LOOP bytes unchanged across both Classic/PCAPNG container orders and all
+IPv6 AFs; native DLT 0/108. [Measurement data](p08-d2-native-evidence.edn),
+[final contract](p08-d2-null-loop.md) and [performance comparisons](p08-d2-performance.md)
+separate measured results from source inference and remaining platform limits.
+Shared framing at offset 4, truthful full wrappers and numeric projection are
+implemented, with distinct unknown-AF/version mismatch diagnostics, unchanged
+arrays and IP/L4/extension/analysis contracts. Local 428 tests, 10 JUnit, 47
+fixtures, 500 new property cases, 28 executable docs, Java quality and isolated
+JAR consumer pass. Final controlled comparisons retain negative Flow medians,
+unchanged allocations and unchanged performance gates. Implementation `93e5cde`
+passed all 12 jobs on [CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137),
+including Linux x64, macOS ARM64 and Linux ARM64. Final evidence-head checks
+are maintained on the PR. Independent review/merge remains; no release, merge
+or unrelated issue work was performed.
+The completed native prerequisite establishes unchanged pseudoheaders; NULL
+uses unique known AF interpretation in either order, LOOP strictly big endian.
+Unmeasured OS mappings, live/NIC validation, PCAPNG metadata/writing, exact
+precision and container-order inference remain outside this item.
 
 ## P08-P10: Evidence-driven expansion
 

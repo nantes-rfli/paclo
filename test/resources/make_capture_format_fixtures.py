@@ -132,6 +132,8 @@ def main():
     generate(args.check)
     from make_raw_ip_fixtures import generate as generate_raw
     generate_raw(args.check)
+    from make_null_loop_fixtures import generate as generate_null_loop
+    generate_null_loop(args.check)
 
 
 if __name__ == '__main__':

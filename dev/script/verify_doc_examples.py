@@ -37,6 +37,17 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-null-loop-full": Check(
+        "README NULL/LOOP full decode", "clojure",
+        '(= [{:linktype 0 :link :null :af 2 :ip 4} '
+        '{:linktype 108 :link :loop :af 2 :ip 4}] result)',
+    ),
+    "usage-null-loop-flow": Check(
+        "Usage NULL/LOOP bounded flow", "clojure",
+        '(and (= [#{0} #{108}] (mapv :linktypes result)) '
+        '(every? #(= #{4 6} (:versions %)) result) '
+        '(every? #(= {:seen 14 :aggregated 14 :skipped 0} (:summary %)) result))',
+    ),
     "readme-raw-ip-full": Check(
         "README Raw IP full decode", "clojure",
         '(= {:linktypes #{12} :links #{:raw-ip} :versions #{4 6}} result)',
@@ -162,6 +173,12 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "readme-raw-ip-full",
+    "usage-raw-ip-flow",
+    "readme-cooked-decode",
+    "usage-cooked-flow",
+    "readme-null-loop-full",
+    "usage-null-loop-flow",
     "readme-explicit-pcap-writer",
     "usage-explicit-pcap-writer",
     "usage-bounded-dns-cli",

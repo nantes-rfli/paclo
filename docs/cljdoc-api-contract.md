@@ -32,8 +32,8 @@ These contracts describe built-in transformations before user extensions and
 synchronous reductions, and managed capture. User functions can replace maps,
 remove keys, or change their shape; Paclo does not validate every output packet.
 Native captures identify their source link type. Full and flow decoding support
-Ethernet/VLAN (DLT 1), SLL (113), SLL2 (276) and Raw IP (native DLT 12 on
-Linux/macOS) IPv4/IPv6; other types remain
+Ethernet/VLAN (DLT 1), SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108) on
+Linux/macOS IPv4/IPv6; other types remain
 readable as raw packets. Additional decoders and full PCAPNG metadata/file
 preservation remain future work.
 The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
@@ -93,10 +93,11 @@ DLT values are platform libpcap constants, not necessarily the numeric LINKTYPE
 stored in a savefile global header (for example DLT_RAW varies by platform).
 Do not compare arbitrary savefile LINKTYPE codes directly to `:linktype`.
 The supported Linux/macOS fixtures use DLT_EN10MB 1, DLT_LINUX_SLL 113 and
-DLT_LINUX_SLL2 276, DLT_RAW 12 and DLT_NULL 0. The actual native value is retained without name conversion.
+DLT_LINUX_SLL2 276, DLT_RAW 12, DLT_NULL 0 and DLT_LOOP 108. The actual native value is retained without name conversion.
 
 Full/flow decode accepts explicit integer DLT_EN10MB (1), DLT_LINUX_SLL (113),
-DLT_LINUX_SLL2 (276), and DLT_RAW (12) on Linux/macOS. Other, unknown, negative, nil or invalid values yield
+DLT_LINUX_SLL2 (276), DLT_RAW (12), DLT_NULL (0) and DLT_LOOP (108) on Linux/macOS.
+Other, unknown, negative, nil or invalid values yield
 string `:decode-error`
 `"unsupported linktype"` and append
 `{:stage :decode :reason :unsupported-linktype :linktype value}` (flow uses
@@ -108,7 +109,7 @@ neither bytes nor flow/IP/port fields. Raw mode passes packets through unchanged
 Standalone `packet-xf` cannot detect framing from arbitrary bytes: when the
 `:linktype` key is absent, it preserves the legacy Ethernet assumption.
 Explicit presence (including nil) is different from absence. A supplied DLT is
-trusted as metadata; only explicit Raw IP dispatch inspects the IP version byte.
+trusted as metadata; Raw IP inspects the version byte and NULL/LOOP validate it against AF.
 Paclo does not detect a link type from bytes or convert packet formats.
 
 ### Full decode packets
@@ -126,6 +127,7 @@ The best-effort nested representation is:
 | --- | --- |
 | `:decoded` | Ethernet map (unchanged): `:type :ethernet`, string MAC `:src`/`:dst`, numeric `:eth`, `:l3` |
 | `[:decoded :vlan-tags]` | Vector of maps with `:tpid`, `:pcp`, boolean `:dei`, `:vid`; normally absent without tags |
+| `:decoded` for DLT 0/108 on Linux/macOS | `{:type :null :address-family number :l3 ...}` / `:type :loop`; no origin OS inference |
 | `:decoded` for DLT 12 on Linux/macOS | `{:type :raw-ip :l3 ...}`; no synthetic link fields |
 | `:decoded` for DLT 113/276 | `:type :linux-sll` / `:linux-sll2`, numeric `:protocol`, link fields below, `:l3` |
 | `[:decoded :l3]` | IPv4, IPv6; Ethernet also ARP or `{:type :unknown-l3 :eth number}`; cooked unknown L3 uses `:protocol` |
@@ -165,7 +167,52 @@ Empty/missing bytes use `:short-frame` with one required byte; short IPv4/IPv6
 base headers use `:truncated-header` at offset 0 with 20/40 required bytes.
 Flow and full retain their existing different parsing depths and partial-result
 semantics, including unknown IP protocols, fragments and extension chains.
-NULL/LOOP decoding remains unsupported.
+
+#### NULL/LOOP framing
+
+NULL (native DLT 0) and LOOP (108) require four pseudoheader bytes, with L3 at
+absolute offset 4. On measured Linux x64/ARM64 and macOS ARM64, installed
+libpcap preserves these bytes under both Classic file / PCAPNG section orders.
+The [native investigation](../dev/p08-d2-null-loop.md) records exact versions,
+physical/native/public comparisons and source inference separately.
+
+NULL's AF is in the capture origin's host order. Paclo checks both uint32 orders
+against exactly `{2,24,28,30}`. Byte reversal of each known value is outside
+that set, so at most one interpretation matches. No match fails with
+`"unsupported address family"` and `:unsupported-address-family`, even when
+payload bytes look like valid IP. No ambiguous AF is guessed; extending this
+set requires revisiting uniqueness. LOOP reads only big endian and rejects
+little-endian AF bytes. AF 2 requires version 4; 24/28/30 require version 6.
+Linux's local socket AF_INET6 10 is not substituted. AF alone does not establish
+the origin OS, and no origin-OS field is emitted.
+
+Full output is `{:type :null :address-family 2 :l3 ...}` or `:type :loop`, with
+existing IP/L4 fields/extensions. Original bytes and array identity are retained;
+no Ethernet fields, whole-frame copy or endian normalization. Flow uses the
+existing numeric projection directly, without full/link maps. Standalone
+`packet-xf` with explicit DLT and live packets use this same byte contract;
+absent DLT remains Ethernet. Offline evidence does not validate live capture.
+OpenBSD DLT_LOOP is 12 (versus Raw IP 12 elsewhere); it and other unmeasured OSes
+remain unsupported. Savefile LINKTYPE_NULL/LOOP 0/108 agree with native DLTs only
+on the measured systems; use native metadata/writer options.
+
+Packet maps contain no source container byte order. The decoder cannot verify
+that NULL header order agrees with its original container, or reconstruct that
+file's physical encoding. It accepts either unique known AF order independently
+of container order. Classic writing preserves header bytes even if they disagree
+with the writer host's container order; it does not promise normalization.
+
+Short/missing pseudoheaders yield `:short-frame` at offset 0, required 4. Unknown
+AF diagnostics identify that same region, `:field :address-family`, big-endian
+`:value` and, for NULL, `:little-endian-value`. Known AF with no IP byte yields
+`:truncated-header` at offset 4, required 1. Invalid IP version yields
+`"invalid NULL/LOOP IP version"`, `:malformed-packet`, `:field :ip-version`,
+`:value`. Version 4/6 inconsistent with AF yields
+`"address family/IP version mismatch"`, `:address-family-mismatch`, that same
+field/value plus `:address-family` and `:expected-version`. Both version errors
+use offset 4, required 1. Short base IP headers require 20/40 bytes at offset 4;
+malformed IP, truncated L4 and incomplete extension chains retain existing
+absolute diagnostic locations, parsing depths and partial-result behavior.
 
 IPv4 includes header fields (`:version`, `:ihl` in bytes, `:total-length`, `:tos`,
 `:id`, `:flags-frag`, `:ttl`, `:header-checksum`); IPv6 includes `:version`,
@@ -219,11 +266,13 @@ partial/unsupported decode can have diagnostics and `:decoded` without an error.
 | Stage | Reason | Classification |
 | --- | --- | --- |
 | `:decode`, `:flow` | `:unsupported-linktype` | Explicit link type has no supported decoder; includes `:linktype` |
-| `:decode`, `:flow` | `:short-frame` | Fewer than required link bytes: Ethernet 14, SLL 16, SLL2 20; Raw IP requires one version byte; missing bytes uses zero available |
+| `:decode`, `:flow` | `:short-frame` | Fewer than required link bytes: Ethernet 14, SLL 16, SLL2 20, NULL/LOOP 4; Raw IP requires one version byte; missing bytes uses zero available |
 | `:decode`, `:flow` | `:truncated-header` | Known required header bytes are missing |
 | `:decode`, `:flow` | `:malformed-packet` | Observed invalid version/header length, cooked address length above 8, or invalid IPv6 options; flow also bounds extension chains |
 | `:decode`, `:flow` | `:unsupported-ethertype` | Decoder has no implementation for this Ethertype; includes numeric `:ethertype` |
 | `:decode`, `:flow` | `:unsupported-protocol` | Unsupported SLL/SLL2 L3 protocol; includes numeric `:protocol` |
+| `:decode`, `:flow` | `:unsupported-address-family` | NULL/LOOP AF is outside the supported set; `:field :address-family`, big-endian `:value`, NULL also `:little-endian-value` |
+| `:decode`, `:flow` | `:address-family-mismatch` | NULL/LOOP AF and valid IP version disagree; includes `:address-family`, `:expected-version`, `:field :ip-version`, `:value` |
 | `:decode`, `:flow` | `:unexpected-failure` | Unclassified exception; no inference from its message |
 | `:extension` | `:extension-exception` | Hook threw; includes `:exception-class` and `:message` strings |
 | `:extension` | `:extension-non-map` | Hook returned any non-map value, including nil |
