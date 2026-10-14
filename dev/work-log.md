@@ -1672,3 +1672,26 @@ ARM64 JDK17 / libpcap 1.10.1: 405 tests / 4358 assertions. That run's Java line
 coverage was 43.8% (threshold 25%); offline decode gate 608.3 ms; all 27 performance
 scenarios merged. These passing jobs do not change the initial run's failed
 aggregate; final head must pass all 12 jobs and is tracked in PR #42.
+
+P08-B2 implementation verification complete; independent review/merge pending:
+
+- Corrected implementation head `75c5906420f05e8e7ba41e7929cd407c41abffdb`:
+  [CI run 38506619477](https://github.com/nantes-rfli/paclo/actions/runs/38506619477)
+  passed all 12 jobs. `gh run view 38506619477 --json status,conclusion,headSha,jobs`
+  confirmed success and no failed step, including continue-on-error coverage.
+  build-checks, documentation-checks, Eastwood, coverage, both compatibility
+  jobs, ARM64 monitor, three performance shards, 27-scenario merger and required
+  aggregate all succeeded. No workflow, runner, gate or threshold was changed.
+- Linux x64/ARM64 JDK21/libpcap 1.10.4 each passed 405 tests / 4364 assertions;
+  macOS ARM64 JDK17/libpcap 1.10.1 passed 405 / 4358. Real /dev/full small/large
+  writes fail observably on Linux; all 28 fixtures and six native-DLT round trips
+  pass across the matrix. All 22 executable examples passed in CI.
+- CI Java line coverage: 43.8%, above unchanged 25%. CI offline decode gate:
+  499.7 ms for 50,000 packets (warning 1000 / failure 1200 ms). All 27 quick-profile
+  performance scenarios produced/merged. No live/NIC throughput inference.
+- This final evidence update changes plan/log only. Its head checks are maintained
+  on [PR #42](https://github.com/nantes-rfli/paclo/pull/42), alongside the complete
+  implementation run. The queue remains in-progress solely for independent
+  review/merge; next is that acceptance, then a separate SLL/SLL2 decode slice.
+  Issue #40, PCAPNG metadata/writing, exact nanoseconds and performance #34/#37
+  remain outside this completed implementation. No merge/version/tag/release.

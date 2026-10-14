@@ -39,8 +39,8 @@ Release labels are planning candidates, not scheduled or approved publications.
 
 Default next task: **P08-B2 independent review and merge** on
 [PR #42](https://github.com/nantes-rfli/paclo/pull/42).
-B2 implementation and local verification are complete; supported-platform CI
-outcomes are maintained on the PR. Its in-progress status records review/merge.
+B2 implementation and verification are complete; all 12 implementation CI jobs
+passed on `75c5906`. Final evidence-head checks are maintained on the PR. Its in-progress status records review/merge.
 P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
@@ -236,9 +236,10 @@ non-Ethernet maps require matching native DLT options. Shared cleanup preserves
 primary failures; int flush status and Linux/macOS sticky stream-error inspection
 report known output failures. Six native DLT round trips and all 28 fixtures,
 405 local tests, 22 executable examples, Java quality, performance and isolated
-JAR consumer checks pass. Final supported-platform/12-job CI outcomes are linked
-on the PR; first-run lint configuration failure and correction are in the work
-log. No gate/version change. SLL/SLL2 shared full/flow framing forms the next slice
+JAR consumer checks pass. All 12 implementation CI jobs passed on `75c5906`, including Linux x64/JDK21,
+macOS ARM64/JDK17 and Linux ARM64. Final evidence-head checks are maintained on
+the PR; first-run lint configuration failure and correction are in the work log.
+No gate/version change. SLL/SLL2 shared full/flow framing forms the next slice
 after acceptance; PCAPNG metadata/writing and exact timestamps require separate
 contracts. Issue #40 and performance issues #34/#37 remain outside B2.
 
