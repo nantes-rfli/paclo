@@ -79,7 +79,7 @@
           (is (identical? packet (first (into [] (core/packet-xf {}) [packet]))))
           (doseq [config [{:decode? true :extensions []} {:decode-mode :flow}]]
             (let [result (first (into [] (core/packet-xf config) [packet]))]
-              (if (contains? #{1 113 276 "raw"} linktype)
+              (if (contains? #{1 108 113 276 "raw"} linktype)
                 (if (= "truncated.pcapng" file)
                   (is (:decode-error result))
                   (is (nil? (:decode-error result))))

@@ -102,7 +102,8 @@
     (cond-> {:stage stage
              :reason (if (contains? #{:short-frame :truncated-header
                                       :malformed-packet :unsupported-ethertype
-                                      :unsupported-linktype :unsupported-protocol}
+                                      :unsupported-linktype :unsupported-protocol
+                                      :unsupported-address-family :address-family-mismatch}
                                     reason)
                        reason :unexpected-failure)}
       (and (map? location)
@@ -111,7 +112,10 @@
       (contains? data :linktype) (assoc :linktype (:linktype data))
       (integer? (:ethertype data)) (assoc :ethertype (:ethertype data))
       (integer? (:protocol data)) (assoc :protocol (:protocol data))
-      (:field data) (assoc :field (:field data) :value (:value data)))))
+      (:field data) (assoc :field (:field data) :value (:value data))
+      (integer? (:little-endian-value data)) (assoc :little-endian-value (:little-endian-value data))
+      (integer? (:address-family data)) (assoc :address-family (:address-family data))
+      (integer? (:expected-version data)) (assoc :expected-version (:expected-version data)))))
 
 (defn ^:private decode-result
   "Call `parse/packet->clj` and return a tagged result map."
@@ -219,7 +223,9 @@
    The two decode options are mutually exclusive. Decode failures retain string
    `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
    Native captures supply integer DLT `:linktype`. Full/flow support Ethernet
-   (DLT 1), SLL (113), SLL2 (276) and Raw IP (12 on Linux/macOS).
+   (DLT 1), SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108)
+   on Linux/macOS. NULL accepts known AF 2/24/28/30 in either byte order;
+   LOOP requires big endian. Both validate the IP version at offset 4.
    Other/invalid explicit DLTs are unsupported.
    Missing :linktype retains legacy Ethernet input for standalone transforms.
    Best-effort unsupported/incomplete decoded data can also carry diagnostics.

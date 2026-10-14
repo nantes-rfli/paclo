@@ -1,5 +1,5 @@
 (ns paclo.dev.framing-perf
-  "Same-JVM P08-C/D1 full/flow framing comparison; transformation only, no native I/O.
+  "Same-JVM P08-C/D1/D2 full/flow framing comparison; transformation only, no native I/O.
    clojure -M:dev -m paclo.dev.framing-perf 9d83bb2 [native-DLT]
    Alternates baseline/current samples after warming both; no threshold changes."
   (:require
@@ -34,12 +34,14 @@
   (ns-resolve 'paclo.dev.framing-baseline-core 'packet-xf))
 
 (defn- packet [^bytes ethernet dlt]
-  (let [header-size (case dlt 1 14 12 0 113 16 276 20)
+  (let [header-size (case dlt 1 14 12 0 0 4 108 4 113 16 276 20)
         bytes (if (= dlt 1)
                 ethernet
                 (let [frame (byte-array (+ header-size (- (alength ethernet) 14)))]
                   (cond
                     (= dlt 12) nil
+                    (= dlt 0) (aset-byte frame 0 (byte 2))
+                    (= dlt 108) (aset-byte frame 3 (byte 2))
                     (= dlt 113) (do (aset-byte frame 3 (byte 1)) (aset-byte frame 5 (byte 6))
                                     (System/arraycopy ethernet 12 frame 14 2))
                     :else (do (aset-byte frame 9 (byte 1)) (aset-byte frame 11 (byte 6))
@@ -72,7 +74,7 @@
     (let [ref (or ref "4998ddc") legacy-xf (baseline-xf ref)
           selected (when dlt-filter (parse-long dlt-filter))
           ^ThreadMXBean bean (ManagementFactory/getThreadMXBean)]
-      (when (and dlt-filter (not (contains? #{1 12 113 276} selected)))
+      (when (and dlt-filter (not (contains? #{0 1 12 108 113 276} selected)))
         (throw (ex-info "unsupported benchmark DLT" {:dlt dlt-filter})))
       (when-not (.isThreadAllocatedMemorySupported bean)
         (throw (ex-info "allocation measurement unavailable" {})))
@@ -90,7 +92,7 @@
               variants (into (mapv (fn [dlt] {:implementation :baseline :dlt dlt :xf (legacy-xf options)
                                               :packet (packet ethernet dlt)}) baseline-dlts)
                              (map (fn [dlt] {:implementation :current :dlt dlt :xf (core/packet-xf options)
-                                             :packet (packet ethernet dlt)}) (if selected [selected] [1 113 276 12])))
+                                             :packet (packet ethernet dlt)}) (if selected [selected] [1 113 276 12 0 108])))
               variants (mapv #(assoc % :inputs (vec (repeat packet-count (:packet %)))
                                      :snapshot (aclone ^bytes (:bytes (:packet %)))) variants)
               samples (atom {})]
@@ -106,6 +108,7 @@
                                 :packets-per-second (/ (* 1e9 packet-count) (double (median (map :ns measurements))))
                                 :allocation-bytes-per-packet (/ (double (median (map :allocation measurements))) packet-count)
                                 :full-input-identity (when full (identical? (:bytes packet) (:bytes full)))
+                                :parsed-packets packet-count :errors 0 :drops 0
                                 :bytes-unchanged (Arrays/equals ^bytes snapshot ^bytes (:bytes packet))
                                 :checksums (set (map :checksum measurements))})))))))
     (finally (shutdown-agents))))

@@ -150,7 +150,7 @@
       (is (= :malformed-packet (cooked/reason result)))
       (is (= {:offset 0 :required 1 :available 80} (-> result :diagnostics first :location)))
       (is (= version (-> result :diagnostics first :value)))))
-  (doseq [dlt [101 14 0 108 -1 nil "12" 12.0]
+  (doseq [dlt [101 14 -1 nil "12" 12.0]
           config [cooked/full-config cooked/flow-config]]
     (is (= :unsupported-linktype (cooked/reason (cooked/transform config (assoc (packet (first records)) :linktype dlt))))))
   (doseq [config [cooked/full-config cooked/flow-config]]

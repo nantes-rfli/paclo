@@ -20,7 +20,7 @@
 (defn hex [^bytes data] (.formatHex (java.util.HexFormat/of) data))
 
 (defn stored-hex [{:keys [file container-order]}]
-  (let [bytes (Files/readAllBytes (Paths/get (str directory file) (make-array String 0)))
+  (let [bytes (Files/readAllBytes (Paths/get (if (.isAbsolute (java.io.File. file)) file (str directory file)) (make-array String 0)))
         buffer (doto (ByteBuffer/wrap bytes)
                  (.order (if (= "<" container-order) ByteOrder/LITTLE_ENDIAN ByteOrder/BIG_ENDIAN)))
         ng? (.endsWith ^String file "pcapng")]

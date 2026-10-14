@@ -4,8 +4,9 @@
   (:import
    [java.nio ByteBuffer]))
 
-(def ^:private raw-supported?
-  ;; P08-A measured native DLT_RAW=12 on Linux/macOS. OpenBSD uses 14;
+(def ^:private native-ip-supported?
+  ;; P08-A/D2 measured DLT_RAW=12, NULL=0, LOOP=108 on Linux/macOS.
+  ;; OpenBSD uses RAW=14 and LOOP=12;
   ;; savefiles use LINKTYPE_RAW=101. Leave unverified platforms unsupported.
   (contains? #{"Linux" "Mac OS X"} (System/getProperty "os.name")))
 
@@ -17,7 +18,8 @@
       (contains? packet :linktype)
       (not (and (integer? dlt)
                 (or (= dlt 1) (contains? #{113 276} dlt)
-                    (and (= dlt 12) raw-supported?)))))))
+                    (and (= dlt 12) native-ip-supported?)
+                    (and (or (= dlt 0) (= dlt 108)) native-ip-supported?)))))))
 
 (defn packet-dlt
   [packet]
@@ -32,23 +34,32 @@
 (defn- u16 ^long [^bytes frame ^long offset]
   (bit-or (bit-shift-left (u8 frame offset) 8) (u8 frame (inc offset))))
 
+(defn- loopback-size ^long [^long dlt]
+  (if (and (or (= dlt 0) (= dlt 108)) native-ip-supported?)
+    4
+    (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
+
 (defn minimum-size
-  "Minimum bytes for framing; Raw IP has no header, but needs a version byte."
+  "Minimum framing bytes; Raw IP needs a version byte, NULL/LOOP need four AF bytes."
   ^long [^long dlt]
   (cond
     (= dlt 1) 14
     (= dlt 113) 16
     (= dlt 276) 20
-    (and (= dlt 12) raw-supported?) 1
-    :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
+    (and (= dlt 12) native-ip-supported?) 1
+    :else (loopback-size dlt)))
+
+(defn- short-frame-message [^long dlt]
+  (case dlt 1 "truncated ethernet header" 113 "truncated SLL header"
+        276 "truncated SLL2 header" 12 "empty Raw IP packet"
+        0 "truncated NULL header" 108 "truncated LOOP header"))
 
 (defn require-framing!
   "Validate the minimum framing bytes; bare IP needs one version byte."
   ^long [^bytes frame ^long dlt]
   (let [required (minimum-size dlt)]
     (when (or (nil? frame) (< (alength frame) required))
-      (throw (ex-info (case dlt 1 "truncated ethernet header" 113 "truncated SLL header"
-                            276 "truncated SLL2 header" 12 "empty Raw IP packet")
+      (throw (ex-info (short-frame-message dlt)
                       {:reason :short-frame :offset 0 :required required
                        :available (if frame (alength frame) 0)})))
     required))
@@ -75,6 +86,44 @@
                       {:reason :malformed-packet :field :ip-version :value version
                        :offset 0 :required 1 :available (alength frame)})))))
 
+(defn- known-family? [^long family]
+  (case family (2 24 28 30) true false))
+
+(defn- address-family ^long [^bytes frame ^long dlt]
+  (let [big (bit-or (bit-shift-left (u16 frame 0) 16) (u16 frame 2))]
+    ;; Byte reversal of every supported AF is outside the supported set. Thus
+    ;; both orders cannot match: no container state or version sniff is needed.
+    (if (known-family? big)
+      big
+      (let [little (when (= dlt 0)
+                     (bit-and (long (Integer/reverseBytes (unchecked-int big))) 0xffffffff))]
+        (if (and little (known-family? little))
+          (long little)
+          (throw (ex-info "unsupported address family"
+                          (cond-> {:reason :unsupported-address-family
+                                   :field :address-family :value big
+                                   :offset 0 :required 4 :available (alength frame)}
+                            little (assoc :little-endian-value little)))))))))
+
+(defn- loopback-protocol ^long [^bytes frame ^long dlt]
+  (let [family (address-family frame dlt)
+        available (- (alength frame) 4)]
+    (when (zero? available)
+      (throw (ex-info "truncated NULL/LOOP IP version"
+                      {:reason :truncated-header :offset 4 :required 1 :available 0})))
+    (let [version (unsigned-bit-shift-right (u8 frame 4) 4)
+          expected (if (= family 2) 4 6)]
+      (when-not (or (= version 4) (= version 6))
+        (throw (ex-info "invalid NULL/LOOP IP version"
+                        {:reason :malformed-packet :field :ip-version :value version
+                         :offset 4 :required 1 :available available})))
+      (when-not (= version expected)
+        (throw (ex-info "address family/IP version mismatch"
+                        {:reason :address-family-mismatch :field :ip-version :value version
+                         :address-family family :expected-version expected
+                         :offset 4 :required 1 :available available})))
+      (if (= expected 4) 0x0800 0x86dd))))
+
 (defn payload
   "Return packed unsigned L3 offset (high 32 bits) and protocol (low 32 bits).
    Checks framing only; throws classified errors at absolute packet offsets.
@@ -100,6 +149,7 @@
                   (require-address! frame 11 1 (u8 frame 11))
                   (packed 20 (u16 frame 0)))
     (= dlt 12) (raw-protocol frame)
+    (or (= dlt 0) (= dlt 108)) (packed 4 (loopback-protocol frame dlt))
     :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
 
 (def ^:private hex-digits "0123456789abcdef")
@@ -146,4 +196,6 @@
                      :interface-index (bit-or (bit-shift-left (u16 frame 4) 16) (u16 frame 6))
                      :hardware-type (u16 frame 8) :packet-type (u8 frame 10)
                      :address-length length :address (address buffer 12 length) :l3 l3})
-      (= dlt 12) {:type :raw-ip :l3 l3})))
+      (= dlt 12) {:type :raw-ip :l3 l3}
+      (or (= dlt 0) (= dlt 108))
+      {:type (if (= dlt 0) :null :loop) :address-family (address-family frame dlt) :l3 l3})))

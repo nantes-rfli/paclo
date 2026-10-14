@@ -1,0 +1,163 @@
+diff --git a/src/paclo/core.clj b/src/paclo/core.clj
+index b767308..568b726 100644
+--- a/src/paclo/core.clj
++++ b/src/paclo/core.clj
+@@ -102,7 +102,8 @@
+     (cond-> {:stage stage
+              :reason (if (contains? #{:short-frame :truncated-header
+                                       :malformed-packet :unsupported-ethertype
+-                                      :unsupported-linktype :unsupported-protocol}
++                                      :unsupported-linktype :unsupported-protocol
++                                      :unsupported-address-family :address-family-mismatch}
+                                     reason)
+                        reason :unexpected-failure)}
+       (and (map? location)
+@@ -111,7 +112,10 @@
+       (contains? data :linktype) (assoc :linktype (:linktype data))
+       (integer? (:ethertype data)) (assoc :ethertype (:ethertype data))
+       (integer? (:protocol data)) (assoc :protocol (:protocol data))
+-      (:field data) (assoc :field (:field data) :value (:value data)))))
++      (:field data) (assoc :field (:field data) :value (:value data))
++      (integer? (:little-endian-value data)) (assoc :little-endian-value (:little-endian-value data))
++      (integer? (:address-family data)) (assoc :address-family (:address-family data))
++      (integer? (:expected-version data)) (assoc :expected-version (:expected-version data)))))
+ 
+ (defn ^:private decode-result
+   "Call `parse/packet->clj` and return a tagged result map."
+@@ -219,7 +223,9 @@
+    The two decode options are mutually exclusive. Decode failures retain string
+    `:decode-error` and add `:diagnostics` with stable stage/reason keywords.
+    Native captures supply integer DLT `:linktype`. Full/flow support Ethernet
+-   (DLT 1), SLL (113), SLL2 (276) and Raw IP (12 on Linux/macOS).
++   (DLT 1), SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108)
++   on Linux/macOS. NULL accepts known AF 2/24/28/30 in either byte order;
++   LOOP requires big endian. Both validate the IP version at offset 4.
+    Other/invalid explicit DLTs are unsupported.
+    Missing :linktype retains legacy Ethernet input for standalone transforms.
+    Best-effort unsupported/incomplete decoded data can also carry diagnostics.
+diff --git a/src/paclo/linktype.clj b/src/paclo/linktype.clj
+index ba7e808..d017d3f 100644
+--- a/src/paclo/linktype.clj
++++ b/src/paclo/linktype.clj
+@@ -4,8 +4,9 @@
+   (:import
+    [java.nio ByteBuffer]))
+ 
+-(def ^:private raw-supported?
+-  ;; P08-A measured native DLT_RAW=12 on Linux/macOS. OpenBSD uses 14;
++(def ^:private native-ip-supported?
++  ;; P08-A/D2 measured DLT_RAW=12, NULL=0, LOOP=108 on Linux/macOS.
++  ;; OpenBSD uses RAW=14 and LOOP=12;
+   ;; savefiles use LINKTYPE_RAW=101. Leave unverified platforms unsupported.
+   (contains? #{"Linux" "Mac OS X"} (System/getProperty "os.name")))
+ 
+@@ -17,7 +18,7 @@
+       (contains? packet :linktype)
+       (not (and (integer? dlt)
+                 (or (= dlt 1) (contains? #{113 276} dlt)
+-                    (and (= dlt 12) raw-supported?)))))))
++                    (and (contains? #{0 12 108} dlt) native-ip-supported?)))))))
+ 
+ (defn packet-dlt
+   [packet]
+@@ -33,13 +34,14 @@
+   (bit-or (bit-shift-left (u8 frame offset) 8) (u8 frame (inc offset))))
+ 
+ (defn minimum-size
+-  "Minimum bytes for framing; Raw IP has no header, but needs a version byte."
++  "Minimum framing bytes; Raw IP needs a version byte, NULL/LOOP need four AF bytes."
+   ^long [^long dlt]
+   (cond
+     (= dlt 1) 14
+     (= dlt 113) 16
+     (= dlt 276) 20
+-    (and (= dlt 12) raw-supported?) 1
++    (and (= dlt 12) native-ip-supported?) 1
++    (and (or (= dlt 0) (= dlt 108)) native-ip-supported?) 4
+     :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
+ 
+ (defn require-framing!
+@@ -48,7 +50,8 @@
+   (let [required (minimum-size dlt)]
+     (when (or (nil? frame) (< (alength frame) required))
+       (throw (ex-info (case dlt 1 "truncated ethernet header" 113 "truncated SLL header"
+-                            276 "truncated SLL2 header" 12 "empty Raw IP packet")
++                            276 "truncated SLL2 header" 12 "empty Raw IP packet"
++                            0 "truncated NULL header" 108 "truncated LOOP header")
+                       {:reason :short-frame :offset 0 :required required
+                        :available (if frame (alength frame) 0)})))
+     required))
+@@ -75,6 +78,44 @@
+                       {:reason :malformed-packet :field :ip-version :value version
+                        :offset 0 :required 1 :available (alength frame)})))))
+ 
++(defn- known-family? [^long family]
++  (case family (2 24 28 30) true false))
++
++(defn- address-family ^long [^bytes frame ^long dlt]
++  (let [big (bit-or (bit-shift-left (u16 frame 0) 16) (u16 frame 2))]
++    ;; Byte reversal of every supported AF is outside the supported set. Thus
++    ;; both orders cannot match: no container state or version sniff is needed.
++    (if (known-family? big)
++      big
++      (let [little (when (= dlt 0)
++                     (bit-and (long (Integer/reverseBytes (unchecked-int big))) 0xffffffff))]
++        (if (and little (known-family? little))
++          (long little)
++          (throw (ex-info "unsupported address family"
++                          (cond-> {:reason :unsupported-address-family
++                                   :field :address-family :value big
++                                   :offset 0 :required 4 :available (alength frame)}
++                            little (assoc :little-endian-value little)))))))))
++
++(defn- loopback-protocol ^long [^bytes frame ^long dlt]
++  (let [family (address-family frame dlt)
++        available (- (alength frame) 4)]
++    (when (zero? available)
++      (throw (ex-info "truncated NULL/LOOP IP version"
++                      {:reason :truncated-header :offset 4 :required 1 :available 0})))
++    (let [version (unsigned-bit-shift-right (u8 frame 4) 4)
++          expected (if (= family 2) 4 6)]
++      (when-not (or (= version 4) (= version 6))
++        (throw (ex-info "invalid NULL/LOOP IP version"
++                        {:reason :malformed-packet :field :ip-version :value version
++                         :offset 4 :required 1 :available available})))
++      (when-not (= version expected)
++        (throw (ex-info "address family/IP version mismatch"
++                        {:reason :address-family-mismatch :field :ip-version :value version
++                         :address-family family :expected-version expected
++                         :offset 4 :required 1 :available available})))
++      (if (= expected 4) 0x0800 0x86dd))))
++
+ (defn payload
+   "Return packed unsigned L3 offset (high 32 bits) and protocol (low 32 bits).
+    Checks framing only; throws classified errors at absolute packet offsets.
+@@ -100,6 +141,7 @@
+                   (require-address! frame 11 1 (u8 frame 11))
+                   (packed 20 (u16 frame 0)))
+     (= dlt 12) (raw-protocol frame)
++    (or (= dlt 0) (= dlt 108)) (packed 4 (loopback-protocol frame dlt))
+     :else (throw (ex-info "unsupported linktype" {:reason :unsupported-linktype :linktype dlt}))))
+ 
+ (def ^:private hex-digits "0123456789abcdef")
+@@ -146,4 +188,6 @@
+                      :interface-index (bit-or (bit-shift-left (u16 frame 4) 16) (u16 frame 6))
+                      :hardware-type (u16 frame 8) :packet-type (u8 frame 10)
+                      :address-length length :address (address buffer 12 length) :l3 l3})
+-      (= dlt 12) {:type :raw-ip :l3 l3})))
++      (= dlt 12) {:type :raw-ip :l3 l3}
++      (or (= dlt 0) (= dlt 108))
++      {:type (if (= dlt 0) :null :loop) :address-family (address-family frame dlt) :l3 l3})))
+diff --git a/src/paclo/parse.clj b/src/paclo/parse.clj
+index 1c52d33..2d90b3b 100644
+--- a/src/paclo/parse.clj
++++ b/src/paclo/parse.clj
+@@ -600,7 +600,7 @@
+       (linktype/header b dlt framing (l3-parse b protocol (= dlt 1))))))
+ 
+ (defn packet->clj
+-  "Decode Ethernet (default), SLL, SLL2 or Raw IP bytes into nested L3/L4 data.
++  "Decode Ethernet (default), SLL, SLL2, Raw IP, NULL or LOOP bytes into nested L3/L4 data.
+    Internal metadata carries nonfatal diagnostics to the public packet facade."
+   ([bytes] (packet->clj bytes 1))
+   ([^bytes bytes dlt]

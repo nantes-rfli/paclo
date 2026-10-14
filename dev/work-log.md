@@ -1997,3 +1997,98 @@ Supported-platform CI confirmation:
   Local libpcap 1.10.1 leaves both pseudoheaders unchanged; DLTs 0/108.
 - This commit adds probes only. Linux x64/macOS ARM64/Linux ARM64 evidence is
   required before decoder implementation; source inference alone is insufficient.
+
+## P08-D2 implementation and local verification (2026-10-14)
+
+- Probe-only commit `9e36c04` / [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
+  completed [CI run 38577395767](https://github.com/nantes-rfli/paclo/actions/runs/38577395767)
+  with all 12 jobs successful before decoder edits. Inspected Linux x64/macOS
+  ARM64/Linux ARM64 logs: all 736 records in 12 captures have identical stored,
+  direct native-pointer and public raw bytes; DLTs 0/108, no header conversion.
+  Exact environment and per-file observations are in `p08-d2-native-evidence.edn`.
+  Linux kernels 6.17.0-1022-azure/libpcap 1.10.4 (TPACKET_V3); macOS 26.6.2/
+  libpcap 1.10.1; all host orders little. This is cross-endian input evidence,
+  not validation on big-endian execution hosts or live interfaces.
+- All AF/endian/version framing is in `paclo.linktype`, packed L3 offset 4.
+  NULL recognizes a unique known uint32 AF under either order; reversing the
+  exact known set 2/24/28/30 cannot produce another member. LOOP is strictly
+  big endian. AF selects expected IP version before nibble validation. Unknown
+  AF (including Linux 10) and AF/version mismatch are distinct failures.
+  Full wrappers have `:null`/`:loop`, numeric `:address-family`, existing `:l3`;
+  flow reuses numeric walkers without full/link maps. No published byte mutation,
+  frame clone, synthesized Ethernet, OS inference or container-order guarantee.
+  Unmeasured OSes, including OpenBSD, remain unsupported.
+- Focused native/framing/raw/capture tests: 33 tests / 12,259 assertions passed.
+  Final NULL/LOOP namespace: 8 tests / 10,003 assertions, including 300 prefix/
+  arbitrary-byte cases and 200 unknown-AF cases, passed. Corpus covers all IPv6
+  AFs/orders, malformed/truncated IP/L4, fragment/extension chains, DNS/TLS,
+  numeric/full equality, array identity/snapshots, all capture paths, physical
+  Classic writer bytes/metadata, independent blocking fan-out and P06/P07.
+- First full check found one obsolete DNS test assuming DLT 0 was unsupported;
+  changed that unsupported-input example to 9999, without changing DNS runtime.
+  Final `bash dev/script/codex.sh check`: **428 tests / 15,738 assertions**,
+  **10 JUnit tests** and real offline smoke passed. Existing Ethernet/cooked/Raw
+  fixtures and behavior remain covered.
+- First kondo pass found missing property declaration; added it. First lint
+  found new measurement EDN formatting; formatted the artifact. Markdown check
+  found line-length/blank-line violations, now corrected. Final full
+  `bash dev/script/codex.sh lint` passed: kondo zero errors/warnings, Eastwood
+  zero exceptions (existing warning classes), clean-ns/format and Markdown.
+  npm access for markdownlint required running with network-capable permissions;
+  no tooling version, threshold or gate was changed.
+- `python3 test/resources/make_capture_format_fixtures.py --check`: **47 captures**
+  (original 28 + cooked 4 + Raw 3 + NULL/LOOP 12) and manifests match bytes.
+  `python3 -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'`:
+  15 tests passed; `python3 dev/script/verify_doc_examples.py`: **28 examples**
+  passed, retaining all previous 26 and adding NULL/LOOP full and flow examples.
+  Separate Markdown, local-link and `git diff --check` gates passed.
+- `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco` and
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate` passed: **43.8%** Java line
+  coverage, unchanged 25% gate; no Java/dependency source change.
+- Existing performance gate passed at **732.1 ms**, unchanged 1000 ms warning /
+  1200 ms failure. Controlled same-DLT performance comparisons, package/consumer
+  and implementation-head supported-platform CI follow below after completion.
+- The initial probe commit attempt failed because `clj` needs missing rlwrap.
+  A command-local `/private/tmp/paclo-d2-tools/clj` forwards unchanged arguments
+  to `clojure`. The complete existing hook then passed 420 tests / 5809
+  assertions, formatter, Markdown and kondo. No global hook/tool config changed.
+
+Initial same-DLT measurements showed unchanged allocations but substantial Flow
+variation: worst matching medians -37.2% (Raw UDP) and -28.1% (SLL2 TCP), with
+other JVMs much closer. Both initial rounds are retained as
+`p08-d2-initial-framing-performance-{1,2}.edn`; the exact runtime source delta
+against D1 is `p08-d2-initial-decoder.patch`. No result was discarded. To limit
+new overhead on existing dispatch, restored DLT_RAW's direct equality test,
+put new-only minimum-size handling in a helper, and moved short-header prose
+selection to the failure path helper. This keeps existing successful bounds
+branches compact. JIT/inlining influence is a hypothesis, not established by
+these timing results. This is confined to D2's added framing; it does not repair
+P08-C Ethernet full behavior or issue #44. Measure the final sources separately.
+
+- Final controlled comparisons: two rounds / 12 independent JVMs cover all six
+  DLTs; [performance report](p08-d2-performance.md) includes every paired result.
+  All existing matching allocations agree, all Flow variants allocate 280
+  bytes/packet, all samples parse 50k packets with zero errors/drops, byte snapshots
+  and full array identity pass. Ethernet UDP flow remains 3.6–8.6% lower, one
+  Ethernet TCP flow median 16.6% lower; cooked UDP flow also has negative medians.
+  These concerns remain disclosed, not called regression-free. New NULL/LOOP
+  validation adds AF reading/membership/version consistency; no extra flow map
+  or frame copy. No compiler cause is asserted. Final perf gate **573.5 ms**.
+- `bash dev/script/codex.sh package` built the unchanged snapshot JAR. An isolated
+  `/private/tmp/paclo-d2-consumer`, with only the JAR and declared dependencies
+  under `clojure -Srepro`, verified jar: namespace resource origins, NULL both
+  orders and LOOP, IPv4/IPv6, byte identity, DNS/TLS, numeric aggregates/Top-N,
+  DNS normalization/window init, and native Classic writer/read bytes. It printed
+  `:clean-null-loop-jar-consumer-ok`. `prepare` restored Java test classes after
+  packaging. Source-level tests provide complete P06/P07 correlation/window and
+  fan-out evidence; consumer checks packaging isolation.
+- After the compact helper change, focused checks passed **25 tests / 11,072
+  assertions**. Final full checks and documented examples are rerun on delivery
+  sources. The new performance report needed one blank-line correction in
+  Markdown; the gate remains unchanged.
+
+Delivery-source reruns: `check` passed again with 428 tests / 15,738 assertions,
+10 JUnit and offline smoke; all 28 executable examples passed again. Fixture,
+documentation-parser, local-link and diff checks pass. Final full lint rerun
+includes the corrected performance report. The implementation commit will run
+the unchanged complete pre-commit hook using the local noninteractive clj shim.
