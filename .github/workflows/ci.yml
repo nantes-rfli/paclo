@@ -359,14 +359,14 @@ jobs:
           if-no-files-found: error
 
   # Preserve the existing required "build" check. All mandatory checks
-  # (including the isolated documentation, compatibility and performance jobs)
+  # (including the isolated documentation, compatibility, performance and lint jobs)
   # must succeed, even if another dependency failed or was skipped.
   build:
-    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix]
+    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix, eastwood-lint]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require successful build, documentation, compatibility and performance checks
+      - name: Require successful build, documentation, compatibility, performance and Eastwood checks
         shell: bash
         env:
           BUILD_CHECKS_RESULT: ${{ needs.build-checks.result }}
@@ -374,6 +374,7 @@ jobs:
           PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
           PERFORMANCE_RESULTS_RESULT: ${{ needs.performance-results.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
+          EASTWOOD_RESULT: ${{ needs.eastwood-lint.result }}
         run: |
           set -euo pipefail
           echo "build-checks=$BUILD_CHECKS_RESULT"
@@ -381,11 +382,13 @@ jobs:
           echo "performance-measurement=$PERFORMANCE_RESULT"
           echo "performance-results=$PERFORMANCE_RESULTS_RESULT"
           echo "compatibility-matrix=$COMPATIBILITY_RESULT"
+          echo "eastwood-lint=$EASTWOOD_RESULT"
           test "$BUILD_CHECKS_RESULT" = success
           test "$DOCUMENTATION_RESULT" = success
           test "$PERFORMANCE_RESULT" = success
           test "$PERFORMANCE_RESULTS_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
+          test "$EASTWOOD_RESULT" = success
 
   compatibility-matrix:
     runs-on: ${{ matrix.os }}
@@ -553,6 +556,11 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
       - name: Install Clojure CLI
         shell: bash
         run: |
@@ -571,6 +579,12 @@ jobs:
           key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
             cljdeps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Compile Java (jnr-ffi bindings)
+        run: clojure -T:build javac
+
+      - name: Verify Eastwood failure exit status
+        run: python3 dev/script/test_eastwood_runner.py
 
       - name: Eastwood lint
         shell: bash

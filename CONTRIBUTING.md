@@ -102,6 +102,13 @@ and `jacoco-gate`; use the existing CI coverage threshold when reproducing CI.
 Full pipeline and compatibility checks remain defined in `.github/workflows/ci.yml`.
 Keep CI and local checks aligned as the development wrapper evolves.
 
+The required `build` aggregate includes the dedicated Eastwood job. Both CI
+and local `lint` compile the Java bindings before analyzing all existing source,
+development, DNS extension and test roots. Eastwood warnings remain informational;
+analysis/linter exceptions (including aborted traversal with unanalyzed namespaces)
+fail the command. Run `python3 dev/script/test_eastwood_runner.py` to verify the
+actual runner exit status for complete analysis, warnings and deliberate failures.
+
 For new behavior, select tests based on the contract being changed:
 
 - Packet metadata: real PCAP round trips, including truncated records and timestamp precedence.
