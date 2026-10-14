@@ -442,11 +442,23 @@ configured stop applies.
 
 ```clojure
 (write-pcap! packets out-path)
+(write-pcap! packets out-path {:linktype 113 :snaplen 65536})
 ```
 
 - Input:
   - `packets`: seq of `byte-array` or packet maps with a required byte-array `:bytes`
-  - `out-path`: non-blank output path
+  - `out-path`: non-blank string output path
+  - Optional map: only `:linktype` and `:snaplen`; omission defaults to native
+    Ethernet DLT 1 and snaplen 65536. DLT must be an integer in `0..2147483647`;
+    snaplen must be an integer in `1..2147483647`. Unknown keys, non-map options
+    and explicit nil/invalid values throw before resource acquisition.
+    Native dumper open rejects DLTs it cannot map to a savefile LINKTYPE.
+- Framing: an explicit packet `:linktype` must be a valid DLT equal to the writer's
+  DLT, including in the two-argument form. Known non-Ethernet/default mismatches
+  and mixed-DLT inputs throw before that record is written. Absence trusts the
+  selected writer DLT for both maps and byte-arrays; actual framing cannot be
+  guaranteed without trustworthy metadata. No byte inspection or conversion.
+  Native DLT and on-disk LINKTYPE can differ (notably Raw IP); use reader DLTs.
 - Timestamp selection, in order:
   - A complete `:ts-sec`/`:ts-usec` pair takes precedence, even when legacy values
     conflict or are invalid. A partial new pair throws `ex-info`, even if a
@@ -464,17 +476,37 @@ configured stop applies.
   Explicit lengths must be integers in `0..4294967295`, with `:len >= :caplen`.
   Negative, fractional, `nil`, inconsistent, or overflowing values throw `ex-info`.
   The byte-array itself remains subject to JVM array-size limits.
-- Output: preserves packet order, bytes, selected timestamps, captured length,
-  and original length, including truncated records. Writes classic Ethernet PCAP
-  with snaplen 65536 and microsecond precision. Source global headers, link types,
-  snaplen, byte order, and precision are not copied; this is packet metadata
-  preservation, not complete source-file preservation or PCAPNG support.
-  Packet `:linktype` is ignored by the writer. Saving non-Ethernet bytes under
-  its Ethernet header without format conversion cannot produce correct replay.
-  Broader output/link-type and complete file round trips remain P08.
-- Errors: throws `ex-info` for invalid/missing output path, missing map `:bytes`,
-  invalid byte-array inputs, and invalid selected metadata. Native I/O errors retain
-  existing behavior; handles and dumpers close when packet processing throws.
+- Captured length must be <= configured snaplen. Excess captured bytes are
+  rejected before writing; no automatic truncation. Original length may exceed
+  snaplen and remains unchanged. Existing timestamp/length rules above still apply.
+- Output: preserves packet order, bytes, selected timestamps, captured length
+  and original length, including truncated packets. Always single-DLT Classic
+  PCAP with microsecond timestamps; suffix never selects another format. Source
+  global headers, snaplen, byte order and timestamp precision are not copied.
+  PCAPNG interface metadata/options, comments, sections and unknown blocks cannot
+  be preserved. Conversion covers only supported reader packet fields and does
+  not guarantee byte-for-byte reproduction or nanosecond fidelity.
+- Errors: invalid path, options, bytes, selected metadata, framing or snaplen
+  consistency throw `ex-info`. Open-dead null gives `:pcap-open-dead-failed` /
+  `:phase :pcap-open-dead`; dumper-open failure gives `:pcap-dump-open-failed` /
+  `:phase :pcap-dump-open`, path and best-effort `:native-error`.
+  Flush failure gives `:reason :pcap-write-failed`, `:phase :pcap-dump-flush`,
+  and native `:rc`. On Linux/macOS, a sticky C stream error also throws even
+  when flush returns 0, with nonzero `:stdio-error`. Source/write/native exceptions propagate. All acquired
+  resources close once: flush then dumper close then handle close. The original
+  failure remains primary; cleanup exceptions are suppressed. Native dump and
+  close return void; OS close-only failures are not observable. Flush success
+  is not an fsync/durability guarantee.
+- Output is incremental, overwriting at dumper open. Failure can leave an empty
+  file or prefix; I/O failures may leave incomplete records or headers. There is
+  no atomic replacement/rollback. Empty input writes a valid
+  header with the chosen DLT/snaplen. The writer owns its native resources,
+  not resources held by the input sequence; lazy capture abandonment is issue #40.
+- Migration: two-argument callers with valid Ethernet metadata retain behavior.
+  Non-Ethernet maps previously mislabeled Ethernet are now intentionally rejected;
+  supply matching `{:linktype native-DLT}` as in the
+  [executable read/write/read example](usage.md#write-pcap). Removing known framing
+  metadata is not a safe migration.
 - Portability: unsigned seconds fit the PCAP record, but older system libpcap
   readers can expose seconds above `2147483647` as negative (observed with macOS
   system libpcap). Those negative reader values fail writer validation; numeric

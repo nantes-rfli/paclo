@@ -32,16 +32,17 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
 | P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
 | P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
-| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | in-progress |
-| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | blocked |
+| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
+| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | in-progress |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-B1 independent review and merge** on
-[PR #41](https://github.com/nantes-rfli/paclo/pull/41), then **P08-B2 explicit
-single-DLT Classic PCAP writing**. P08-A merged through PR #38 at `8663e69`.
-B1 implementation and all 12 implementation CI jobs passed on `edc1c4e`;
-its in-progress status now records pending independent review/merge only.
+Default next task: **P08-B2 independent review and merge** on
+[PR #42](https://github.com/nantes-rfli/paclo/pull/42).
+B2 implementation and verification are complete; all 12 implementation CI jobs
+passed on `75c5906`. Final evidence-head checks are maintained on the PR. Its in-progress status records review/merge.
+P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
+at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
 
@@ -215,8 +216,9 @@ or decoder was added. See the work log for initial failures and limitations.
 
 ## P08-B: Explicit and safe capture I/O subset
 
-Status: **in-progress** for B1 (implementation and verification complete;
-independent review/merge pending on [PR #41](https://github.com/nantes-rfli/paclo/pull/41)).
+Status: B1 **done**, merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
+at `c729e19`; B2 **in-progress** for independent review/merge on
+[PR #42](https://github.com/nantes-rfli/paclo/pull/42).
 All 12 implementation CI jobs passed on `edc1c4e`, including Linux x64/JDK21,
 macOS ARM64/JDK17 and Linux ARM64/JDK21. Native read errors now throw by default;
 pass retains the valid prefix with failed/error stats and structured native
@@ -227,12 +229,19 @@ while blocked delivering packets remains issue #40. All 28 format fixtures and
 ownership/callback/full-queue regression tests pass. Detailed local/CI evidence
 is in the work log. No new decoder, writer behavior or version was added.
 
-B2 remains blocked pending B1 acceptance: expose explicit single-DLT Classic
-PCAP writer options and reject known framing mismatches while retaining valid
-two-arity callers. Candidate files, compatibility effects and acceptance
-criteria are in the P08-A inventory. SLL/SLL2 shared framing and full/flow decode
-form the next slice; metadata-aware PCAPNG reader/writer and exact timestamps
-need separate contracts. Performance issues #34/#37 remain outside P08.
+B2 implementation is complete in `c08fe6d`: the public three-argument writer
+uses the existing internal writer and rejects known framing mismatches/invalid
+options/snaplen excess. Valid two-argument Ethernet inputs remain compatible;
+non-Ethernet maps require matching native DLT options. Shared cleanup preserves
+primary failures; int flush status and Linux/macOS sticky stream-error inspection
+report known output failures. Six native DLT round trips and all 28 fixtures,
+405 local tests, 22 executable examples, Java quality, performance and isolated
+JAR consumer checks pass. All 12 implementation CI jobs passed on `75c5906`, including Linux x64/JDK21,
+macOS ARM64/JDK17 and Linux ARM64. Final evidence-head checks are maintained on
+the PR; first-run lint configuration failure and correction are in the work log.
+No gate/version change. SLL/SLL2 shared full/flow framing forms the next slice
+after acceptance; PCAPNG metadata/writing and exact timestamps require separate
+contracts. Issue #40 and performance issues #34/#37 remain outside B2.
 
 ## P08-P10: Evidence-driven expansion
 

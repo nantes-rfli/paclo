@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P08-B2: three-argument `core/write-pcap!` accepts explicit native `:linktype`
+  and positive `:snaplen` (signed native int range). The existing two-argument
+  form defaults to Ethernet (1)/65536. Single-DLT Classic PCAP preserves ordered
+  bytes, microsecond timestamps and captured/original lengths; no suffix-based
+  format selection, byte conversion or PCAPNG metadata/output support.
+
 - P07-A: public `paclo.window` tumbling counts/captured bytes and `paclo.dns`
   packet-to-EDN normalization/UDP correlation. Pure immutable init/step/advance/
   finish APIs use integer microsecond event time, explicit monotonic watermarks,
@@ -40,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Missing linktype in standalone `packet-xf` retains legacy Ethernet behavior.
   Stats remain schema version 1; these decode failures use existing error counts.
   Real SLL/loopback fixtures and an executable raw-read example cover dispatch.
-  Writer remains Ethernet-only; no new decoders, conversion or PCAPNG support.
+  P05 adds no decoders, conversion or PCAPNG support; P08-B2 writer options are
+  described above.
 
 - P04: canonical raw/full/flow packet data contracts and additive EDN
   `:diagnostics` with stable stage/reason fields and byte locations when known.
@@ -86,6 +93,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- P08-B2: reject explicit invalid/mismatched packet DLTs, mixed-DLT sequences,
+  caplen above snaplen and invalid/unknown options. Non-Ethernet maps previously
+  mislabeled Ethernet by two-argument calls now require matching `{:linktype dlt}`.
+  Maps/byte-arrays without framing metadata trust the caller's selected DLT.
+- Native `pcap_dump_flush` now returns int through JNR and reports failures.
+  Linux/macOS also inspect the C stream for earlier failed writes, even when
+  flush succeeds. Writer cleanup always attempts flush and both closes without replacing the
+  original error; native dead-handle/dumper open errors are observable. Failure
+  may leave a partial file. Native void close cannot report OS close-only errors;
+  flush is not a durability guarantee. Regression tests include all 28 P08-A
+  fixtures and native Ethernet/SLL/SLL2/NULL/LOOP/Raw IP round trips.
+
 - P08-B1: native `pcap_next_ex` failures now propagate across synchronous,
   lazy and managed reads instead of looking like EOF. `:pass` keeps the valid
   prefix and reports failed/error termination; stats v1 adds native reason,
@@ -103,7 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reject invalid bytes, partial new timestamps, invalid selected timestamp values,
   inconsistent lengths and unsigned 32-bit overflow with `ex-info`. Complete
   legacy pairs containing `nil` or coercible non-integers now fail validation.
-  Ethernet output and the public writer signature are unchanged. Source global
+  P02 retains Ethernet output and the two-argument writer; P08-B2 adds explicit
+  DLT options as described above. Source global
   headers and timestamp precision are not copied; older libpcap's post-2038
   timestamp interpretation remains a native limitation.
 

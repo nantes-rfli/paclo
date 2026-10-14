@@ -1550,3 +1550,148 @@ Classic PCAP writer options/framing validation. Issue #40 packet-delivery
 abandonment, SLL/SLL2 decoding, PCAPNG metadata/writing, exact timestamps and
 performance issues #34/#37 remain outside this change. Offline/double tests and
 CI do not establish live capture behavior, NIC throughput or performance targets.
+
+## 2026-10-14 — P08-B2 explicit single-DLT writer
+
+Baseline: latest main `c729e19` (P08-B1 PR #41 merged), clean supplied checkout;
+branch `codex/p08-b2-single-dlt-writer`. Reviewed AGENTS, contribution/API contract,
+plan/work log, P08-A inventory, core/pcap/native binding and all requested tests.
+`bash dev/script/codex.sh doctor` passed on macOS 15.4.1 x86_64/JDK 21.0.12.1,
+Clojure 1.12.1/system libpcap 1.10.1. `prepare` passed after Java binding change.
+B1 is done; B2 implementation/verification is in progress.
+
+Three-argument public write-pcap! delegates to the existing internal writer.
+Only native DLT/snaplen options are accepted; validate signed native int range
+without coercion/overflow. Defaults 1/65536; explicit packet DLT must match;
+missing metadata trusts caller framing. Reject excess caplen instead of truncating;
+retain timestamps/length validation and order. Incremental output can leave an
+empty file or valid prefix. No byte conversion, sniffing, suffix selection,
+PCAPNG writer/metadata or exact-nanosecond behavior. The pipeline benchmark had
+stripped source framing/timestamp/length fields; it now retains writer metadata
+so it cannot bypass known-DLT rejection. Other two-argument call sites retain
+source metadata or generate Ethernet; non-Ethernet maps intentionally fail.
+
+Native binding now captures int pcap_dump_flush status. Shared ownership cleanup
+attempts every cleanup even if flush/close throws; original error remains primary
+and later exceptions are suppressed. Dead-handle null and dump-open failures are
+reported (native message for dump-open). The other internal dumper owner was
+updated because throwing flush would otherwise leak its resources. Native
+pcap_dump and pcap_dump_close return void: no per-record status or observable OS
+close-only status, no fsync/durability guarantee. Specification references:
+[flush manual](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/pcap_dump_flush.3pcap)
+and [close manual](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/pcap_dump_close.3pcap).
+This small binding fix stays in B2; no separate large native task is required.
+
+Focused tests: `bash dev/script/codex.sh test -n paclo.pcap-unit-test -n
+paclo.core-unit-test -n paclo.pcap-roundtrip-test -n paclo.capture-format-test`:
+75 tests / 1644 assertions, zero failures/errors. All 28 fixtures exercise
+conversion or failure/prefix behavior; native DLT readback (including RAW 12
+versus savefile LINKTYPE_RAW 101), bytes/order/time/caplen/len retained. SLL/NULL
+three-record fixtures include truncated packets. Tests cover byte-array/map/lazy/
+empty inputs, options/mismatch/snaplen failure, source/dump exceptions, failed
+acquisition and flush/close failures with exact cleanup and suppressed errors.
+Real /dev/full flush failure is exercised on Linux CI; unavailable on macOS.
+All 20 previous executable examples remain; two explicit SLL writer/readback
+examples are registered for CI (22 total). Full local gates and CI follow below.
+
+Native source inspection found an additional small fix necessary: libpcap 1.10.5
+pcap_dump_flush checks only fflush, not earlier fwrite failures retained by
+ferror. Linux/macOS now inspect borrowed pcap_dump_file through system libc,
+without taking FILE ownership or reading stale pcap_geterr. A zero flush rc plus
+nonzero :stdio-error is still :pcap-write-failed. The system-libc binding is lazy;
+Windows C runtime FILE interoperability is not claimed. Linux /dev/full tests
+cover 64/8192/65536-byte writes; deterministic doubles cover sticky-error detection
+and cleanup. Native close-only failures remain unobservable through void close.
+[Native implementation](https://raw.githubusercontent.com/the-tcpdump-group/libpcap/libpcap-1.10.5/sf-pcap.c).
+Additional focused native/roundtrip tests passed: 60 tests / 230 assertions.
+
+Initial broader checks: check passed 10 JUnit tests, 403 Clojure tests / 4348
+assertions and offline smoke before the final stream-error enhancement. Lint's
+Clojure checks passed but Markdown's npm fetch failed sandbox DNS for
+registry.npmjs.org; rerun with network escalation. The first concurrent doc-example
+run encountered source/class changes during final enhancement (transient parse/
+missing compiled class failures in two examples); all examples will rerun after
+compilation, with no active edits. Neither attempt is counted as final validation.
+
+Final local source checks passed: `bash dev/script/codex.sh check` (10 JUnit;
+405 Clojure tests / 4358 assertions; offline smoke), `bash dev/script/codex.sh
+lint` (kondo zero errors/warnings, Eastwood 211 all-linter warnings / zero
+exceptions, clean-ns/format dry checks, Markdown), and
+`python3 dev/script/verify_doc_examples.py` (all 22 examples). Markdown lint,
+local link verification and the 15 example-parser unit tests passed with network
+escalation for npm. Java quality passed SpotBugs/CheckStyle/JaCoCo; line coverage
+43.8%, unchanged threshold 25%. `git diff --check` passed. Documentation clarifies
+that actual I/O failures can leave incomplete records/headers; only successful
+validation/source-error cleanup on healthy output yields a readable prefix.
+Final performance/package/clean-consumer and GitHub CI evidence follows.
+
+`bash dev/script/codex.sh perf` passed at 597.0 ms for the existing 50,000-packet
+74-byte synthetic full-decode gate (warning 1000 ms / failure 1200 ms), with other
+local verification processes finished. This is offline evidence on macOS x86_64,
+not real-NIC throughput or resolution of issues #34/#37. `package` passed serially;
+JAR contains core/pcap and both native interfaces, including PcapStdioLibrary.
+A clean -Srepro consumer in /private/tmp/paclo-b2-consumer uses only the packaged
+JAR, asserts the core resource is loaded from jar:, and verifies all six DLT
+round trips plus default non-Ethernet rejection. Java test classes are restored
+with prepare after package. No dependency/version/release change.
+
+The commit hook's interactive clj launcher requires unavailable rlwrap; as in B1,
+a task-local /private/tmp/paclo-b2-tools/clj forwards unchanged arguments to the
+installed noninteractive Clojure CLI. The full hook will run all existing tests,
+namespace/format, Markdown and kondo gates; none is skipped or weakened.
+
+PR handoff and CI correction:
+
+- Implementation `c08fe6d8903303dc525c5418f203cddab7a69d91`; full existing
+  pre-commit hook passed 405 tests / 4358 assertions and all formatting/Markdown/
+  kondo gates without skips. Created/attached independent
+  [PR #42](https://github.com/nantes-rfli/paclo/pull/42). No merge/release/tag.
+- [Initial CI run 38506051039](https://github.com/nantes-rfli/paclo/actions/runs/38506051039)
+  passed 10 jobs including all three native platforms, documentation, coverage,
+  three performance shards/27-scenario merger and Eastwood. build-checks failed
+  kondo on resource-macro binding symbols; required aggregate failed correctly.
+  This is not an all-pass run. Native Linux /dev/full tests passed in both Linux
+  architectures; all six DLT round trips pass across the supported matrix.
+- Root cause was an existing local `.clj-kondo/config.edn` excluded by gitignore,
+  not runtime behavior. It already maps the four resource macros to normal let
+  binding analysis; local lint therefore passed while clean CI lacked it. Track
+  that exact narrow macro-analysis config and retain ignored caches. No linter
+  suppression, workflow edit, threshold change or ignored body validation.
+- Final head CI outcomes are maintained in PR #42's checks/description, including
+  all 12 jobs, native versions and coverage/performance results. The plan records
+  implementation/local verification complete and independent review/merge pending;
+  subsequent SLL/SLL2 decoding is a separate slice. No live/NIC or unmeasured
+  platform validation is claimed.
+
+The same cold lint also passed using the exact CI clj-kondo version 2025.10.23,
+downloaded from its official release to /private/tmp/paclo-b2-kondo and verified
+against the release SHA256: `clj-kondo --lint src test dev --cache false`, zero
+errors/warnings. The initial matrix logs confirm Linux x64/ARM64 JDK21 /
+libpcap 1.10.4: 405 tests / 4364 assertions (including real /dev/full); macOS
+ARM64 JDK17 / libpcap 1.10.1: 405 tests / 4358 assertions. That run's Java line
+coverage was 43.8% (threshold 25%); offline decode gate 608.3 ms; all 27 performance
+scenarios merged. These passing jobs do not change the initial run's failed
+aggregate; final head must pass all 12 jobs and is tracked in PR #42.
+
+P08-B2 implementation verification complete; independent review/merge pending:
+
+- Corrected implementation head `75c5906420f05e8e7ba41e7929cd407c41abffdb`:
+  [CI run 38506619477](https://github.com/nantes-rfli/paclo/actions/runs/38506619477)
+  passed all 12 jobs. `gh run view 38506619477 --json status,conclusion,headSha,jobs`
+  confirmed success and no failed step, including continue-on-error coverage.
+  build-checks, documentation-checks, Eastwood, coverage, both compatibility
+  jobs, ARM64 monitor, three performance shards, 27-scenario merger and required
+  aggregate all succeeded. No workflow, runner, gate or threshold was changed.
+- Linux x64/ARM64 JDK21/libpcap 1.10.4 each passed 405 tests / 4364 assertions;
+  macOS ARM64 JDK17/libpcap 1.10.1 passed 405 / 4358. Real /dev/full small/large
+  writes fail observably on Linux; all 28 fixtures and six native-DLT round trips
+  pass across the matrix. All 22 executable examples passed in CI.
+- CI Java line coverage: 43.8%, above unchanged 25%. CI offline decode gate:
+  499.7 ms for 50,000 packets (warning 1000 / failure 1200 ms). All 27 quick-profile
+  performance scenarios produced/merged. No live/NIC throughput inference.
+- This final evidence update changes plan/log only. Its head checks are maintained
+  on [PR #42](https://github.com/nantes-rfli/paclo/pull/42), alongside the complete
+  implementation run. The queue remains in-progress solely for independent
+  review/merge; next is that acceptance, then a separate SLL/SLL2 decode slice.
+  Issue #40, PCAPNG metadata/writing, exact nanoseconds and performance #34/#37
+  remain outside this completed implementation. No merge/version/tag/release.

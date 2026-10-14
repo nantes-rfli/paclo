@@ -18,7 +18,7 @@ For installation and CLI entry examples, start from `README.md`.
 - `paclo.stream/fan-out` distributes one sequence to two or more bounded,
   separately owned, single-consumer branches.
 - `bpf` converts a small Clojure DSL to BPF strings.
-- `write-pcap!` writes byte records back to a PCAP file.
+- `write-pcap!` writes byte records to single-DLT Classic PCAP.
 - Optional decode hooks (`paclo.decode-ext`) annotate decoded packets.
 
 ## Quick start (offline)
@@ -353,13 +353,63 @@ packets. Use your own Ethernet PCAP path and output path in an application.
     (finally (.delete out))))
 ```
 
-The writer still outputs Ethernet PCAP with snaplen 65536 and microsecond precision.
-It preserves packet metadata, not the source file's global header, byte order,
-link type, snaplen, or timestamp precision. Packet `:linktype` is ignored; saving
-non-Ethernet raw bytes without format conversion under an Ethernet header does
-not produce correct replay. PCAPNG and broader link-type output remain
-future work. Older libpcap readers may expose post-2038 seconds as negative; see
-the [writer contract](cljdoc-api-contract.md#write-pcap) for this native limitation.
+P08-B2 in `[Unreleased]` adds a third options map. Defaults remain
+`{:linktype 1 :snaplen 65536}`; `:linktype` is a nonnegative native libpcap DLT
+integer in `0..2147483647`, and `:snaplen` is an integer in `1..2147483647`.
+Unknown options (including `:format`) and explicit invalid values such as nil
+throw before output is opened. Installed libpcap must support writing the selected
+DLT; unsupported values fail at dumper open. DLT_RAW can differ from the saved
+LINKTYPE_RAW number: use the native `:linktype` from a reader, not a file header.
+
+Every explicit packet `:linktype` must be valid and equal to the selected writer
+DLT. A mismatch or mixed-DLT sequence fails before the offending record is written.
+The two-argument form now rejects non-Ethernet packet maps instead of mislabeling
+them. Migrate by supplying the matching DLT, as below. For byte-arrays and maps
+without `:linktype`, the caller is responsible for matching the chosen framing.
+Paclo does not infer framing, change bytes or synthesize Ethernet headers.
+Removing metadata does not make a known mismatch safe.
+
+<!-- paclo-doc-test: usage-explicit-pcap-writer -->
+
+```clojure
+(require '[paclo.core :as core])
+
+(let [out (java.io.File/createTempFile "paclo-sll-" ".pcap")
+      source (core/reduce-packets {:path "test/resources/linktype-sll.pcap"} conj [])
+      snapshot #(update (select-keys % [:bytes :ts-sec :ts-usec :caplen :len :linktype])
+                        :bytes vec)]
+  (try
+    (core/write-pcap! source (.getAbsolutePath out) {:linktype 113 :snaplen 65536})
+    (let [saved (core/reduce-packets {:path (.getAbsolutePath out)} conj [])]
+      {:count (count saved)
+       :linktypes (mapv :linktype saved)
+       :preserved? (= (mapv snapshot source) (mapv snapshot saved))})
+    (finally (.delete out))))
+```
+
+Captured length must be <= snaplen; Paclo rejects excess bytes instead of
+truncating them or emitting an inconsistent header. Original wire length may
+exceed snaplen and is preserved. Output is Classic PCAP with one DLT and
+microsecond precision even if the path ends in `.pcapng`. PCAPNG input can be
+converted only for the packet fields returned by the reader: interface IDs/names/
+options, comments, section information, unknown blocks and original precision
+are lost. Source header, snaplen and byte order are not copied automatically;
+byte-for-byte source-file reproduction is not guaranteed.
+
+Writing is incremental and overwrites the destination at dumper open. Validation,
+source realization or native write failure can leave an empty file or prefix;
+I/O failures can also leave incomplete records or headers. There is no atomic
+replacement/rollback. Each record is validated before writing.
+The writer owns and closes its handle/dumper; it does not own input capture
+resources. Prefer synchronous reduction or `with-open` managed capture when input
+must be closed after early failure (lazy capture abandonment remains issue #40).
+Native open and flush errors throw; Linux/macOS also check the output stream's
+sticky error indicator for earlier failed writes. Cleanup always attempts flush, dumper close
+and handle close in order, retaining the original failure with cleanup errors
+suppressed. Native dump/close return void; OS close-only errors cannot be observed.
+Successful flush is not an fsync/durability guarantee. Older libpcap readers may
+expose post-2038 seconds as negative; see the
+[writer contract](cljdoc-api-contract.md#write-pcap) for this native limitation.
 
 ## BPF DSL (examples)
 

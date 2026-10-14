@@ -37,6 +37,14 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "readme-explicit-pcap-writer": Check(
+        "README explicit native-DLT writer", "clojure",
+        '(and (= 3 (:count result)) (= [113 113 113] (:linktypes result)) (:preserved? result))',
+    ),
+    "usage-explicit-pcap-writer": Check(
+        "Usage explicit native-DLT round trip", "clojure",
+        '(and (= 3 (:count result)) (= [113 113 113] (:linktypes result)) (:preserved? result))',
+    ),
     "usage-bounded-dns-cli": Check(
         "Bounded DNS CLI reports", "clojure",
         "(and (= 2 (:pairs result)) (= 13.029 (:average-ms result)) (= 4 (:dns-packets result)))",
@@ -135,6 +143,8 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "readme-explicit-pcap-writer",
+    "usage-explicit-pcap-writer",
     "usage-bounded-dns-cli",
     "readme-time-window",
     "usage-time-windows",

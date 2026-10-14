@@ -5,7 +5,7 @@
   (:import
    [jnr.ffi Memory Pointer]
    [jnr.ffi.byref AbstractReference IntByReference PointerByReference]
-   [paclo.jnr PcapLibrary]))
+   [paclo.jnr PcapLibrary PcapStdioLibrary]))
 
 ;; -------------------------------------------------------------
 
@@ -37,7 +37,7 @@
     (pcap_freecode [_ _] nil)
     (pcap_lib_version [_] "fake")
     (pcap_dump [_ _ _ _] nil)
-    (pcap_dump_flush [_ _] nil)
+    (pcap_dump_flush [_ _] 0)
     (pcap_dump_close [_ _] nil)
     (pcap_geterr [_ _] "")
     (pcap_findalldevs [_ pp err]
@@ -216,7 +216,7 @@
                           (pcap_lib_version [_] "fake")
                           (pcap_dump_open [_ _ _] nil)
                           (pcap_dump [_ _ _ _] nil)
-                          (pcap_dump_flush [_ _] nil)
+                          (pcap_dump_flush [_ _] 0)
                           (pcap_dump_close [_ _] nil)
                           (pcap_geterr [_ _] "")
                           (pcap_findalldevs [_ _ _] 0)
@@ -399,7 +399,7 @@
               (pcap_lib_version [_] "fake")
               (pcap_dump_open [_ _ _] nil)
               (pcap_dump [_ _ _ _] nil)
-              (pcap_dump_flush [_ _] nil)
+              (pcap_dump_flush [_ _] 0)
               (pcap_dump_close [_ _] nil)
               (pcap_geterr [_ _] "")
               (pcap_findalldevs [_ _ _] 0)
@@ -444,7 +444,7 @@
                           (pcap_lib_version [_] "fake")
                           (pcap_dump_open [_ _ _] nil)
                           (pcap_dump [_ _ _ _] nil)
-                          (pcap_dump_flush [_ _] nil)
+                          (pcap_dump_flush [_ _] 0)
                           (pcap_dump_close [_ _] nil)
                           (pcap_geterr [_ _] "")
                           (pcap_findalldevs [_ _ _] 0)
@@ -745,3 +745,78 @@
       (is (= {} (f)))
       (finally
         (when orig (System/setProperty "os.name" orig))))))
+
+(deftest writer-ownership-and-primary-failures
+  (doseq [phase [:open :dump :source :validation :flush :close-d :close-pcap :success]]
+    (testing (name phase)
+      (let [calls (atom [])
+            primary (Exception. (name phase))
+            flush-error (Exception. "cleanup flush")
+            close-d-error (Exception. "cleanup dumper close")
+            close-pcap-error (Exception. "cleanup handle close")
+            prior? (contains? #{:dump :source :validation} phase)
+            run-step (fn [step error]
+                       (swap! calls conj step)
+                       (when error (throw error)))]
+        (with-redefs [p/open-dead (fn [& _] :handle)
+                      p/open-dumper (fn [& _] (run-step :open (when (= phase :open) primary)) :dumper)
+                      p/dump! (fn [& _] (run-step :dump (when (= phase :dump) primary)))
+                      p/flush-dumper! (fn [_] (run-step :flush (cond prior? flush-error (= phase :flush) primary)))
+                      p/close-dumper! (fn [_] (run-step :close-d (cond prior? close-d-error (= phase :close-d) primary)))
+                      p/close! (fn [_] (run-step :close-pcap (cond prior? close-pcap-error (= phase :close-pcap) primary)))]
+          (let [packets (case phase
+                          :source (cons (byte-array 1) (lazy-seq (throw primary)))
+                          :validation [(byte-array 1) {:bytes (byte-array 1) :linktype nil}]
+                          [(byte-array 1)])
+                error (try (p/bytes-seq->pcap! packets {:out "unused"}) nil
+                           (catch Throwable error error))]
+            (if (= phase :success)
+              (is (nil? error))
+              (if (= phase :validation)
+                (is (= :linktype (:field (ex-data error))))
+                (is (identical? primary error))))
+            (is (= (if (= phase :open) [:open :close-pcap]
+                       [:open :dump :flush :close-d :close-pcap]) @calls))
+            (when prior?
+              (is (= [flush-error close-d-error close-pcap-error]
+                     (vec (.getSuppressed ^Throwable error)))))))))))
+
+(deftest native-writer-open-and-flush-failures
+  (with-redefs [p/lib (stub-lib {})]
+    (is (= :pcap-open-dead-failed
+           (:reason (ex-data (try (p/open-dead 1 65536)
+                                  (catch clojure.lang.ExceptionInfo error error)))))))
+  (with-redefs [p/lib (reify PcapLibrary (pcap_dump_flush [_ _] -1))]
+    (is (= {:reason :pcap-write-failed :phase :pcap-dump-flush :rc -1}
+           (ex-data (try (p/flush-dumper! nil)
+                         (catch clojure.lang.ExceptionInfo error error)))))))
+
+(deftest flush-checks-earlier-native-write-error
+  (let [stream (Memory/allocate (jnr.ffi.Runtime/getSystemRuntime) 1)]
+    (doseq [indicator [0 1]]
+      (with-redefs [p/lib (reify PcapLibrary
+                            (pcap_dump_flush [_ _] 0)
+                            (pcap_dump_file [_ _] stream))
+                    p/stdio-lib (delay (reify PcapStdioLibrary
+                                         (ferror [_ pointer]
+                                           (is (identical? stream pointer))
+                                           indicator)))]
+        (let [error (try (p/flush-dumper! nil) nil
+                         (catch clojure.lang.ExceptionInfo error error))]
+          (if (zero? indicator)
+            (is (nil? error))
+            (is (= {:reason :pcap-write-failed :phase :pcap-dump-flush :rc 0 :stdio-error 1}
+                   (ex-data error)))))))))
+
+(deftest internal-capture-writer-cleans-up-on-open-and-flush-failure
+  (doseq [phase [:open :flush]]
+    (let [calls (atom [])
+          primary (Exception. (name phase))]
+      (with-redefs [p/open-live (fn [_] :handle)
+                    p/open-dumper (fn [& _] (when (= phase :open) (throw primary)) :dumper)
+                    p/flush-dumper! (fn [_] (swap! calls conj :flush) (throw primary))
+                    p/close-dumper! (fn [_] (swap! calls conj :close-d))
+                    p/close! (fn [_] (swap! calls conj :close-pcap))]
+        (is (identical? primary (try (p/capture->pcap {:max 0} "unused")
+                                     (catch Throwable error error))))
+        (is (= (if (= phase :open) [:close-pcap] [:flush :close-d :close-pcap]) @calls))))))

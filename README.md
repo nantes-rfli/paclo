@@ -19,11 +19,40 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet and returns
 `:unsupported-linktype` diagnostics for other explicit types. Standalone
-`packet-xf` without the key retains its Ethernet assumption. The writer still
-outputs Ethernet PCAP and does not convert non-Ethernet bytes or preserve source
-link types. See the [raw capture example](docs/usage.md#reading-non-ethernet-captures)
-and [contract](docs/cljdoc-api-contract.md#link-type-dispatch); broader decoders
-and complete PCAPNG/file preservation remain P08.
+`packet-xf` without the key retains its Ethernet assumption. P08-B2 extends
+`core/write-pcap!` with `{:linktype native-DLT :snaplen positive-integer}`.
+Two arguments default to Ethernet (1) and snaplen 65536. Explicit packet DLTs
+must match the writer; non-Ethernet maps now require a matching option. Bytes
+without linktype metadata trust the caller's selected DLT; no bytes are sniffed
+or converted. See the [raw capture example](docs/usage.md#reading-non-ethernet-captures)
+and [writer contract](docs/cljdoc-api-contract.md#write-pcap).
+
+Write and read back Linux cooked packets with their native DLT (113):
+
+<!-- paclo-doc-test: readme-explicit-pcap-writer -->
+
+```clojure
+(require '[paclo.core :as core])
+
+(let [out (java.io.File/createTempFile "paclo-sll-" ".pcap")
+      source (core/reduce-packets {:path "test/resources/linktype-sll.pcap"} conj [])
+      snapshot #(update (select-keys % [:bytes :ts-sec :ts-usec :caplen :len :linktype])
+                        :bytes vec)]
+  (try
+    (core/write-pcap! source (.getAbsolutePath out) {:linktype 113 :snaplen 65536})
+    (let [saved (core/reduce-packets {:path (.getAbsolutePath out)} conj [])]
+      {:count (count saved)
+       :linktypes (mapv :linktype saved)
+       :preserved? (= (mapv snapshot source) (mapv snapshot saved))})
+    (finally (.delete out))))
+```
+
+Output is always single-DLT Classic PCAP with microsecond timestamps, regardless
+of suffix. Packet order, bytes, timestamps and captured/original lengths are
+preserved; captured length must not exceed snaplen. PCAPNG interface metadata,
+comments, sections and sub-microsecond precision cannot be preserved. This is
+not byte-for-byte source-file reproduction. Failure can leave an empty file or
+valid prefix; see [write options and errors](docs/usage.md#write-pcap).
 
 ## Install
 

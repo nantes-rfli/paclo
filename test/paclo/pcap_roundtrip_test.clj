@@ -111,3 +111,73 @@
         (is (= [] (binary-records out)))
         (is (= [] (read-records (.getAbsolutePath out)))))
       (finally (.delete out)))))
+
+(defn- serialized-snaplen [^File file]
+  (let [buffer (ByteBuffer/wrap (Files/readAllBytes (.toPath file)))
+        _ (.order buffer ByteOrder/LITTLE_ENDIAN)
+        magic (.getInt buffer)]
+    (.order buffer (if (= (unchecked-int 0xa1b2c3d4) magic)
+                     ByteOrder/LITTLE_ENDIAN ByteOrder/BIG_ENDIAN))
+    (Integer/toUnsignedLong (.getInt buffer 16))))
+
+(deftest single-dlt-framing-and-snaplen-validation
+  (let [out (File/createTempFile "paclo-framing-" ".pcap")
+        good {:bytes (byte-array [1 2]) :linktype 1 :ts-sec 0 :ts-usec 0}]
+    (try
+      (doseq [invalid [(assoc good :linktype 113) (assoc good :linktype nil)
+                       (assoc good :linktype -1) (assoc good :linktype 1.0)
+                       (assoc good :linktype "1") (assoc good :linktype 2147483648N)
+                       (assoc good :bytes (byte-array 3))]]
+        (is (thrown? clojure.lang.ExceptionInfo
+                     (core/write-pcap! (map identity [good invalid good])
+                                       (.getPath out) {:snaplen 2})))
+        (is (= [(comparable (assoc good :caplen 2 :len 2))]
+               (read-records (.getPath out)))))
+      (testing "missing metadata trusts the explicit DLT; bytes stay unchanged"
+        (with-redefs [p/now-sec-usec (fn [] [0 0])]
+          (core/write-pcap! [(byte-array [1 2]) (dissoc good :linktype)]
+                            (.getPath out) {:linktype 113 :snaplen 2}))
+        (is (= 2 (serialized-snaplen out)))
+        (let [saved (core/reduce-packets {:path (.getPath out)} conj [])]
+          (is (= [113 113] (mapv :linktype saved)))
+          (is (= [[1 2] [1 2]] (mapv (comp vec :bytes) saved)))))
+      (testing "zero input still writes a readable header with the selected native DLT"
+        (core/write-pcap! [] (.getPath out) {:linktype 113 :snaplen 1})
+        (is (= 1 (serialized-snaplen out)))
+        (is (empty? (read-records (.getPath out))))
+        (p/with-pcap [handle (p/open-offline (.getPath out))]
+          (is (= 113 (p/datalink handle)))))
+      (testing "unsupported native DLT fails to open a dumper"
+        (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_dump_open failed"
+                              (core/write-pcap! [] (.getPath out) {:linktype 999999}))))
+      (finally (.delete out)))))
+
+(deftest lazy-source-exception-keeps-written-prefix
+  (let [out (File/createTempFile "paclo-source-failure-" ".pcap")
+        packet {:bytes (byte-array 2) :ts-sec 123 :ts-usec 456}
+        error (Exception. "source failed")
+        packets (cons packet (lazy-seq (throw error)))]
+    (try
+      (is (identical? error (try (core/write-pcap! packets (.getPath out))
+                                 (catch Throwable failure failure))))
+      (is (= [(comparable (assoc packet :caplen 2 :len 2))]
+             (read-records (.getPath out))))
+      (finally (.delete out)))))
+
+(deftest native-output-errors-are-observable
+  (let [directory (.toFile (Files/createTempDirectory "paclo-output-error-"
+                                                      (make-array java.nio.file.attribute.FileAttribute 0)))]
+    (try
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"pcap_dump_open failed"
+                            (core/write-pcap! [] (.getPath directory))))
+      (finally (.delete directory))))
+  ;; Linux offers a deterministic real flush failure, without filling a disk.
+  (when (.exists (File. "/dev/full"))
+    (doseq [size [64 8192 65536]]
+      (testing (str "native output failure with " size " captured bytes")
+        (let [error (try (core/write-pcap! [(byte-array size)] "/dev/full")
+                         (catch clojure.lang.ExceptionInfo error error))
+              data (ex-data error)]
+          (is (= {:reason :pcap-write-failed :phase :pcap-dump-flush}
+                 (select-keys data [:reason :phase])))
+          (is (or (= -1 (:rc data)) (pos? (long (or (:stdio-error data) 0))))))))))

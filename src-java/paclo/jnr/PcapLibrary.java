@@ -124,10 +124,17 @@ public interface PcapLibrary {
    * @param data packet data
    */
   void    pcap_dump(Pointer dumper, Pointer hdr, Pointer data);
+  /**
+   * Get the dumper's C stream for error inspection on Linux/macOS.
+   * @param dumper dumper handle
+   * @return borrowed FILE pointer, owned by the dumper
+   */
+  Pointer pcap_dump_file(Pointer dumper);
   /** Flush dumper.
    * @param dumper dumper handle
+   * @return 0 on success, PCAP_ERROR (-1) on failure
    */
-  void    pcap_dump_flush(Pointer dumper);
+  int     pcap_dump_flush(Pointer dumper);
   /** Close dumper.
    * @param dumper dumper handle
    */

@@ -27,7 +27,7 @@
    (filter #(>= (long (or (:caplen %) 0)) 60))
    (map (fn [m]
           (vswap! counter (fn ^long [^long n] (unchecked-inc n)))
-          (select-keys m [:bytes :sec :usec])))))
+          (select-keys m [:bytes :ts-sec :ts-usec :sec :usec :caplen :len :linktype])))))
 
 (defn -main [& args]
   (let [[in bpf max-str out* decode-str] args]
