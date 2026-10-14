@@ -2287,3 +2287,42 @@ Implementation publication and supported-platform CI:
   `rlwrap`. After complete equivalent checks via `clojure` and full lint, use
   the hook's existing SKIP_TESTS/SKIP_FMT/SKIP_KONDO switches to avoid repeating
   those verified checks; leave its Markdown check enabled. No hook/gate edits.
+
+## Issue #48 PR and Linux CI evidence (2026-10-15)
+
+- Implementation `1646588` is published on independent
+  [PR #49](https://github.com/nantes-rfli/paclo/pull/49), titled
+  `fix: make Eastwood CI fail on incomplete analysis`, with `Fixes #48`.
+  [CI run 38596934662](https://github.com/nantes-rfli/paclo/actions/runs/38596934662)
+  passes all **12 jobs**, including required `build`, build/Java/package gates,
+  documentation, Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64 monitor,
+  all performance shards/merger, coverage and Eastwood. No merge performed.
+- Read the actual Linux Eastwood job log, not only its green conclusion:
+  Java compilation succeeds on the clean checkout; four negative/positive
+  JVM probes pass in **18.555 s**, including the intentional analysis error
+  with **exit 1** and one namespace unanalyzed. The following full lint runs
+  through **96/96 intended namespaces**, with no missing/extra names,
+  **254 existing warnings / zero exceptions**, no ClassNotFoundException and
+  no unanalyzed namespace. Compared all source/test declarations to log names.
+- Linux compatibility log confirms **431 tests / 15,753 assertions**, zero
+  failures/errors, plus the existing six Python fixture tests. Native platform,
+  docs/package/coverage/performance job results remain enforced by existing CI;
+  none of their dependencies or thresholds was changed. No live capture/NIC
+  throughput or new platform/performance claim is made by this maintenance fix.
+- Same-workflow cached-run timing comparison (single samples; runner/queue
+  variation applies): Eastwood job **19 -> 68 s (+49 s)**; lint step
+  **13 -> 27 s (+14 s)**. New libpcap setup **10 s**, Java compilation **4 s**,
+  regression step **19 s**. Eastwood's own complete lint reports **24,112 ms**,
+  versus the aborted baseline's **7,358 ms**. This replaces incomplete coverage
+  with complete analysis and actual failure enforcement.
+- Required `build` completed **197 -> 219 s (+22 s)** after workflow creation;
+  total workflow **198 -> 220 s (+22 s)**. Eastwood finishes at 72 s after
+  creation and does not determine the critical path in this run; macOS
+  compatibility started 35 s after creation and ran 179 s. These two samples
+  do not isolate a causal overall runtime delta. Baseline and updated run URLs
+  above retain step/job timestamps for review.
+- This documentation-only evidence update records the completed maintenance
+  item and next action (independent PR #49 review). The feature queue remains
+  outside this task; no P08-E2/E3 or other implementation. Final evidence-head
+  CI status will be maintained in the PR description without another log-only
+  commit cycle. Review before merging; no publication/release authorized here.
