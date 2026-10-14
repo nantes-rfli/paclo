@@ -280,10 +280,17 @@ release, live/NIC throughput or unmeasured-platform validation.
 
 ## P08-D1: Raw IP full and flow decoding
 
-Status: **in-progress** for final PR/CI and independent review. Implementation
-starts from P08-C main `9d83bb2`; local regressions, executable docs, fixtures and
-[performance evidence](p08-d1-performance.md) are recorded in the work log.
-No NULL/LOOP decoder, version update, release or merge is included.
+Status: **in-progress** solely for independent review/merge
+on [PR #45](https://github.com/nantes-rfli/paclo/pull/45). Implementation `bc2e9a0`
+starts from P08-C main `9d83bb2`. Local check passes 418 tests, 10 JUnit tests,
+35 captures, 200 Raw property cases and all 26 executable examples. Package and
+isolated JAR consumer pass. The [performance evidence](p08-d1-performance.md)
+retains mixed and controlled single-DLT comparisons, negative variation and
+unchanged allocations/gates. D2's [handoff](p08-d2-null-loop.md) is complete;
+NULL/LOOP runtime probes/decoders remain unfinished. Implementation
+[CI run 38543025204](https://github.com/nantes-rfli/paclo/actions/runs/38543025204)
+passed all 12 jobs, including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64.
+Final evidence-head checks are maintained on the PR. No release or merge here.
 
 - Add bare IPv4/IPv6 framing at offset zero to `paclo.linktype`, using the version
   nibble and measured Linux/macOS native DLT_RAW 12; reject savefile code 101

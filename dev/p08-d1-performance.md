@@ -91,5 +91,8 @@ This measures new supported decoding, not a speedup against unsupported errors.
 Final `bash dev/script/codex.sh perf`: **574.0 ms**, against unchanged 1000 ms
 warning / 1200 ms failure budgets. No performance gate, CI scenario, workflow,
 version or analysis issue #34/#37 was changed. Supported-platform CI remains
-separate evidence; offline transformation measurements do not validate live/NIC
-capture or performance on unmeasured systems.
+separate evidence: [implementation run 38543025204](https://github.com/nantes-rfli/paclo/actions/runs/38543025204)
+passed all 12 jobs, with its unchanged 50k gate at **722.9 ms** and all 27 quick
+scenarios merged. CI and local times are separate observations. Offline
+transformation measurements do not validate live/NIC capture or performance
+on unmeasured systems.

@@ -1949,3 +1949,36 @@ formatter without skipping checks or changing repository/global hook settings.
 - Final snapshot JAR rebuild and independent consumer passed again. Java test
   classes are restored with `bash dev/script/codex.sh prepare` after packaging.
   JAR resource inspection and final local links/diff/Markdown checks are clean.
+
+Implementation publication:
+
+- Committed `bc2e9a0a84517bd2b8dd35716c63de0c9747fe84` after the compatibility
+  hook passed 418 tests / 5760 assertions and all formatter checks; checkout clean.
+- Pushed `codex/p08-d1-raw-ip` and created/attached
+  [PR #45](https://github.com/nantes-rfli/paclo/pull/45). No merge, release or tag.
+- [Implementation CI run 38543025204](https://github.com/nantes-rfli/paclo/actions/runs/38543025204)
+  started on the implementation head. Native matrix and complete quality/perf
+  results are recorded below after actual completion; a pending job is not a pass.
+
+Supported-platform CI confirmation:
+
+- Implementation CI run **38543025204** passed **all 12 jobs** on `bc2e9a0`.
+  Inspected every job/step: no failed step, including coverage's existing
+  continue-on-error path. Build/Java/static gates, docs/cljdoc load, both
+  compatibility jobs, ARM64 monitor, Eastwood, coverage, three performance shards,
+  27-scenario results merge and required aggregate all succeeded.
+- Linux x64 and Linux ARM64: kernel 6.17.0-1022-azure, Temurin 21.0.12.1,
+  libpcap 1.10.4 (TPACKET_V3), **418 tests / 5766 assertions** each. macOS 26.6.2
+  ARM64: Temurin 17.0.20.1, libpcap 1.10.1, **418 / 5760**. Each verified the
+  original 28, four cooked and three Raw captures, including empty records,
+  both Classic byte orders, PCAPNG, writer preservation and Raw decoding/analysis.
+  The six extra Linux assertions cover existing /dev/full writer checks.
+- All **26 executable examples** pass in CI; 10 JUnit tests and Java quality
+  gates pass, JaCoCo 43.8% against unchanged 25% threshold. Existing mid-50k
+  performance gate passes at **722.9 ms** (1000/1200 ms budgets); all 27 existing
+  quick scenarios merge. CI/local times are distinct observations, not speedups.
+- This evidence update changes only plan/log/performance prose. Its final-head
+  checks are maintained on PR #45. D1 stays in-progress solely for independent
+  review/merge; D2 is the next feature after acceptance, with AF/endian/native
+  probes still required. No release, merge, live/NIC validation or speculative
+  unmeasured-platform mapping.
