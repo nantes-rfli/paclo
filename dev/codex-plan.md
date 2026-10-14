@@ -36,11 +36,17 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
 | P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
 | P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
-| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | in-progress |
+| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
+| P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | in-progress |
+| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | blocked |
+| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-D2 independent review and merge**.
+Default next task: **P08-E1 independent review and merge**.
+The next implementation item is **P08-E2** after E1 review/merge; E3 waits for E2.
+P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
+at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
 at `9d83bb2` on 2026-10-14.
 P08-B2 merged through [PR #42](https://github.com/nantes-rfli/paclo/pull/42)
@@ -306,8 +312,8 @@ Final evidence-head checks are maintained on the PR. No release or merge here.
 
 ## P08-D2: NULL/LOOP decoding
 
-Status: **in-progress** solely for independent review/merge on
-[PR #46](https://github.com/nantes-rfli/paclo/pull/46).
+Status: **done**. [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
+merged at `ccebcad`; the implementation/verification history follows.
 Probe-only `9e36c04` passed all 12 CI jobs on
 [run 38577395767](https://github.com/nantes-rfli/paclo/actions/runs/38577395767)
 before decoder edits. Linux x64/macOS ARM64/Linux ARM64 all return the stored
@@ -323,12 +329,45 @@ JAR consumer pass. Final controlled comparisons retain negative Flow medians,
 unchanged allocations and unchanged performance gates. Implementation `93e5cde`
 passed all 12 jobs on [CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137),
 including Linux x64, macOS ARM64 and Linux ARM64. Final evidence-head checks
-are maintained on the PR. Independent review/merge remains; no release, merge
-or unrelated issue work was performed.
+are maintained on the PR. Review/merge subsequently completed; no release or
+unrelated issue work was performed by the implementation task.
 The completed native prerequisite establishes unchanged pseudoheaders; NULL
 uses unique known AF interpretation in either order, LOOP strictly big endian.
 Unmeasured OS mappings, live/NIC validation, PCAPNG metadata/writing, exact
 precision and container-order inference remain outside this item.
+
+## P08-E1: Metadata-aware PCAPNG and exact timestamp design
+
+Status: **in-progress** for independent review/merge on
+[PR #47](https://github.com/nantes-rfli/paclo/pull/47). Design, deterministic
+fixtures and characterization are complete in this task; no new public API or
+production reader/writer is implemented. Baseline is D2 main `ccebcad`.
+The [E1 contract and handoff](p08-e1-pcapng-contracts.md) is authoritative for
+future PCAPNG event/descriptors, exact ticks/resolution/offset/absence,
+Closeable single-consumer reduction, limits, failure and output loss policies.
+P08-A remains historical native evidence; the v1 contract remains implemented
+behavior. Ten additional captures and six Python wire/arithmetic tests run via
+`paclo.pcapng-contract-design-test` in the unchanged platform suites. Actual
+commands/results and platform limits are recorded in the work log.
+
+## P08-E2: Bounded metadata-aware PCAPNG reader
+
+Status: **blocked** pending E1 independent review/merge. Implement the reviewed
+[E2 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e2-implementation-plan-and-acceptance):
+checked file cursor, SHB/IDB/EPB/SPB, ordered owned option/opaque data, exact
+integer time, Closeable IReduceInit source and bounded status. Existing native
+APIs remain unchanged; prove lifecycle/limits with real fixtures and constrained
+heap streaming. Public contract/changelog updates accompany actual behavior.
+No writer, live metadata, issue #40 change or performance work in this item.
+
+## P08-E3: PCAPNG writer
+
+Status: **blocked** by E2. Implement the reviewed
+[E3 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e3-implementation-plan-and-acceptance):
+ordered encoding, preserve/lossy/author policies, exact timestamp validation,
+unknown/no-copy restrictions, semantic round trips and atomic path publication.
+Prove failure cleanup and source ownership; preserve Classic write-pcap! behavior.
+No byte-identical reproduction, append/stream output, release or merge authority.
 
 ## P08-P10: Evidence-driven expansion
 

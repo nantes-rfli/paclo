@@ -43,6 +43,9 @@ identity, comments and options. Mixed link types or snaplen can stop native read
 with a native read error; public readers propagate it by default. `:pass`
 retains the valid prefix and exposes failure through callbacks/report statistics.
 No complete PCAPNG read/write round trip is guaranteed.
+The [P08-E1 design](../dev/p08-e1-pcapng-contracts.md) proposes a separate
+metadata-aware source and writer with exact timestamps; those APIs are not yet
+implemented and do not change this v1 contract.
 
 ### Raw capture packets
 
