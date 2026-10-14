@@ -2092,3 +2092,35 @@ Delivery-source reruns: `check` passed again with 428 tests / 15,738 assertions,
 documentation-parser, local-link and diff checks pass. Final full lint rerun
 includes the corrected performance report. The implementation commit will run
 the unchanged complete pre-commit hook using the local noninteractive clj shim.
+
+Implementation publication and supported-platform CI:
+
+- Committed `93e5cde64b3ce88de5d57b24230d3aabb818cebd` after the complete unchanged
+  hook passed 428 tests / 15,738 assertions, formatter, Markdown and kondo.
+  Pushed to PR #46 and rewrote its description around the final behavior,
+  verified native contract, diagnostics, performance concerns and local checks.
+- [Implementation CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137)
+  passed **all 12 jobs**. Inspected every job and failed-step list: none failed,
+  including the coverage job's existing continue-on-error path. Java/static,
+  docs/cljdoc, compatibility matrix, ARM64 monitor, Eastwood/coverage, three
+  performance shards, 27-scenario merge and required aggregate succeeded.
+- Linux x64/ARM64 (kernel 6.17.0-1022-azure, Temurin 21.0.12.1, libpcap 1.10.4)
+  each passed **428 tests / 15,744 assertions**. macOS 26.6.2 ARM64 / JDK
+  17.0.20.1 / libpcap 1.10.1 passed **428 / 15,738**. The Linux +6 assertions
+  are existing `/dev/full` writer checks. All three repeat physical/native/raw
+  byte equality on all 12 fixtures, with native DLT 0/108 and little host order.
+- CI verified all 47 fixtures, 500 new property cases, unchanged raw arrays,
+  writer round trips, capture paths, full/flow agreement, DNS/TLS, fan-out and
+  P06/P07. All **28 executable docs** passed. Java coverage is **43.8%** against
+  unchanged 25%; CI performance gate is **501.8 ms** against 1000/1200 budgets.
+  Existing 27 quick scenarios merged. CI/local observations are not speedups.
+- A complete branch whitespace check (`git diff origin/main --check`) found
+  single-space blank context lines inside the initial-source patch artifact.
+  Removed those outer-file trailing spaces; applied both original and cleaned
+  patches independently to D1 source copies under /private/tmp and confirmed
+  byte-identical reconstructed runtime files. The initial measurement source
+  remains exact; no runtime or measurement data changed. Branch diff check passes.
+- This final evidence update changes documentation and patch-artifact whitespace
+  only. P08-D2 remains in-progress solely for independent review/merge; final
+  evidence-head checks are maintained on PR #46. No merge, release, tag, version
+  change, live/NIC claim or unsupported-platform mapping was performed.

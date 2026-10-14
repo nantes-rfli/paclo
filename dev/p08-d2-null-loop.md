@@ -182,3 +182,17 @@ four port bytes exist, while full requires its complete header. No checksum
 validation, reassembly, complete PCAPNG metadata, PCAPNG writer, exact timestamp
 precision, new public framing API, version/release or unrelated optimization is
 introduced.
+
+## Implementation acceptance evidence
+
+Implementation `93e5cde` [CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137)
+passed all 12 jobs with no failed internal steps. Linux x64 and Linux ARM64
+passed 428 tests / 15,744 assertions; macOS ARM64 passed 428 / 15,738. The extra
+six Linux assertions exercise existing `/dev/full` writer failures. All three
+repeat the 12 native byte comparisons after decoding is present, including
+all AF/endian/adversarial records. Fixture, 500 new property cases, writer,
+capture-path, fan-out, DNS/TLS and P06/P07 tests pass on each platform. All 28
+documentation examples, Java quality/coverage and existing performance gates
+also pass. This does not extend validation to live/NIC capture or other OSes.
+Independent review/merge remains on [PR #46](https://github.com/nantes-rfli/paclo/pull/46);
+final evidence-head checks are maintained there.

@@ -40,7 +40,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-D2 validation and independent review**.
+Default next task: **P08-D2 independent review and merge**.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
 at `9d83bb2` on 2026-10-14.
 P08-B2 merged through [PR #42](https://github.com/nantes-rfli/paclo/pull/42)
@@ -306,7 +306,8 @@ Final evidence-head checks are maintained on the PR. No release or merge here.
 
 ## P08-D2: NULL/LOOP decoding
 
-Status: **in-progress** on [PR #46](https://github.com/nantes-rfli/paclo/pull/46).
+Status: **in-progress** solely for independent review/merge on
+[PR #46](https://github.com/nantes-rfli/paclo/pull/46).
 Probe-only `9e36c04` passed all 12 CI jobs on
 [run 38577395767](https://github.com/nantes-rfli/paclo/actions/runs/38577395767)
 before decoder edits. Linux x64/macOS ARM64/Linux ARM64 all return the stored
@@ -319,8 +320,11 @@ implemented, with distinct unknown-AF/version mismatch diagnostics, unchanged
 arrays and IP/L4/extension/analysis contracts. Local 428 tests, 10 JUnit, 47
 fixtures, 500 new property cases, 28 executable docs, Java quality and isolated
 JAR consumer pass. Final controlled comparisons retain negative Flow medians,
-unchanged allocations and unchanged performance gates. Implementation CI and
-independent review remain; no merge/release or unrelated issue work.
+unchanged allocations and unchanged performance gates. Implementation `93e5cde`
+passed all 12 jobs on [CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137),
+including Linux x64, macOS ARM64 and Linux ARM64. Final evidence-head checks
+are maintained on the PR. Independent review/merge remains; no release, merge
+or unrelated issue work was performed.
 The completed native prerequisite establishes unchanged pseudoheaders; NULL
 uses unique known AF interpretation in either order, LOOP strictly big endian.
 Unmeasured OS mappings, live/NIC validation, PCAPNG metadata/writing, exact

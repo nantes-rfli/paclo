@@ -111,3 +111,9 @@ Final `bash dev/script/codex.sh perf`: **573.5 ms**, unchanged 1000 ms warning /
 1200 ms failure budgets. The earlier source passed at 732.1 ms; both observations
 are retained, not treated as a causal speedup. Native platform CI and its existing
 quick scenarios are separate observations, recorded in the work log and PR.
+
+Implementation `93e5cde` [CI run 38582258137](https://github.com/nantes-rfli/paclo/actions/runs/38582258137)
+passed all 12 jobs, including the three native environments, 28 docs and all 27
+existing quick performance scenarios. Its unchanged gate measured **501.8 ms**
+on Linux x64. CI and local times are separate observations, not a causal speedup.
+Final evidence-head checks are maintained on PR #46.
