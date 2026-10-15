@@ -133,12 +133,18 @@
   (-request-stop! [_ reason]
     (when (compare-and-set! stop-reason nil reason)
       (swap! state #(if (= :running %) :stopping %)))
-    (when-not @handle-closed?
-      (try
-        (pcap/breakloop! handle)
-        (catch Throwable error
-          (when-let [on-error (:on-error opts)]
-            (try (on-error error) (catch Throwable _))))))
+    ;; Serialize native break/close, including the closed check. A stop caller
+    ;; must never use a handle that the producer has just freed. Notify user
+    ;; code outside the lock so callbacks cannot hold up native cleanup.
+    (when-let [error
+               (locking handle-closed?
+                 (when-not @handle-closed?
+                   (try
+                     (pcap/breakloop! handle)
+                     nil
+                     (catch Throwable error error))))]
+      (when-let [on-error (:on-error opts)]
+        (try (on-error error) (catch Throwable _))))
     nil)
 
   (-snapshot [_]
@@ -175,6 +181,9 @@
           (reset! failure error)
           (reset! state :failed)
           (throw error))))
+    ;; A timed offer already in flight when the first clear ran may have
+    ;; filled the freed slot. Once the producer exits no new offer can race.
+    (.clear queue)
     nil)
 
   Closeable
@@ -192,8 +201,10 @@
 
 (defn- close-handle-once!
   [^ManagedCapture capture]
-  (when (compare-and-set! (.-handle-closed? capture) false true)
-    (pcap/close! (.-handle capture))))
+  (let [handle-closed? (.-handle-closed? capture)]
+    (locking handle-closed?
+      (when (compare-and-set! handle-closed? false true)
+        (pcap/close! (.-handle capture))))))
 
 (defn- enqueue!
   [^ManagedCapture capture packet]

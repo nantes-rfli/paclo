@@ -23,14 +23,15 @@ For installation and CLI entry examples, start from `README.md`.
 
 ## Quick start (offline)
 
+<!-- paclo-doc-test: usage-offline-prefix -->
+
 ```clojure
 (require '[paclo.core :as core])
 
-(->> (core/packets {:path "test/resources/dns-sample.pcap"
-                    :decode? true})
-     (map #(select-keys % [:caplen :decoded :decode-error]))
-     (take 2)
-     doall)
+(with-open [capture (core/start-capture
+                     {:path "test/resources/dns-sample.pcap" :decode? true})]
+  (into [] (comp (take 2) (map #(select-keys % [:caplen :decoded :decode-error])))
+        (core/capture-packets capture)))
 ```
 
 ## Quick start (live capture)
@@ -59,16 +60,40 @@ live capture may require OS permissions.
 
 | Need | Use | Ownership and termination |
 | --- | --- | --- |
-| Explore a finite capture lazily | `core/packets` | A lazy sequence; source limits and EOF end the producer |
+| Fully consume a finite capture lazily | `core/packets` | Consume through termination; a full queue can prevent source limits and EOF |
 | Accumulate or stop as soon as a reducer decides | `core/reduce-packets` or `core/reduce-packets-report` | Synchronous; `reduced` stops and closes the source |
 | Cancel externally or inspect running statistics | `core/start-capture` + `core/capture-packets` | One consumer; close the capture with `with-open` |
 | Feed independent consumers | `stream/fan-out` + `stream/branch` | Own capture, fan-out, and every acquired branch; configure bounded buffers |
 
-`(take n (core/packets ...))` only stops consuming the lazy sequence. It
-does **not** explicitly stop the underlying producer, which may continue
-until a configured limit, time limit, or EOF. For predictable early cleanup,
-prefer synchronous `reduced` or an explicitly closed managed capture.
-Do not let a managed packet sequence escape its `with-open` scope.
+### Lazy capture lifetime
+
+`core/packets` starts a background producer and returns a lazy sequence with
+no close/cancel operation. `take`, `first`, a reducing `:xform`, a consumer
+exception, or dropping the sequence reference does **not** cancel that producer.
+This applies to offline files as well as devices. Lazy transformation can read
+ahead; the number of delivered values does not identify the producer position.
+
+With `:queue-mode :blocking`, if the remaining packets exceed the free queue
+slots, the producer waits in a packet queue `put` and keeps its native handle.
+`:max-time-ms`, `:idle-max-ms`, `:max` and `:stop?` are checked by the read loop;
+they cannot interrupt that wait. A predicate changed from another thread cannot
+rescue it. Final queue callbacks also wait for producer termination. Bounded
+queue memory does not imply bounded resource lifetime.
+
+Paclo cannot distinguish an abandoned sequence from a slow or paused consumer.
+Automatic timeout/drop/GC cleanup would change lossless lazy delivery or provide
+no deterministic guarantee. This compatibility limitation is documented by
+[Issue #40](https://github.com/nantes-rfli/paclo/issues/40) and its
+[offline investigation](../dev/work-log.md#issue-40-lazy-capture-lifecycle-investigation).
+The lazy API retains its existing behavior.
+
+For predictable early cleanup, use synchronous `reduce-packets` or
+`reduce-packets-report` with `reduced` (including a transducer such as `take`),
+or own `start-capture` with `with-open` as in the quick start. Materialize the
+desired result inside that scope; do not return a lazy managed packet stream.
+Close also runs when consumer code throws. Do not use an unbounded queue,
+background draining, or `:dropping` as cancellation: dropping is explicitly
+lossy and still runs the producer until its source stop condition.
 
 ## Composable packet transformations
 
@@ -189,7 +214,14 @@ Another thread may request shutdown:
 
 `stop-capture!` is asynchronous and idempotent. Closing the handle waits for
 the producer and releases libpcap resources. Closing abandons values that
-remain in the queue.
+remain in the queue, including an offer already in flight at the stop request.
+Stop alone unblocks a saturated producer and retains queued values for draining;
+always close the handle to end its ownership scope. Concurrent stop/close calls
+serialize native break/close so no stop call uses an already freed handle.
+Close waits up to 5000 ms for producer completion; a timeout throws
+`"managed capture did not stop before close timeout"` and is not confirmation of
+native release. Callbacks and native reads must return for producer cleanup to
+finish; time limits do not forcibly interrupt arbitrary user callbacks.
 
 `capture-stats` returns a schema-versioned data map:
 
@@ -488,9 +520,9 @@ not hide the original setup/read cause. Source-open errors stay synchronous in
 `:pass`, as do managed/reduction setup errors. Legacy lazy post-open BPF/DLT/ready
 failures follow its background error policy. Lazy error/completion signaling
 cannot block behind a full queue, but
-abandoning lazy packet delivery while the producer is blocked remains
-[Issue #40](https://github.com/nantes-rfli/paclo/issues/40); use `with-open` managed
-capture when consuming only a prefix.
+abandoning lazy packet delivery while the producer is blocked has the
+[lazy capture lifetime](#lazy-capture-lifetime) limitation; use `with-open`
+managed capture when consuming only a prefix.
 
 - Managed capture startup errors are thrown synchronously by `start-capture`.
 - Managed background errors set state to `:failed`, appear as data in

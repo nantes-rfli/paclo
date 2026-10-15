@@ -416,6 +416,12 @@ statistics. Packet diagnostics are the primary record; reducers can collect them
   - consuming only `(take n ...)` does **not** explicitly cancel the
     background producer or close its source; use synchronous reduction or a
     managed capture for predictable early cleanup
+  - a full blocking queue can keep the producer and native handle alive
+    indefinitely after abandonment, including with offline input; count/time/
+    idle/predicate limits cannot interrupt a blocked packet enqueue
+  - consumer exceptions and reducing `:xform` do not cancel lazy capture either;
+    there is no supported close operation on this sequence. Dropping permits
+    packet loss and is not cancellation. See [lifetime and alternatives](usage.md#lazy-capture-lifetime)
 - Errors:
   - throws `ex-info` for invalid `:filter` type
   - libpcap open/filter/capture errors may propagate
@@ -461,9 +467,9 @@ continue to describe packet transformation failures separately.
   cause; failed-open/synchronous cleanup exceptions are attached as suppressed.
 - Lazy termination/error notification does not require a queue slot. Queued
   packets can drain before terminal failure. Abandoning a lazy sequence while
-  its producer is still blocked delivering packets remains the separate
-  [Issue #40](https://github.com/nantes-rfli/paclo/issues/40); use managed capture
-  with `with-open` for deterministic early cleanup.
+  its producer is still blocked delivering packets has the compatibility
+  limitation investigated in [Issue #40](https://github.com/nantes-rfli/paclo/issues/40);
+  use managed capture with `with-open` for deterministic early cleanup.
 
 `reduced`, `:stop?`, count/time limits and cancellation remain normal stops.
 A limit can stop before a later corrupt record is read; this does not validate
@@ -535,10 +541,17 @@ configured stop applies.
 - `stop-capture!`:
   - asynchronously requests capture termination
   - is idempotent and safe to call from another thread
+  - unblocks a saturated producer without further consumption; queued packets
+    remain available for draining, with the existing background error policy
 - closing the handle:
   - requests termination, abandons queued values, waits for the producer, and
     releases the libpcap handle
-  - is idempotent
+  - is idempotent; concurrent stop/close serialize native break/close operations
+    and close the source once
+  - waits up to 5000 ms for producer completion, then throws
+    `"managed capture did not stop before close timeout"` on timeout; this is
+    not confirmation of release. Native reads and user callbacks must return
+    for cleanup to finish
 - `capture-stats`:
   - returns a data-only schema-versioned snapshot during execution or after
     close

@@ -37,6 +37,10 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "usage-offline-prefix": Check(
+        "Usage safely closed offline prefix", "clojure",
+        '(and (= 2 (count result)) (every? :decoded result))',
+    ),
     "pcapng-preserving-writer": Check(
         "PCAPNG preserving writer", "clojure",
         '(and (= 3 (:packets result)) (= :complete (get-in result [:report :status])) '

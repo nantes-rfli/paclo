@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Issue #40 investigation
+
+- Managed capture serializes native break/close during concurrent stop/close,
+  preventing a stop caller from using a freed handle. Close clears any packet
+  offered during shutdown after the producer has finished.
+- Documented the reproduced legacy lazy capture limitation: abandoning a full
+  blocking queue can retain its producer/native source indefinitely, past
+  count/time/predicate limits. No automatic abandonment detection or lazy API
+  behavior change is introduced. Offline/live prefix examples use `with-open`
+  managed capture; synchronous `reduced` is also a deterministic alternative.
+
 ### Added — P08-E3
 
 - `paclo.pcapng/write-pcapng!` synchronously writes ordered SHB/IDB/EPB/SPB and

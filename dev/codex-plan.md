@@ -39,14 +39,15 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
 | P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | done |
 | P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | done |
-| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | in-progress |
+| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | done |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E3 independent review of PR #53**.
+Default next task: **Issue #40 independent lifecycle investigation and review**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
-E3 starts from that latest main.
+E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
+Issue #40 starts independently from that latest main. P09/P10 remain blocked.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
 at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
@@ -389,7 +390,7 @@ No writer, live metadata, issue #40 change or performance work in this item.
 
 ## P08-E3: PCAPNG writer
 
-Status: **in-progress** for independent review on
+Status: **done**, independently reviewed and merged as `b83bd31` through
 [PR #53](https://github.com/nantes-rfli/paclo/pull/53). Implementation is complete
 from latest main `8de22e0`, after E2 merge, following the reviewed
 [E3 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e3-implementation-plan-and-acceptance):
@@ -411,10 +412,31 @@ Final review added explicit SPB inferred-caplen validation, covering payload
 lengths sharing a four-byte padding cell without repair in every mode.
 Corrected implementation `249acdc` passes all 12 unchanged CI jobs, including
 Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Implementation/acceptance is
-complete; independent review remains. Actual commands and CI evidence are in
+complete; independent review and merge are complete. Actual commands and CI evidence are in
 the work log.
 Classic write-pcap! is unchanged. No byte-identical reproduction, append/stream
 output, P09/P10, release or merge authority.
+
+## Stabilization: Issue #40 lazy capture lifetime
+
+Status: **in-progress**, independent of P09/P10, from E3 main `b83bd31`.
+Real offline PCAP reproduction uses 128 packets and a capacity-one queue:
+after a one-packet prefix, two enqueues complete and the third blocks in `put`.
+The producer/native source remain alive past the time limit and a changed stop
+predicate. Resuming consumption releases the producer. Dropping completes with
+explicit loss; ordinary completion and terminal errors do not need a queue slot.
+Retain legacy lazy semantics: abandonment cannot be distinguished from a paused
+consumer. Document explicit ownership through synchronous `reduced` or managed
+`with-open`; leave Issue closure to independent review, without `Fixes #40`.
+The managed alternative also had a deterministically reproduced native
+break/close race. Serialize those operations and clear raced offers after join.
+Regression tests cover native cleanup, early/normal/exceptional termination,
+blocking/dropping, async stop and concurrent stop/close. Full local/CI evidence
+is recorded in [the work log](work-log.md#issue-40-lazy-capture-lifecycle-investigation).
+Local check (477 tests / 17817 assertions), lint, Java quality, 34 runnable
+examples and the unchanged performance gate (613.6 ms / 1200 ms) pass.
+Next unfinished item: required CI and independent review of Issue #40.
+Do not start P09/P10 or unrelated performance issues automatically.
 
 ## P08-P10: Evidence-driven expansion
 

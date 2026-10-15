@@ -2744,3 +2744,135 @@ PR #53 is ready for independent review and remains **unmerged**. This final
 follow-up records evidence/plan only; production/tests remain `249acdc`.
 No outstanding implementation checks. Next is independent review, with no
 release, live/NIC/other-OS claim, P09/P10 or unrelated issue work.
+
+## Issue #40 lazy capture lifecycle investigation
+
+2026-10-15. Independent stabilization work starts from latest main `b83bd31`
+(P08-E3 merged through PR #53); supplied checkout was clean. Branch:
+`codex/issue-40-lazy-capture`. P08-E3 status now reflects the completed review
+and merge. No P09/P10, unrelated performance work, versions or gate changes.
+Read AGENTS.md, CONTRIBUTING.md, the v1 API contract, accepted plan, Issue #40
+and lazy/managed/read-loop implementations before editing behavior.
+
+### Reproduction and observed ownership
+
+The new `paclo.capture-lifecycle-test` creates a real Classic PCAP containing
+128 ordered 64-byte Ethernet/IPv4/UDP packets, timestamp seconds 1 and usec
+0..127. It uses public `core/packets`, capacity one, blocking delivery, max
+1000, and a 1000 ms time limit. Instrumentation delegates to the actual native
+read loop and `pcap_close`, records completed/attempted handler calls, observes
+the producer Future/Thread stack, and always interrupts/awaits any stranded
+test producer before removing probes. No production cancellation API is inferred
+from that test-only Future interception.
+
+After `(take 1 packets)` returns timestamp 0, exactly two enqueues have returned
+and the third is parked in `LinkedBlockingQueue.put`: one packet delivered,
+one queued, one awaiting space. The producer is not done, native close count
+is zero, and the final queue callback has not run. After changing the stop
+predicate and waiting 1100 ms, the same conditions hold. The read loop checks
+count/time/idle/predicate limits only outside the handler; it cannot run them
+while blocked in put. Resuming the same sequence drains timestamps 1 and 2,
+lets the predicate run, finishes the producer, and calls real native close
+exactly once. Final counters are capacity/max-depth 1, enqueued 3, dropped 0.
+Queue occupancy here is proven by completed enqueues minus consumed packets
+plus the parked put stack, rather than exposing an internal queue as API.
+
+The no-consumer dropping case terminates and closes once: 1 enqueued, 127
+dropped, max-depth 1. Blocking full consumption preserves all 128 timestamps
+in order and closes once with zero drops. If the source finishes before a
+blocked packet enqueue (for example its output fits available slots), even a
+full queue does not prevent termination. Existing terminal signaling uses a
+separate atom; Issue #40's original blocking-sentinel description is historical
+and was already addressed by P08-B1. Existing full-queue read-error tests cover
+both throw/pass and callback failure without requiring any terminal queue slot.
+
+### Decision and managed cleanup correction
+
+A plain lazy sequence has no supported close/cancel operation and cannot report
+whether the caller abandoned it or paused it. Preserve the existing lossless
+blocking behavior. Do not add timeout-based dropping, GC cleanup, an unbounded
+queue, a drain task or an implicit API change. Lazy `take`, reducing xforms and
+consumer exceptions do not cancel capture. Dropping remains lossy delivery,
+not cancellation. Document these limits for files and devices, and materialize
+prefixes inside managed `with-open` or use synchronous `reduced`. README and
+usage offline prefix examples now demonstrate actual explicit ownership.
+Leave Issue #40 open for independent review of accepting this limitation;
+the PR intentionally does not contain a closing keyword.
+
+Testing the supported managed alternative exposed a separate concrete race
+within the same lifecycle boundary: one thread could enter native breakloop,
+then the producer could call native close before breakloop returned. A gated
+fake-native regression on the initial implementation failed both assertions:
+close completed while breakloop was held, and close observed breakloop active
+(`focused-before-fix.log`: 4 tests / 70 assertions, 2 failures, zero errors).
+The fixture-based abandonment assertions already passed in that run.
+
+Serialize managed break/close with the existing handle-closed atom as the
+monitor, including the closed check. Invoke error callbacks outside that lock.
+No read-loop or packet hot-path lock is added. Clear queued values again after
+producer completion because a timed offer already in flight can refill the slot
+freed by close's initial clear. Preserve first stop reason/error, error messages,
+background wrapper/cause, single-consumer ownership and close timeout. Stop
+alone preserves queued values; close abandons them and waits. Timeout does not
+confirm native release; blocking user callbacks/native calls must return.
+
+### Verification
+
+- `bash dev/script/codex.sh doctor`: exit 0; macOS x86_64, Temurin JDK
+  21.0.12.1, CLI 1.12.5.1654, Clojure library 1.12.1, native libpcap 1.10.1;
+  real four-packet/438-byte offline read passes; all optional lint tools present.
+- First corrected focused run (before additional regression cases/docstrings):
+  `bash dev/script/codex.sh test -n paclo.capture-lifecycle-test -n
+  paclo.managed-capture-test -n paclo.pcap-loop-test -n
+  paclo.capture-format-test`: exit 0, 57 tests / 1709 assertions. Full native
+  fixture corpus and queue-saturated error tests pass.
+- Final focused/full check, lint, perf, documentation and GitHub Actions results
+  are pending below. Local logs are ignored under `target/issue40/`.
+
+Live capture/NIC behavior is not validated by these offline tests. Platform
+claims will be recorded only from actual CI; no performance gain is claimed.
+Next unfinished item: finish required checks and independent PR review; do not
+merge before review or start P09/P10.
+
+### Final local validation
+
+- Final `bash dev/script/codex.sh test -n paclo.capture-lifecycle-test -n
+  paclo.managed-capture-test -n paclo.pcap-loop-test -n
+  paclo.capture-format-test`: exit 0, **59 tests / 1735 assertions**.
+- Final `bash dev/script/codex.sh check`: exit 0, **10 JUnit tests**, **477
+  Clojure tests / 17817 assertions**, zero failures/errors, offline smoke
+  passes. This supersedes the earlier 475-test run: the final run includes
+  source-output-fits-queue and stop-retains-queued-prefix tests, and the native
+  race test observes the producer blocked on the lifecycle monitor rather than
+  guessing a scheduling delay.
+- `bash dev/script/codex.sh lint`: final exit 0; kondo zero warnings/errors,
+  all **104 Eastwood namespaces**, 446 informational warnings, **zero
+  exceptions**, clean-ns/format dry runs clean, Markdown 37 files / zero errors.
+  Three added informational warnings are test `with-open` reflection; no
+  production warning or suppressed linter. The first sandbox run reached
+  Markdown then failed npm DNS (`ENOTFOUND registry.npmjs.org`); rerunning the
+  identical wrapper with authorized external access succeeded. This was an
+  environment limitation, not a passing initial lint run or changed gate.
+- `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`,
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`: all exit 0; Java coverage
+  **43.8% / 25%**. No Java source or native library dependency changed.
+- `python3 -m unittest discover -s dev/script -p
+  'test_verify_doc_examples.py'`: 15 tests pass.
+  `python3 dev/script/verify_doc_examples.py`: exit 0, **34 executable
+  documentation examples** pass, including both explicitly closed prefix
+  examples. `python3 dev/script/verify_doc_links.py` and `git diff --check`
+  pass. The unchanged link-parser unit suite initially failed one case with
+  macOS's symlinked default temp path (`outside repository` for local anchors);
+  `TMPDIR=/private/tmp python3 -m unittest discover -s dev/script -p
+  'test_verify_doc_links.py'` uses the canonical writable path and passes all
+  nine cases. No checker behavior or CI configuration was changed.
+
+Performance and independent PR/CI evidence follow. Only offline native
+ownership has been validated locally; live/NIC capture is still unvalidated.
+
+After the other validation JVMs exited, `bash dev/script/codex.sh perf` passes
+at **613.6 ms**, below unchanged warn 1000 / fail 1200. Input is the existing
+50,000-packet / 74-byte synthesized decode gate, local macOS x86_64 / JDK21 /
+Clojure 1.12.1 as above. This is a gate observation, not a throughput improvement
+or a comparison with another platform. The shutdown monitor is outside the
+packet hot path. CI performance measurements remain independent.

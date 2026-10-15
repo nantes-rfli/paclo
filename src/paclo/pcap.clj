@@ -1073,7 +1073,10 @@
    - stop hook:
        :stop? (fn [pkt] boolean)    ; stop immediately when true (breakloop!)
 
-   Returns a lazy seq of packet maps."
+   Returns a lazy seq of packet maps with no close/cancel operation. Abandoning
+   a full blocking queue can retain the producer and native handle indefinitely;
+   count/time/predicate checks cannot interrupt a blocked packet put. Prefer
+   synchronous reduction or the public managed capture for early termination."
   [{:keys [device path filter snaplen promiscuous? timeout-ms
            buffer-size immediate?
            max max-time-ms idle-max-ms queue-cap queue-mode
