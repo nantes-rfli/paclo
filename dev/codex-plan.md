@@ -43,7 +43,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E3 implementation verification and independent PR review**.
+Default next task: **P08-E3 independent review of PR #53**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 starts from that latest main.
@@ -389,8 +389,9 @@ No writer, live metadata, issue #40 change or performance work in this item.
 
 ## P08-E3: PCAPNG writer
 
-Status: **in-progress** from latest main `8de22e0`, after E2 merge.
-Implementation follows the reviewed
+Status: **in-progress** for independent review on
+[PR #53](https://github.com/nantes-rfli/paclo/pull/53). Implementation and acceptance
+checks are complete from latest main `8de22e0`, after E2 merge, following the reviewed
 [E3 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e3-implementation-plan-and-acceptance):
 ordered encoding, preserve/lossy/author policies, exact timestamp validation,
 unknown/no-copy restrictions, semantic round trips and atomic path publication.
@@ -402,7 +403,12 @@ A synchronous internal terminal observer detects incomplete Paclo sources even
 inside eduction. Shared internal format validation retains E2 option rules.
 Real-corpus semantic and independent Python wire comparisons, failure injection,
 48 MiB heap streaming and ownership regressions accompany executable examples.
-Verification/CI/independent PR review remain pending; details in the work log.
+Final local check passes 468 tests / 17628 assertions plus ten JUnit tests;
+focused Writer tests pass 19 / 558, full lint analyzes all 103 namespaces with
+zero exceptions, 33 runnable examples/package/consumer pass, and existing perf
+gate is 460.3 ms. Implementation `c44bf5b` passes all 12 unchanged CI jobs,
+including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Independent review
+remains; actual commands and CI evidence are in the work log.
 Classic write-pcap! is unchanged. No byte-identical reproduction, append/stream
 output, P09/P10, release or merge authority.
 

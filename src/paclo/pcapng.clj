@@ -173,7 +173,7 @@
 
   (write-pcapng! events path) defaults to :mode :preserve. Options accept
   :mode :preserve/:lossy/:author, :drop #{:comments :unknown-options
-  :noncopyable-options :opaque-blocks} (lossy only), :context-changed? boolean,
+  :noncopyable-options :custom-options :opaque-blocks} (lossy only), :context-changed? boolean,
   and the same positive resource ceilings as open-source.
 
   Exact ticks and descriptor options must agree with derived fields. Author

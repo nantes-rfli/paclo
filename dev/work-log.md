@@ -2614,5 +2614,62 @@ No dependency, version or CI-gate changes.
   authoring. Markdown lint (37 files) passes after correcting three extra blank
   lines. Eastwood initially analyzes all 103 namespaces with 441 informational
   warnings and zero exceptions; final lint runs on the final tests/encoder.
-- Full check, lint/Eastwood, 33 executable examples, performance, package/consumer
-  and PR/12-job CI verification are in progress at this checkpoint.
+
+### Final local validation and implementation CI
+
+Implementation `c44bf5b` created independent [PR #53](https://github.com/nantes-rfli/paclo/pull/53),
+initially draft during final gates. All implementation/acceptance work is complete;
+PR remains unmerged for independent review. This evidence follow-up updates only
+plan/log and the writer docstring's complete drop-category list; behavior/tests
+remain identical to `c44bf5b`.
+
+| Command | Final result |
+| --- | --- |
+| `bash dev/script/codex.sh check` | Exit 0; ten JUnit tests; 468 Clojure tests / 17628 assertions, zero failures/errors; offline smoke passes |
+| `bash dev/script/codex.sh test -n paclo.pcapng-writer-test` | Exit 0; 19 tests / 558 assertions, including 48 MiB Reader-to-Writer probe |
+| `bash dev/script/codex.sh lint` | Exit 0; kondo clean, all 103 Eastwood namespaces, 441 informational warnings / zero exceptions, clean namespace/format dry runs, Markdown 37 files / zero errors |
+| `python3 -B dev/script/test_eastwood_runner.py` | Four probes pass; deliberate failed analysis exits 1 and reports one unanalyzed namespace |
+| `python3 dev/script/verify_doc_examples.py` | All 33 runnable examples pass |
+| Documentation parser tests | 15 tests pass |
+| `TMPDIR=/private/tmp python3 -B -m unittest discover -s dev/script -p 'test_verify_doc_links.py'` | Nine tests pass; canonical temp directory avoids macOS /var symlink alias in the unchanged test fixture |
+| `python3 -B dev/script/verify_doc_links.py` / `git diff --check` | Pass |
+| `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`, `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate` | Pass; Java line coverage 43.8% against unchanged 25% gate |
+| `bash dev/script/codex.sh perf` | Exit 0; 460.3 ms, below unchanged 1000 warn / 1200 fail; competing validation JVMs finished first |
+| `bash dev/script/codex.sh package` | Exit 0; JAR contains public PCAPNG/core namespaces, writer/cursor and compiled native bindings |
+| Independent JAR consumer `clojure -Srepro -M consumer.clj` | Exit 0; only local/root packaged JAR in /private/tmp/paclo-e3-consumer-c44bf5b; resource URLs use jar protocol; three rich PCAPNG packets retain exact time/absence, four Classic packets round-trip |
+| cljdoc dry-run command from CI | Exit 0; :cljdoc-loaded |
+
+Initial optional link-checker unit test used macOS's aliased /var temp path and
+failed its existing fragment-only path fixture; the canonical TMPDIR command
+above passes, with no checker changes. The actual repository link check passes
+with both environments. Initial independent-consumer harness incorrectly assumed
+Classic write-pcap! returns a count; corrected the harness to verify actual
+read-back count, with no production change. Markdown's three extra-blank-line
+findings were corrected before commit. No outstanding local failure.
+The commit hook's documented SKIP_TESTS/SKIP_FMT avoid duplicate checks and
+whole-tree formatting after equivalent wrapper checks passed; hook Markdown and
+kondo still ran successfully. No hook or gate was changed.
+
+[CI run 38688045251](https://github.com/nantes-rfli/paclo/actions/runs/38688045251)
+on `c44bf5b` completes with **all 12 jobs successful**: build-checks,
+documentation-checks, three performance-measurement shards, performance-results,
+two compatibility jobs, arm64-monitor, eastwood-lint, coverage and required build.
+Actual platform logs show:
+
+| Platform | Suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK21 | 468 tests / 17634 assertions | Zero failures/errors |
+| macOS ARM64 / JDK17 | 468 / 17628 | Zero failures/errors |
+| Linux ARM64 / JDK21 | 468 / 17634 | Zero failures/errors |
+
+Each includes Writer ownership/loss/atomic/no-clobber/48 MiB heap tests and all
+existing Reader/Classic regressions. The six extra Linux assertions remain the
+existing /dev/full checks. CI Eastwood analyzes all 103 namespaces with 441
+informational warnings and zero exceptions. CI Java coverage is 43.8% / 25%;
+existing decode performance gate passes at 562.6 ms / 1200 ms. All documentation
+steps, including runnable examples and cljdoc, succeed. All 27 performance smoke
+scenarios are retained across the three shards and results aggregate. No CI
+configuration or quality/performance thresholds changed.
+
+Next: independent review of PR #53. No merge, publication, live/NIC validation,
+other-OS claims, byte-for-byte reproduction, issue repairs, P09/P10 or release.
