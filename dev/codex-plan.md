@@ -43,7 +43,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E2 correction CI (#51/#52), then independent re-review of PR #50**.
+Default next task: **P08-E2 independent re-review of PR #50 after #51/#52 follow-up**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 starts from that main; E3 waits for E2.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
@@ -376,8 +376,9 @@ macOS ARM64 and Linux ARM64, but independent review requested
 and [packet prefix preallocation enforcement (#52)](https://github.com/nantes-rfli/paclo/issues/52).
 Both follow-ups are implemented with positive address-option coverage and packet
 prefix validation; 18 focused tests / 1323 assertions, 449 full tests / 17070
-assertions and local quality/doc/performance gates pass. Unchanged platform CI
-and independent re-review remain pending; merge remains pending. Implementation follows the reviewed
+assertions and local quality/doc/performance gates pass. Correction `c0353c5`
+passes all 12 unchanged CI jobs on Linux x64, macOS ARM64 and Linux ARM64.
+Independent re-review remains pending; no merge. Implementation follows the reviewed
 [E2 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e2-implementation-plan-and-acceptance):
 checked file cursor, SHB/IDB/EPB/SPB, ordered owned option/opaque data, exact
 integer time, Closeable IReduceInit source and bounded status. Existing native

@@ -2517,3 +2517,31 @@ independent reviewer to assess.
 The commit hook's documented skip flags are used only for duplicate checks and
 whole-repository auto-formatting after these equivalent checks have passed;
 the local `clj`/rlwrap limitation recorded above remains unchanged. No hook edits.
+
+### Correction CI and re-review handoff
+
+Published correction `c0353c5` on the existing PR #50.
+[CI run 38684190442](https://github.com/nantes-rfli/paclo/actions/runs/38684190442)
+completed with **all 12 jobs successful**, including required build aggregate,
+unchanged Eastwood/Java quality/package/coverage/documentation gates and every
+existing performance measurement/results job. Actual platform logs confirm:
+
+| Platform | Clojure suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK 21 | 449 tests / 17076 assertions | Zero failures/errors |
+| macOS ARM64 / JDK 17 | 449 / 17070 | Zero failures/errors |
+| Linux ARM64 / JDK 21 | 449 / 17076 | Zero failures/errors |
+
+Each suite includes all new prefix/address regressions and the existing 48 MiB
+heap, ownership and timestamp/property tests. The six Linux-only assertions are
+unchanged /dev/full checks. CI Eastwood analyzes all 100 namespaces with zero
+exceptions (383 informational warnings); Java line coverage remains 43.8% against
+the unchanged 25% threshold; the existing performance gate passes at 810.0 ms
+against warn 1000 / fail 1200; all 31 executable documentation examples pass.
+
+PR description records the #51 baseline finding and positive coverage separately
+from the #52 production correction, plus current verification. Both inline
+threads and tracking issues are left for independent reviewer confirmation.
+PR stays open for independent re-review; no merge was performed.
+The subsequent commit updates only this evidence/plan; production and tests
+remain exactly `c0353c5`. Next: independent re-review of PR #50.
