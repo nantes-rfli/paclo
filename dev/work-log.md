@@ -2694,3 +2694,53 @@ snaplen SPBs. Invalid cases assert no destination/temp. Focused Writer suite
 passes **20 tests / 627 assertions**. Full check and lint are rerunning; the
 corrected implementation/platform CI is pending. Classic/decode, dependencies,
 versions and CI gates remain unchanged.
+
+### SPB correction final verification and review handoff
+
+Correction `249acdc` completes every required gate. The final source/test change
+is the explicit SPB payload check and its padding-cell regressions. No further
+production changes follow this commit.
+
+- `bash dev/script/codex.sh test -n paclo.pcapng-writer-test`: exit 0, **20 tests /
+  627 assertions**, including all original round-trip/loss/failure/heap cases.
+- `bash dev/script/codex.sh check`: exit 0, ten JUnit tests, **469 Clojure tests /
+  17697 assertions**, no failures/errors, offline smoke passes.
+- `bash dev/script/codex.sh lint`: exit 0; kondo clean, clean-ns/format dry runs
+  clean; all **103 Eastwood namespaces**, 443 informational warnings, **zero
+  exceptions**; Markdown 37 files / zero errors. The two additional warnings
+  are boxed arithmetic in the explicit SPB length check; no linter is disabled.
+- After validation JVMs exit, `bash dev/script/codex.sh perf`: exit 0,
+  **760.9 ms**, below unchanged warn 1000 / fail 1200. The earlier 460.3 ms
+  reading and CI measurements remain separate observations, not a comparison
+  or new Writer throughput claim.
+- `bash dev/script/codex.sh package`: exit 0. JAR contents include updated
+  writer source with the SPB check, core/public cursor namespaces and native
+  bindings. A fresh JAR-only `-Srepro` consumer in
+  `/private/tmp/paclo-e3-consumer-249acdc` passes rich exact/absence round-trip,
+  existing Classic four-packet round-trip and rejection/no-publication of the
+  padding-ambiguous invalid SPB. Only the packaged local/root dependency is used;
+  namespace resources use jar protocol and no checkout source/test path.
+- Repository link/diff checks pass. Fixture generators/oracles and the 48 MiB
+  probes run again in the full suite. Corrected CI runs all 33 runnable examples,
+  cljdoc and unchanged Java/coverage/performance gates.
+
+[Corrected CI run 38688916752](https://github.com/nantes-rfli/paclo/actions/runs/38688916752)
+for `249acdc` completes with **all 12 jobs successful**. Actual logs confirm:
+
+| Platform | Suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK21 | 469 tests / 17703 assertions | Zero failures/errors |
+| macOS ARM64 / JDK17 | 469 / 17697 | Zero failures/errors |
+| Linux ARM64 / JDK21 | 469 / 17703 | Zero failures/errors |
+
+Eastwood analyzes all 103 namespaces, with 443 informational warnings and zero
+exceptions; the dedicated runner negative probes also pass. Java coverage stays
+43.8% against 25%; existing CI decode gate is 617.4 ms against fail 1200. All 33
+executable examples and cljdoc pass. Three performance shards, all 27 scenarios,
+results aggregate, required build and coverage remain successful. No gate or
+threshold changes. Initial green CI is superseded by this corrected evidence.
+
+PR #53 is ready for independent review and remains **unmerged**. This final
+follow-up records evidence/plan only; production/tests remain `249acdc`.
+No outstanding implementation checks. Next is independent review, with no
+release, live/NIC/other-OS claim, P09/P10 or unrelated issue work.

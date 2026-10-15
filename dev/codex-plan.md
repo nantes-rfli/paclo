@@ -403,13 +403,16 @@ A synchronous internal terminal observer detects incomplete Paclo sources even
 inside eduction. Shared internal format validation retains E2 option rules.
 Real-corpus semantic and independent Python wire comparisons, failure injection,
 48 MiB heap streaming and ownership regressions accompany executable examples.
-Initial local/CI gates passed on `c44bf5b`, including all 12 unchanged jobs.
-Final review identified SPB payload lengths that disagree with inferred caplen
-but share the same padded extent. The writer now explicitly checks exact SPB
-caplen before publication; 20 focused tests / 627 assertions pass, including
-padding-cell regressions in all three modes. Full/static/platform revalidation
-is in progress. The earlier performance gate is 460.3 ms; Classic/decode paths
-are unchanged. Actual commands and CI evidence are in the work log.
+Final local check passes 469 tests / 17697 assertions plus ten JUnit tests;
+focused Writer tests pass 20 / 627. Full lint analyzes all 103 namespaces with
+zero exceptions. All 33 runnable examples, fixtures, package and independent
+JAR consumer pass. The unchanged performance gate passes at 760.9 ms.
+Final review added explicit SPB inferred-caplen validation, covering payload
+lengths sharing a four-byte padding cell without repair in every mode.
+Corrected implementation `249acdc` passes all 12 unchanged CI jobs, including
+Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Implementation/acceptance is
+complete; independent review remains. Actual commands and CI evidence are in
+the work log.
 Classic write-pcap! is unchanged. No byte-identical reproduction, append/stream
 output, P09/P10, release or merge authority.
 
