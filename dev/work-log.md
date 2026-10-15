@@ -2915,3 +2915,174 @@ Investigation and supported cleanup correction are complete. Next is independent
 review of PR #54, including whether Issue #40 can close as a documented
 compatibility limitation. No merge, release, P09/P10, unrelated performance
 implementation, live capture or NIC validation is performed.
+
+## Issue #34 — exact flow aggregation performance (2026-10-15)
+
+Start: supplied checkout clean; doctor succeeds (JDK 21/Clojure 1.12.1, real
+4-packet libpcap read). Read AGENTS, CONTRIBUTING, API contract, accepted plan,
+Issue #34, PR #33, P06 evidence and flow/project/perf/test sources. PR #54 is
+merged as `e069657824ff2cdaf61af1210073b194bebff805`; fetched main and created
+`codex/issue-34-flow-performance` in the supplied checkout, without a worktree.
+No unrelated work, dependency/version/gate changes or issue #37/#44/P09/P10 work.
+
+Original `clojure -M:dev -m paclo.dev.flow-perf 7711170` succeeds. Current main
+IPv4 aggregation: 1052500 / 947289 pps at 10 flows, 640530 / 663379 at 10000,
+unidir/bidir; allocation 1662.1 / 1662.1 / 1938.6 / 1939.6 B/packet. Old unchecked
+CLI values remain background, not equivalent API evidence. Baseline source has
+not changed since P06; JIT/call shape/host variation precludes historical timing
+as the optimization baseline. Added paired runner with serial alternating
+same-JVM baseline/current measurements and separate retained-memory experiments.
+The unchanged-source control agrees on allocation; timing differs by a few %.
+
+Initial JFR allocation samples and portable Java stack sampler identify map
+hashing/equality, persistent updates, variadic assoc argument sequences and IPv6
+sequence traversal. The initial empty-configuration JFR recording had no ExecutionSample events;
+setting an explicit 10 ms period in the final runner yields 827 baseline / 615
+current samples. Attribution uses JFR hot methods plus perturbed stack sampling,
+while throughput experiments separately use ThreadMXBean CPU time. No CPU percentages are inferred
+from allocation weights. See [the analysis](issue-34-flow-performance.md).
+
+Candidate comparisons:
+
+- Binary bounds: microprobe improvement disappears in warmed aggregate allocation;
+  mixed throughput, rejected. Reusing six lookups by merging validation/key creation:
+  +3.8% unidir / -5.4% bidir initially, unchanged allocation, rejected.
+- Single-key persistent assoc: +8.6–14.5% initially, -304 B/packet; adopted.
+- Indexed IPv6 validation/comparison vs assoc-only: +4.2–14.8%, -352 B/packet
+  unidir / -432 bidir; adopted. Keep full validation, unsigned ordering, exact
+  arithmetic, limit/error behavior and all intermediate immutable state.
+- No mutable accumulator backend or fresh special-case state-map constructor:
+  snapshot/fork/metadata contracts make that a substantially different tradeoff.
+
+The first development control/candidate-A commands completed measurement rows
+but exited 1 because the new runner attempted to close a nil optional Recording.
+Fixed ownership by always owning a Recording; those exits are not passing checks.
+A temporary source-formatting parenthesis error was caught by kondo and fixed
+before performance/regression validation. No production behavior was accepted
+based on those failed invocations.
+
+Focused `bash dev/script/codex.sh test -n paclo.flow-test`: exit 0, 14 tests,
+115 assertions and the existing 650 property cases. New regressions cover
+immutable forks, EDN resume, completion identity, state/summary metadata and
+unknown entries, summary overflow including skips, exact counts after 2^100,
+BigInt bounds and reused reducer initialization. Existing IPv4/IPv6, lengths,
+cardinality, ranking, native fixture/fan-out/shared-byte tests remain intact.
+`git diff --check` and documentation links pass at this stage. Full paired
+repetitions and all required delivery gates follow below.
+
+Controlled final comparison: two independent serial JVMs complete successfully,
+100000 packets, ten warmups/nine alternating samples per implementation; all
+36 baseline/current scenario rows per repetition match exactly. Committed
+[raw data](issue-34-flow-measurements.edn) includes samples, input/flow/summary
+checks, GC, allocation, CPU, retained results, original/control/candidate data and
+final JFR/portable stack summaries. Measured production blob is
+`faec3910fe0efc81a088ed8a27aca2931b38f014` (before implementation commit).
+
+- Synthetic aggregate throughput improves **4.7–35.3% in every pair**, with lower
+  thread CPU; IPv4 allocation falls 304 B/packet, IPv6 624–848 B/packet. Independent
+  JVM absolute allocation differs even for baseline; compare within-JVM deltas.
+- Projected DNS/SLL2 replay improves in both repetitions. Raw/decode replay gains
+  are smaller. Native DNS unidir is +0.5%/+7.6%, bidir **-12.4%/+6.7%**: no repeatable
+  native end-to-end throughput gain is claimed. Native allocation falls 304
+  B/packet in both. Preserve negative CPU/wall samples, not just favorable ones.
+- Retained high-cardinality state remains ~190 B/flow; low cardinality ~198–206,
+  including ~5 B/flow first-scenario heap noise. No retained-memory reduction or
+  memory cap is established. GC generally falls with allocation, but there are
+  counterexamples in both count and milliseconds; no latency guarantee.
+- Final JFR records 53917/26275 allocation samples and 827/615 execution samples
+  (baseline/current). ArraySeq/vector-seq/RestFn allocations leave the dominant
+  list after the change; lookup, hashing, equality, persistent maps/HAMT copies
+  and exact boxed counters remain. JFR includes input setup/warmup; portable
+  sampling perturbs timing; neither is used for the unprofiled speed comparison.
+- Tiny fixture replay/native repeated DNS bytes are not a production trace or
+  live/NIC evidence. Linux/macOS ARM64 performance is unmeasured by these runs.
+
+Full `bash dev/script/codex.sh check`: exit 0; **JUnit 10/10, Clojure 480 tests /
+17858 assertions, smoke 4 real packets**. Includes 650 P06 property cases, new
+snapshot/exactness/IPv6 regressions, CLI, invalid/length/limit/overflow, capacity-one
+fan-out, cooked/Raw/NULL/LOOP and P06/P07/P08 composition. No test/gate excluded.
+`python3 dev/script/verify_doc_examples.py`: exit 0, **all 34 examples**.
+`python3 dev/script/verify_doc_links.py` and `git diff --check`: exit 0.
+Machine-readable evidence parses as EDN and an independent integrity probe checks
+two complete sets of 36 rows, nine samples/row, all equality/reachability flags,
+and 100000 seen packets/sample. Original fixture SHA-256 values are in the report.
+
+First full lint: kondo clean, all Eastwood analysis completes with zero exceptions;
+exit 1 at lsp format because the new measurement EDN required standard formatting.
+Applied the existing formatter to that file only and rerun the unchanged full
+lint command. No rule, root, exclusion, warning policy or threshold changed.
+Test-created Python bytecode caches were removed from the worktree.
+
+Second lint attempt passes Clojure analysis/format, then exits 1 because sandbox
+DNS cannot resolve `registry.npmjs.org` for the existing pinned markdownlint-cli2
+0.18.1 invocation (`ENOTFOUND`); npm cannot write its default log directory there.
+Rerun the identical `bash dev/script/codex.sh lint` with network-capable execution;
+this is an environment remediation, not a passing blocked check or gate change.
+A final `git fetch origin main` still reports baseline `e069657`.
+
+Final native/offline gate `bash dev/script/codex.sh perf`: exit 0, **896.7 ms**,
+unchanged warning/failure budgets **1000/1200 ms**. Ran separately from tests,
+lint and all paired benchmarks. `bash dev/script/codex.sh package`: exit 0,
+unchanged `paclo-1.3.0-SNAPSHOT.jar` version. JAR contains core/flow/project,
+window, PCAPNG source/writer; packaged flow bytes exactly match measured blob.
+
+Independent `/private/tmp/paclo-34-consumer-788lyb5g` has only a local/root JAR
+dependency and runs `clojure -Srepro -M consumer.clj`: exit 0,
+`:jar-consumer-ok :flow :exact :snapshots :pcapng :window`. All public resource URLs
+use the jar protocol. It checks real DNS aggregation, EDN and independent
+snapshots/completion, IPv6 unsigned keys, 2^100 exact counters and max-flows,
+and mixed-section PCAPNG → flow projection/aggregate → pure time windows.
+No repository source path leaks into its dependency classpath.
+
+Network-capable lint completed all Clojure checks and exposed MD012 (a doubled
+blank in the new report). Fixed it; standalone full Markdown lint passes all
+38 files. Rerun the full wrapper again after that correction to obtain a clean
+end-to-end exit. No suppression, tool downgrade or gate edit.
+
+Final `bash dev/script/codex.sh lint` with network-capable execution: **exit 0**.
+Kondo has zero warnings/errors, Eastwood analyzes **106 namespaces**, zero
+exceptions (467 informational warning sites); lsp clean-ns/format have no changes;
+Markdown lint has zero errors across 38 files. All requested local commands now
+have successful completed exits; final links and diff whitespace checks pass.
+Implementation and evidence are ready for the independent PR and unchanged
+12-job GitHub Actions verification. Independent review/merge remain outstanding.
+
+First commit attempt stops in the unchanged pre-commit hook because Homebrew
+`clj` requires missing `rlwrap`. For this noninteractive hook invocation only,
+a temporary PATH-local `clj` wrapper execs the installed `clojure` CLI with all
+arguments unchanged. No hook check is skipped, no repository hook/config is
+edited and no system package is installed. The hook reruns tests/format/Markdown/
+kondo. Its network-enabled execution uses the already required npm registry.
+
+Implementation commit **`c4f2a27`** creates independent
+[PR #55](https://github.com/nantes-rfli/paclo/pull/55), titled
+`perf: optimize exact flow aggregation (Issue #34)`, against unchanged main
+`e069657`. Commit hook completes without skipping checks: 480 tests / 17858
+assertions, clean formatting, Markdown and kondo; source blob stays exactly
+`faec3910fe0efc81a088ed8a27aca2931b38f014`. Generated Python caches are removed.
+
+[CI run 38738630317](https://github.com/nantes-rfli/paclo/actions/runs/38738630317)
+for `c4f2a27` completes with **all 12 jobs successful**: build-checks,
+documentation-checks, Linux x64/JDK21 and macOS ARM64/JDK17 compatibility,
+Linux ARM64 monitor, Eastwood, coverage, three performance shards, merged
+performance results and required build aggregate. Inspected decoded job logs:
+
+- Linux x64 and ARM64: actual runner arch/OS verified; **480 tests / 17864
+  assertions**, zero failures/errors. macOS: Darwin ARM64/JDK17, **480 / 17858**,
+  zero failures/errors. Different platform assertion counts retain existing
+  native/platform-specific tests; no exclusion or gate changed.
+- Build-checks: JUnit 10/10, Java quality, **43.8% JaCoCo** versus unchanged
+  **25%** gate, existing perf gate **588.9 ms** versus unchanged 1000/1200 budgets,
+  clean lsp/kondo and zero Markdown errors. Performance merger validates all
+  **27 scenarios**. Documentation completes all **34 examples** and cljdoc load.
+- CI uses pinned clj-kondo **2025.10.23** and clojure-lsp
+  **2025.11.28-12.47.43**. Local available tools were kondo **2026.05.25** and
+  lsp **2026.05.05-12.58.26**; the unchanged CI pins also pass. Eastwood completes
+  with 467 informational warnings and zero exceptions, matching local analysis.
+
+Implementation meets Issue #34's measured-optimization/correctness acceptance;
+add `Fixes #34` to the PR body. The plan records implementation/validation done
+and **independent review of PR #55** as next unfinished work. PR remains open
+and unmerged; no release, artifact publication, issue #37/#44 or P09/P10 work.
+The final evidence-only commit records these outcomes; its CI checks are followed
+on the PR. Other-platform performance and live/NIC performance remain unvalidated.

@@ -5,9 +5,12 @@
 (defn- uint? [value maximum]
   (and (integer? value) (<= 0 value maximum)))
 
+(defn- signed-word? [value]
+  (and (integer? value) (<= Long/MIN_VALUE value Long/MAX_VALUE)))
+
 (defn- ipv6? [address]
   (and (vector? address) (= 2 (count address))
-       (every? #(and (integer? %) (<= Long/MIN_VALUE % Long/MAX_VALUE)) address)))
+       (signed-word? (nth address 0)) (signed-word? (nth address 1))))
 
 (defn- valid-flow? [{:keys [ip-version protocol src-ip dst-ip src-port dst-port]
                      :as packet}]
@@ -28,9 +31,9 @@
 (defn- address-compare [version a b]
   (if (= 4 version)
     (compare a b)
-    (let [high (Long/compareUnsigned (long (first a)) (long (first b)))]
+    (let [high (Long/compareUnsigned (long (nth a 0)) (long (nth b 0)))]
       (if (zero? high)
-        (Long/compareUnsigned (long (second a)) (long (second b)))
+        (Long/compareUnsigned (long (nth a 1)) (long (nth b 1)))
         high))))
 
 (defn- endpoint-compare [version a-ip a-port b-ip b-port]
@@ -97,17 +100,21 @@
              (when (and (nil? previous) (>= (count flows) max-flows))
                (throw (ex-info "flow cardinality limit exceeded"
                                {:reason :max-flows :max-flows max-flows :flow fk})))
+             ;; Single-key assoc avoids the variadic assoc argument sequences.
+             ;; Keep every published step persistent, including caller metadata.
              (let [summary (:summary state)]
-               (assoc state
-                      :flows (assoc flows fk
-                                    {:packets (inc' (or (:packets previous) 0))
-                                     :captured-bytes (+' (or (:captured-bytes previous) 0) (:caplen packet))
-                                     :wire-bytes (+' (or (:wire-bytes previous) 0) (:len packet))})
-                      :summary (assoc summary :seen (inc' (:seen summary))
-                                      :aggregated (inc' (:aggregated summary)))))))
+               (-> state
+                   (assoc :flows (assoc flows fk
+                                        {:packets (inc' (or (:packets previous) 0))
+                                         :captured-bytes (+' (or (:captured-bytes previous) 0) (:caplen packet))
+                                         :wire-bytes (+' (or (:wire-bytes previous) 0) (:len packet))}))
+                   (assoc :summary (-> summary
+                                       (assoc :seen (inc' (:seen summary)))
+                                       (assoc :aggregated (inc' (:aggregated summary)))))))))
          (let [summary (:summary state)]
-           (assoc state :summary (assoc summary :seen (inc' (:seen summary))
-                                        :skipped (inc' (:skipped summary))))))))))
+           (assoc state :summary (-> summary
+                                     (assoc :seen (inc' (:seen summary)))
+                                     (assoc :skipped (inc' (:skipped summary)))))))))))
 
 (defn- key-compare [a b]
   (let [version (compare (:ip-version a) (:ip-version b))

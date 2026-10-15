@@ -202,3 +202,8 @@ promotion criteria are preserved in
 [historical performance evidence](archive/performance-results.md).
 New optimization investigations remain conditional on measured shortfalls;
 the accepted [development plan](../dev/codex-plan.md) defines their scope.
+
+The [Issue #34 flow aggregation investigation](../dev/issue-34-flow-performance.md)
+records a paired exact-aggregate baseline, CPU/allocation analysis, accepted and
+rejected candidates, fixture replay and retained-memory limits. Its opt-in runner
+is separate from the existing performance gate.

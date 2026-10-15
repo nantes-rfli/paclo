@@ -214,3 +214,57 @@
       (transduce (core/packet-xf {:decode-mode :flow}) rf [raw raw])
       (is (= original (vec (:bytes raw))))
       (finally (.delete file)))))
+
+(deftest reducer-snapshots-can-fork-and-resume
+  (doseq [direction [:unidir :bidir]]
+    (let [rf (flow/aggregate-rf {:max-flows 2 :direction direction})
+          initial (with-meta (assoc (rf) :owner :caller) {:snapshot :initial})
+          prefix (-> (rf initial packet)
+                     (assoc :summary (with-meta {:seen Long/MAX_VALUE
+                                                 :aggregated Long/MAX_VALUE
+                                                 :skipped Long/MAX_VALUE
+                                                 :owner :summary}
+                                       {:snapshot :summary})))
+          saved (pr-str prefix)
+          left (rf prefix packet)
+          right (rf prefix {})
+          resumed (rf (edn/read-string saved) packet)]
+      (is (= saved (pr-str prefix)) "both branches leave the published prefix unchanged")
+      (is (= left resumed) "EDN-restored state resumes with the same reducer")
+      (is (= {:seen 9223372036854775808N :aggregated 9223372036854775808N
+              :skipped Long/MAX_VALUE :owner :summary} (:summary left)))
+      (is (= {:seen 9223372036854775808N :aggregated Long/MAX_VALUE
+              :skipped 9223372036854775808N :owner :summary} (:summary right)))
+      (doseq [state [left right]]
+        (is (= :caller (:owner state)))
+        (is (= (meta initial) (meta state)))
+        (is (= (meta (:summary prefix)) (meta (:summary state))))
+        (is (identical? state (rf state))))
+      (is (= (rf (rf) packet) (transduce identity rf [packet]))
+        "reusing the reducer does not retain either branch"))))
+
+(deftest exact-totals-continue-after-promotion
+  (let [rf (flow/aggregate-rf {:max-flows 1N :direction :bidir})
+        fk (flow/key packet {:direction :bidir})
+        big (bigint (.shiftLeft java.math.BigInteger/ONE 100))
+        initial {:flows {fk {:packets big :captured-bytes big :wire-bytes big}}
+                 :summary {:seen big :aggregated big :skipped big}}
+        result (reduce rf initial [packet (reverse-packet packet) {}])]
+    (is (= {:packets (+' big 2) :captured-bytes (+' big 80) :wire-bytes (+' big 100)}
+           (get-in result [:flows fk])))
+    (is (= {:seen (+' big 3) :aggregated (+' big 2) :skipped (inc' big)} (:summary result)))
+    (is (= result (edn/read-string (pr-str result))))
+    (is (= big (get-in initial [:flows fk :packets])))))
+
+(deftest ipv6-indexed-words-retain-validation-and-order
+  (let [p (assoc packet :ip-version 6 :src-ip [0N -1N] :dst-ip [0N 0N])]
+    (is (= [0N 0N] (:src-ip (flow/key p {:direction :bidir}))))
+    (is (= (flow/key p {:direction :bidir})
+           (flow/key (reverse-packet p) {:direction :bidir})))
+    (doseq [address [[] [0] [0 0 0] '(0 0) [nil 0] [0 1.0]
+                     [0 (dec' Long/MIN_VALUE)] [(inc' Long/MAX_VALUE) 0]]]
+      (is (nil? (flow/key (assoc p :src-ip address))))))
+  (let [p (assoc packet :ip-version 6
+                 :src-ip [Long/MIN_VALUE Long/MIN_VALUE]
+                 :dst-ip [Long/MIN_VALUE Long/MAX_VALUE])]
+    (is (= (:dst-ip p) (:src-ip (flow/key p {:direction :bidir}))))))

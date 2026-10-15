@@ -43,11 +43,13 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **Issue #40 independent review of PR #54**.
+Default next task: **Issue #34 independent review of PR #55**.
+PR #54 has merged as `e069657`; Issue #34 starts independently from that main.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
-Issue #40 starts independently from that latest main. P09/P10 remain blocked.
+Issue #40 followed independently from that main; PR #54 is now merged.
+P09/P10 remain blocked.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
 at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
@@ -58,6 +60,29 @@ P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
+
+## Performance follow-up: Issue #34
+
+Status: **done** for investigation, implementation and validation on
+[PR #55](https://github.com/nantes-rfli/paclo/pull/55), from latest main `e069657`
+after PR #54 merged. Independent review and merge remain outstanding.
+The [investigation](issue-34-flow-performance.md) and
+[measurements](issue-34-flow-measurements.edn) preserve original P06 reproduction,
+paired IPv4/IPv6 10/10000-flow comparisons, both directions, actual fixture
+projection/decode and native replay, CPU/allocation/retention/GC, and rejected
+candidates. Two independent JVM repetitions improve synthetic aggregate throughput
+4.7–35.3% and reduce temporary allocation, with unchanged retained state shape.
+Native end-to-end throughput gains do not reproduce; negative results remain.
+Public API, exact arithmetic, canonical keys, immutable intermediate steps,
+limits/errors, EDN and P06/P07/P08 composition are preserved.
+Local check passes 480 tests / 17858 assertions plus ten JUnit tests; full lint,
+34 executable examples, performance gate (896.7 ms), package and isolated JAR
+consumer pass. Implementation `c4f2a27` passes all 12 unchanged CI jobs on
+[run 38738630317](https://github.com/nantes-rfli/paclo/actions/runs/38738630317),
+including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
+checks are maintained on the PR; actual commands/results are in the work log.
+Next unfinished item: independent review of PR #55. No merge before review;
+issues #37/#44, P09/P10, release and threshold changes remain outside this task.
 
 ## CI maintenance: Issue #48
 
