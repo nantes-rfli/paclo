@@ -233,6 +233,122 @@
   (doseq [[type expected] [[2 :unsupported-packet-block] [10 :unsupported-sensitive-block]]]
     (is (= expected (reason #(read-bytes (join (shb) (block le type (byte-array 4)))))))))
 
+(deftest repeated-interface-address-options
+  ;; Draft 06 table 3: address octets keep their order under either section order.
+  (doseq [order [le be]]
+    (let [ipv4 (byte-array (map unchecked-byte [192 0 2 1 255 255 255 0]))
+          ipv6 (byte-array (concat [32 1 13 (unchecked-byte 184)] (repeat 11 0) [1 64]))
+          entries [[4 ipv4] [5 ipv6] [4 (aclone ipv4)] [1 (byte-array [65])]
+                   [5 (aclone ipv6)] [4 (byte-array (map unchecked-byte [198 51 100 2 255 255 255 128]))]]
+          wire (join (shb order -1 []) (idb order 1 64 entries))]
+      (doseq [[code value] [[4 ipv4] [5 ipv6]]]
+        (is (= :invalid-option-length
+               (reason #(read-bytes (join (shb order -1 [])
+                                          (idb order 1 64 [[code value]
+                                                           [code (Arrays/copyOf ^bytes value (dec (alength ^bytes value)))]])))))))
+      (temp-call wire
+                 (fn [file]
+                   (let [values (events file)
+                         options (get-in values [1 :interface :options])]
+                     (is (= [4 5 4 1 5 4] (mapv :code options)))
+                     (is (= (mapv (comp vec second) entries) (mapv (comp vec :value) options)))
+                     (doseq [[[_ input] option] (map vector entries options)]
+                       (is (not (identical? input (:value option)))))
+                     (is (not (identical? (:value (first options)) (:value (nth options 2)))))
+                     (is (not (identical? (:value (nth options 1)) (:value (nth options 4)))))
+                     (is (= :eof (with-open [s (pcapng/open-source {:path file})]
+                                   (reduce (fn [n _] (inc n)) 0 s)
+                                   (:terminal (pcapng/source-info s))))))))
+      (doseq [[field limit] [[:max-options-per-block 6] [:max-options-bytes 96]
+                             [:max-section-metadata-bytes 804]]]
+        (temp-call wire
+                   (fn [file]
+                     (with-open [s (pcapng/open-source {:path file field limit})]
+                       (is (= 2 (reduce (fn [n _] (inc n)) 0 s))))
+                     (is (= :limit-exceeded
+                            (reason #(with-open [s (pcapng/open-source {:path file field (dec limit)})]
+                                       (reduce (fn [n _] (inc n)) 0 s)))))))))))
+
+(defn- traced-packet-failure [wire opts]
+  (temp-call wire
+             (fn [file]
+               (with-open [s (pcapng/open-source (merge {:path file} opts))]
+                 (let [allocations (atom []) reads (atom [])
+                       allocate @#'cursor/allocate-buffer read! cursor/read-buffer!
+                       error (with-redefs-fn
+                               {#'cursor/allocate-buffer
+                                (fn [n]
+                                  (swap! allocations conj n)
+                                  (when (> n 128)
+                                    (throw (ex-info "Unexpected packet body allocation" {:reason :unexpected-allocation})))
+                                  (allocate n))
+                                #'cursor/read-buffer!
+                                (fn [^java.nio.channels.FileChannel channel ^ByteBuffer buffer & args]
+                                  (swap! reads conj {:offset (.position channel) :bytes (.remaining buffer)})
+                                  (apply read! channel buffer args))}
+                               #(failure (fn []
+                                           (reduce (fn [n event]
+                                                     (when (= :interface (:type event))
+                                                       (reset! allocations [])
+                                                       (reset! reads []))
+                                                     (inc n)) 0 s))))]
+                   {:error (ex-data error) :allocations @allocations :reads @reads
+                    :info (pcapng/source-info s)})))))
+
+(deftest packet-ceiling-before-payload-allocation-or-read
+  (doseq [order [le be] type [6 3] caplen [64 65536] snaplen [0 caplen]
+          suffix [(byte-array 0) (byte-array [1 2 3])]]
+    (let [prefix (if (= type 6) (words order [4 4 4 4 4] [0 0 0 caplen caplen]) (words order [4] [caplen]))
+          prefix-size (alength ^bytes prefix)
+          wire (join (shb order -1 []) (idb order 1 snaplen [])
+                     (words order [4 4] [type (+ 12 prefix-size caplen)]) prefix suffix)
+          {:keys [error allocations reads info]}
+          (traced-packet-failure wire {:max-block-bytes 1048576 :max-packet-bytes 8})]
+      (is (= :limit-exceeded (:reason error)))
+      (is (= [:max-packet-bytes caplen 8] ((juxt :field :actual :limit) error)))
+      (is (= [56 2 0 type] ((juxt :file-offset :block-index :section-id :block-type) error)))
+      (is (= [8 prefix-size] allocations))
+      (is (= [{:offset 56 :bytes 8} {:offset 64 :bytes prefix-size}] reads))
+      (is (= [:failed :error 2 0 0] ((juxt :state :terminal :events :packets :active-metadata-bytes) info)))))
+  (doseq [order [le be] type [6 3]
+          :let [prefix (if (= type 6) (words order [4 4 4 4 4] [0 0 0 64 64]) (words order [4] [64]))]
+          n (range (alength ^bytes prefix))]
+    (let [wire (join (shb order -1 []) (idb order 1 0 [])
+                     (words order [4 4] [type (+ 12 (alength ^bytes prefix) 64)])
+                     (Arrays/copyOf ^bytes prefix (int n)))
+          {:keys [error allocations reads]} (traced-packet-failure wire {:max-packet-bytes 8})]
+      (is (= :truncated-block (:reason error)))
+      (is (= [8 (alength ^bytes prefix)] allocations))
+      (is (= [8 (alength ^bytes prefix)] (mapv :bytes reads))))))
+
+(deftest packet-lengths-validated-from-prefix
+  (doseq [order [le be]
+          [type snaplen body-bytes prefix]
+          [[6 0 32 (words order [4 4 4 4 4] [0 0 0 9 8])]
+           [6 8 32 (words order [4 4 4 4 4] [0 0 0 9 9])]
+           [6 0 28 (words order [4 4 4 4 4] [0 0 0 9 9])]
+           [3 0 8 (words order [4] [9])]
+           [3 0 20 (words order [4] [9])]]]
+    (let [{:keys [error allocations reads]}
+          (traced-packet-failure (join (shb order -1 []) (idb order 1 snaplen [])
+                                       (words order [4 4] [type (+ 12 body-bytes)]) prefix)
+                                 {:max-packet-bytes 16})]
+      (is (= :invalid-packet-length (:reason error)))
+      (is (= [8 (alength ^bytes prefix)] allocations))
+      (is (= [8 (alength ^bytes prefix)] (mapv :bytes reads)))))
+  (doseq [order [le be] [type body-size] [[6 16] [3 0]]]
+    (let [{:keys [error allocations reads]}
+          (traced-packet-failure (join (shb order -1 []) (idb order 1 0 [])
+                                       (words order [4 4] [type (+ 12 body-size)])) {})]
+      (is (= :invalid-block-length (:reason error)))
+      (is (= [8] allocations))
+      (is (= [8] (mapv :bytes reads)))))
+  (doseq [order [le be]]
+    (let [packet (:packet (last (read-bytes (join (shb order -1 []) (idb order 1 0 [])
+                                                  (block order 3 (join (words order [4] [3]) (byte-array [1 2 3])))))))]
+      (is (= [3 3 [1 2 3]] [(:caplen packet) (:len packet) (vec (:bytes packet))]))
+      (is (not (contains? packet :ts-sec))))))
+
 (deftest exact-resource-limits
   (doseq [[field limit wire]
           [[:max-block-bytes 40 (shb le -1 [[1 (byte-array 1)]])]

@@ -44,6 +44,9 @@
 (defn- order ^ByteOrder [byte-order]
   (if (= byte-order :little-endian) ByteOrder/LITTLE_ENDIAN ByteOrder/BIG_ENDIAN))
 
+(defn- allocate-buffer ^ByteBuffer [n]
+  (ByteBuffer/allocate (int n)))
+
 (defn- u16 [^ByteBuffer b offset] (bit-and 0xffff (.getShort b (int offset))))
 (defn- u32 [^ByteBuffer b offset] (Integer/toUnsignedLong (.getInt b (int offset))))
 (defn- padded [n] (* 4 (quot (+ n 3) 4)))
@@ -68,6 +71,7 @@
     (fail! location :invalid-block-length {:expected n :actual (.limit body)})))
 
 ;; Draft 06 lengths and multiplicity, including repeatable EPB process/thread IDs.
+;; IDB address options 4/5 are repeatable; their fixed lengths still apply.
 (def ^:private singleton
   {:section #{2 3 4}
    :interface #{2 3 6 7 8 9 10 11 12 13 14 15 16 17 18}
@@ -178,35 +182,47 @@
   (or (get (:interfaces state) id)
       (fail! location :undefined-interface {:interface-id id})))
 
-(defn- packet! [state ^ByteBuffer body opts location simple?]
-  (minimum! body location (if simple? 4 20))
-  (let [id (if simple? 0 (u32 body 0))
+(defn- packet-layout! [state ^ByteBuffer prefix opts location simple? body-bytes]
+  (let [id (if simple? 0 (u32 prefix 0))
         interface (interface-ref! state id location)
-        len (u32 body (if simple? 0 16))
+        len (u32 prefix (if simple? 0 16))
         snaplen (:snaplen interface)
-        caplen (if simple? (if (zero? snaplen) len (min len snaplen)) (u32 body 12))
+        caplen (if simple? (if (zero? snaplen) len (min len snaplen)) (u32 prefix 12))
         start (if simple? 4 20)
         end (+ start (padded caplen))]
     (limit! opts location :max-packet-bytes caplen)
     (when (or (> caplen len) (and (pos? snaplen) (> caplen snaplen))
-              (> end (.limit body)) (and simple? (not= end (.limit body))))
+              (> end body-bytes) (and simple? (not= end body-bytes)))
       (fail! location :invalid-packet-length {:actual caplen :expected len :interface-id id}))
-    (let [options (if simple? [] (:options (options! body end :packet opts location nil)))
-          ticks (when-not simple? (+' (*' (u32 body 4) 4294967296N) (u32 body 8)))
-          packet (cond-> {:bytes (octets body start caplen) :caplen caplen :len len
-                          :linktype (:linktype interface)
-                          :pcapng {:section-id (:section-id state) :interface-id id
-                                   :block-type (if simple? :simple-packet :enhanced-packet)
-                                   :timestamp (when-not simple? {:ticks ticks}) :options options}}
-                   (not simple?) (merge (projection ticks (:timestamp-resolution interface)
-                                                    (:timestamp-offset-sec interface))))]
-      [state {:type :packet :packet packet}])))
+    {:id id :interface interface :len len :caplen caplen :start start :end end}))
+
+(defn- packet-prefix! [channel state opts location type body-bytes byte-order]
+  (when (#{3 6} type)
+    (let [size (if (= type 3) 4 20)]
+      (when (< body-bytes size)
+        (fail! location :invalid-block-length {:expected size :actual body-bytes}))
+      (let [prefix (.order (allocate-buffer size) (order byte-order))]
+        (read-buffer! channel prefix location false)
+        {:prefix prefix :layout (packet-layout! state prefix opts location (= type 3) body-bytes)}))))
+
+(defn- packet! [state ^ByteBuffer body opts location simple? layout]
+  (let [{:keys [id interface len caplen start end]} layout
+        options (if simple? [] (:options (options! body end :packet opts location nil)))
+        ticks (when-not simple? (+' (*' (u32 body 4) 4294967296N) (u32 body 8)))
+        packet (cond-> {:bytes (octets body start caplen) :caplen caplen :len len
+                        :linktype (:linktype interface)
+                        :pcapng {:section-id (:section-id state) :interface-id id
+                                 :block-type (if simple? :simple-packet :enhanced-packet)
+                                 :timestamp (when-not simple? {:ticks ticks}) :options options}}
+                 (not simple?) (merge (projection ticks (:timestamp-resolution interface)
+                                                  (:timestamp-offset-sec interface))))]
+    [state {:type :packet :packet packet}]))
 
 (defn next-block!
   "Read and validate one block. Return [new-state event], or nil at valid EOF."
   [^FileChannel channel state opts]
   (let [location (select-keys state [:file-offset :block-index :section-id])
-        header (ByteBuffer/allocate 8)]
+        header (allocate-buffer 8)]
     (if-not (read-buffer! channel header location true)
       (do
         (when (or (neg? (:section-id state))
@@ -214,7 +230,7 @@
           (fail! location :invalid-section-length {}))
         nil)
       (let [shb? (= 0x0a0d0d0a (.getInt header 0))
-            magic (when shb? (read-buffer! channel (ByteBuffer/allocate 4) location false))
+            magic (when shb? (read-buffer! channel (allocate-buffer 4) location false))
             byte-order (if shb?
                          (case (.getInt ^ByteBuffer magic 0)
                            0x1a2b3c4d :big-endian
@@ -238,8 +254,12 @@
             nil)
           (when-not (#{0x0a0d0d0a 1 6 3} type)
             (limit! opts location :max-opaque-block-bytes (- total 12)))
-          (let [body (.order (ByteBuffer/allocate (int (- total 8))) (order byte-order))]
+          ;; Check packet length policy using only the fixed prefix. In particular,
+          ;; an absent/short oversized payload must fail before any body allocation.
+          (let [{:keys [prefix layout]} (packet-prefix! channel state opts location type (- total 12) byte-order)
+                body (.order (allocate-buffer (- total 8)) (order byte-order))]
             (when shb? (.put body (.array ^ByteBuffer magic)))
+            (when prefix (.put body (.array ^ByteBuffer prefix)))
             (read-buffer! channel body location false)
             (when-not (= total (u32 body (- total 12)))
               (fail! location :invalid-block-length {:field :trailer :expected total
@@ -249,8 +269,8 @@
                   (case type
                     0x0a0d0d0a (section! state body opts location byte-order total)
                     1 (interface! state body opts location)
-                    6 (packet! state body opts location false)
-                    3 (packet! state body opts location true)
+                    6 (packet! state body opts location false layout)
+                    3 (packet! state body opts location true layout)
                     (do
                       (case type
                         4 (minimum! body location 4)

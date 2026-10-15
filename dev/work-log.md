@@ -2449,3 +2449,71 @@ execute all 31 examples. No live/NIC, big-endian host or other-OS validation.
 
 Next: independent review of PR #50, followed by user-authorized merge. P08-E3
 remains blocked pending that review/merge; no writer/P09/P10 implementation.
+
+## P08-E2 independent review follow-up (#51/#52, 2026-10-15)
+
+PR #50 review of `c42b82a` requested two corrections before merge. Started with
+clean status on the supplied PR branch and reran `bash dev/script/codex.sh doctor`
+successfully (macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, offline native read).
+Read contributor/API/plan/E1 contracts and both complete review comments/issues.
+No new worktree, existing API/native binding, dependency, version or CI gate change.
+
+Issue #51: verified draft 06 section 4.2 permits repeated eight-byte IPv4 and
+seventeen-byte IPv6 address options. The actual reviewed head already excludes
+codes 4/5 from both the production singleton set and negative duplicate test;
+GitHub and local cursor blob both equal `07e7357fd1f5623e5fc58cba9f618d8114ff3e67`.
+Positive regression tests pass before the behavior correction, so the reported
+rejection could not be reproduced at this head. Added mixed IPv4/IPv6 sequences
+(including identical repeats) under both byte orders, preserving exact option
+order/octets, distinct owned copies, fixed lengths, count/byte/section accounting
+at limit and one below. Existing resolution/offset singleton rejection remains.
+Added an explicit source comment and public contract explaining that distinction.
+
+Issue #52: reproduced late packet-ceiling enforcement with actual temporary
+files whose EPB/SPB payloads are missing or partial. An allocation seam around
+ByteBuffer allocation preserves baseline behavior while tests record allocation
+sizes and FileChannel read offsets/requests. Before the fix, the two selected
+review tests execute 274 assertions with 160 failures, all in the packet-prefix
+test; the address option test passes. Failures show a whole-body allocation/read
+and `:truncated-block` instead of the required packet `:limit-exceeded`.
+
+Fix: after common block/section/opaque checks, read only EPB's 20-byte fixed body
+prefix or SPB's four-byte original length. Resolve the interface, compute caplen,
+check the packet ceiling, wire length/snaplen and padded declared body extent,
+then allocate/read the remaining block. Validated layout is reused for packet
+construction; timestamp/payload/options/trailer validation and ownership remain.
+The common max-block ceiling still precedes packet prefix/body allocation.
+
+Added both-endian EPB/SPB tests at declared caplen 64 and 65536 against a ceiling
+of 8, snaplen zero/nonzero, absent/three-byte payloads, every partial fixed-prefix
+length, invalid wire/snaplen/declared extents, too-short declared fixed headers,
+and valid zero-snaplen SPB. Allocation/read traces are reset after IDB delivery,
+so packet failures must show only [8 20] or [8 4] buffer allocations and fixed
+prefix reads, with no payload/trailer request. A test allocation guard catches
+regressions before large allocations. Source failure/close status is checked.
+
+Verification and same-PR re-review handoff are pending at this checkpoint.
+Original 12-job green runs above are historical evidence, not acceptance of
+these corrections. PR remains unmerged and both review threads remain for the
+independent reviewer to assess.
+
+### Local correction verification
+
+- `bash dev/script/codex.sh test -n paclo.pcapng-test`: 18 tests / 1323 assertions,
+  zero failures/errors, including the 48 MiB streaming probe.
+- `bash dev/script/codex.sh check`: 10 JUnit tests; 449 Clojure tests / 17070
+  assertions; offline smoke succeeds; exit 0.
+- `bash dev/script/codex.sh lint`: exit 0; kondo clean, all 100 Eastwood namespaces
+  analyzed with 383 informational warnings and zero exceptions; clean-ns/format
+  dry runs clean, Markdown 37 files / zero errors.
+- Both fixture generators `--check` preserve all 47 existing and ten E1 captures;
+  six Python physical-wire/Fraction oracle tests pass.
+- `python3 dev/script/verify_doc_examples.py`: all 31 executable examples pass.
+- With other validation JVMs finished, `bash dev/script/codex.sh perf`: exit 0,
+  **523.6 ms**, below unchanged 1000 ms warn / 1200 ms failure thresholds.
+- Local link and diff checks pass. Java/native sources and all CI gates remain
+  unchanged; the same PR/platform CI will verify the published correction head.
+
+The commit hook's documented skip flags are used only for duplicate checks and
+whole-repository auto-formatting after these equivalent checks have passed;
+the local `clj`/rlwrap limitation recorded above remains unchanged. No hook edits.

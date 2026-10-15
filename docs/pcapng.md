@@ -93,6 +93,10 @@ bits, remain authoritative original bytes. Recognized singleton duplicates and
 invalid fixed/minimum lengths fail. Custom options need a four-byte PEN and add
 `:copy-policy :copyable` for 2988/2989 or `:never` for 19372/19373.
 EPB option 8 (process/thread IDs) has eight bytes and may repeat under draft 06.
+IDB address options 4 (IPv4 address/netmask, eight bytes) and 5 (IPv6
+address/prefix, seventeen bytes) may repeat, including identical values. Their
+original mixed order and octets are retained under either section byte order;
+option byte/count and section metadata ceilings still apply to every occurrence.
 An option list may end at the block boundary without a terminator. A present
 terminator must have length zero and be last. Padding extents are checked;
 padding values are unspecified and need not be zero.
@@ -207,7 +211,7 @@ nil/unlimited settings and invalid numbers fail before path opening.
 | Option | Default | Accounting |
 | --- | --- | --- |
 | `:max-block-bytes` | 16 MiB | Total declared block size, checked before body allocation/read |
-| `:max-packet-bytes` | 8 MiB | Caplen before packet copy; independent of snaplen |
+| `:max-packet-bytes` | 8 MiB | Caplen from fixed EPB/SPB prefix, before remaining body allocation/read; independent of snaplen |
 | `:max-options-bytes` | 1 MiB | All padded TLV bytes per parsed block, including terminator |
 | `:max-options-per-block` | 4096 | Exposed option records; excludes terminator |
 | `:max-interfaces-per-section` | 4096 | Current section's IDBs |

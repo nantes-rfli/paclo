@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P08-E2 review corrections: enforce the packet byte ceiling from fixed EPB/SPB
+  headers before allocating/reading the remaining block body. Positive regression
+  coverage confirms repeated IDB IPv4/IPv6 addresses retain order, owned octets
+  and fixed lengths under both byte orders and all existing option ceilings.
 - P08-E2: `paclo.pcapng/open-source` and `source-info` provide a bounded,
   synchronous, Closeable single-consumer PCAPNG event reduction. Ordered
   SHB/IDB/EPB/SPB and permitted opaque events retain section/interface identity,

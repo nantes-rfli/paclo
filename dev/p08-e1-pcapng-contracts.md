@@ -491,8 +491,16 @@ SHB/IDB/EPB/SPB framing, resolution and offset arithmetic are unchanged.
 EPB option 8 (process/thread IDs), omitted from E1's narrow option table, remains
 eight bytes but changes from singleton to repeatable in draft 06 section 4.3.
 E2 validates its length and preserves repeats; it does not add a typed cache.
+Draft 06 section 4.2 also permits repeated IDB address options 4/5 with lengths
+8/17. Review follow-up #51 adds positive mixed-address coverage for both byte
+orders; the reviewed singleton set already excludes those two codes.
 The reviewed E1 contract remains authoritative for strict caplen <= wire len,
 section boundaries and unsupported-block policy.
+
+Review follow-up #52 enforces the approved packet ceiling from a fixed EPB
+20-byte or SPB 4-byte body prefix before allocating/reading the remaining block.
+The prefix also validates interface references, caplen/wire/snaplen and padded
+declared extents. Complete body/trailer/option validation still precedes delivery.
 
 Drafts 05/06 section 3.5 permit an option list ending at the block boundary
 without an end marker. E2 accepts that case; a present marker must have length
