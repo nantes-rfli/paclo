@@ -2876,3 +2876,42 @@ at **613.6 ms**, below unchanged warn 1000 / fail 1200. Input is the existing
 Clojure 1.12.1 as above. This is a gate observation, not a throughput improvement
 or a comparison with another platform. The shutdown monitor is outside the
 packet hot path. CI performance measurements remain independent.
+
+### PR and supported-platform CI handoff
+
+Implementation/test/documentation commit **`f256b72`** is on
+[PR #54](https://github.com/nantes-rfli/paclo/pull/54), based on main `b83bd31`.
+The pre-commit hook's documented SKIP_TESTS/SKIP_FMT flags avoid repeating the
+successful full checks and whole-tree formatting; the hook's Markdown and kondo
+checks still run and pass. Post-commit working tree is clean. PR targets main,
+has no auto-merge request and no closing Issue references. Issue #40 remains
+open for independent review of accepting the documented lazy lifetime limit.
+
+[CI run 38704727593](https://github.com/nantes-rfli/paclo/actions/runs/38704727593)
+on `f256b72` completes with **all 12 jobs successful**, including required
+`build`, build-checks, documentation-checks, Eastwood, both compatibility
+jobs, ARM64 monitor, coverage, three performance shards and results aggregate.
+Actual job logs confirm:
+
+| Platform | Suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK21 | 477 tests / 17823 assertions | Zero failures/errors |
+| macOS ARM64 / JDK17 | 477 / 17817 | Zero failures/errors |
+| Linux ARM64 / JDK21 | 477 / 17823 | Zero failures/errors |
+
+The six Linux-only assertions are existing /dev/full coverage. The new native
+lifecycle cases run in all three jobs. Dedicated Eastwood analyzes all 104
+namespaces with 446 informational warnings and zero exceptions; its deliberate
+failure probes pass. Java coverage remains **43.8% / 25%**. CI's existing decode
+performance gate passes at **780.7 ms / 1200 ms**. All **34 runnable examples**,
+cljdoc, links, Markdown, formatting and existing JAR/Java checks pass. All three
+performance shards and their required 27-scenario validation/aggregate pass.
+No public API signature, dependency, release version or CI quality/performance
+threshold change.
+
+This follow-up updates the plan/log with completed evidence only; production
+and tests remain `f256b72`. The PR carries the final-head CI link as well.
+Investigation and supported cleanup correction are complete. Next is independent
+review of PR #54, including whether Issue #40 can close as a documented
+compatibility limitation. No merge, release, P09/P10, unrelated performance
+implementation, live capture or NIC validation is performed.

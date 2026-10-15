@@ -43,7 +43,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **Issue #40 independent lifecycle investigation and review**.
+Default next task: **Issue #40 independent review of PR #54**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -419,7 +419,9 @@ output, P09/P10, release or merge authority.
 
 ## Stabilization: Issue #40 lazy capture lifetime
 
-Status: **in-progress**, independent of P09/P10, from E3 main `b83bd31`.
+Status: **done** for investigation, correction and validation on
+[PR #54](https://github.com/nantes-rfli/paclo/pull/54), from E3 main `b83bd31`.
+Independent review remains; Issue #40 stays open for the limitation decision.
 Real offline PCAP reproduction uses 128 packets and a capacity-one queue:
 after a one-packet prefix, two enqueues complete and the third blocks in `put`.
 The producer/native source remain alive past the time limit and a changed stop
@@ -435,7 +437,10 @@ blocking/dropping, async stop and concurrent stop/close. Full local/CI evidence
 is recorded in [the work log](work-log.md#issue-40-lazy-capture-lifecycle-investigation).
 Local check (477 tests / 17817 assertions), lint, Java quality, 34 runnable
 examples and the unchanged performance gate (613.6 ms / 1200 ms) pass.
-Next unfinished item: required CI and independent review of Issue #40.
+Implementation `f256b72` passes all 12 unchanged CI jobs, including both required
+compatibility environments and Linux ARM64; details are in the work log.
+Next unfinished item: independent review of PR #54 and the Issue #40 closure
+decision. No merge is authorized before review.
 Do not start P09/P10 or unrelated performance issues automatically.
 
 ## P08-P10: Evidence-driven expansion
