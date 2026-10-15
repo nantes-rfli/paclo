@@ -463,3 +463,31 @@
            (do (is (= :limit-exceeded (reason #(pcapng/write-pcapng! input path))))
                (is (not (exists? path)))))
          (is (empty? (temps path))))))))
+
+(deftest spb-inferred-caplen-cannot-use-padding-as-packet-data
+  ;; All these short payloads can share a padded wire extent. Exact payload
+  ;; agreement must hold independently of body/trailer/option validation.
+  (doseq [[wire snap actual] [[2 64 1] [1 64 2] [3 64 1] [4 64 3]
+                              [1000 2 1] [1000 2 3] [3 0 1]]]
+    (let [values (-> (base-events)
+                     (assoc-in [1 :interface :snaplen] snap)
+                     (update-in [2 :packet] dissoc :ts-sec :ts-usec)
+                     (assoc-in [2 :packet :bytes] (byte-array actual))
+                     (assoc-in [2 :packet :caplen] actual)
+                     (assoc-in [2 :packet :len] wire)
+                     (assoc-in [2 :packet :pcapng :block-type] :simple-packet)
+                     (assoc-in [2 :packet :pcapng :timestamp] nil))]
+      (doseq [opts [{} {:mode :lossy} {:mode :author}]]
+        (is (= :invalid-packet-length (write-reason values opts))))))
+  (doseq [[wire snap captured] [[1 64 1] [2 64 2] [3 64 3] [4 64 4] [1000 2 2] [3 0 3]]]
+    (let [values (-> (base-events)
+                     (assoc-in [1 :interface :snaplen] snap)
+                     (update-in [2 :packet] dissoc :ts-sec :ts-usec)
+                     (assoc-in [2 :packet :bytes] (byte-array (range captured)))
+                     (assoc-in [2 :packet :caplen] captured)
+                     (assoc-in [2 :packet :len] wire)
+                     (assoc-in [2 :packet :pcapng :block-type] :simple-packet)
+                     (assoc-in [2 :packet :pcapng :timestamp] nil))]
+      (temp-call (fn [path]
+                   (pcapng/write-pcapng! values path)
+                   (is (= (semantic values) (semantic (events path)))))))))

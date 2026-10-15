@@ -2615,11 +2615,11 @@ No dependency, version or CI-gate changes.
   lines. Eastwood initially analyzes all 103 namespaces with 441 informational
   warnings and zero exceptions; final lint runs on the final tests/encoder.
 
-### Final local validation and implementation CI
+### Initial local validation and implementation CI
 
 Implementation `c44bf5b` created independent [PR #53](https://github.com/nantes-rfli/paclo/pull/53),
-initially draft during final gates. All implementation/acceptance work is complete;
-PR remains unmerged for independent review. This evidence follow-up updates only
+initially draft during final gates. These initial gates pass; final review below
+subsequently identifies a padding-ambiguous SPB case. PR remains unmerged. This evidence follow-up updates only
 plan/log and the writer docstring's complete drop-category list; behavior/tests
 remain identical to `c44bf5b`.
 
@@ -2673,3 +2673,24 @@ configuration or quality/performance thresholds changed.
 
 Next: independent review of PR #53. No merge, publication, live/NIC validation,
 other-OS claims, byte-for-byte reproduction, issue repairs, P09/P10 or release.
+
+### Final-review SPB correction
+
+Review of the encoding path found that SPB has no explicit wire caplen, so the
+shared wire validator alone cannot distinguish payload lengths in the same
+four-byte padding cell. An authored one-byte packet with wire length two could
+be accepted and reread as two bytes (the second byte synthesized from padding).
+A separate consumer against the packaged `c44bf5b` JAR reproduces this exact
+input-caplen 1 / output-caplen 2 case; this is implementation evidence, not a
+hypothetical concern. Existing valid-fixture and CI successes above did not
+exercise that invalid authored input.
+
+Added an explicit equality check between array/caplen and SPB's inferred
+min(wire length, nonzero snaplen), or wire length with snaplen zero, before any
+block write/publication. No fallback, truncation, repair or timestamp conversion.
+The regression covers seven invalid payload/snaplen cases in all three modes,
+including adjacent lengths sharing padding, and six valid short/truncated/zero
+snaplen SPBs. Invalid cases assert no destination/temp. Focused Writer suite
+passes **20 tests / 627 assertions**. Full check and lint are rerunning; the
+corrected implementation/platform CI is pending. Classic/decode, dependencies,
+versions and CI gates remain unchanged.

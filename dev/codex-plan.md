@@ -390,8 +390,8 @@ No writer, live metadata, issue #40 change or performance work in this item.
 ## P08-E3: PCAPNG writer
 
 Status: **in-progress** for independent review on
-[PR #53](https://github.com/nantes-rfli/paclo/pull/53). Implementation and acceptance
-checks are complete from latest main `8de22e0`, after E2 merge, following the reviewed
+[PR #53](https://github.com/nantes-rfli/paclo/pull/53). Implementation is complete
+from latest main `8de22e0`, after E2 merge, following the reviewed
 [E3 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e3-implementation-plan-and-acceptance):
 ordered encoding, preserve/lossy/author policies, exact timestamp validation,
 unknown/no-copy restrictions, semantic round trips and atomic path publication.
@@ -403,12 +403,13 @@ A synchronous internal terminal observer detects incomplete Paclo sources even
 inside eduction. Shared internal format validation retains E2 option rules.
 Real-corpus semantic and independent Python wire comparisons, failure injection,
 48 MiB heap streaming and ownership regressions accompany executable examples.
-Final local check passes 468 tests / 17628 assertions plus ten JUnit tests;
-focused Writer tests pass 19 / 558, full lint analyzes all 103 namespaces with
-zero exceptions, 33 runnable examples/package/consumer pass, and existing perf
-gate is 460.3 ms. Implementation `c44bf5b` passes all 12 unchanged CI jobs,
-including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Independent review
-remains; actual commands and CI evidence are in the work log.
+Initial local/CI gates passed on `c44bf5b`, including all 12 unchanged jobs.
+Final review identified SPB payload lengths that disagree with inferred caplen
+but share the same padded extent. The writer now explicitly checks exact SPB
+caplen before publication; 20 focused tests / 627 assertions pass, including
+padding-cell regressions in all three modes. Full/static/platform revalidation
+is in progress. The earlier performance gate is 460.3 ms; Classic/decode paths
+are unchanged. Actual commands and CI evidence are in the work log.
 Classic write-pcap! is unchanged. No byte-identical reproduction, append/stream
 output, P09/P10, release or merge authority.
 

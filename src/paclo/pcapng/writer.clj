@@ -174,6 +174,12 @@
             (when-not (= payload-size (:caplen packet)) (fail! state :invalid-packet-length {}))
             (if simple?
               (do
+                ;; SPB has no on-disk caplen. Comparing only padded block extents
+                ;; would silently invent/drop bytes within the same four-byte cell.
+                (let [expected (if (zero? (:snaplen iface)) (:len packet)
+                                   (min (:len packet) (:snaplen iface)))]
+                  (when-not (= payload-size expected)
+                    (fail! state :invalid-packet-length {:actual payload-size :expected expected})))
                 (when-not (and (zero? id) (contains? ng :timestamp) (nil? (:timestamp ng))
                                (empty? options) (not (contains? packet :ts-sec)) (not (contains? packet :ts-usec)))
                   (fail! state :invalid-timestamp-absence {}))
