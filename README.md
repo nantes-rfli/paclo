@@ -162,17 +162,18 @@ clojure -X:deps prep
 (require '[paclo.core :as core])
 
 ;; Read the first two decoded packets from the bundled offline fixture.
-(->> (core/packets {:path "test/resources/dns-sample.pcap"
-                    :decode? true})
-     (take 2)
-     (map #(select-keys % [:ts-sec :ts-usec :decoded :decode-error]))
-     doall)
+(with-open [capture (core/start-capture
+                     {:path "test/resources/dns-sample.pcap" :decode? true})]
+  (into [] (comp (take 2)
+                 (map #(select-keys % [:ts-sec :ts-usec :decoded :decode-error])))
+        (core/capture-packets capture)))
 ```
 
-For live capture, use `start-capture` with `with-open` when taking a
-prefix or stopping early. `take` on the lazy `packets` sequence alone does
-not stop its producer. The [usage guide](docs/usage.md) explains resource
-ownership and the default count/time limits.
+For offline or live capture, use `start-capture` with `with-open` when taking
+a prefix or stopping early. `take` on the lazy `packets` sequence alone does
+not stop its producer; a full blocking queue can retain the native handle
+indefinitely, even past capture time limits. The
+[usage guide](docs/usage.md#lazy-capture-lifetime) explains ownership and safe alternatives.
 
 For bounded flow analysis, select numeric flow projection and reuse the public
 `paclo.flow` reducer. IPv4 addresses are unsigned integers; IPv6 addresses are

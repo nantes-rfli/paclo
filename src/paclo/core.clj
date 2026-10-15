@@ -275,6 +275,11 @@
   - live queue: `:queue-cap`, opt-in `:queue-mode :dropping`, and
     `:on-queue-stats`
 
+  Taking a prefix or a reducing `:xform` does not cancel this producer. A full
+  blocking queue can retain its native source indefinitely, even past capture
+  limits. Use `reduce-packets` with `reduced`, or `start-capture` with `with-open`,
+  for deterministic early cleanup. Dropping is lossy delivery, not cancellation.
+
   Throws `ex-info` when `:filter` has an unsupported type."
   [{:keys [xform] :as opts}]
   (let [opts* (normalized-opts opts)
@@ -378,7 +383,9 @@
               (capture/packet-seq (.-managed managed-capture)))))
 
 (defn stop-capture!
-  "Request asynchronous, idempotent termination of a managed capture."
+  "Request asynchronous, idempotent termination of a managed capture.
+   Queued packets remain available to its consumer. Close the handle (normally
+   via `with-open`) to wait for termination and abandon queued values."
   [value]
   (let [^Capture managed-capture (ensure-capture value)]
     (capture/stop! (.-managed managed-capture))))

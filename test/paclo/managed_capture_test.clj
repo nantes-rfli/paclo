@@ -257,7 +257,8 @@
                            {:path "trace.pcap" :stop? 42})))))
 
 (deftest managed-error-finishes-with-full-queue-and-failing-callback
-  (doseq [mode [:throw :pass]]
+  (doseq [mode [:throw :pass]
+          queue-mode [:blocking :dropping]]
     (let [closed (promise)
           callbacks (atom 0)
           error (ex-info "pcap_next_ex failed"
@@ -272,7 +273,7 @@
                     pcap/breakloop! (fn [_] nil)]
         (with-open [^java.io.Closeable capture
                     (core/start-capture
-                     {:path "dummy" :queue-cap 1 :error-mode mode
+                     {:path "dummy" :queue-cap 1 :queue-mode queue-mode :error-mode mode
                       :on-error (fn [_]
                                   (swap! callbacks inc)
                                   (throw (Exception. "callback failed")))})]
