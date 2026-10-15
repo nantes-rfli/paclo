@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # Separate Clojure subprocesses keep examples isolated; limit contention on CI.
 MAX_WORKERS = 3
 REQUIRE = (
-    "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] "
+    "(require '[clojure.edn :as edn] '[paclo.core :as core] '[paclo.stream :as stream] '[paclo.pcapng :as pcapng] "
     "'[paclo.flow :as flow] '[paclo.window :as window] '[paclo.dns :as dns] '[examples.dns-rtt :as rtt] '[examples.dns-qps :as qps] "
     "'[paclo.core :refer [packet-xf packets]] "
     "'[paclo.proto.dns-ext :as dns-ext] '[paclo.proto.tls-ext :as tls-ext])"
@@ -37,6 +37,20 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "pcapng-packet-analysis": Check(
+        "PCAPNG mixed-section packet decoding", "clojure",
+        '(= [:ethernet :raw-ip] result)',
+    ),
+    "pcapng-event-inspection": Check(
+        "PCAPNG event-preserving inspection", "clojure",
+        '(= [[:section nil] [:interface nil] '
+        '[:packet {:ticks 1700000000123456789N}] [:interface nil] '
+        '[:packet {:ticks 1740800000129N}] [:opaque-block nil] [:packet nil]] result)',
+    ),
+    "pcapng-error-status": Check(
+        "PCAPNG explicit error status", "clojure",
+        '(= {:reason :undefined-interface :state :failed :events 2} result)',
+    ),
     "readme-null-loop-full": Check(
         "README NULL/LOOP full decode", "clojure",
         '(= [{:linktype 0 :link :null :af 2 :ip 4} '

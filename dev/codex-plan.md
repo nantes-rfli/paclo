@@ -37,14 +37,15 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
 | P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
 | P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
-| P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | in-progress |
-| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | blocked |
+| P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | done |
+| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | in-progress |
 | P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | blocked |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E1 independent review and merge**.
-The next implementation item is **P08-E2** after E1 review/merge; E3 waits for E2.
+Default next task: **P08-E2 independent re-review of PR #50 after #51/#52 follow-up**.
+E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
+as `008c93b` through PR #49. E2 starts from that main; E3 waits for E2.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
 at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
@@ -59,8 +60,8 @@ queue after completion; do not start all phases together.
 ## CI maintenance: Issue #48
 
 Status: **done**, implementation, local checks and all 12 CI jobs pass on
-[PR #49](https://github.com/nantes-rfli/paclo/pull/49); independent review/merge
-remain. This is a separate maintenance item
+[PR #49](https://github.com/nantes-rfli/paclo/pull/49), merged as `008c93b`.
+This is a separate maintenance item
 from the feature queue. Start: latest main `2e7e357` after PR #47 merged.
 Compile Java/native prerequisites in the dedicated Eastwood job, fail on
 reported analysis/linter errors, and require Eastwood in the `build` aggregate.
@@ -68,7 +69,7 @@ Preserve all lint roots/rules/excludes and existing quality/performance gates.
 Four isolated JVM probes cover complete analysis, informational warnings,
 evaluation failure and analysis failure with a dependent namespace unanalyzed.
 Detailed commands, full namespace inventory and CI timing comparison are in
-[the work log](work-log.md). Next for this item: independent review of PR #49.
+[the work log](work-log.md). This maintenance item is complete.
 P08-E2/E3 and other feature implementation are outside this task.
 
 ## P01: Documentation and API discovery
@@ -353,7 +354,7 @@ precision and container-order inference remain outside this item.
 
 ## P08-E1: Metadata-aware PCAPNG and exact timestamp design
 
-Status: **in-progress** for independent review/merge on
+Status: **done**, merged as `2e7e357` through
 [PR #47](https://github.com/nantes-rfli/paclo/pull/47). Design, deterministic
 fixtures and characterization are complete in this task; no new public API or
 production reader/writer is implemented. Baseline is D2 main `ccebcad`.
@@ -367,7 +368,17 @@ commands/results and platform limits are recorded in the work log.
 
 ## P08-E2: Bounded metadata-aware PCAPNG reader
 
-Status: **blocked** pending E1 independent review/merge. Implement the reviewed
+Status: **in-progress** for review corrections and independent re-review on
+[PR #50](https://github.com/nantes-rfli/paclo/pull/50).
+Initial implementation from main `008c93b` passed all 12 CI jobs on Linux x64,
+macOS ARM64 and Linux ARM64, but independent review requested
+[multi-address IDB regression coverage (#51)](https://github.com/nantes-rfli/paclo/issues/51)
+and [packet prefix preallocation enforcement (#52)](https://github.com/nantes-rfli/paclo/issues/52).
+Both follow-ups are implemented with positive address-option coverage and packet
+prefix validation; 18 focused tests / 1323 assertions, 449 full tests / 17070
+assertions and local quality/doc/performance gates pass. Correction `c0353c5`
+passes all 12 unchanged CI jobs on Linux x64, macOS ARM64 and Linux ARM64.
+Independent re-review remains pending; no merge. Implementation follows the reviewed
 [E2 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e2-implementation-plan-and-acceptance):
 checked file cursor, SHB/IDB/EPB/SPB, ordered owned option/opaque data, exact
 integer time, Closeable IReduceInit source and bounded status. Existing native

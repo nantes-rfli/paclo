@@ -2326,3 +2326,222 @@ Implementation publication and supported-platform CI:
   outside this task; no P08-E2/E3 or other implementation. Final evidence-head
   CI status will be maintained in the PR description without another log-only
   commit cycle. Review before merging; no publication/release authorized here.
+
+## P08-E2: bounded metadata-aware PCAPNG reader (2026-10-15)
+
+Started from clean supplied checkout, fetched latest main `008c93b`, and created
+`codex/p08-e2-pcapng-reader`. PR #47 merged as `2e7e357`, PR #49 as `008c93b`;
+verified merge records through GitHub. Read CONTRIBUTING, v1 API, accepted plan
+and authoritative E1 contracts before implementation. No worktree, dependency,
+native binding, existing capture/Classic writer API, CI gate or version change.
+
+Implementation: internal FileChannel block cursor plus `paclo.pcapng/open-source`
+and `source-info`. One synchronous consumer, no Seqable/Iterable/producer thread,
+only the first bounded SHB read at open. Checked framing, byte-order switching,
+finite section lengths, current-section interface registry, raw ordered options,
+EPB/SPB, permitted opaque blocks, qualified references and explicit unsupported
+policies. Closed Linux/macOS LINKTYPE table; unknown mapping stays explicit nil.
+Integer uint64 ticks/resolution/int64 offset and derived microseconds preserve
+submicrosecond metadata and SPB absence. Every published array is owned.
+
+Cancellation atomically competes with delivery claims; it closes the channel
+without waiting on a claimed consumer call and releases retained parser state.
+Full/reduced/error reduction owns finally cleanup, exception identity/suppression,
+and leaves transducer completion to transduce. Status retains only bounded data,
+never raw blocks/arrays, arbitrary consumer messages or exception objects.
+
+Compared downloaded IETF draft 05/06 texts. EPB process/thread option 8 remains
+8 bytes and becomes repeatable in 06; added a minimal E1 clarification and test.
+Absent option terminators are legal at a block boundary; padding octets are
+unspecified, so extents are checked without requiring zero values. NRB/ISB opaque
+fixed minima are checked; invalid UTF-8 stays raw without lossy conversion. These
+clarifications are recorded in E1, not an expansion into writer/live behavior.
+
+Reader acceptance uses the existing 47 fixture corpus (full native regressions)
+and ten E1 fixtures; production reader tests reuse every existing PCAPNG fixture.
+Tests include all 256 resolution bytes, uint64/int64 extremes, mixed sections,
+all truncation prefixes, declared section bounds, singleton/fixed/minimum options,
+unknown/raw octets, caplen/wire/snaplen consistency, all seven exact resource
+boundaries, default 4096/4097 option/interface counts and pre-body limit rejection.
+Seed 80802 runs 500 exact rational floor checks; seed 80803 runs 50 ordered
+qualified-reference cases. Lifecycle tests cover descriptor/packet/opaque reduced,
+completion, primary/suppressed/sole close errors, parse/read/consumer errors,
+repeat/concurrent consume, unused close, blocked consumer/read cancellation and
+instrumented zero post-reduced reads.
+
+Heap evidence: a separate `java -Xmx48m` process streams 246336000 wire bytes,
+6000 sections, 12000 IDBs and 6000 opaque blocks with a three-number accumulator.
+No event collection. Max active interfaces 2 and metadata policy accounting
+33584 bytes, zero after close; no cumulative section/opaque retention. This
+workload verifies bounded streaming, not a worst-case exact JVM footprint or
+throughput/live/NIC target. The probe runs in the unchanged platform suites.
+
+Local macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, libpcap 1.10.1:
+
+| Command / evidence | Result |
+| --- | --- |
+| `git status --short --untracked-files=all` | Clean before implementation |
+| `bash dev/script/codex.sh doctor` / `prepare` | Pass; offline read and prerequisites |
+| `bash dev/script/codex.sh test -n paclo.pcapng-test` | 15 tests, 903 assertions, zero failures/errors, including heap subprocess |
+| `bash dev/script/codex.sh check` | 10 JUnit tests; 446 Clojure tests, 16650 assertions; smoke passes |
+| Full Eastwood analysis | 100 namespaces analyzed; zero exceptions; informational warnings retained |
+| `python3 dev/script/test_eastwood_runner.py` | Four JVM probes pass; negative analysis exits 1 and reports unanalyzed dependent namespace |
+| `clojure -T:build spotbugs` / `checkstyle` | Pass |
+| `JACOCO_MIN_LINE=0.25 clojure -T:build jacoco` / `jacoco-gate` | Pass, line coverage 43.8%, same CI 25% gate |
+| Both fixture generators `--check` | 47 existing and ten E1 captures/manifest verified |
+| `python3 test/resources/test_pcapng_contract_fixtures.py` | Six independent Python wire/Fraction tests pass |
+| Doc example checker parser tests | 15 Python tests pass |
+| `dev/script/mdlint.sh` | Initial sandbox npm DNS failure; authorized retry passes, 37 files / zero errors |
+| `python3 dev/script/verify_doc_links.py` / `git diff --check` | Pass |
+
+Final full lint, corrected executable examples, quiet performance measurement
+and PR/platform CI are still pending at this checkpoint. First performance run
+while multiple documentation/Eastwood JVMs competed: 1850.0 ms > unchanged
+1200 ms fail budget. Record both attempts; no threshold relaxation. Initial doc
+checks exposed missing preloaded pcapng alias and trailing Clojure comments
+swallowing the checker's wrapper; corrected harness alias and example formatting.
+No final passing claim for those commands until successful process exits.
+
+Commit hook note: `.githooks/pre-commit` invokes `clj`, which failed before
+running tests because this local installation lacks rlwrap. The full wrapper
+`check` and `lint` already ran the equivalent tests/format/Markdown/kondo checks;
+use the hook's documented SKIP_TESTS/SKIP_FMT/SKIP_MD_LINT/SKIP_KONDO flags for
+commit only to avoid duplicate runs and automatic whole-repository edits. No
+tracked hook/CI configuration or required gate is changed.
+
+### Final local and PR verification
+
+Implementation commit `1bd6994` created independent
+[PR #50](https://github.com/nantes-rfli/paclo/pull/50), initially draft during
+verification. All Reader implementation steps are complete; independent review
+and merge remain. No merge was performed. The follow-up commit records evidence
+and clarifies opaque-vs-parsed-option accounting only; production/tests remain
+identical to the verified implementation.
+
+- Final `bash dev/script/codex.sh lint` exits 0: kondo zero errors/warnings,
+  all 100 Eastwood namespaces analyzed, 366 informational warnings, zero
+  exceptions; clean-ns/format dry runs clean; Markdown 37 files / zero errors.
+- Final `python3 dev/script/verify_doc_examples.py` exits 0: all 31 maintained
+  examples, including three new PCAPNG examples, pass. Fifteen parser tests pass.
+- After confirming all competing validation JVMs exited, unchanged
+  `bash dev/script/codex.sh perf` exits 0 at **554.5 ms**, below warn 1000/fail
+  1200 ms. The earlier concurrent 1850.0 ms failure is retained above. This
+  existing offline gate is not a new Reader throughput or live-capture claim.
+- Final Markdown/link/diff checks pass. No tracked hooks, CI config, source
+  version or default dependency graph were changed.
+
+[CI run 38663798446](https://github.com/nantes-rfli/paclo/actions/runs/38663798446)
+for `1bd6994` completed successfully: **all 12 jobs**, including required build
+aggregate, full Eastwood, Java quality/JaCoCo/package checks, documentation,
+coverage and all three existing performance measurement jobs plus results.
+
+| Platform | Actual runtime/native environment | Suite |
+| --- | --- | --- |
+| Linux x64 | JDK 21.0.12.1, libpcap 1.10.4 | 446 tests / 16656 assertions, zero failures/errors |
+| macOS ARM64 | JDK 17.0.20.1, macOS 26.6.2, libpcap 1.10.1 | 446 / 16650, zero failures/errors |
+| Linux ARM64 | JDK 21.0.12.1, libpcap 1.10.4 | 446 / 16656, zero failures/errors |
+
+All platform suites include the separate 48 MiB heap probe and production Reader
+regressions. The six extra Linux assertions are unchanged /dev/full tests.
+CI Eastwood completed all 100 namespaces with zero exceptions; its four negative
+runner probes preserve Issue #48's exit/error/unanalyzed-namespace gate. CI docs
+execute all 31 examples. No live/NIC, big-endian host or other-OS validation.
+
+Next: independent review of PR #50, followed by user-authorized merge. P08-E3
+remains blocked pending that review/merge; no writer/P09/P10 implementation.
+
+## P08-E2 independent review follow-up (#51/#52, 2026-10-15)
+
+PR #50 review of `c42b82a` requested two corrections before merge. Started with
+clean status on the supplied PR branch and reran `bash dev/script/codex.sh doctor`
+successfully (macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, offline native read).
+Read contributor/API/plan/E1 contracts and both complete review comments/issues.
+No new worktree, existing API/native binding, dependency, version or CI gate change.
+
+Issue #51: verified draft 06 section 4.2 permits repeated eight-byte IPv4 and
+seventeen-byte IPv6 address options. The actual reviewed head already excludes
+codes 4/5 from both the production singleton set and negative duplicate test;
+GitHub and local cursor blob both equal `07e7357fd1f5623e5fc58cba9f618d8114ff3e67`.
+Positive regression tests pass before the behavior correction, so the reported
+rejection could not be reproduced at this head. Added mixed IPv4/IPv6 sequences
+(including identical repeats) under both byte orders, preserving exact option
+order/octets, distinct owned copies, fixed lengths, count/byte/section accounting
+at limit and one below. Existing resolution/offset singleton rejection remains.
+Added an explicit source comment and public contract explaining that distinction.
+
+Issue #52: reproduced late packet-ceiling enforcement with actual temporary
+files whose EPB/SPB payloads are missing or partial. An allocation seam around
+ByteBuffer allocation preserves baseline behavior while tests record allocation
+sizes and FileChannel read offsets/requests. Before the fix, the two selected
+review tests execute 274 assertions with 160 failures, all in the packet-prefix
+test; the address option test passes. Failures show a whole-body allocation/read
+and `:truncated-block` instead of the required packet `:limit-exceeded`.
+
+Fix: after common block/section/opaque checks, read only EPB's 20-byte fixed body
+prefix or SPB's four-byte original length. Resolve the interface, compute caplen,
+check the packet ceiling, wire length/snaplen and padded declared body extent,
+then allocate/read the remaining block. Validated layout is reused for packet
+construction; timestamp/payload/options/trailer validation and ownership remain.
+The common max-block ceiling still precedes packet prefix/body allocation.
+
+Added both-endian EPB/SPB tests at declared caplen 64 and 65536 against a ceiling
+of 8, snaplen zero/nonzero, absent/three-byte payloads, every partial fixed-prefix
+length, invalid wire/snaplen/declared extents, too-short declared fixed headers,
+and valid zero-snaplen SPB. Allocation/read traces are reset after IDB delivery,
+so packet failures must show only [8 20] or [8 4] buffer allocations and fixed
+prefix reads, with no payload/trailer request. A test allocation guard catches
+regressions before large allocations. Source failure/close status is checked.
+
+Verification and same-PR re-review handoff are pending at this checkpoint.
+Original 12-job green runs above are historical evidence, not acceptance of
+these corrections. PR remains unmerged and both review threads remain for the
+independent reviewer to assess.
+
+### Local correction verification
+
+- `bash dev/script/codex.sh test -n paclo.pcapng-test`: 18 tests / 1323 assertions,
+  zero failures/errors, including the 48 MiB streaming probe.
+- `bash dev/script/codex.sh check`: 10 JUnit tests; 449 Clojure tests / 17070
+  assertions; offline smoke succeeds; exit 0.
+- `bash dev/script/codex.sh lint`: exit 0; kondo clean, all 100 Eastwood namespaces
+  analyzed with 383 informational warnings and zero exceptions; clean-ns/format
+  dry runs clean, Markdown 37 files / zero errors.
+- Both fixture generators `--check` preserve all 47 existing and ten E1 captures;
+  six Python physical-wire/Fraction oracle tests pass.
+- `python3 dev/script/verify_doc_examples.py`: all 31 executable examples pass.
+- With other validation JVMs finished, `bash dev/script/codex.sh perf`: exit 0,
+  **523.6 ms**, below unchanged 1000 ms warn / 1200 ms failure thresholds.
+- Local link and diff checks pass. Java/native sources and all CI gates remain
+  unchanged; the same PR/platform CI will verify the published correction head.
+
+The commit hook's documented skip flags are used only for duplicate checks and
+whole-repository auto-formatting after these equivalent checks have passed;
+the local `clj`/rlwrap limitation recorded above remains unchanged. No hook edits.
+
+### Correction CI and re-review handoff
+
+Published correction `c0353c5` on the existing PR #50.
+[CI run 38684190442](https://github.com/nantes-rfli/paclo/actions/runs/38684190442)
+completed with **all 12 jobs successful**, including required build aggregate,
+unchanged Eastwood/Java quality/package/coverage/documentation gates and every
+existing performance measurement/results job. Actual platform logs confirm:
+
+| Platform | Clojure suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK 21 | 449 tests / 17076 assertions | Zero failures/errors |
+| macOS ARM64 / JDK 17 | 449 / 17070 | Zero failures/errors |
+| Linux ARM64 / JDK 21 | 449 / 17076 | Zero failures/errors |
+
+Each suite includes all new prefix/address regressions and the existing 48 MiB
+heap, ownership and timestamp/property tests. The six Linux-only assertions are
+unchanged /dev/full checks. CI Eastwood analyzes all 100 namespaces with zero
+exceptions (383 informational warnings); Java line coverage remains 43.8% against
+the unchanged 25% threshold; the existing performance gate passes at 810.0 ms
+against warn 1000 / fail 1200; all 31 executable documentation examples pass.
+
+PR description records the #51 baseline finding and positive coverage separately
+from the #52 production correction, plus current verification. Both inline
+threads and tracking issues are left for independent reviewer confirmation.
+PR stays open for independent re-review; no merge was performed.
+The subsequent commit updates only this evidence/plan; production and tests
+remain exactly `c0353c5`. Next: independent re-review of PR #50.

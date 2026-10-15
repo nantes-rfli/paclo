@@ -483,6 +483,39 @@ an exception-free Eastwood exit without weakening gates.
 
 ## P08-E2 implementation plan and acceptance
 
+### E2 format recheck and implementation clarifications
+
+On 2026-10-15, E2 compared the pinned draft 05 with
+[draft 06](https://www.ietf.org/archive/id/draft-ietf-opsawg-pcapng-06.html).
+SHB/IDB/EPB/SPB framing, resolution and offset arithmetic are unchanged.
+EPB option 8 (process/thread IDs), omitted from E1's narrow option table, remains
+eight bytes but changes from singleton to repeatable in draft 06 section 4.3.
+E2 validates its length and preserves repeats; it does not add a typed cache.
+Draft 06 section 4.2 also permits repeated IDB address options 4/5 with lengths
+8/17. Review follow-up #51 adds positive mixed-address coverage for both byte
+orders; the reviewed singleton set already excludes those two codes.
+The reviewed E1 contract remains authoritative for strict caplen <= wire len,
+section boundaries and unsupported-block policy.
+
+Review follow-up #52 enforces the approved packet ceiling from a fixed EPB
+20-byte or SPB 4-byte body prefix before allocating/reading the remaining block.
+The prefix also validates interface references, caplen/wire/snaplen and padded
+declared extents. Complete body/trailer/option validation still precedes delivery.
+
+Drafts 05/06 section 3.5 permit an option list ending at the block boundary
+without an end marker. E2 accepts that case; a present marker must have length
+zero and be last. Padding extents/alignment are validated, but unspecified
+padding octets are not required to be zero or exposed as options/packet data.
+Metadata accounting includes a present four-byte end TLV. NRB/ISB opaque bodies
+check fixed minima of four/twelve bytes, without semantic interpretation.
+Opaque bodies use the whole-body opaque ceiling; inner record/option layouts
+are not interpreted. TLV byte/count ceilings apply to parsed SHB/IDB/EPB lists.
+No text helper is introduced: invalid UTF-8 remains authoritative raw octets,
+so E2 never silently replaces text or retains a text diagnostic list.
+
+The implemented public reader contract and runnable examples are now in
+[the PCAPNG guide](../docs/pcapng.md). E3 remains unimplemented.
+
 1. Implement an internal bounded block cursor with Java FileChannel, section
    magic switching, wide checked lengths/trailers/options and declared section
    length validation. No production dependency or generic backend mechanism.

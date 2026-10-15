@@ -12,6 +12,7 @@ Public namespaces:
 - `paclo.window`
 - `paclo.dns`
 - `paclo.stream`
+- `paclo.pcapng` (Unreleased P08-E2)
 - `paclo.decode-ext`
 - `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
   (supported annotation functions; other protocol internals remain excluded)
@@ -24,6 +25,7 @@ Internal namespaces (not covered by compatibility guarantees):
 - `paclo.linktype`
 - `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
+- `paclo.pcapng.cursor`
 
 ## Packet data contracts
 
@@ -38,14 +40,16 @@ readable as raw packets. Additional decoders and full PCAPNG metadata/file
 preservation remain future work.
 The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
 native format acceptance, raw packet access, decoding and output fidelity.
-PCAPNG reads normalize timestamps to microseconds and omit section/interface
+Native PCAPNG reads normalize timestamps to microseconds and omit section/interface
 identity, comments and options. Mixed link types or snaplen can stop native reads
 with a native read error; public readers propagate it by default. `:pass`
 retains the valid prefix and exposes failure through callbacks/report statistics.
 No complete PCAPNG read/write round trip is guaranteed.
-The [P08-E1 design](../dev/p08-e1-pcapng-contracts.md) proposes a separate
-metadata-aware source and writer with exact timestamps; those APIs are not yet
-implemented and do not change this v1 contract.
+The separate [PCAPNG reader](pcapng.md) implements `paclo.pcapng/open-source`
+and `source-info` in Unreleased P08-E2, retaining ordered metadata and exact
+timestamps with bounded synchronous reduction. The
+[P08-E1 design](../dev/p08-e1-pcapng-contracts.md) also specifies a future E3
+writer, which is not implemented. Existing native APIs retain their contracts.
 
 ### Raw capture packets
 

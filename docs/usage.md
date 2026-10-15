@@ -655,7 +655,8 @@ assumption. Explicit nil/unknown/invalid values are rejected by full/flow; raw
 `packet-xf {}` remains identity. Do not mutate shared packet arrays in fan-out.
 Use `core/write-pcap!` with the matching native DLT to write a single-DLT
 Classic PCAP, as in the [explicit writer example](#write-pcap).
-The writer preserves bytes without converting framing. PCAPNG metadata/output,
+The writer preserves bytes without converting framing. The separate
+[PCAPNG reader](pcapng.md) retains metadata and exact input time; PCAPNG output,
 additional decoders and complete source-file round trips remain future work.
 
 Cooked headers expose numeric `:packet-type`, `:hardware-type`, `:address-length`,
