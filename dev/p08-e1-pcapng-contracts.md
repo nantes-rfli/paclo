@@ -500,6 +500,8 @@ zero and be last. Padding extents/alignment are validated, but unspecified
 padding octets are not required to be zero or exposed as options/packet data.
 Metadata accounting includes a present four-byte end TLV. NRB/ISB opaque bodies
 check fixed minima of four/twelve bytes, without semantic interpretation.
+Opaque bodies use the whole-body opaque ceiling; inner record/option layouts
+are not interpreted. TLV byte/count ceilings apply to parsed SHB/IDB/EPB lists.
 No text helper is introduced: invalid UTF-8 remains authoritative raw octets,
 so E2 never silently replaces text or retains a text diagnostic list.
 

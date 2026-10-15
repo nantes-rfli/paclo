@@ -2408,3 +2408,44 @@ running tests because this local installation lacks rlwrap. The full wrapper
 use the hook's documented SKIP_TESTS/SKIP_FMT/SKIP_MD_LINT/SKIP_KONDO flags for
 commit only to avoid duplicate runs and automatic whole-repository edits. No
 tracked hook/CI configuration or required gate is changed.
+
+### Final local and PR verification
+
+Implementation commit `1bd6994` created independent
+[PR #50](https://github.com/nantes-rfli/paclo/pull/50), initially draft during
+verification. All Reader implementation steps are complete; independent review
+and merge remain. No merge was performed. The follow-up commit records evidence
+and clarifies opaque-vs-parsed-option accounting only; production/tests remain
+identical to the verified implementation.
+
+- Final `bash dev/script/codex.sh lint` exits 0: kondo zero errors/warnings,
+  all 100 Eastwood namespaces analyzed, 366 informational warnings, zero
+  exceptions; clean-ns/format dry runs clean; Markdown 37 files / zero errors.
+- Final `python3 dev/script/verify_doc_examples.py` exits 0: all 31 maintained
+  examples, including three new PCAPNG examples, pass. Fifteen parser tests pass.
+- After confirming all competing validation JVMs exited, unchanged
+  `bash dev/script/codex.sh perf` exits 0 at **554.5 ms**, below warn 1000/fail
+  1200 ms. The earlier concurrent 1850.0 ms failure is retained above. This
+  existing offline gate is not a new Reader throughput or live-capture claim.
+- Final Markdown/link/diff checks pass. No tracked hooks, CI config, source
+  version or default dependency graph were changed.
+
+[CI run 38663798446](https://github.com/nantes-rfli/paclo/actions/runs/38663798446)
+for `1bd6994` completed successfully: **all 12 jobs**, including required build
+aggregate, full Eastwood, Java quality/JaCoCo/package checks, documentation,
+coverage and all three existing performance measurement jobs plus results.
+
+| Platform | Actual runtime/native environment | Suite |
+| --- | --- | --- |
+| Linux x64 | JDK 21.0.12.1, libpcap 1.10.4 | 446 tests / 16656 assertions, zero failures/errors |
+| macOS ARM64 | JDK 17.0.20.1, macOS 26.6.2, libpcap 1.10.1 | 446 / 16650, zero failures/errors |
+| Linux ARM64 | JDK 21.0.12.1, libpcap 1.10.4 | 446 / 16656, zero failures/errors |
+
+All platform suites include the separate 48 MiB heap probe and production Reader
+regressions. The six extra Linux assertions are unchanged /dev/full tests.
+CI Eastwood completed all 100 namespaces with zero exceptions; its four negative
+runner probes preserve Issue #48's exit/error/unanalyzed-namespace gate. CI docs
+execute all 31 examples. No live/NIC, big-endian host or other-OS validation.
+
+Next: independent review of PR #50, followed by user-authorized merge. P08-E3
+remains blocked pending that review/merge; no writer/P09/P10 implementation.

@@ -43,7 +43,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E2 implementation, verification and independent review**.
+Default next task: **P08-E2 independent review and merge of PR #50**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 starts from that main; E3 waits for E2.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
@@ -368,8 +368,10 @@ commands/results and platform limits are recorded in the work log.
 
 ## P08-E2: Bounded metadata-aware PCAPNG reader
 
-Status: **in-progress**, implementation/verification from main `008c93b` after
-E1 and Issue #48 merged. Implement the reviewed
+Status: **in-progress** for independent review/merge on
+[PR #50](https://github.com/nantes-rfli/paclo/pull/50). The complete Reader
+implementation and verification from main `008c93b` are finished, including
+all 12 CI jobs on Linux x64, macOS ARM64 and Linux ARM64. Implementation follows the reviewed
 [E2 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e2-implementation-plan-and-acceptance):
 checked file cursor, SHB/IDB/EPB/SPB, ordered owned option/opaque data, exact
 integer time, Closeable IReduceInit source and bounded status. Existing native
