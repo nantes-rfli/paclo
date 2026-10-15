@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+
+- Reduce temporary allocation in exact flow aggregation with single-key persistent
+  map updates and indexed IPv6 word access. Public keys, exact counters, bounds
+  and immutable reducer snapshots retain their existing contract (Issue #34).
+
 ### Fixed — Issue #40 investigation
 
 - Managed capture serializes native break/close during concurrent stop/close,

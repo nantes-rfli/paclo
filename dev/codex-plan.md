@@ -43,11 +43,13 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **Issue #40 independent review of PR #54**.
+Default next task: **Issue #34 flow performance independent review after validation**.
+PR #54 has merged as `e069657`; Issue #34 starts independently from that main.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
-Issue #40 starts independently from that latest main. P09/P10 remain blocked.
+Issue #40 followed independently from that main; PR #54 is now merged.
+P09/P10 remain blocked.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
 at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
@@ -58,6 +60,19 @@ P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
+
+## Performance follow-up: Issue #34
+
+Status: **in-progress**, from latest main `e069657` after PR #54 merged.
+Reproduce P06 and compare equivalent exact reducers on IPv4/IPv6, 10/10000 flows,
+both directions, fixture projection/decode replay and real native PCAP replay.
+Use paired alternating samples, allocation, retained heap, GC and thread CPU.
+The [investigation](issue-34-flow-performance.md) records accepted/rejected
+candidates and remaining limits. Preserve all public APIs, immutable intermediate
+steps, exact counters, bounds, errors, EDN and P06/P07/P08 composition.
+No issue #37/#44, P09/P10, threshold relaxation, release or merge work.
+Next unfinished item: finish local/package/platform CI verification, then
+independent review of the Issue #34 PR. See the work log for actual results.
 
 ## CI maintenance: Issue #48
 
