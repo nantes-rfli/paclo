@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- P08-E2: `paclo.pcapng/open-source` and `source-info` provide a bounded,
+  synchronous, Closeable single-consumer PCAPNG event reduction. Ordered
+  SHB/IDB/EPB/SPB and permitted opaque events retain section/interface identity,
+  mixed byte order/LINKTYPE/snaplen, owned option octets and exact unsigned ticks,
+  decimal/binary resolution, signed offsets and explicit timestamp absence.
+  Integer microsecond projection preserves the existing packet shape; explicit
+  nil DLT prevents unknown LINKTYPEs from defaulting to Ethernet. Checked resource
+  ceilings, malformed/unsupported-input failures and deterministic termination
+  accompany lifecycle/heap acceptance tests and runnable documentation. Existing
+  native APIs and Classic writer behavior remain unchanged. PCAPNG output is E3.
 - P08-D2: NULL (native DLT 0) and LOOP (108) IPv4/IPv6 full decode and numeric
   flow projection on Linux/macOS, after cross-endian installed-libpcap probes
   on Linux x64, macOS ARM64 and Linux ARM64. Shared framing reads AF at offset

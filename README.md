@@ -28,6 +28,11 @@ without linktype metadata trust the caller's selected DLT; no bytes are sniffed
 or converted. See the [cooked capture examples](docs/usage.md#reading-non-ethernet-captures)
 and [writer contract](docs/cljdoc-api-contract.md#write-pcap).
 
+For ordered PCAPNG sections/interfaces/options and exact timestamps, use the
+separate [`paclo.pcapng` reader](docs/pcapng.md) (Unreleased P08-E2).
+It owns a bounded synchronous FileChannel source that you reduce once with
+`with-open`. PCAPNG writing remains future P08-E3 work.
+
 Decode SLL and SLL2 with the same transducer; each retains its own link header:
 
 <!-- paclo-doc-test: readme-cooked-decode -->
@@ -419,10 +424,11 @@ unchanged; their migration and bounded reporting are P07-B.
 | `paclo.window` | `init`, `step`, `advance`, `finish` | Bounded tumbling windows (Unreleased P07-A) |
 | `paclo.dns` | `packet-time-us`, `packet->event`, `init`, `step`, `advance`, `finish` | Pure DNS analysis (Unreleased P07-A) |
 | `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
+| `paclo.pcapng` | `open-source`, `source-info` | [Bounded PCAPNG metadata/exact-time reader](docs/pcapng.md) (Unreleased P08-E2) |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
-`paclo.stream.impl`) are not part of the compatibility contract, except supported
+`paclo.stream.impl`, `paclo.pcapng.cursor`) are not part of the compatibility contract, except supported
 `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`.
 
 ## Compatibility matrix

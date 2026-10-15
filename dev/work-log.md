@@ -2326,3 +2326,85 @@ Implementation publication and supported-platform CI:
   outside this task; no P08-E2/E3 or other implementation. Final evidence-head
   CI status will be maintained in the PR description without another log-only
   commit cycle. Review before merging; no publication/release authorized here.
+
+## P08-E2: bounded metadata-aware PCAPNG reader (2026-10-15)
+
+Started from clean supplied checkout, fetched latest main `008c93b`, and created
+`codex/p08-e2-pcapng-reader`. PR #47 merged as `2e7e357`, PR #49 as `008c93b`;
+verified merge records through GitHub. Read CONTRIBUTING, v1 API, accepted plan
+and authoritative E1 contracts before implementation. No worktree, dependency,
+native binding, existing capture/Classic writer API, CI gate or version change.
+
+Implementation: internal FileChannel block cursor plus `paclo.pcapng/open-source`
+and `source-info`. One synchronous consumer, no Seqable/Iterable/producer thread,
+only the first bounded SHB read at open. Checked framing, byte-order switching,
+finite section lengths, current-section interface registry, raw ordered options,
+EPB/SPB, permitted opaque blocks, qualified references and explicit unsupported
+policies. Closed Linux/macOS LINKTYPE table; unknown mapping stays explicit nil.
+Integer uint64 ticks/resolution/int64 offset and derived microseconds preserve
+submicrosecond metadata and SPB absence. Every published array is owned.
+
+Cancellation atomically competes with delivery claims; it closes the channel
+without waiting on a claimed consumer call and releases retained parser state.
+Full/reduced/error reduction owns finally cleanup, exception identity/suppression,
+and leaves transducer completion to transduce. Status retains only bounded data,
+never raw blocks/arrays, arbitrary consumer messages or exception objects.
+
+Compared downloaded IETF draft 05/06 texts. EPB process/thread option 8 remains
+8 bytes and becomes repeatable in 06; added a minimal E1 clarification and test.
+Absent option terminators are legal at a block boundary; padding octets are
+unspecified, so extents are checked without requiring zero values. NRB/ISB opaque
+fixed minima are checked; invalid UTF-8 stays raw without lossy conversion. These
+clarifications are recorded in E1, not an expansion into writer/live behavior.
+
+Reader acceptance uses the existing 47 fixture corpus (full native regressions)
+and ten E1 fixtures; production reader tests reuse every existing PCAPNG fixture.
+Tests include all 256 resolution bytes, uint64/int64 extremes, mixed sections,
+all truncation prefixes, declared section bounds, singleton/fixed/minimum options,
+unknown/raw octets, caplen/wire/snaplen consistency, all seven exact resource
+boundaries, default 4096/4097 option/interface counts and pre-body limit rejection.
+Seed 80802 runs 500 exact rational floor checks; seed 80803 runs 50 ordered
+qualified-reference cases. Lifecycle tests cover descriptor/packet/opaque reduced,
+completion, primary/suppressed/sole close errors, parse/read/consumer errors,
+repeat/concurrent consume, unused close, blocked consumer/read cancellation and
+instrumented zero post-reduced reads.
+
+Heap evidence: a separate `java -Xmx48m` process streams 246336000 wire bytes,
+6000 sections, 12000 IDBs and 6000 opaque blocks with a three-number accumulator.
+No event collection. Max active interfaces 2 and metadata policy accounting
+33584 bytes, zero after close; no cumulative section/opaque retention. This
+workload verifies bounded streaming, not a worst-case exact JVM footprint or
+throughput/live/NIC target. The probe runs in the unchanged platform suites.
+
+Local macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, libpcap 1.10.1:
+
+| Command / evidence | Result |
+| --- | --- |
+| `git status --short --untracked-files=all` | Clean before implementation |
+| `bash dev/script/codex.sh doctor` / `prepare` | Pass; offline read and prerequisites |
+| `bash dev/script/codex.sh test -n paclo.pcapng-test` | 15 tests, 903 assertions, zero failures/errors, including heap subprocess |
+| `bash dev/script/codex.sh check` | 10 JUnit tests; 446 Clojure tests, 16650 assertions; smoke passes |
+| Full Eastwood analysis | 100 namespaces analyzed; zero exceptions; informational warnings retained |
+| `python3 dev/script/test_eastwood_runner.py` | Four JVM probes pass; negative analysis exits 1 and reports unanalyzed dependent namespace |
+| `clojure -T:build spotbugs` / `checkstyle` | Pass |
+| `JACOCO_MIN_LINE=0.25 clojure -T:build jacoco` / `jacoco-gate` | Pass, line coverage 43.8%, same CI 25% gate |
+| Both fixture generators `--check` | 47 existing and ten E1 captures/manifest verified |
+| `python3 test/resources/test_pcapng_contract_fixtures.py` | Six independent Python wire/Fraction tests pass |
+| Doc example checker parser tests | 15 Python tests pass |
+| `dev/script/mdlint.sh` | Initial sandbox npm DNS failure; authorized retry passes, 37 files / zero errors |
+| `python3 dev/script/verify_doc_links.py` / `git diff --check` | Pass |
+
+Final full lint, corrected executable examples, quiet performance measurement
+and PR/platform CI are still pending at this checkpoint. First performance run
+while multiple documentation/Eastwood JVMs competed: 1850.0 ms > unchanged
+1200 ms fail budget. Record both attempts; no threshold relaxation. Initial doc
+checks exposed missing preloaded pcapng alias and trailing Clojure comments
+swallowing the checker's wrapper; corrected harness alias and example formatting.
+No final passing claim for those commands until successful process exits.
+
+Commit hook note: `.githooks/pre-commit` invokes `clj`, which failed before
+running tests because this local installation lacks rlwrap. The full wrapper
+`check` and `lint` already ran the equivalent tests/format/Markdown/kondo checks;
+use the hook's documented SKIP_TESTS/SKIP_FMT/SKIP_MD_LINT/SKIP_KONDO flags for
+commit only to avoid duplicate runs and automatic whole-repository edits. No
+tracked hook/CI configuration or required gate is changed.

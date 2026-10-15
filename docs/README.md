@@ -8,6 +8,7 @@ documented separately from historical release and design records.
 - [Getting started and install](../README.md)
 - [Usage guide](usage.md)
 - [Public API contract (v1.x)](cljdoc-api-contract.md)
+- [Metadata-aware PCAPNG reader](pcapng.md)
 - [Decode extensions](extensions.md)
 - [Performance measurement](performance.md)
 - [Migration guide (0.4 to 1.0)](migration-0.4-to-1.0.md)
