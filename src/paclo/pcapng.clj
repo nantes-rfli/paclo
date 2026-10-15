@@ -5,7 +5,8 @@
   producer thread, implicit reopen, BPF filter or live capture."
   (:require
    [clojure.java.io :as io]
-   [paclo.pcapng.cursor :as cursor])
+   [paclo.pcapng.cursor :as cursor]
+   [paclo.pcapng.writer :as writer])
   (:import
    [clojure.lang IReduceInit]
    [java.io Closeable]
@@ -94,10 +95,13 @@
               (do
                 (locking status
                   (swap! status assoc :state :failed :terminal :error :error (error-data close-error)))
+                (vreset! primary close-error)
                 (throw close-error))))
           (finally
             (locking status
-              (swap! status assoc :active-interfaces 0 :active-metadata-bytes 0))))))))
+              (swap! status assoc :active-interfaces 0 :active-metadata-bytes 0))
+            (when (and writer/*source-terminal!* (nil? @primary))
+              (writer/*source-terminal!* (:terminal @status)))))))))
 
 (deftype ^:private Source [channel pending active opts status]
   Closeable
@@ -163,3 +167,28 @@
   (when-not (instance? Source source)
     (cursor/fail! {} :invalid-source {}))
   @(.-status ^Source source))
+
+(defn write-pcapng!
+  "Synchronously write ordered PCAPNG events to a new path, once.
+
+  (write-pcapng! events path) defaults to :mode :preserve. Options accept
+  :mode :preserve/:lossy/:author, :drop #{:comments :unknown-options
+  :noncopyable-options :custom-options :opaque-blocks} (lossy only), :context-changed? boolean,
+  and the same positive resource ceilings as open-source.
+
+  Exact ticks and descriptor options must agree with derived fields. Author
+  mode alone permits exact integral conversion from a complete microsecond pair
+  when :timestamp is absent. Explicit nil is timestamp absence (SPB only).
+  Declare edits/subsets with :context-changed? true; opaque content then needs
+  explicit drops. No inference of source fidelity or detection of hidden edits.
+
+  Publishes a closed sibling temporary file with an exclusive atomic rename on
+  Linux/macOS; existing paths and unsupported providers fail without fallback.
+  Returns bounded status/fidelity/loss counts. Failure preserves the exception
+  and adds output location/cleanup details as suppressed exceptions. Paclo
+  sources own their close during reduction; other reducibles own upstream I/O.
+  See docs/pcapng.md for the full policy and ownership contract."
+  ([events path] (write-pcapng! events path {}))
+  ([events path opts]
+   (writer/write! events path opts
+                  (when (instance? Source events) #(source-info events)))))

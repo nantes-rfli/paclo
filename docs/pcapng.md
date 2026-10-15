@@ -1,9 +1,10 @@
-# Metadata-aware PCAPNG reading
+# Metadata-aware PCAPNG reading and writing
 
 `paclo.pcapng/open-source` reads an offline PCAPNG file through a bounded Java
 FileChannel cursor. `source-info` reports its lifecycle and counters. The
 existing `core/packets`, `reduce-packets` and Classic `write-pcap!` retain their
-native behavior. There is no PCAPNG writer yet.
+native behavior. `write-pcapng!` writes ordered events to a new PCAPNG path,
+with explicit preservation, loss and authoring policies.
 
 ## Packet analysis
 
@@ -142,7 +143,7 @@ length and nonzero snaplen (wire length when snaplen is zero). Padding is exclud
 Classic `write-pcap!` uses its existing microsecond precedence/ranges and does
 not validate nested exact time. Exporting there requires explicit acceptance of
 precision/metadata loss. The [E1 contract](../dev/p08-e1-pcapng-contracts.md)
-defines the future E3 writer; it is not available from this namespace.
+defines the shared reader/writer data and exact-time contract.
 
 ## Ownership, status and failures
 
@@ -226,3 +227,158 @@ collecting events own that additional memory. The acceptance probe streams
 6000 sections/12000 interfaces/6000 opaque blocks (246336000 wire bytes) in a
 separate 48 MiB heap process and checks active registry maxima without collecting
 events. This is boundedness evidence for that workload, not a throughput target.
+
+## Writing PCAPNG
+
+`(pcapng/write-pcapng! events path)` reduces ordered events once, synchronously.
+The three-argument form accepts an options map. A direct Reader-to-Writer copy
+keeps descriptors, packet bytes and lengths, exact time, timestamp absence,
+ordered comments/options and allowed opaque octets:
+
+<!-- paclo-doc-test: pcapng-preserving-writer -->
+```clojure
+(require '[paclo.pcapng :as pcapng])
+(let [dir (java.nio.file.Files/createTempDirectory
+           "paclo-example-" (make-array java.nio.file.attribute.FileAttribute 0))
+      output (.resolve dir "copy.pcapng")]
+  (try
+    (with-open [source (pcapng/open-source
+                        {:path "test/resources/pcapng-contracts/rich.pcapng"})]
+      (let [report (pcapng/write-pcapng! source output)]
+        (with-open [copy (pcapng/open-source {:path output})]
+          {:report report :packets (transduce (filter :packet)
+                                              (completing (fn [n _] (inc n))) 0 copy)})))
+    (finally
+      (java.nio.file.Files/deleteIfExists output)
+      (java.nio.file.Files/delete dir))))
+```
+
+The report contains `:status :complete`, `:fidelity :known-semantics`,
+`:loss-counts {}`, `:blocks-written 7` and `:bytes-written 644`; there are three
+packets. Counts use arbitrary integers and do not retain a per-loss list.
+
+| Mode | Behavior |
+| --- | --- |
+| `:preserve` (default) | Retain supported metadata; refuse drops and declared context changes; missing metadata fails |
+| `:lossy` | Apply only the explicit `:drop` categories; the mode alone discards nothing; return `:fidelity :explicit-loss` |
+| `:author` | Validate explicitly authored descriptors/packets; return `:fidelity :authored`, without asserting input preservation |
+
+`:drop` is a set, supported only in lossy mode. Categories are `:comments`
+(option 1), `:unknown-options` (codes outside the recognized scope table),
+`:noncopyable-options` (19372/19373), `:custom-options` (copyable custom options
+2988/2989), and `:opaque-blocks` (all opaque events). Each removed option/block
+increments that category's loss count. Known options are SHB 2–4, IDB 2–18,
+EPB 2–8, comments and the four custom-option codes. Empty options and repeated
+comments remain distinct. Malformed data is validated before a requested drop;
+lossy mode never repairs invalid lengths, references, options or time.
+
+Set `:context-changed? true` in lossy or author mode when changing section order,
+IDs, byte order, payload, timestamps or packet subsets. The report includes
+`:context-changed 1`. Every retained opaque block, unknown option or copyable
+custom option then fails `:opaque-context-changed`; explicitly drop all affected
+categories in lossy mode. Noncopyable custom data fails `:noncopyable-data`
+unless explicitly dropped. Opaque bodies must retain their section byte order,
+including when being dropped. Unsupported packet/secrets blocks cannot be
+smuggled through an opaque event. Paclo cannot detect undisclosed removed events,
+in-place array edits or invented provenance. Preservation is conditional on the
+caller's declaration and retained source metadata; unknown meanings remain
+unverified. No complete semantic fidelity or packet coverage is claimed for
+opaque content.
+
+Section IDs must be consecutive from zero, and interface IDs must match the IDB
+ordinal within each section. Emit each IDB before any referencing packet. Writer
+never preloads, renumbers, merges or reorders. All descriptor fields in the event
+table are required, including explicit nil for an unavailable DLT. Resolution
+and signed offset must agree with authoritative options; missing options mean
+the decimal-6/zero defaults. Packet maps require bytes, caplen, len, linktype and
+the PCAPNG envelope. Native six-key maps and flow projections lack that contract.
+Event `:block-index`/`:file-offset` are optional input locations, not output
+coordinates. Extra packet decoding keys are ignored.
+
+EPBs require exact uint64 ticks in preserve/lossy modes. A complete supplied
+microsecond pair must agree with exact time. Author mode also accepts a complete
+integer pair when the `:timestamp` key is absent from the envelope, and solves
+for ticks exactly; nonintegral, negative or >uint64 results fail. Explicit nil
+never falls back to microseconds. No current-clock, rounding or legacy `:sec`
+fallback exists. SPB requires interface zero, explicit nil timestamp, no options
+or microsecond fields, and its inferred caplen. For example, a new one-byte EPB
+at epoch plus one microsecond:
+
+<!-- paclo-doc-test: pcapng-authoring-writer -->
+```clojure
+(require '[paclo.pcapng :as pcapng])
+(let [dir (java.nio.file.Files/createTempDirectory
+           "paclo-author-" (make-array java.nio.file.attribute.FileAttribute 0))
+      output (.resolve dir "new.pcapng")
+      events [{:type :section :section-id 0
+               :section {:id 0 :byte-order :little-endian :version [1 0]
+                         :section-length nil :options []}}
+              {:type :interface :section-id 0
+               :interface {:section-id 0 :id 0 :file-linktype 1 :linktype 1
+                           :snaplen 64 :timestamp-resolution {:base 10 :exponent 6}
+                           :timestamp-offset-sec 0 :options []}}
+              {:type :packet :section-id 0
+               :packet {:bytes (byte-array [42]) :caplen 1 :len 1 :linktype 1
+                        :ts-sec 0 :ts-usec 1
+                        :pcapng {:section-id 0 :interface-id 0
+                                 :block-type :enhanced-packet :options []}}}]]
+  (try
+    (pcapng/write-pcapng! events output {:mode :author})
+    (with-open [source (pcapng/open-source {:path output})]
+      (transduce (comp (filter :packet) (map #(get-in % [:packet :pcapng :timestamp])))
+                 conj [] source))
+    (finally
+      (java.nio.file.Files/deleteIfExists output)
+      (java.nio.file.Files/delete dir))))
+```
+
+The result is `[{:ticks 1N}]`. Packet bytes need not contain a decodable frame.
+
+### Publication, failure and ownership
+
+Output uses a newly created sibling temporary file. Writer validates each block
+before writing, completes reduction, flushes and closes, then publishes via
+Linux `renameat2(RENAME_NOREPLACE)` or macOS `renamex_np(RENAME_EXCL)` through the
+existing JNR dependency. These primitives atomically refuse existing destination
+names, including creation races and dangling symlinks. Only the default file
+provider on these OSes is supported, and the filesystem must support the flag.
+Missing symbols, unsupported atomic/exclusive operations and move errors fail;
+there is no unsafe move/copy/link fallback. Existing paths are refused. There
+is no replacement, append, caller-output-stream or crash-durability/fsync API.
+See the [Linux rename manual](https://man7.org/linux/man-pages/man2/rename.2.html)
+and [Apple rename implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/vfs/vfs_syscalls.c)
+for the platform operations.
+
+Success does not reproduce physical input bytes: section length becomes -1,
+padding is zero, option terminators may be omitted and trailers regenerated.
+Known meaning, exact fields and retained octets/order are the round-trip target.
+
+A validation error has `:phase :pcapng-write`, `:reason`, output `:block-index`,
+`:file-offset`, `:section-id`, `:output-status :not-published` and applicable field
+or limit data. Input and I/O exceptions retain identity and original ex-data.
+After temp creation, a suppressed exception adds output status/location and
+`:temp-path`. Close errors are suppressed on the original failure; a sole close
+error throws. Cleanup runs after validation, write, flush, close or move failure.
+A cleanup failure is suppressed with its temp path and cause for recovery.
+
+Source reduction owns its close, Writer owns its output. Other Closeable
+reducibles retain caller/upstream ownership; use `with-open`. Writer checks
+Paclo source terminal status even inside synchronous `eduction`: early
+`:reduced`, `:closed` or `:error` cannot publish a preserving copy. An intentional
+`take` subset needs lossy/author mode with `:context-changed? true`, explicitly
+handled opaque options and a normally returning outer reduction. It does not
+validate the unread suffix. Plain custom reducibles must enforce their own
+upstream completion; Writer cannot inspect an undisclosed upstream source or
+undo swallowed upstream failures. Repeat/concurrent consumption still fails
+without stealing the active Reader's channel. Empty input fails
+`:missing-section`; a valid empty section is permitted.
+
+Writer accepts the same resource ceilings as Reader. It validates option counts,
+padded sizes, packet/opaque sizes, block size, interface count and section metadata
+before bounded encoding. It retains only current-section descriptors and the
+current bounded block/event. Dropped data must also satisfy limits. It holds no
+whole-file input, packet index, old-section registry or loss-detail list. The
+48 MiB writer acceptance process streams 6000 sections/12000 interfaces/6000
+opaque blocks (246264000 bytes), with at most two active interfaces and 33572
+metadata accounting bytes. This is a bounded workload test, not a throughput or
+live-capture claim.

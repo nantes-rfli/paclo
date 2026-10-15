@@ -2545,3 +2545,202 @@ threads and tracking issues are left for independent reviewer confirmation.
 PR stays open for independent re-review; no merge was performed.
 The subsequent commit updates only this evidence/plan; production and tests
 remain exactly `c0353c5`. Next: independent re-review of PR #50.
+
+## P08-E3 metadata-aware PCAPNG writer (2026-10-15)
+
+User-authorized scope: implementation, tests, English documentation and an
+independent PR; no merge/release, Classic writer changes, P09/P10 or performance
+issue work. Started with a clean supplied checkout and doctor passing on macOS
+x86_64/JDK 21.0.12.1/Clojure 1.12.1/libpcap 1.10.1. Fetched latest main
+`8de22e0` (merged PR #50) and created `codex/p08-e3-pcapng-writer` in that checkout.
+Read CONTRIBUTING, public API contract, accepted plan and authoritative E1.
+No dependency, version or CI-gate changes.
+
+### Implementation and policy decisions
+
+- Added public `(pcapng/write-pcapng! events path [opts])`, consuming one ordered
+  event reduction without collecting input. SHB/IDB/EPB/SPB, sections/orders,
+  interface ordinals/LINKTYPEs/snaplen, uint64 ticks, signed offsets/resolutions,
+  absence, ordered raw options and permitted opaque bodies are encoded.
+- Preserve is default; lossy requires explicit drop categories and bounded counts;
+  author requires descriptors and permits only exact integral conversion from a
+  complete integer microsecond pair when the exact timestamp key is absent.
+  Explicit nil is not a fallback. Conflicting or malformed metadata is rejected
+  before drops. Declared changed context refuses opaque dependencies unless
+  explicitly dropped. Noncopyable codes derive from wire codes, not caller labels.
+- Shared internal cursor validation checks constructed block bodies before writes;
+  no Reader/native behavior or Classic writer changes. Input section lengths are
+  normalized to -1; padding is zero and terminators omitted. Semantic preservation
+  is conditional on honest caller declarations; undisclosed edits/subsets are not
+  detectable and no hashes/provenance/index are retained.
+- Java ATOMIC_MOVE may replace a racing destination. Used the existing JNR
+  dependency for exclusive atomic rename: Linux renameat2 flag 1 (NOREPLACE),
+  macOS renamex_np flag 4 (EXCL). Default filesystem only, same-directory temp,
+  no copy/link/move fallback and no replacement API. Unsupported operations fail.
+  Reviewed Linux rename(2) and Apple's xnu bsd/sys/stdio.h flag declarations.
+- Writer owns temp/output and flush/close/publication/cleanup. Original input/I/O
+  exception identity is preserved; suppressed context includes output coordinates
+  and temp path, with secondary close/cleanup failures. Source reduction owns
+  close. An internal dynamically bound terminal observer rejects incomplete Paclo
+  source reduction even through synchronous eduction; declared lossy/author
+  subsets can deliberately stop with reduced. Custom reducibles own undisclosed
+  upstream completion and Closeables; no hidden resource lookup is attempted.
+- Writer retains only bounded current block/event and active-section descriptors;
+  section changes release the registry. Counts have no unbounded detail list.
+
+### Verification checkpoint
+
+- Initial focused Writer suite: 16 tests / 350 assertions, zero failures/errors.
+  Includes all valid E1/P08-A/container/framing PCAPNGs through E2->E3->E2,
+  independent Python struct-based wire comparisons, seed 80803 / 120 exact-time
+  cases, loss policies, timestamp/descriptor/reference errors, I/O failures,
+  primary/suppressed cleanup, ownership, eduction and limits.
+- Separate 48 MiB process streams 6000 sections / 12000 interfaces / 6000 opaque
+  blocks, 246264000 bytes through Reader->Writer. Maximum active registry is two
+  interfaces / 33572 accounting bytes, with no event collection. This is bounded
+  workload evidence, not live capture, other-OS or throughput validation.
+- Corpus generators --check verify 28 capture, four cooked, three Raw IP,
+  twelve NULL/LOOP and ten E1 captures/manifests. Six Python E1 oracle tests pass.
+- Documentation parser: 15 tests pass. Local Markdown links/anchors pass.
+- SpotBugs, CheckStyle, JaCoCo and unchanged 25% gate pass (43.8% Java line coverage).
+- Final focused Writer suite: 19 tests / 558 assertions, zero failures/errors.
+  Actual ZIP-provider refusal, dangling-symlink and two-writer races pass, as do
+  the default 4096/4097 interface boundary tests. Every invalid-metadata/loss test
+  also asserts no destination and no sibling temp remains. Reuses the already
+  validated encoded block when no drops occur, avoiding duplicate block buffers.
+- Initial full check passes: 10 JUnit tests, 465 Clojure tests / 17421 assertions,
+  offline smoke. Final check reruns with the additional cases/current encoder.
+- All 33 executable documentation examples pass, including preservation and
+  authoring. Markdown lint (37 files) passes after correcting three extra blank
+  lines. Eastwood initially analyzes all 103 namespaces with 441 informational
+  warnings and zero exceptions; final lint runs on the final tests/encoder.
+
+### Initial local validation and implementation CI
+
+Implementation `c44bf5b` created independent [PR #53](https://github.com/nantes-rfli/paclo/pull/53),
+initially draft during final gates. These initial gates pass; final review below
+subsequently identifies a padding-ambiguous SPB case. PR remains unmerged. This evidence follow-up updates only
+plan/log and the writer docstring's complete drop-category list; behavior/tests
+remain identical to `c44bf5b`.
+
+| Command | Final result |
+| --- | --- |
+| `bash dev/script/codex.sh check` | Exit 0; ten JUnit tests; 468 Clojure tests / 17628 assertions, zero failures/errors; offline smoke passes |
+| `bash dev/script/codex.sh test -n paclo.pcapng-writer-test` | Exit 0; 19 tests / 558 assertions, including 48 MiB Reader-to-Writer probe |
+| `bash dev/script/codex.sh lint` | Exit 0; kondo clean, all 103 Eastwood namespaces, 441 informational warnings / zero exceptions, clean namespace/format dry runs, Markdown 37 files / zero errors |
+| `python3 -B dev/script/test_eastwood_runner.py` | Four probes pass; deliberate failed analysis exits 1 and reports one unanalyzed namespace |
+| `python3 dev/script/verify_doc_examples.py` | All 33 runnable examples pass |
+| Documentation parser tests | 15 tests pass |
+| `TMPDIR=/private/tmp python3 -B -m unittest discover -s dev/script -p 'test_verify_doc_links.py'` | Nine tests pass; canonical temp directory avoids macOS /var symlink alias in the unchanged test fixture |
+| `python3 -B dev/script/verify_doc_links.py` / `git diff --check` | Pass |
+| `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`, `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate` | Pass; Java line coverage 43.8% against unchanged 25% gate |
+| `bash dev/script/codex.sh perf` | Exit 0; 460.3 ms, below unchanged 1000 warn / 1200 fail; competing validation JVMs finished first |
+| `bash dev/script/codex.sh package` | Exit 0; JAR contains public PCAPNG/core namespaces, writer/cursor and compiled native bindings |
+| Independent JAR consumer `clojure -Srepro -M consumer.clj` | Exit 0; only local/root packaged JAR in /private/tmp/paclo-e3-consumer-c44bf5b; resource URLs use jar protocol; three rich PCAPNG packets retain exact time/absence, four Classic packets round-trip |
+| cljdoc dry-run command from CI | Exit 0; :cljdoc-loaded |
+
+Initial optional link-checker unit test used macOS's aliased /var temp path and
+failed its existing fragment-only path fixture; the canonical TMPDIR command
+above passes, with no checker changes. The actual repository link check passes
+with both environments. Initial independent-consumer harness incorrectly assumed
+Classic write-pcap! returns a count; corrected the harness to verify actual
+read-back count, with no production change. Markdown's three extra-blank-line
+findings were corrected before commit. No outstanding local failure.
+The commit hook's documented SKIP_TESTS/SKIP_FMT avoid duplicate checks and
+whole-tree formatting after equivalent wrapper checks passed; hook Markdown and
+kondo still ran successfully. No hook or gate was changed.
+
+[CI run 38688045251](https://github.com/nantes-rfli/paclo/actions/runs/38688045251)
+on `c44bf5b` completes with **all 12 jobs successful**: build-checks,
+documentation-checks, three performance-measurement shards, performance-results,
+two compatibility jobs, arm64-monitor, eastwood-lint, coverage and required build.
+Actual platform logs show:
+
+| Platform | Suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK21 | 468 tests / 17634 assertions | Zero failures/errors |
+| macOS ARM64 / JDK17 | 468 / 17628 | Zero failures/errors |
+| Linux ARM64 / JDK21 | 468 / 17634 | Zero failures/errors |
+
+Each includes Writer ownership/loss/atomic/no-clobber/48 MiB heap tests and all
+existing Reader/Classic regressions. The six extra Linux assertions remain the
+existing /dev/full checks. CI Eastwood analyzes all 103 namespaces with 441
+informational warnings and zero exceptions. CI Java coverage is 43.8% / 25%;
+existing decode performance gate passes at 562.6 ms / 1200 ms. All documentation
+steps, including runnable examples and cljdoc, succeed. All 27 performance smoke
+scenarios are retained across the three shards and results aggregate. No CI
+configuration or quality/performance thresholds changed.
+
+Next: independent review of PR #53. No merge, publication, live/NIC validation,
+other-OS claims, byte-for-byte reproduction, issue repairs, P09/P10 or release.
+
+### Final-review SPB correction
+
+Review of the encoding path found that SPB has no explicit wire caplen, so the
+shared wire validator alone cannot distinguish payload lengths in the same
+four-byte padding cell. An authored one-byte packet with wire length two could
+be accepted and reread as two bytes (the second byte synthesized from padding).
+A separate consumer against the packaged `c44bf5b` JAR reproduces this exact
+input-caplen 1 / output-caplen 2 case; this is implementation evidence, not a
+hypothetical concern. Existing valid-fixture and CI successes above did not
+exercise that invalid authored input.
+
+Added an explicit equality check between array/caplen and SPB's inferred
+min(wire length, nonzero snaplen), or wire length with snaplen zero, before any
+block write/publication. No fallback, truncation, repair or timestamp conversion.
+The regression covers seven invalid payload/snaplen cases in all three modes,
+including adjacent lengths sharing padding, and six valid short/truncated/zero
+snaplen SPBs. Invalid cases assert no destination/temp. Focused Writer suite
+passes **20 tests / 627 assertions**. Full check and lint are rerunning; the
+corrected implementation/platform CI is pending. Classic/decode, dependencies,
+versions and CI gates remain unchanged.
+
+### SPB correction final verification and review handoff
+
+Correction `249acdc` completes every required gate. The final source/test change
+is the explicit SPB payload check and its padding-cell regressions. No further
+production changes follow this commit.
+
+- `bash dev/script/codex.sh test -n paclo.pcapng-writer-test`: exit 0, **20 tests /
+  627 assertions**, including all original round-trip/loss/failure/heap cases.
+- `bash dev/script/codex.sh check`: exit 0, ten JUnit tests, **469 Clojure tests /
+  17697 assertions**, no failures/errors, offline smoke passes.
+- `bash dev/script/codex.sh lint`: exit 0; kondo clean, clean-ns/format dry runs
+  clean; all **103 Eastwood namespaces**, 443 informational warnings, **zero
+  exceptions**; Markdown 37 files / zero errors. The two additional warnings
+  are boxed arithmetic in the explicit SPB length check; no linter is disabled.
+- After validation JVMs exit, `bash dev/script/codex.sh perf`: exit 0,
+  **760.9 ms**, below unchanged warn 1000 / fail 1200. The earlier 460.3 ms
+  reading and CI measurements remain separate observations, not a comparison
+  or new Writer throughput claim.
+- `bash dev/script/codex.sh package`: exit 0. JAR contents include updated
+  writer source with the SPB check, core/public cursor namespaces and native
+  bindings. A fresh JAR-only `-Srepro` consumer in
+  `/private/tmp/paclo-e3-consumer-249acdc` passes rich exact/absence round-trip,
+  existing Classic four-packet round-trip and rejection/no-publication of the
+  padding-ambiguous invalid SPB. Only the packaged local/root dependency is used;
+  namespace resources use jar protocol and no checkout source/test path.
+- Repository link/diff checks pass. Fixture generators/oracles and the 48 MiB
+  probes run again in the full suite. Corrected CI runs all 33 runnable examples,
+  cljdoc and unchanged Java/coverage/performance gates.
+
+[Corrected CI run 38688916752](https://github.com/nantes-rfli/paclo/actions/runs/38688916752)
+for `249acdc` completes with **all 12 jobs successful**. Actual logs confirm:
+
+| Platform | Suite | Result |
+| --- | --- | --- |
+| Linux x64 / JDK21 | 469 tests / 17703 assertions | Zero failures/errors |
+| macOS ARM64 / JDK17 | 469 / 17697 | Zero failures/errors |
+| Linux ARM64 / JDK21 | 469 / 17703 | Zero failures/errors |
+
+Eastwood analyzes all 103 namespaces, with 443 informational warnings and zero
+exceptions; the dedicated runner negative probes also pass. Java coverage stays
+43.8% against 25%; existing CI decode gate is 617.4 ms against fail 1200. All 33
+executable examples and cljdoc pass. Three performance shards, all 27 scenarios,
+results aggregate, required build and coverage remain successful. No gate or
+threshold changes. Initial green CI is superseded by this corrected evidence.
+
+PR #53 is ready for independent review and remains **unmerged**. This final
+follow-up records evidence/plan only; production/tests remain `249acdc`.
+No outstanding implementation checks. Next is independent review, with no
+release, live/NIC/other-OS claim, P09/P10 or unrelated issue work.
