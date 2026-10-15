@@ -242,6 +242,23 @@ allocation, but neither counts nor milliseconds improve monotonically (for
 example repetition-1 IPv6 bidir has 7 → 8 collections and high-cardinality
 bidir has 12 → 14 ms). No GC-latency guarantee is inferred.
 
+## Verification
+
+Local `check` passes ten JUnit tests and 480 Clojure tests / 17858 assertions,
+including all 650 P06 property cases and added snapshot/fork, promoted-counter
+and IPv6 boundary regressions. Full lint, 34 executable documentation examples,
+local links, diff whitespace, package and the isolated JAR consumer pass.
+The unchanged full-decode performance gate passes 896.7 ms (1000/1200 ms budgets).
+
+Implementation `c4f2a27` on [PR #55](https://github.com/nantes-rfli/paclo/pull/55)
+passes [all 12 CI jobs](https://github.com/nantes-rfli/paclo/actions/runs/38738630317),
+including Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64, the pinned linters,
+documentation, Java quality/coverage and all 27 merged performance scenarios.
+These platforms validate correctness, not the local benchmark speedups.
+Detailed commands, initial failed tooling/format checks and their corrections
+are preserved in [the work log](work-log.md#issue-34--exact-flow-aggregation-performance-2026-10-15).
+Independent review and merge remain outstanding.
+
 ## Remaining limits
 
 These are local offline measurements on one runtime/hardware combination.

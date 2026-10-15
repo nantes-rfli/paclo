@@ -3053,3 +3053,36 @@ a temporary PATH-local `clj` wrapper execs the installed `clojure` CLI with all
 arguments unchanged. No hook check is skipped, no repository hook/config is
 edited and no system package is installed. The hook reruns tests/format/Markdown/
 kondo. Its network-enabled execution uses the already required npm registry.
+
+Implementation commit **`c4f2a27`** creates independent
+[PR #55](https://github.com/nantes-rfli/paclo/pull/55), titled
+`perf: optimize exact flow aggregation (Issue #34)`, against unchanged main
+`e069657`. Commit hook completes without skipping checks: 480 tests / 17858
+assertions, clean formatting, Markdown and kondo; source blob stays exactly
+`faec3910fe0efc81a088ed8a27aca2931b38f014`. Generated Python caches are removed.
+
+[CI run 38738630317](https://github.com/nantes-rfli/paclo/actions/runs/38738630317)
+for `c4f2a27` completes with **all 12 jobs successful**: build-checks,
+documentation-checks, Linux x64/JDK21 and macOS ARM64/JDK17 compatibility,
+Linux ARM64 monitor, Eastwood, coverage, three performance shards, merged
+performance results and required build aggregate. Inspected decoded job logs:
+
+- Linux x64 and ARM64: actual runner arch/OS verified; **480 tests / 17864
+  assertions**, zero failures/errors. macOS: Darwin ARM64/JDK17, **480 / 17858**,
+  zero failures/errors. Different platform assertion counts retain existing
+  native/platform-specific tests; no exclusion or gate changed.
+- Build-checks: JUnit 10/10, Java quality, **43.8% JaCoCo** versus unchanged
+  **25%** gate, existing perf gate **588.9 ms** versus unchanged 1000/1200 budgets,
+  clean lsp/kondo and zero Markdown errors. Performance merger validates all
+  **27 scenarios**. Documentation completes all **34 examples** and cljdoc load.
+- CI uses pinned clj-kondo **2025.10.23** and clojure-lsp
+  **2025.11.28-12.47.43**. Local available tools were kondo **2026.05.25** and
+  lsp **2026.05.05-12.58.26**; the unchanged CI pins also pass. Eastwood completes
+  with 467 informational warnings and zero exceptions, matching local analysis.
+
+Implementation meets Issue #34's measured-optimization/correctness acceptance;
+add `Fixes #34` to the PR body. The plan records implementation/validation done
+and **independent review of PR #55** as next unfinished work. PR remains open
+and unmerged; no release, artifact publication, issue #37/#44 or P09/P10 work.
+The final evidence-only commit records these outcomes; its CI checks are followed
+on the PR. Other-platform performance and live/NIC performance remain unvalidated.
