@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — P08-E3
+
+- `paclo.pcapng/write-pcapng!` synchronously writes ordered SHB/IDB/EPB/SPB and
+  permitted opaque events, preserving mixed section byte orders/interfaces,
+  exact uint64 ticks, resolution/offset, timestamp absence and ordered options.
+- Explicit preserve (default), lossy drop/count and author modes validate metadata,
+  references and exact/derived time without repair. The bounded writer publishes
+  a closed sibling temp via exclusive atomic rename on supported Linux/macOS
+  filesystems, refusing existing names and unsafe fallbacks. Primary failures and
+  cleanup details survive; Classic `core/write-pcap!` is unchanged.
+
 ### Added
 
 - P08-E2 review corrections: enforce the packet byte ceiling from fixed EPB/SPB

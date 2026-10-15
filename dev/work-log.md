@@ -2545,3 +2545,74 @@ threads and tracking issues are left for independent reviewer confirmation.
 PR stays open for independent re-review; no merge was performed.
 The subsequent commit updates only this evidence/plan; production and tests
 remain exactly `c0353c5`. Next: independent re-review of PR #50.
+
+## P08-E3 metadata-aware PCAPNG writer (2026-10-15)
+
+User-authorized scope: implementation, tests, English documentation and an
+independent PR; no merge/release, Classic writer changes, P09/P10 or performance
+issue work. Started with a clean supplied checkout and doctor passing on macOS
+x86_64/JDK 21.0.12.1/Clojure 1.12.1/libpcap 1.10.1. Fetched latest main
+`8de22e0` (merged PR #50) and created `codex/p08-e3-pcapng-writer` in that checkout.
+Read CONTRIBUTING, public API contract, accepted plan and authoritative E1.
+No dependency, version or CI-gate changes.
+
+### Implementation and policy decisions
+
+- Added public `(pcapng/write-pcapng! events path [opts])`, consuming one ordered
+  event reduction without collecting input. SHB/IDB/EPB/SPB, sections/orders,
+  interface ordinals/LINKTYPEs/snaplen, uint64 ticks, signed offsets/resolutions,
+  absence, ordered raw options and permitted opaque bodies are encoded.
+- Preserve is default; lossy requires explicit drop categories and bounded counts;
+  author requires descriptors and permits only exact integral conversion from a
+  complete integer microsecond pair when the exact timestamp key is absent.
+  Explicit nil is not a fallback. Conflicting or malformed metadata is rejected
+  before drops. Declared changed context refuses opaque dependencies unless
+  explicitly dropped. Noncopyable codes derive from wire codes, not caller labels.
+- Shared internal cursor validation checks constructed block bodies before writes;
+  no Reader/native behavior or Classic writer changes. Input section lengths are
+  normalized to -1; padding is zero and terminators omitted. Semantic preservation
+  is conditional on honest caller declarations; undisclosed edits/subsets are not
+  detectable and no hashes/provenance/index are retained.
+- Java ATOMIC_MOVE may replace a racing destination. Used the existing JNR
+  dependency for exclusive atomic rename: Linux renameat2 flag 1 (NOREPLACE),
+  macOS renamex_np flag 4 (EXCL). Default filesystem only, same-directory temp,
+  no copy/link/move fallback and no replacement API. Unsupported operations fail.
+  Reviewed Linux rename(2) and Apple's xnu bsd/sys/stdio.h flag declarations.
+- Writer owns temp/output and flush/close/publication/cleanup. Original input/I/O
+  exception identity is preserved; suppressed context includes output coordinates
+  and temp path, with secondary close/cleanup failures. Source reduction owns
+  close. An internal dynamically bound terminal observer rejects incomplete Paclo
+  source reduction even through synchronous eduction; declared lossy/author
+  subsets can deliberately stop with reduced. Custom reducibles own undisclosed
+  upstream completion and Closeables; no hidden resource lookup is attempted.
+- Writer retains only bounded current block/event and active-section descriptors;
+  section changes release the registry. Counts have no unbounded detail list.
+
+### Verification checkpoint
+
+- Initial focused Writer suite: 16 tests / 350 assertions, zero failures/errors.
+  Includes all valid E1/P08-A/container/framing PCAPNGs through E2->E3->E2,
+  independent Python struct-based wire comparisons, seed 80803 / 120 exact-time
+  cases, loss policies, timestamp/descriptor/reference errors, I/O failures,
+  primary/suppressed cleanup, ownership, eduction and limits.
+- Separate 48 MiB process streams 6000 sections / 12000 interfaces / 6000 opaque
+  blocks, 246264000 bytes through Reader->Writer. Maximum active registry is two
+  interfaces / 33572 accounting bytes, with no event collection. This is bounded
+  workload evidence, not live capture, other-OS or throughput validation.
+- Corpus generators --check verify 28 capture, four cooked, three Raw IP,
+  twelve NULL/LOOP and ten E1 captures/manifests. Six Python E1 oracle tests pass.
+- Documentation parser: 15 tests pass. Local Markdown links/anchors pass.
+- SpotBugs, CheckStyle, JaCoCo and unchanged 25% gate pass (43.8% Java line coverage).
+- Final focused Writer suite: 19 tests / 558 assertions, zero failures/errors.
+  Actual ZIP-provider refusal, dangling-symlink and two-writer races pass, as do
+  the default 4096/4097 interface boundary tests. Every invalid-metadata/loss test
+  also asserts no destination and no sibling temp remains. Reuses the already
+  validated encoded block when no drops occur, avoiding duplicate block buffers.
+- Initial full check passes: 10 JUnit tests, 465 Clojure tests / 17421 assertions,
+  offline smoke. Final check reruns with the additional cases/current encoder.
+- All 33 executable documentation examples pass, including preservation and
+  authoring. Markdown lint (37 files) passes after correcting three extra blank
+  lines. Eastwood initially analyzes all 103 namespaces with 441 informational
+  warnings and zero exceptions; final lint runs on the final tests/encoder.
+- Full check, lint/Eastwood, 33 executable examples, performance, package/consumer
+  and PR/12-job CI verification are in progress at this checkpoint.

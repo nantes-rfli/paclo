@@ -37,6 +37,17 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "pcapng-preserving-writer": Check(
+        "PCAPNG preserving writer", "clojure",
+        '(and (= 3 (:packets result)) (= :complete (get-in result [:report :status])) '
+        '(= :known-semantics (get-in result [:report :fidelity])) '
+        '(= {} (get-in result [:report :loss-counts])) '
+        '(= 7 (get-in result [:report :blocks-written])) '
+        '(= 644 (get-in result [:report :bytes-written])))',
+    ),
+    "pcapng-authoring-writer": Check(
+        "PCAPNG authoring writer", "clojure", '(= [{:ticks 1N}] result)',
+    ),
     "pcapng-packet-analysis": Check(
         "PCAPNG mixed-section packet decoding", "clojure",
         '(= [:ethernet :raw-ip] result)',

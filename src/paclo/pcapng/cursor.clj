@@ -218,6 +218,27 @@
                                                   (:timestamp-offset-sec interface))))]
     [state {:type :packet :packet packet}]))
 
+(defn accept-body
+  "Validate an encoded body for the writer; return bounded state and event."
+  [state ^ByteBuffer body opts type byte-order total]
+  (let [location (select-keys state [:file-offset :block-index :section-id])
+        [next-state event]
+        (case type
+          0x0a0d0d0a (section! state body opts location byte-order total)
+          1 (interface! state body opts location)
+          6 (packet! state body opts location false
+                     (packet-layout! state body opts location false (.limit body)))
+          3 (packet! state body opts location true
+                     (packet-layout! state body opts location true (.limit body)))
+          (do
+            (case type
+              4 (minimum! body location 4)
+              5 (minimum! body location 12)
+              (0x00000bad 0x40000bad) (minimum! body location 4)
+              nil)
+            [state nil]))]
+    [(-> next-state (update :block-index inc') (update :file-offset +' total)) event]))
+
 (defn next-block!
   "Read and validate one block. Return [new-state event], or nil at valid EOF."
   [^FileChannel channel state opts]

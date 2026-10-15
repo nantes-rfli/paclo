@@ -38,14 +38,15 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
 | P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
 | P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | done |
-| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | in-progress |
-| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | blocked |
+| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | done |
+| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | in-progress |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **P08-E2 independent re-review of PR #50 after #51/#52 follow-up**.
+Default next task: **P08-E3 implementation verification and independent PR review**.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
-as `008c93b` through PR #49. E2 starts from that main; E3 waits for E2.
+as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
+E3 starts from that latest main.
 P08-D2 merged through [PR #46](https://github.com/nantes-rfli/paclo/pull/46)
 at `ccebcad`; P08-D1 merged through PR #45 at `0d06dd1`.
 P08-C merged through [PR #43](https://github.com/nantes-rfli/paclo/pull/43)
@@ -368,8 +369,8 @@ commands/results and platform limits are recorded in the work log.
 
 ## P08-E2: Bounded metadata-aware PCAPNG reader
 
-Status: **in-progress** for review corrections and independent re-review on
-[PR #50](https://github.com/nantes-rfli/paclo/pull/50).
+Status: **done**, merged as `8de22e0` through
+[PR #50](https://github.com/nantes-rfli/paclo/pull/50), including #51/#52 follow-ups.
 Initial implementation from main `008c93b` passed all 12 CI jobs on Linux x64,
 macOS ARM64 and Linux ARM64, but independent review requested
 [multi-address IDB regression coverage (#51)](https://github.com/nantes-rfli/paclo/issues/51)
@@ -378,7 +379,7 @@ Both follow-ups are implemented with positive address-option coverage and packet
 prefix validation; 18 focused tests / 1323 assertions, 449 full tests / 17070
 assertions and local quality/doc/performance gates pass. Correction `c0353c5`
 passes all 12 unchanged CI jobs on Linux x64, macOS ARM64 and Linux ARM64.
-Independent re-review remains pending; no merge. Implementation follows the reviewed
+The user confirmed merge; latest main contains that merge. Implementation follows the reviewed
 [E2 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e2-implementation-plan-and-acceptance):
 checked file cursor, SHB/IDB/EPB/SPB, ordered owned option/opaque data, exact
 integer time, Closeable IReduceInit source and bounded status. Existing native
@@ -388,12 +389,22 @@ No writer, live metadata, issue #40 change or performance work in this item.
 
 ## P08-E3: PCAPNG writer
 
-Status: **blocked** by E2. Implement the reviewed
+Status: **in-progress** from latest main `8de22e0`, after E2 merge.
+Implementation follows the reviewed
 [E3 steps and acceptance](p08-e1-pcapng-contracts.md#p08-e3-implementation-plan-and-acceptance):
 ordered encoding, preserve/lossy/author policies, exact timestamp validation,
 unknown/no-copy restrictions, semantic round trips and atomic path publication.
-Prove failure cleanup and source ownership; preserve Classic write-pcap! behavior.
-No byte-identical reproduction, append/stream output, release or merge authority.
+Bounded ordered encoding, preserve/lossy/author modes, timestamp validation,
+explicit loss counts and exclusive atomic publication are implemented. The
+writer uses existing JNR for Linux renameat2(RENAME_NOREPLACE) / macOS
+renamex_np(RENAME_EXCL); Java ATOMIC_MOVE alone does not guarantee no-clobber.
+A synchronous internal terminal observer detects incomplete Paclo sources even
+inside eduction. Shared internal format validation retains E2 option rules.
+Real-corpus semantic and independent Python wire comparisons, failure injection,
+48 MiB heap streaming and ownership regressions accompany executable examples.
+Verification/CI/independent PR review remain pending; details in the work log.
+Classic write-pcap! is unchanged. No byte-identical reproduction, append/stream
+output, P09/P10, release or merge authority.
 
 ## P08-P10: Evidence-driven expansion
 

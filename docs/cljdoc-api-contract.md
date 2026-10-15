@@ -12,7 +12,7 @@ Public namespaces:
 - `paclo.window`
 - `paclo.dns`
 - `paclo.stream`
-- `paclo.pcapng` (Unreleased P08-E2)
+- `paclo.pcapng` (Unreleased P08-E2/E3)
 - `paclo.decode-ext`
 - `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
   (supported annotation functions; other protocol internals remain excluded)
@@ -26,6 +26,7 @@ Internal namespaces (not covered by compatibility guarantees):
 - `paclo.proto.*` except the supported annotation functions listed above
 - `paclo.stream.impl`
 - `paclo.pcapng.cursor`
+- `paclo.pcapng.writer`
 
 ## Packet data contracts
 
@@ -36,8 +37,7 @@ remove keys, or change their shape; Paclo does not validate every output packet.
 Native captures identify their source link type. Full and flow decoding support
 Ethernet/VLAN (DLT 1), SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108) on
 Linux/macOS IPv4/IPv6; other types remain
-readable as raw packets. Additional decoders and full PCAPNG metadata/file
-preservation remain future work.
+readable as raw packets. Additional decoders and complete PCAPNG semantic interpretation remain future work.
 The [P08-A capability inventory](../dev/p08-a-capture-formats.md) distinguishes
 native format acceptance, raw packet access, decoding and output fidelity.
 Native PCAPNG reads normalize timestamps to microseconds and omit section/interface
@@ -45,11 +45,26 @@ identity, comments and options. Mixed link types or snaplen can stop native read
 with a native read error; public readers propagate it by default. `:pass`
 retains the valid prefix and exposes failure through callbacks/report statistics.
 No complete PCAPNG read/write round trip is guaranteed.
-The separate [PCAPNG reader](pcapng.md) implements `paclo.pcapng/open-source`
-and `source-info` in Unreleased P08-E2, retaining ordered metadata and exact
-timestamps with bounded synchronous reduction. The
-[P08-E1 design](../dev/p08-e1-pcapng-contracts.md) also specifies a future E3
-writer, which is not implemented. Existing native APIs retain their contracts.
+The separate [PCAPNG APIs](pcapng.md) implement `paclo.pcapng/open-source`,
+`source-info` and `write-pcapng!` in Unreleased P08-E2/E3. The bounded synchronous
+source retains ordered metadata and exact timestamps. Writer consumes events
+once with `(write-pcapng! events path)` or `(write-pcapng! events path opts)`.
+Default `:mode :preserve` keeps known semantics; `:lossy` requires explicit
+`:drop` categories and reports bounded loss counts; `:author` validates new
+explicit descriptors and exact/integrally convertible time. Declared context
+changes require `:context-changed? true` and reject retained opaque dependencies.
+Missing metadata, unresolved IDs, conflicting time/options and malformed input
+fail, with no repair. Limits match the Reader. A sibling temp is flushed/closed
+and atomically published exclusively on supported Linux/macOS default file
+providers; existing destinations and unsupported operations fail with no fallback.
+Source reduction owns source cleanup; Writer owns output. Incomplete preserving
+sources fail before publication, including synchronous eduction. Primary errors
+retain identity; suppressed errors carry output location/temp/cleanup details.
+Success returns `:status :complete`, `:fidelity :known-semantics/:explicit-loss/
+:authored`, `:loss-counts`, `:blocks-written` and `:bytes-written`. See the
+[writer guide](pcapng.md#writing-pcapng) and [E1 contract](../dev/p08-e1-pcapng-contracts.md)
+for exact event, drop, provenance, ownership and atomic-publication limits.
+Existing native APIs retain their contracts.
 
 ### Raw capture packets
 

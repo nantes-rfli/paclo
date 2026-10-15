@@ -29,9 +29,12 @@ or converted. See the [cooked capture examples](docs/usage.md#reading-non-ethern
 and [writer contract](docs/cljdoc-api-contract.md#write-pcap).
 
 For ordered PCAPNG sections/interfaces/options and exact timestamps, use the
-separate [`paclo.pcapng` reader](docs/pcapng.md) (Unreleased P08-E2).
+separate [`paclo.pcapng` APIs](docs/pcapng.md) (Unreleased P08-E2/E3).
 It owns a bounded synchronous FileChannel source that you reduce once with
-`with-open`. PCAPNG writing remains future P08-E3 work.
+`with-open`. `pcapng/write-pcapng!` consumes ordered events synchronously and
+publishes a new file with exclusive atomic rename on supported Linux/macOS file
+systems. The default preserves known metadata; lossy drops and authored input
+require explicit modes. See the [executable writer examples](docs/pcapng.md#writing-pcapng).
 
 Decode SLL and SLL2 with the same transducer; each retains its own link header:
 
