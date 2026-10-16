@@ -152,6 +152,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Issue #44: construct full-decode Ethernet/cooked address strings with direct
+  primitive char-array stores, avoiding reflective writes. Shared framing,
+  public packet/VLAN shapes, diagnostics and numeric flow projection are unchanged.
+  Repeated CPU/allocation and native offline comparisons are recorded in
+  `dev/issue-44-ethernet-performance.md`; no live-capture speed claim.
+
 - P07-B: DNS RTT/QPS examples delegate to `paclo.dns`/`paclo.window`, use explicit
   DNS extensions and one shared sync/async reducer adapter. Event time is exact
   native microseconds; monotonic max-time minus `--reorder-us` drives expiry.

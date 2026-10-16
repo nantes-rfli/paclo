@@ -1,0 +1,207 @@
+{
+  "date": "2026-10-17",
+  "base": "e444b10ba84513b460916482e1236c202fa27b84",
+  "references": {
+    "4998ddc": "4998ddcf191a523febd7da9efef6bb956cb7ca53",
+    "9d83bb2": "9d83bb2c374a2df754f894ecd44d4331c0950d31",
+    "ccebcad": "ccebcad829fe9dc8ef786a24489be4a2ae8bfff8",
+    "e444b10": "e444b10ba84513b460916482e1236c202fa27b84"
+  },
+  "production_sha256": {
+    "src/paclo/linktype.clj": "5a63c9a7169f234e02d7044cbe8e132db5f50d001a906270777adfd7b3bbdc41",
+    "src/paclo/parse.clj": "4db0a4187058fae37d3798a97630010536f05a7daaa448cd7ef54f33941b220e",
+    "src/paclo/flow/project.clj": "fc16ac881319c5f4a5c5baaf1c43ba007df6498e457d8df4afdac85354adead5",
+    "src/paclo/core.clj": "37b823b3b1c27ee1bb36c84b7c1dbd64fe96a637bdfcc815cd6ac380f14d1afb"
+  },
+  "final_reproduction_code_sha256": {
+    "dev/paclo/dev/ethernet_perf.clj": "e4f670c6b47e5af4213e28a2d0d9ba0973fa01602800dfe91d17627deb60dfc3",
+    "dev/paclo/dev/ethernet_perf_summary.clj": "0f32e09b1605e528d952ef26754186989db709b7ec508b9b044ccf1b9d4e69e2",
+    "dev/paclo/dev/ethernet_jar_consumer.clj": "5e8de94a3a0ff17304c2307610c75dee567c3a2998b3c16e835d9014465f3cea",
+    "dev/script/summarize_ethernet_jfr.py": "66137f286448a5fd5f027929e3ee5ecfb0d202d814cc6081ad6a4be9a79a09f5",
+    "test/paclo/ethernet_perf_test.clj": "e2b500faf63a0db6d23bd5d9db6619f035ee57332ed48f66ab14b29a2d0716d2"
+  },
+  "notes": [
+    "Production source hashes are also in each enhanced EDN preamble.",
+    "Driver evolved during investigation; final driver hashes identify reproduction code, not every historic pilot driver.",
+    "All 944 CSV comparisons retain negative results and pilots.",
+    "JFR weights include very large initial weights; use ThreadMXBean counters for allocation per packet."
+  ],
+  "external_trace": {
+    "url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/dns.cap",
+    "sha256": "041eeb6f98bb398f1ee8b09651b5b5a84f6a62639f95bf226f9e7b77355d9f28"
+  },
+  "artifacts": {
+    "accepted-mac.patch": {
+      "bytes": 1000,
+      "sha256": "481ab374c109e3791907045885f95aa0957bbcec1d430b336cafa9f32abcf015"
+    },
+    "address-after-bytecode.txt": {
+      "bytes": 7461,
+      "sha256": "771e2ccaacb47e39173dce4b61f874a8a656abb0dd6bf35b66d5fa5b7ccf4e72"
+    },
+    "address-before-bytecode.txt": {
+      "bytes": 8612,
+      "sha256": "bf1c23f73f07cf96925dcfc90a47bdf0baa14da6cf30267076b46e32cf45abce"
+    },
+    "baseline-1.edn": {
+      "bytes": 33262,
+      "sha256": "c330515b3d4ace597ef3244352202722c06c9c1dc2f0830cf3990eaa163f6bf6"
+    },
+    "baseline-2.edn": {
+      "bytes": 41442,
+      "sha256": "ab04802e8b7a8ff95c3ac2399a2a9d35d33dd08ccd7c83a9e14fe60a59840dde"
+    },
+    "candidate-case-1.edn": {
+      "bytes": 16918,
+      "sha256": "ecc5b848496f018e629fd0dbd50b7affad586ac780bd0e285c2f1b81a75195fb"
+    },
+    "candidate-case-2.edn": {
+      "bytes": 16935,
+      "sha256": "6fb597750e039982fb44c77026d2917bc24f4f624278ec403e8ec62d10cede9b"
+    },
+    "candidate-dlt-1.edn": {
+      "bytes": 16936,
+      "sha256": "04518419f4950541294c86b9c33f02fa1c2e21286dee4fc5294bc58ec327443e"
+    },
+    "candidate-dlt-2.edn": {
+      "bytes": 16949,
+      "sha256": "b785a782c09cfaeef67ef59e5a61b1f7f8342faa6a171dac5fd10efab07fdc4b"
+    },
+    "candidate-mac-1.edn": {
+      "bytes": 16925,
+      "sha256": "1f880564726575ec91e8d7c5a701b845a4f18715a355720ae8ba97c05b0ab3a9"
+    },
+    "candidate-mac-2.edn": {
+      "bytes": 16942,
+      "sha256": "bddab7cf2711ec464dbdbc575d2a275079d4ad8323db8911eedfbc6f3b429a23"
+    },
+    "candidate-mac.patch": {
+      "bytes": 843,
+      "sha256": "3afb0c34b5bbd943a84e1e3497e80eaae75138665d15a6ae253f3b75b8be3b33"
+    },
+    "comparison.csv": {
+      "bytes": 248592,
+      "sha256": "ec15b67a0751418affdcaf1cbb79a1a6f41592b58b1e835ce7d0bc3004e8f3bf"
+    },
+    "control-flow-1.edn": {
+      "bytes": 248294,
+      "sha256": "031cdd54ab65cf9633724dc4c0cbab7944399aa20eba0d82bfc0713e9dbb9775"
+    },
+    "control-flow-2.edn": {
+      "bytes": 248298,
+      "sha256": "a17c81e584463551037d7e96c198490414d0f99570c95cbeed5b4af67d18e930"
+    },
+    "final-fixtures-1.edn": {
+      "bytes": 110466,
+      "sha256": "d5edff258acf7a6d088cc8de086a1bc3e6468f38eac7f89e51c8462902348082"
+    },
+    "final-fixtures-2.edn": {
+      "bytes": 110369,
+      "sha256": "09d32cbc53c25de92c93a4d7a71d1426306e0fd0c8b75147c3ca85ec42380ea5"
+    },
+    "final-matrix-1.edn": {
+      "bytes": 487116,
+      "sha256": "4cecb781d80ec8889eea1e737f17d1916a262166858fb27a87abf321a14ce98d"
+    },
+    "final-matrix-2.edn": {
+      "bytes": 487312,
+      "sha256": "0768e5af7fbd2d6868886cf2a0de53bcb9112e192b80049b6918e5ae865441af"
+    },
+    "final-native-1.edn": {
+      "bytes": 374766,
+      "sha256": "83019ec2f93bb6b438b7f31a59ab18c1b9b62f1bf8279e95b66689683abf9735"
+    },
+    "final-native-2.edn": {
+      "bytes": 374862,
+      "sha256": "08bfbc3e4c4f786cee366dcbd6e50d80436e5b2ff2503f034baa293ba19e0672"
+    },
+    "final-trace-1.edn": {
+      "bytes": 9144,
+      "sha256": "6889759b10d4bab3b7f11b1271e484a358a11d6fd48069b9548a68811b7b3ba6"
+    },
+    "final-trace-2.edn": {
+      "bytes": 9167,
+      "sha256": "05f06ab138278d5cf08530d4bcf72faf0a965afb3e7921b44ec9e28f22eaf192"
+    },
+    "isolated-flow-1.edn": {
+      "bytes": 247613,
+      "sha256": "e3a15f1ad3f5f4550bdc02dbff5c8381df124e84d76750222fefbec08a9b1dd7"
+    },
+    "isolated-flow-2.edn": {
+      "bytes": 247636,
+      "sha256": "e5ede0f473947348985cf24f39881a30ff51914eae1f90e15a5ad6af1a0c23ca"
+    },
+    "original-runner.edn": {
+      "bytes": 2546,
+      "sha256": "7404fc1e316769eb2a8b1491574e002178da2070e900af7c0c6f4de10b2a4f20"
+    },
+    "pilot-matrix.edn": {
+      "bytes": 487068,
+      "sha256": "b258cf3ebe58a59aa054271044c09ed12c4e0440be33036e30bf56e2a848fb27"
+    },
+    "profile-after-flow-summary.json": {
+      "bytes": 5463,
+      "sha256": "b906d1fa5bee20ecb4d8d959b89ef4ec1cc22be429f91e519225738a8ed4b268"
+    },
+    "profile-after-flow.jfr": {
+      "bytes": 349299,
+      "sha256": "086c3482d210bee1c6b8c27d3c92a24e9ea2c20c7e255bae001da1c10b88e39a"
+    },
+    "profile-after-full-summary.json": {
+      "bytes": 13013,
+      "sha256": "bedb06d106fde7d29ada50c1527a8419c8bdc7299bf3ae9a325e020ce2b11d3c"
+    },
+    "profile-after-full.jfr": {
+      "bytes": 689379,
+      "sha256": "cb1a68a0f2c6041768c04b6b413c4951c145a46bb7d41bda856fc7d495537cca"
+    },
+    "profile-after.edn": {
+      "bytes": 10397,
+      "sha256": "c18f197501e93a82ef31ee2e26ab24d3dc35bc7e100994e2089b18692b7bf4d4"
+    },
+    "profile-before-flow-summary.json": {
+      "bytes": 5688,
+      "sha256": "a4934b1bf001ea09ee2285f0a9c32d58c5c918c63e32918211af411014831d61"
+    },
+    "profile-before-flow.jfr": {
+      "bytes": 341461,
+      "sha256": "afecbe850d523ac1e87b15f357a273a57dab43465e4b74c90d39a6bdf3626509"
+    },
+    "profile-before-full-summary.json": {
+      "bytes": 9943,
+      "sha256": "45b53c8c1e67be6663d87d77b8e1aacf0b91c9402ec2d4a4d4dae2b99d7fe3e0"
+    },
+    "profile-before-full.jfr": {
+      "bytes": 617454,
+      "sha256": "57e445108f202a552818f55876be768ebe4431081c0859dbd0a4e82f3a609690"
+    },
+    "profile-before-jfr.edn": {
+      "bytes": 9707,
+      "sha256": "759c0fc97da87d12b9aba328d5026b4c9d4c061e4367fe7b96ed4e2c383c8efe"
+    },
+    "profile-before.edn": {
+      "bytes": 9524,
+      "sha256": "27c9daf1325f217f157e2dbd9acec5f45ace0980caa850c64974887f8e065237"
+    },
+    "rejected-case.patch": {
+      "bytes": 1146,
+      "sha256": "0ea7add3de00c0067162834cd04ba84c57b47e6ce29dca79a9bc7cf358656616"
+    },
+    "rejected-dlt.patch": {
+      "bytes": 1178,
+      "sha256": "91980369731d1a07771a5f224433b695e8887e7a50d865b2f67db75e9758c6ac"
+    },
+    "retained.edn": {
+      "bytes": 1946,
+      "sha256": "25c8bf77655525dbd22d2772631e3372530876b5f0dddfd9be3e8f5823f728f1"
+    },
+    "stages-after.edn": {
+      "bytes": 6490,
+      "sha256": "84f7ee715d0411d140f09ec9e5da4f3f9a3234950549065749baafdcba984fa9"
+    },
+    "stages-before.edn": {
+      "bytes": 6524,
+      "sha256": "a5661897798598b6bcaee024e32c0c9ca85e1cd58612f2530f9f8f1bc85cab06"
+    }
+  }
+}

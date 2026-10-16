@@ -3419,3 +3419,148 @@ in-progress to implemented/verified on PR #57, and removes stale PR #56 review
 and old current-task labels now that it is merged as `452de98`. This changes
 only the plan and delivery log; implementation, raw measurements, dependencies
 and gates remain unchanged. Final-head CI is still recorded on PR #57.
+
+## Issue #44: Ethernet decode performance investigation
+
+Started 2026-10-17 from latest main
+`e444b10ba84513b460916482e1236c202fa27b84`, after PR #57 merged, on independent
+branch `codex/issue-44-ethernet-performance`. Initial
+`git status --short --untracked-files=all` is empty; no unrelated changes.
+Read AGENTS, CONTRIBUTING, the v1 API contract, accepted plan, Issue #44 and
+its D2 follow-up comment, PR #43, historical P08-C report/raw data/runner,
+full/flow/linktype/core implementation and relevant fixtures/tests/CI gates.
+No Issue #37 remaining work, P09/P10, version, release or merge work is included.
+
+`bash dev/script/codex.sh doctor` passes: macOS 15.4.1 x86_64, Temurin
+21.0.12.1, CLI 1.12.5.1654 / library Clojure 1.12.1, libpcap 1.10.1;
+real native four-packet offline read and all optional lint tools available.
+A first Git fetch is denied by the filesystem sandbox; the authorized elevated
+`git fetch origin main` succeeds, then a new branch is created from origin/main.
+No additional worktree. GitHub CLI network access is sandboxed, so connected
+GitHub reads provide the Issue/PR context.
+
+Runner validation and initial evidence:
+
+- Original `clojure -M:dev -m paclo.dev.framing-perf 4998ddc 1` succeeds unchanged.
+  The old internal `unsupported?`/packet-xf contracts still match this loader;
+  each old core calls its own old parse API. Preserve the original output.
+- The opt-in `paclo.dev.ethernet-perf` loads unmodified B2 `4998ddc`, C `9d83bb2`,
+  D2 `ccebcad` and current-main source under separate names, recording original
+  hashes. Only comparison code changes; no baseline implementation is patched.
+  All non-renamed dependencies/native capture lifecycle are deliberately shared.
+- Initial independent JVMs use fixed 512 MiB heap, five warmups and nine
+  alternating 50k samples; run 2 reverses initial order and additionally includes
+  D2. Complete decoded values agree, full input identity/bytes are preserved,
+  Flow excludes full/byte maps, sample checksums agree and drops are zero.
+  B2-to-C allocation savings of 416 B/packet reproduce; timing and absolute
+  allocation vary with JIT/escape analysis and call-site context. Same-main
+  aliases reveal timing noise. Raw measurements are in `dev/issue-44/`.
+- Separate 2 ms perturbed stack sampling and raw JFR allocation/execution/GC
+  profiles isolate Full and Flow. Reflective Array.setChar is the Full leaf in
+  1596/4627 samples. Generic component probes are explanatory, not additive
+  exclusive CPU costs or production allocation measurements.
+
+Candidate decisions:
+
+- Retain only local primitive-char-array `aset` stores in full address formatting.
+  MAC-only pilot JVMs reproduce Full improvements with unchanged paired
+  allocation. No packet-byte mutation, shared cache, map/field/DLT/parser change.
+- Revert direct VLAN case expansion: paired Flow allocation grows 280 → 304
+  B/packet and throughput declines about 34–39%. Both negative JVMs and the
+  candidate reproduction patch are preserved.
+- Revert DLT presence-lookup simplification: MAC-only comparison changes UDP
+  Flow +0.9/+6.4%, TCP -3.9/+3.9%, with similar control movement in Full.
+  Benefit is insufficiently repeatable. Preserve both outputs and patch.
+- Do not adopt unmeasured full-map, ByteBuffer, lookup-table, success/error-map
+  or Ethernet-specific parser rewrites. The accepted change is small and local.
+
+Focused `bash dev/script/codex.sh test -n paclo.ethernet-perf-test` passes:
+three tests / 388 assertions, including 250 random address/VLAN cases, exact
+MAC text/VLAN fields, both IP versions/protocols, identity/no mutation and
+all 128 generated framing cases. Existing cooked tests cover random addresses
+of every declared length 0–8; existing truncation/diagnostics, extensions,
+fragments, capture/fan-out, P06/P07 and PCAPNG gates remain required below.
+
+The first broad matrix exposes startup/JIT outliers in short Flow rows. Keep it
+as pilot evidence. Subsequent runs globally prewarm all 32 protocol/framing
+shapes, both implementations/modes, before five local warmups and nine alternating
+10k samples per case. Independent JVM 2 reverses initial order. Separate
+Flow-only and same-source controls distinguish alias/JIT effects from delivered
+address code. All final comparisons and remaining verification are recorded
+below and in `dev/issue-44-ethernet-performance.md`.
+
+### Final measurements and local gates
+
+The complete report is `dev/issue-44-ethernet-performance.md`; raw EDN, four raw
+JFR recordings and summaries, compiler bytecode, checked candidate patches and
+SHA-256 manifest are under `dev/issue-44/`. The CSV contains all 944 comparison
+pairs, including the underwarmed pilot and both rejected candidates. No negative
+result is discarded. Final enhanced driver hashes are for reproduction; the
+report identifies earlier driver warmup/countdown differences rather than
+asserting every pilot used the final driver.
+
+Two globally warmed JVMs complete all 128 packet-xf cases and all 96 native
+Classic/PCAPNG cases. Full throughput improves 9.1–76.1% Ethernet, 3.7–61.2% SLL,
+3.8–44.6% SLL2; native Full improves 9.6–32.3%, 5.1–29.2%, 2.8–18.2% respectively.
+Every final packet-xf allocation pair is equal; native differences are at most
+one 24-byte invocation object per 10k packets. Real seven-fixture replay and a
+small external actual Wireshark DNS trace confirm Ethernet Full benefits;
+external native replay improves 23.7–26.9%. No DNS/TLS extension, downstream
+analysis, live/NIC, long production or other-platform performance claim.
+
+Flow implementation is unchanged. Mixed Ethernet rows range -22.8 to +31.9%.
+Independent Flow-only 50k samples and identical-source controls retain large
+single-case outliers even with identical source hashes. No isolated Flow case
+loses more than 10% in both JVMs. The report gives ranges, per-case medians,
+CPU, 280/480 B IPv4/IPv6 allocation parity, GC counts/times and source/JIT limits;
+it does not claim Flow speedup or throughput equivalence. Raw/NULL/LOOP also
+retain negative/noisy results; no repeated large native regression is observed.
+
+AOT/javap confirms all three writes compile to `RT.aset:([CIC)C` rather than the
+old aset-char Var invocation. Stack profiles remove reflective setChar from the
+top 30 leaves, leaving persistent maps/IP strings as substantial costs. JFR
+summaries filter allocation/execution to main while reporting excluded sampler
+threads. Initial allocation weights of 1.9 GB Full / 14.6–14.8 GB Flow warn of
+pre-recording carry-in; preserve them and use ThreadMXBean for exact allocation.
+No weighted per-packet/percentage claim. Full GC attribution moves in opposite
+directions between matrix/native; no GC benefit is established. Forced-GC 20k
+output roots estimate Full 1091→1117 B and Flow 237→237 B; this noisy one-pair
+probe establishes no strict byte bound or native/RSS retention result.
+
+Commands and results (exit 0 unless an intentional failure is noted):
+
+- `bash dev/script/codex.sh check`: 490 Clojure tests / 19036 assertions,
+  ten JUnit tests, native offline smoke. Existing API, malformed/boundary,
+  fragments/extensions, multi-DLT, fan-out, P06/P07/P08 and PCAPNG suites pass.
+- `bash dev/script/codex.sh lint`: all 112 actual namespace records, 593
+  informational Eastwood warnings, zero exceptions; zero kondo warnings/errors,
+  namespace/format checks and 41 Markdown files pass. No analysis roots or
+  warning/exit policy changes. `python3 dev/script/test_eastwood_runner.py`
+  passes all four actual-JVM probes, including intentional exit 1 with one
+  unanalyzed namespace.
+- `python3 dev/script/verify_doc_examples.py`: all 34 examples. Local link
+  checker passes. All five related generator `--check` commands pass:
+  capture-format (including cooked/Raw/NULL/LOOP), cooked, Raw, NULL/LOOP and
+  PCAPNG contracts. Existing fixtures and generator sources are unchanged.
+- `clojure -T:build spotbugs`, `checkstyle`, `jacoco`, and
+  `JACOCO_MIN_LINE=0.25 clojure -T:build jacoco-gate`: pass, 43.8% line coverage
+  versus unchanged 25.0% gate.
+- `bash dev/script/codex.sh perf`: 457.4 ms for 50k Full packets, unchanged
+  warning/failure 1000/1200 ms. Run after other JVM work finishes.
+- `bash dev/script/codex.sh package`: snapshot JAR builds, expected library,
+  decoder/project, extension and native-binding resources present.
+  Outside-checkout JAR-only `-Srepro` consumers pass full/flow/extensions/identity
+  for all six DLTs and existing exact DNS/snapshots/bounded fan-out/PCAPNG/window
+  composition. Resources are asserted to load from `jar:` URLs. CLI emits its
+  informational implicit-main deprecation warning; no classpath fallback.
+  `prepare` restores Java test classes after package deletes target.
+- Opt-in CLI invalid suite: intentional exit 1 and expected error, checked in a
+  fresh JVM. All real successful suites and the 944-pair summary command run.
+  Four zero-context patches apply to unchanged main with `--unidiff-zero`.
+- `git diff --check`: passes. Production linktype SHA-256 remains
+  `5a63c9a7169f234e02d7044cbe8e132db5f50d001a906270777adfd7b3bbdc41`
+  across final formatting, profiling and all gates.
+
+Independent PR and final-head CI handoff follow. Issue #44 stays open for
+review of the evidence and remaining limits; no closing keyword, merge,
+release/version or unrelated Issue #37/P09/P10 work.

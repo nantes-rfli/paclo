@@ -1,0 +1,164 @@
+public final class paclo.linktype$address extends clojure.lang.AFunction implements clojure.lang.IFn$OLLO {
+  public static final clojure.lang.Var const__12;
+
+  public static final java.lang.Object const__19;
+
+  public paclo.linktype$address();
+    Code:
+       0: aload_0
+       1: invokespecial #10                 // Method clojure/lang/AFunction."<init>":()V
+       4: return
+
+  public static java.lang.Object invokeStatic(java.lang.Object, long, long);
+    Code:
+       0: aload_0
+       1: checkcast     #14                 // class java/nio/ByteBuffer
+       4: lload_1
+       5: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+       8: invokevirtual #24                 // Method java/nio/ByteBuffer.position:(I)Ljava/nio/ByteBuffer;
+      11: pop
+      12: lload_3
+      13: lconst_0
+      14: lcmp
+      15: ifne          24
+      18: ldc           #26                 // String
+      20: goto          247
+      23: athrow
+      24: lload_3
+      25: ldc2_w        #27                 // long 3l
+      28: invokestatic  #34                 // Method clojure/lang/Numbers.multiply:(JJ)J
+      31: invokestatic  #38                 // Method clojure/lang/Numbers.dec:(J)J
+      34: invokestatic  #42                 // Method clojure/lang/Numbers.num:(J)Ljava/lang/Number;
+      37: invokestatic  #46                 // Method clojure/lang/Numbers.char_array:(Ljava/lang/Object;)[C
+      40: astore        5
+      42: lload_3
+      43: nop
+      44: lstore        6
+      46: lconst_0
+      47: lstore        8
+      49: lload         8
+      51: lload         6
+      53: lcmp
+      54: ifge          230
+      57: aload_0
+      58: checkcast     #14                 // class java/nio/ByteBuffer
+      61: invokevirtual #50                 // Method java/nio/ByteBuffer.get:()B
+      64: invokestatic  #56                 // Method java/lang/Byte.valueOf:(B)Ljava/lang/Byte;
+      67: checkcast     #58                 // class java/lang/Number
+      70: invokestatic  #62                 // Method clojure/lang/RT.longCast:(Ljava/lang/Object;)J
+      73: ldc2_w        #63                 // long 255l
+      76: land
+      77: lstore        10
+      79: lload         8
+      81: ldc2_w        #27                 // long 3l
+      84: invokestatic  #34                 // Method clojure/lang/Numbers.multiply:(JJ)J
+      87: lstore        12
+      89: aload         5
+      91: checkcast     #66                 // class "[C"
+      94: lload         12
+      96: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+      99: invokestatic  #69                 // Method clojure/lang/RT.intCast:(I)I
+     102: getstatic     #73                 // Field const__12:Lclojure/lang/Var;
+     105: invokevirtual #79                 // Method clojure/lang/Var.getRawRoot:()Ljava/lang/Object;
+     108: checkcast     #81                 // class java/lang/String
+     111: lload         10
+     113: ldc2_w        #82                 // long 4l
+     116: l2i
+     117: lshr
+     118: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+     121: invokevirtual #87                 // Method java/lang/String.charAt:(I)C
+     124: invokestatic  #91                 // Method clojure/lang/RT.aset:([CIC)C
+     127: pop
+     128: aload         5
+     130: checkcast     #66                 // class "[C"
+     133: lload         12
+     135: invokestatic  #94                 // Method clojure/lang/Numbers.inc:(J)J
+     138: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+     141: invokestatic  #69                 // Method clojure/lang/RT.intCast:(I)I
+     144: getstatic     #73                 // Field const__12:Lclojure/lang/Var;
+     147: invokevirtual #79                 // Method clojure/lang/Var.getRawRoot:()Ljava/lang/Object;
+     150: checkcast     #81                 // class java/lang/String
+     153: lload         10
+     155: ldc2_w        #95                 // long 15l
+     158: land
+     159: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+     162: invokevirtual #87                 // Method java/lang/String.charAt:(I)C
+     165: invokestatic  #91                 // Method clojure/lang/RT.aset:([CIC)C
+     168: pop
+     169: lload         8
+     171: lload_3
+     172: invokestatic  #38                 // Method clojure/lang/Numbers.dec:(J)J
+     175: lcmp
+     176: ifge          215
+     179: aload         5
+     181: checkcast     #66                 // class "[C"
+     184: lload         12
+     186: ldc2_w        #97                 // long 2l
+     189: invokestatic  #101                // Method clojure/lang/Numbers.add:(JJ)J
+     192: invokestatic  #20                 // Method clojure/lang/RT.intCast:(J)I
+     195: invokestatic  #69                 // Method clojure/lang/RT.intCast:(I)I
+     198: getstatic     #105                // Field const__19:Ljava/lang/Object;
+     201: checkcast     #107                // class java/lang/Character
+     204: invokevirtual #111                // Method java/lang/Character.charValue:()C
+     207: invokestatic  #91                 // Method clojure/lang/RT.aset:([CIC)C
+     210: pop
+     211: goto          217
+     214: athrow
+     215: aconst_null
+     216: pop
+     217: lload         8
+     219: lconst_1
+     220: ladd
+     221: lstore        8
+     223: goto          49
+     226: nop
+     227: nop
+     228: athrow
+     229: athrow
+     230: aconst_null
+     231: pop
+     232: new           #81                 // class java/lang/String
+     235: dup
+     236: aload         5
+     238: aconst_null
+     239: astore        5
+     241: checkcast     #66                 // class "[C"
+     244: invokespecial #119                // Method java/lang/String."<init>":([C)V
+     247: areturn
+
+  public java.lang.Object invoke(java.lang.Object, java.lang.Object, java.lang.Object);
+    Code:
+       0: aload_1
+       1: aconst_null
+       2: astore_1
+       3: aload_2
+       4: checkcast     #58                 // class java/lang/Number
+       7: invokestatic  #62                 // Method clojure/lang/RT.longCast:(Ljava/lang/Object;)J
+      10: aload_3
+      11: checkcast     #58                 // class java/lang/Number
+      14: invokestatic  #62                 // Method clojure/lang/RT.longCast:(Ljava/lang/Object;)J
+      17: invokestatic  #131                // Method invokeStatic:(Ljava/lang/Object;JJ)Ljava/lang/Object;
+      20: areturn
+
+  public final java.lang.Object invokePrim(java.lang.Object, long, long);
+    Code:
+       0: aload_1
+       1: aconst_null
+       2: astore_1
+       3: lload_2
+       4: lload         4
+       6: invokestatic  #131                // Method invokeStatic:(Ljava/lang/Object;JJ)Ljava/lang/Object;
+       9: areturn
+
+  public static {};
+    Code:
+       0: ldc           #135                // String paclo.linktype
+       2: ldc           #137                // String hex-digits
+       4: invokestatic  #141                // Method clojure/lang/RT.var:(Ljava/lang/String;Ljava/lang/String;)Lclojure/lang/Var;
+       7: checkcast     #75                 // class clojure/lang/Var
+      10: putstatic     #73                 // Field const__12:Lclojure/lang/Var;
+      13: bipush        58
+      15: invokestatic  #144                // Method java/lang/Character.valueOf:(C)Ljava/lang/Character;
+      18: putstatic     #105                // Field const__19:Ljava/lang/Object;
+      21: return
+}
