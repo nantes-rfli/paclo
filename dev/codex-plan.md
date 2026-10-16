@@ -43,8 +43,9 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **Issue #34 independent review of PR #55**.
-PR #54 has merged as `e069657`; Issue #34 starts independently from that main.
+Default next task: **flow key reuse PR CI verification and independent review**.
+PR #55 merged as `6095c7f`; Issue #34 is closed. The explicitly requested
+follow-up starts from that main and does not reopen Issue #34.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -65,7 +66,7 @@ queue after completion; do not start all phases together.
 
 Status: **done** for investigation, implementation and validation on
 [PR #55](https://github.com/nantes-rfli/paclo/pull/55), from latest main `e069657`
-after PR #54 merged. Independent review and merge remain outstanding.
+after PR #54 merged. Independently reviewed and merged as `6095c7f`; Issue #34 is closed.
 The [investigation](issue-34-flow-performance.md) and
 [measurements](issue-34-flow-measurements.edn) preserve original P06 reproduction,
 paired IPv4/IPv6 10/10000-flow comparisons, both directions, actual fixture
@@ -81,8 +82,30 @@ consumer pass. Implementation `c4f2a27` passes all 12 unchanged CI jobs on
 [run 38738630317](https://github.com/nantes-rfli/paclo/actions/runs/38738630317),
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
 checks are maintained on the PR; actual commands/results are in the work log.
-Next unfinished item: independent review of PR #55. No merge before review;
-issues #37/#44, P09/P10, release and threshold changes remain outside this task.
+The separately requested key reuse follow-up below is the current task;
+issues #37/#44, P09/P10, release and threshold changes remain outside it.
+
+## Performance follow-up: existing flow key reuse
+
+Status: **done** for implementation and local validation; PR CI and independent
+review remain. Explicitly requested on 2026-10-16 from main
+`6095c7fa8b1c2ec982064860d0b08c7e5bd931f4`. Reuse stored keys only for
+PersistentHashMap updates with standard find/key/val/assoc; retain the previous
+path for array maps and caller-supplied map types. No public API, mutable state,
+cache, dependencies or quality/performance gate changes. Adoption requires
+reproducible revisit throughput/allocation benefits, acceptable boundary/all-new
+costs, full compatibility checks and measured native end-to-end impact.
+Two independent JVMs validate 50 pairs each, with 12 same-source control pairs;
+all 2016 timed results match. Revisited 9/10/10000-flow throughput improves
+7.1–21.1%, with reproducible 316.8/352 B/packet savings. Small/all-new/native
+negative results, JIT offsets and noisy retention/GC remain in the
+[report](flow-key-reuse-performance.md) and [CSV](flow-key-reuse-measurements.csv).
+Local check passes 484 tests / 18553 assertions plus 10 JUnit tests; lint, 34
+executable examples, Java quality, existing performance gate (630.2 ms), package
+and isolated JAR consumer pass. No gate, dependency or version changes.
+Next unfinished item: create the independent PR, verify its latest-head CI and
+leave it open for independent review. Issue #34 remains closed; no merge,
+release, P09/P10 or unrelated issue work is authorized.
 
 ## CI maintenance: Issue #48
 

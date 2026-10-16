@@ -96,7 +96,13 @@
          (do
            (lengths! packet)
            (let [flows (:flows state)
-                 previous (get flows fk)]
+                 ;; Hash-map assoc avoids deep key comparison with the stored key.
+                 ;; Array maps and caller-supplied maps keep the get path, avoiding
+                 ;; find's extra entry allocation where reuse does not help.
+                 hashed? (instance? clojure.lang.PersistentHashMap flows)
+                 entry (when hashed? (find flows fk))
+                 previous (if hashed? (when entry (val entry)) (get flows fk))
+                 stored-key (if entry (clojure.core/key entry) fk)]
              (when (and (nil? previous) (>= (count flows) max-flows))
                (throw (ex-info "flow cardinality limit exceeded"
                                {:reason :max-flows :max-flows max-flows :flow fk})))
@@ -104,7 +110,7 @@
              ;; Keep every published step persistent, including caller metadata.
              (let [summary (:summary state)]
                (-> state
-                   (assoc :flows (assoc flows fk
+                   (assoc :flows (assoc flows stored-key
                                         {:packets (inc' (or (:packets previous) 0))
                                          :captured-bytes (+' (or (:captured-bytes previous) 0) (:caplen packet))
                                          :wire-bytes (+' (or (:wire-bytes previous) 0) (:len packet))}))
