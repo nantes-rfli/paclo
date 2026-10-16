@@ -48,8 +48,9 @@ PR #57 merged as `e444b10`; this independent task starts from that main.
 Investigation, measured implementation and local verification are complete;
 see [the performance report](issue-44-ethernet-performance.md). Preserve all
 negative results and leave Issue closure to independent acceptance review.
-Next unfinished item: independent PR review of Issue #44 and its remaining
-JIT/measurement limits. Final-head CI evidence is maintained on that PR.
+Next unfinished item: independent review of
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58), including Issue #44's
+remaining JIT/measurement limits. Final-head CI evidence is maintained there.
 Do not merge before review.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
@@ -70,7 +71,8 @@ queue after completion; do not start all phases together.
 ## Performance follow-up: Issue #44
 
 Status: **done** for investigation, implementation and local verification,
-from main `e444b10ba84513b460916482e1236c202fa27b84`; independent review remains.
+from main `e444b10ba84513b460916482e1236c202fa27b84` on
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58); independent review remains.
 The [report](issue-44-ethernet-performance.md) and 944 raw comparison pairs retain
 B2/C/D2/current baselines, two-JVM multi-DLT/VLAN/IPv4/IPv6 transformation/native
 Classic/PCAPNG/fixture replay, CPU/allocation/GC/retention and JIT controls.

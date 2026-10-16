@@ -135,7 +135,7 @@ so neither source supplies an exact per-method CPU percentage.
 The pre-change Full stack sampler observes reflective `Array.setChar` as the
 leaf in 1596/4627 samples (34.5%). MAC/cooked address formatting uses
 `aset-char`, which reaches that native reflective primitive setter. It is called
-three times per byte while producing each address. Link map/MAC construction
+17 times per six-byte MAC: two hex digits per byte plus five separators. Link map/MAC construction
 alone takes about 1.06 microseconds in the initial component probe, compared with
 about 2.52 microseconds for parsing. Component probes include generic function
 and loop overhead and cannot be summed into facade cost.
@@ -368,7 +368,10 @@ Local required gates pass without changing workflows, dependencies or thresholds
   suite and the 944-row summary command is exercised. All candidate patches
   apply to unmodified main; `git diff --check` passes.
 
-Final-head CI evidence for all twelve unchanged jobs is maintained on the
-independent PR. Supported-platform CI establishes correctness/compatibility,
+Implementation commit `68ed59adcc3dc738155a7d2fb15d50a87daa5714` is on
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58).
+Final-head CI evidence for all twelve unchanged jobs is maintained there after
+the documentation-only handoff record, avoiding another evidence-commit cycle.
+Supported-platform CI establishes correctness/compatibility,
 not a live/NIC or cross-platform performance claim. Acceptance and Issue #44
 closure remain independent-review decisions; no merge or release is performed.

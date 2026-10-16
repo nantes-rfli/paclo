@@ -3564,3 +3564,25 @@ Commands and results (exit 0 unless an intentional failure is noted):
 Independent PR and final-head CI handoff follow. Issue #44 stays open for
 review of the evidence and remaining limits; no closing keyword, merge,
 release/version or unrelated Issue #37/P09/P10 work.
+
+### Independent PR handoff
+
+Created [PR #58](https://github.com/nantes-rfli/paclo/pull/58),
+`perf: investigate and optimize Ethernet decoding (Issue #44)`, from the scoped
+branch. Implementation commit is `68ed59adcc3dc738155a7d2fb15d50a87daa5714`.
+All existing pre-commit checks run without skip flags: 490 tests / 19036
+assertions, namespace/format, Markdown and kondo. A temporary `clj` wrapper
+forwards to the installed Clojure CLI so no interactive rlwrap is required.
+Source/driver/artifact manifest hashes remain unchanged after the hook.
+
+Before push, `git fetch origin main` confirms main is still `e444b10`.
+The PR is attached to this chat. Its initial CI run is
+[38954618210](https://github.com/nantes-rfli/paclo/actions/runs/38954618210).
+The only subsequent changes are this record, plan and performance-report
+handoff links/wording.
+Check all twelve jobs on the resulting final head and record exact run/status
+in the PR description, rather than making another evidence-only commit.
+Do not treat an interrupted earlier-head run as final verification. No workflow,
+threshold, dependency, version, production code or measurement data changes
+follow the implementation commit. Issue #44 remains open for independent
+acceptance; no review approval, merge or release is implied.
