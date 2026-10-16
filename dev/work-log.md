@@ -3413,3 +3413,9 @@ commit cycle. GitHub workflows, gates, dependencies and Issue #34/P06 code are
 unchanged. Leave Issue #37 open for review of the remaining retired-expiry
 tradeoff and real-production evidence gap. Do not merge, release, or start
 Issue #44/P09/P10 work.
+
+Final plan consistency review also updates the dedicated Issue #37 section from
+in-progress to implemented/verified on PR #57, and removes stale PR #56 review
+and old current-task labels now that it is merged as `452de98`. This changes
+only the plan and delivery log; implementation, raw measurements, dependencies
+and gates remain unchanged. Final-head CI is still recorded on PR #57.
