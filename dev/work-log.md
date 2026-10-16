@@ -3353,7 +3353,7 @@ Local results (exit 0 unless a failed attempt is described):
   fail on the macOS `/var` temporary-root alias; rerunning with canonical
   `TMPDIR=/private/tmp` passes without changing checker or assertions.
 - `test_eastwood_runner.py`: four real JVM exit-status probes pass, including
-  deliberate unanalyzed-namespace failure. Full analysis covers 109 namespaces,
+  deliberate unanalyzed-namespace failure. Full analysis covers 108 namespaces,
   551 informational warnings, zero exceptions. Initial lint stops at manifest
   indentation; fix it. A later sandboxed Markdown invocation cannot access npm;
   the network-capable invocation identifies 15 long report prose lines, now
@@ -3373,7 +3373,43 @@ Local results (exit 0 unless a failed attempt is described):
 Full lint completion and independent PR/CI evidence follow below.
 
 Final full `bash dev/script/codex.sh lint` completes with exit 0 after the
-document wrapping fix: zero kondo warnings/errors, 109 Eastwood namespaces /
+document wrapping fix: zero kondo warnings/errors, 108 Eastwood namespaces /
 zero exceptions, no namespace/format differences, 40 Markdown files /
 zero errors. Production and measurement files remain at their measured
 hashes. All requested local gates are now complete; PR CI is the next check.
+
+### Independent PR and CI handoff
+
+Created [PR #57](https://github.com/nantes-rfli/paclo/pull/57),
+`perf: optimize bounded DNS analysis (Issue #37)`, from independent branch
+`codex/issue-37-dns-performance`. Latest remote main is still `452de98`.
+Commit `f507d425dd292f4ceb0f8b6f479bea5648bb7ed0` contains the implementation,
+tests, investigation and raw data. All existing pre-commit checks pass without
+skip flags: 487 tests / 18648 assertions, format/ns checks, all Markdown and
+kondo. `clj` uses a temporary wrapper forwarding to the installed Clojure CLI,
+so the hook retains its checks without requiring interactive rlwrap.
+Measured production hash and all raw EDN/JSONL files remain unchanged.
+Reproduction patches pass `git apply --check` against their documented source;
+trailing blank context at patch EOF is trimmed with hunk counts adjusted, so
+the staged full `git diff --check` also passes.
+
+[CI run 38944789749](https://github.com/nantes-rfli/paclo/actions/runs/38944789749)
+on `f507d42` completes successfully: all 12 jobs, no failed/skipped jobs.
+`gh run view --json jobs` confirms the actual cloverage step succeeds as well.
+Downloaded logs confirm 108 Eastwood namespaces, 551 warnings, zero exceptions,
+all four failure-exit probes, 34 doc examples and the unchanged 749.3 ms
+50k decode gate (warn/fail 1000/1200). JaCoCo remains 43.8% / 25%.
+Linux JDK21, Linux ARM64 JDK21 and macOS ARM64 JDK17 each pass 487 tests
+(18654 assertions on Linux; 18648 on macOS). All three performance shapes,
+their aggregate, build-checks and build aggregate succeed.
+The namespace count matches actual `== Linting <namespace> ==` records in both
+local and CI logs; an earlier count of 109 included the completion summary
+line and is corrected here. This does not change the analysis roots or scope.
+
+Only this delivery record, report and plan change after the implementation
+head. Check all twelve jobs again on that final documentation head; preserve
+the exact final-head run link/result in PR #57 to avoid another evidence-only
+commit cycle. GitHub workflows, gates, dependencies and Issue #34/P06 code are
+unchanged. Leave Issue #37 open for review of the remaining retired-expiry
+tradeoff and real-production evidence gap. Do not merge, release, or start
+Issue #44/P09/P10 work.

@@ -383,7 +383,7 @@ object or unbounded additional collection is introduced.
   passes using a canonical root. No checker or test is changed.
 - `python3 dev/script/test_eastwood_runner.py`: all four real exit-status
   probes, including deliberate aborted analysis, pass. Full lint analyzes
-  109 namespaces with 551 informational warnings and zero exceptions.
+  108 namespaces with 551 informational warnings and zero exceptions.
 - `bash dev/script/codex.sh package`: distributable JAR built, exit 0.
   An independent `-Srepro` project whose only direct dependency is the local
   JAR loads all production/DNS extension/native binding resources via `jar:`.
@@ -408,8 +408,21 @@ clojure -Srepro -M -i /absolute/checkout/dev/paclo/dev/dns_jar_consumer.clj -e '
 ```
 
 `bash dev/script/codex.sh lint` completes with exit 0: kondo has zero
-warnings/errors, all 109 Eastwood namespaces complete without exceptions,
+warnings/errors, all 108 Eastwood namespaces complete without exceptions,
 namespace/format dry-runs have no changes, and all 40 Markdown files pass.
 `git diff --check` and final local links pass. No gate or analysis scope is
 relaxed. The unchanged twelve-job GitHub Actions workflow is checked on the PR;
 its run link and final-head status are recorded there and in the work log.
+
+[PR #57](https://github.com/nantes-rfli/paclo/pull/57) is open for independent
+review. Implementation head `f507d42` passes
+[all twelve CI jobs](https://github.com/nantes-rfli/paclo/actions/runs/38944789749):
+build checks, documentation, Linux/JDK21 and macOS ARM64/JDK17 compatibility,
+Linux ARM64 monitor, all three performance measurements, performance/build
+aggregates, Eastwood and coverage. The actual cloverage step succeeds, despite
+the pre-existing continue-on-error setting. Eastwood analyzes all 108 namespaces,
+551 informational warnings and zero exceptions; deliberate failure probes pass.
+CI full-decode gate is 749.3 ms with the same 1000/1200 ms thresholds. Tests
+pass on every platform (487 tests; assertion counts include platform-specific
+native checks). A final documentation-only verification commit is checked again;
+its final-head run is linked in the PR. No merge or Issue closure is performed.

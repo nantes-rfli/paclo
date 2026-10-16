@@ -49,7 +49,11 @@ Issue #37 starts independently from main `452de98` and retains both flow changes
 Issue #37 investigation, measured implementation and local verification are complete;
 see [the performance report](issue-37-dns-performance.md). Repeated actual retired
 expiry remains a documented tradeoff; Issue closure belongs to independent review.
-Next unfinished item: publish the independent PR, verify all twelve CI jobs, and review it.
+[PR #57](https://github.com/nantes-rfli/paclo/pull/57) is open; its implementation
+head `f507d42` passes all twelve unchanged CI jobs. Final-head CI is recorded on
+the PR after the verification-only documentation commit.
+Next unfinished item: independent review of PR #57, including the retired-expiry
+tradeoff and Issue #37 closure decision. Do not merge before review.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
