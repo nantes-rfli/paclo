@@ -3205,3 +3205,31 @@ For the noninteractive commit hook, a temporary PATH-local `clj` wrapper execs
 the installed `clojure` CLI with unchanged arguments, as in the preceding task;
 this avoids Homebrew clj's missing rlwrap requirement. No hook or check is skipped
 and no repository/system tool configuration is changed. CI/PR evidence follows.
+
+### PR and supported-platform CI
+
+Implementation commit `3d37a8890a55cb97296bbb6d974ec24c203cee54` completes the
+unchanged pre-commit hook (484 tests / 18553 assertions, clean formatting,
+Markdown and kondo) and creates [PR #56](https://github.com/nantes-rfli/paclo/pull/56)
+on `codex/flow-key-reuse`, against main `6095c7f`. PR is attached to this chat,
+open and unmerged. Committed production/runner blobs exactly match measurement.
+Generated Python bytecode caches are removed; no unrelated work is present.
+
+[CI run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042)
+on exact head `3d37a88` completes successfully. JSON integrity check confirms
+all 12 jobs succeed: build-checks, documentation-checks, Linux x64/JDK21 and
+macOS ARM64/JDK17 compatibility, Linux ARM64 monitor, Eastwood, coverage,
+three performance shards, performance-results and required build aggregate.
+Downloaded job logs confirm actual OS/architecture checks, 484 tests / 18559
+assertions on both Linux environments and 484 / 18553 on macOS. All have zero
+failures/errors. CI has JUnit/Java quality, 43.8% / unchanged 25% coverage gate,
+unchanged performance gate 769.9 ms / 1200 ms, all 34 examples and cljdoc load,
+all 27 merged performance scenarios, pinned kondo/lsp and full Eastwood with
+481 informational warnings and zero exceptions. No gate/configuration changed.
+
+This evidence-only follow-up records the accepted implementation and independent
+review handoff; no production/test/measurement source changes. The PR carries
+final-head CI results after this commit as well. Independent review of PR #56
+is the next unfinished item. Leave it open and do not merge/release; Issue #34
+stays closed and #37/#44/P09/P10 remain outside this task. Offline CI does not
+establish live/NIC or other-platform paired-performance validation.

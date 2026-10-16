@@ -315,6 +315,14 @@ intervals and excludes the forced GC used by retained-memory experiments.
 
 Local tools are clj-kondo 2026.05.25 and clojure-lsp 2026.05.05-12.58.26.
 CI pins remain clj-kondo 2025.10.23 and clojure-lsp 2025.11.28-12.47.43.
-GitHub Actions results will be recorded on the independent PR. No gate, runner
-matrix, warning policy or threshold has been changed. This task does not merge
+Implementation `3d37a8890a55cb97296bbb6d974ec24c203cee54` on
+[PR #56](https://github.com/nantes-rfli/paclo/pull/56) passes **all 12 CI jobs** on
+[run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042).
+Linux x64/JDK21 and Linux ARM64 pass 484 tests / 18559 assertions; macOS
+ARM64/JDK17 passes 484 / 18553. Actual OS/architecture checks pass. Java quality
+passes at 43.8% / 25%; existing performance gate is 769.9 ms / 1200 ms;
+all 34 executable examples, cljdoc loading, 27 merged performance scenarios,
+pinned kondo/lsp and Eastwood (zero exceptions) pass. Final evidence-head checks
+are maintained on the PR. No gate, runner matrix, warning policy or threshold
+has been changed. This task does not merge
 or release; independent review remains the next step after successful checks.

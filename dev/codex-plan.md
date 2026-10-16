@@ -43,7 +43,7 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **flow key reuse PR CI verification and independent review**.
+Default next task: **independent review of flow key reuse PR #56**.
 PR #55 merged as `6095c7f`; Issue #34 is closed. The explicitly requested
 follow-up starts from that main and does not reopen Issue #34.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
@@ -87,8 +87,9 @@ issues #37/#44, P09/P10, release and threshold changes remain outside it.
 
 ## Performance follow-up: existing flow key reuse
 
-Status: **done** for implementation and local validation; PR CI and independent
-review remain. Explicitly requested on 2026-10-16 from main
+Status: **done** for implementation and validation on
+[PR #56](https://github.com/nantes-rfli/paclo/pull/56); independent review remains.
+Explicitly requested on 2026-10-16 from main
 `6095c7fa8b1c2ec982064860d0b08c7e5bd931f4`. Reuse stored keys only for
 PersistentHashMap updates with standard find/key/val/assoc; retain the previous
 path for array maps and caller-supplied map types. No public API, mutable state,
@@ -103,9 +104,12 @@ negative results, JIT offsets and noisy retention/GC remain in the
 Local check passes 484 tests / 18553 assertions plus 10 JUnit tests; lint, 34
 executable examples, Java quality, existing performance gate (630.2 ms), package
 and isolated JAR consumer pass. No gate, dependency or version changes.
-Next unfinished item: create the independent PR, verify its latest-head CI and
-leave it open for independent review. Issue #34 remains closed; no merge,
-release, P09/P10 or unrelated issue work is authorized.
+Implementation `3d37a88` passes all 12 unchanged CI jobs on
+[run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042),
+including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
+checks are maintained on the PR. Next unfinished item: independent review of
+PR #56. Issue #34 remains closed; no merge, release, P09/P10 or unrelated issue
+work is authorized.
 
 ## CI maintenance: Issue #48
 
