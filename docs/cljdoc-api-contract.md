@@ -973,8 +973,14 @@ Timeout and cardinality limits are required positive integers. Reuse delay is
 positive and defaults to timeout. There is no implicit clock/expiry/watermark.
 State stores bounded pending queries and retired keys, never unmatched responses
 or output history. String sizes are caller-controlled; cardinality is not a
-byte-memory limit. Scanning expiry costs O(pending + retired); ordered timeout
-output adds O(pending log pending) sorting.
+byte-memory limit. State includes an internal `:paclo.dns/next-expiry-us` hint:
+nil means no scheduled expiry; otherwise it is an integer lower bound on the
+next retained deadline. It may remain conservatively early after a match.
+Pass state back unchanged, or serialize/restore it as EDN; old snapshots without
+the hint remain accepted and establish it on the next advance. There is no
+mutable or per-key expiry index. Before the hint is reached, advance costs O(1).
+At or beyond it, scanning costs O(pending + retired), plus O(E log E) sorting
+for the E expired queries. Dense expiry can still require repeated full scans.
 
 Exact transaction keys contain `:id`, `:protocol`, `:ip-version`, oriented
 `:client`/`:server` endpoints, `:qname`, `:qtype`, `:qclass`. Responses reverse

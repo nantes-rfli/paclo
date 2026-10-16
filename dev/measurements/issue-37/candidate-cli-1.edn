@@ -1,0 +1,35 @@
+{:baseline nil, :clojure "1.12.1", :arch "x86_64", :jdk "21.0.12.1", :scope :offline-cli-with-output, :dropping false, :warmups 3, :os "Mac OS X", :runs 5}
+{:scenario [:rtt-pairs false], :run 0, :packets 1000, :qnames 500, :ms 165.859763, :live-thread-allocated-bytes 43948792, :heap-pool-peak-used-bytes 78277120}
+{:scenario [:rtt-pairs false], :run 1, :packets 1000, :qnames 500, :ms 136.109321, :live-thread-allocated-bytes 43770376, :heap-pool-peak-used-bytes 124414464}
+{:scenario [:rtt-pairs false], :run 2, :packets 1000, :qnames 500, :ms 134.105669, :live-thread-allocated-bytes 43683472, :heap-pool-peak-used-bytes 166357504}
+{:scenario [:rtt-pairs false], :run 3, :packets 1000, :qnames 500, :ms 133.625987, :live-thread-allocated-bytes 43568984, :heap-pool-peak-used-bytes 187615280}
+{:scenario [:rtt-pairs false], :run 4, :packets 1000, :qnames 500, :ms 117.565129, :live-thread-allocated-bytes 43488240, :heap-pool-peak-used-bytes 86951984}
+{:scenario [:rtt-qstats false], :run 0, :packets 1000, :qnames 500, :ms 149.066467, :live-thread-allocated-bytes 40291968, :heap-pool-peak-used-bytes 79068200}
+{:scenario [:rtt-qstats false], :run 1, :packets 1000, :qnames 500, :ms 101.154749, :live-thread-allocated-bytes 40291776, :heap-pool-peak-used-bytes 121011240}
+{:scenario [:rtt-qstats false], :run 2, :packets 1000, :qnames 500, :ms 88.25758, :live-thread-allocated-bytes 40272656, :heap-pool-peak-used-bytes 158759976}
+{:scenario [:rtt-qstats false], :run 3, :packets 1000, :qnames 500, :ms 82.252759, :live-thread-allocated-bytes 40271872, :heap-pool-peak-used-bytes 200703016}
+{:scenario [:rtt-qstats false], :run 4, :packets 1000, :qnames 500, :ms 87.035967, :live-thread-allocated-bytes 40302392, :heap-pool-peak-used-bytes 225868840}
+{:scenario [:qps false], :run 0, :packets 1000, :qnames 500, :ms 77.421456, :live-thread-allocated-bytes 26482360, :heap-pool-peak-used-bytes 141346776}
+{:scenario [:qps false], :run 1, :packets 1000, :qnames 500, :ms 65.568996, :live-thread-allocated-bytes 26482360, :heap-pool-peak-used-bytes 166512600}
+{:scenario [:qps false], :run 2, :packets 1000, :qnames 500, :ms 68.481154, :live-thread-allocated-bytes 26482360, :heap-pool-peak-used-bytes 191678424}
+{:scenario [:qps false], :run 3, :packets 1000, :qnames 500, :ms 68.04222, :live-thread-allocated-bytes 26482424, :heap-pool-peak-used-bytes 221038552}
+{:scenario [:qps false], :run 4, :packets 1000, :qnames 500, :ms 72.371699, :live-thread-allocated-bytes 26510832, :heap-pool-peak-used-bytes 225239056}
+{:scenario [:rtt-pairs true], :run 0, :packets 1000, :qnames 500, :ms 108.144435, :live-thread-allocated-bytes 51910824, :heap-pool-peak-used-bytes 225239056}
+{:scenario [:rtt-pairs true], :run 1, :packets 1000, :qnames 500, :ms 89.164432, :live-thread-allocated-bytes 51860432, :heap-pool-peak-used-bytes 120362856}
+{:scenario [:rtt-pairs true], :run 2, :packets 1000, :qnames 500, :ms 98.797553, :live-thread-allocated-bytes 51853352, :heap-pool-peak-used-bytes 170694504}
+{:scenario [:rtt-pairs true], :run 3, :packets 1000, :qnames 500, :ms 102.295692, :live-thread-allocated-bytes 51522232, :heap-pool-peak-used-bytes 225222856}
+{:scenario [:rtt-pairs true], :run 4, :packets 1000, :qnames 500, :ms 129.51471, :live-thread-allocated-bytes 51365744, :heap-pool-peak-used-bytes 74227912}
+{:scenario [:rtt-qstats true], :run 0, :packets 1000, :qnames 500, :ms 61.398653, :live-thread-allocated-bytes 45912072, :heap-pool-peak-used-bytes 258777288}
+{:scenario [:rtt-qstats true], :run 1, :packets 1000, :qnames 500, :ms 70.656401, :live-thread-allocated-bytes 45957824, :heap-pool-peak-used-bytes 273065064}
+{:scenario [:rtt-qstats true], :run 2, :packets 1000, :qnames 500, :ms 72.070647, :live-thread-allocated-bytes 45928768, :heap-pool-peak-used-bytes 103788896}
+{:scenario [:rtt-qstats true], :run 3, :packets 1000, :qnames 500, :ms 60.510992, :live-thread-allocated-bytes 45918432, :heap-pool-peak-used-bytes 149926240}
+{:scenario [:rtt-qstats true], :run 4, :packets 1000, :qnames 500, :ms 60.890135, :live-thread-allocated-bytes 45921016, :heap-pool-peak-used-bytes 196063584}
+{:scenario [:qps true], :run 0, :packets 1000, :qnames 500, :ms 60.928474, :live-thread-allocated-bytes 32090608, :heap-pool-peak-used-bytes 70112432}
+{:scenario [:qps true], :run 1, :packets 1000, :qnames 500, :ms 60.616813, :live-thread-allocated-bytes 32081448, :heap-pool-peak-used-bytes 103666864}
+{:scenario [:qps true], :run 2, :packets 1000, :qnames 500, :ms 61.845735, :live-thread-allocated-bytes 32070328, :heap-pool-peak-used-bytes 137221296}
+{:scenario [:qps true], :run 3, :packets 1000, :qnames 500, :ms 57.908387, :live-thread-allocated-bytes 32082160, :heap-pool-peak-used-bytes 166581424}
+{:scenario [:qps true], :run 4, :packets 1000, :qnames 500, :ms 62.166653, :live-thread-allocated-bytes 32078232, :heap-pool-peak-used-bytes 200135856}
+{:samples 0, :retired 500, :output-rows 0, :windows 0, :window-groups nil, :retained-report-edn-characters 6387, :candidates 50, :pending 0, :retention :rtt-pairs, :group-samples 0, :pairs 500, :qnames 0, :retained-analysis-edn-characters 85985}
+{:samples 0, :retired 500, :output-rows 0, :windows 0, :window-groups nil, :retained-report-edn-characters 27297, :candidates 0, :pending 0, :retention :rtt-qstats, :group-samples 500, :pairs 500, :qnames 500, :retained-analysis-edn-characters 85985}
+{:samples 0, :retired 0, :output-rows 0, :windows 1, :window-groups 500, :retained-report-edn-characters 425, :candidates 0, :pending 0, :retention :qps, :group-samples 0, :pairs nil, :qnames 0, :retained-analysis-edn-characters 25070}
+{:output-only-iterations 100, :rows 500, :ms 249.355126}

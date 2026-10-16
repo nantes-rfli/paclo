@@ -43,9 +43,13 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **independent review of flow key reuse PR #56**.
-PR #55 merged as `6095c7f`; Issue #34 is closed. The explicitly requested
-follow-up starts from that main and does not reopen Issue #34.
+Current task: **Issue #37 DNS performance investigation and measured optimization**.
+PR #55 merged as `6095c7f` and PR #56 as `452de98`; Issue #34 is closed.
+Issue #37 starts independently from main `452de98` and retains both flow changes.
+Issue #37 investigation, measured implementation and local verification are complete;
+see [the performance report](issue-37-dns-performance.md). Repeated actual retired
+expiry remains a documented tradeoff; Issue closure belongs to independent review.
+Next unfinished item: publish the independent PR, verify all twelve CI jobs, and review it.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -61,6 +65,19 @@ P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
+
+## Performance follow-up: Issue #37
+
+Status: **in-progress**, from main `452de98cf6d1a604e5823e80dc1cf5edadfe4b67`.
+Reproduce P07-B's complete CLI measurement and historical `2e15af7` source,
+then compare only equivalent correct main/candidate results. Separate native
+capture/full decode, DNS projection/matching/expiry, window/QPS, bounded RTT
+reporting, serialization and delivery. Investigate sparse/dense expiry, bounds,
+retained memory, reorder/diagnostics and long offline replay. One optional
+integer lower bound avoids premature scans; only expired pending entries sort.
+No per-key expiry index, new public option, dependency or flow/P06 change.
+The [investigation](issue-37-dns-performance.md) records results and limitations.
+Keep Issue #44, P09/P10 and release/merge work outside this task.
 
 ## Performance follow-up: Issue #34
 

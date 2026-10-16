@@ -352,3 +352,102 @@
     (is (= [] (kinds (dns/step (:state at) (assoc query :time-us 160)))))
     (is (empty? (get-in after [:state :retired])))
     (is (= 2 (count (:retired state))))))
+
+(defn- without-expiry-hint [state]
+  (dissoc state :paclo.dns/next-expiry-us))
+
+(defn- scan-advance
+  "Simple reference: scan all keys and sort expired entries, with no hint."
+  [state watermark]
+  (let [retired (into {} (filter (fn [[_ until]] (> until watermark))) (:retired state))
+        expired (sort-by (fn [[k entry]]
+                           [(:deadline-us entry) (:ip-version k) (:protocol k)
+                            (get-in k [:client :ip]) (get-in k [:client :port])
+                            (get-in k [:server :ip]) (get-in k [:server :port])
+                            (:id k) (:qname k) (:qtype k) (:qclass k)])
+                         (filter (fn [[_ entry]] (<= (:deadline-us entry) watermark)) (:pending state)))
+        next-state (reduce (fn [s [k entry]]
+                             (let [until (+' (:deadline-us entry) (get-in s [:options :reuse-delay-us]))]
+                               (when (and (> until watermark)
+                                          (>= (count (:retired s)) (get-in s [:options :max-retired])))
+                                 (throw (ex-info "max-retired" {:reason :max-retired})))
+                               (cond-> (update s :pending dissoc k)
+                                 (> until watermark) (assoc-in [:retired k] until))))
+                           (assoc state :watermark-us watermark :retired retired) expired)]
+    {:state next-state
+     :events (mapv (fn [[k entry]] {:kind :timeout :transaction k :query (:query entry)
+                                    :deadline-us (:deadline-us entry) :retransmissions (:retransmissions entry)}) expired)}))
+
+(deftest expiry-hint-earlier-retries-stale-minimum-and-legacy-snapshots
+  (let [a (assoc query :time-us 100)
+        b (assoc query :id 43 :time-us 200)
+        original (reduce add (dns/init opts) [a b])
+        ;; Earlier retry must lower the scheduled deadline (200 -> 150).
+        retried (add original (assoc a :time-us 50))
+        at (dns/advance retried 150)]
+    (is (empty? (:events (dns/advance retried 149))))
+    (is (= [42] (mapv #(get-in % [:transaction :id]) (:events at))))
+    (is (= 1 (get-in at [:events 0 :retransmissions])))
+    (is (= 2 (count (:pending original))))
+    (is (= 100 (->> (:pending original) vals (map :query) (filter #(= 42 (:id %))) first :time-us)))
+    (doseq [s [original retried (:state at)] w [150 200 250 300 350 1000]
+            :when (or (nil? (:watermark-us s)) (>= w (:watermark-us s)))]
+      (let [expected (scan-advance (without-expiry-hint s) w)
+            actual (dns/advance s w)]
+        (is (= expected (update actual :state without-expiry-hint)))
+        (is (= actual (dns/advance (edn/read-string (pr-str s)) w)))
+        (is (= actual (dns/advance (without-expiry-hint s) w))))))
+  (let [s (add (dns/init opts) query)
+        matched (:state (dns/step s (response query 20)))
+        legacy (without-expiry-hint matched)
+        other (assoc query :id 43 :time-us 200)
+        legacy (add legacy other)
+        at (dns/advance legacy 160)]
+    ;; Admitting a new query into an old snapshot must not hide old quarantine.
+    (is (empty? (get-in at [:state :retired])))
+    (is (= 1 (count (get-in at [:state :pending]))))
+    (is (= [:timeout] (kinds (dns/advance (:state at) 300))))
+    (is (= 1 (count (:retired matched))))
+    (is (= matched (edn/read-string (pr-str matched))))))
+
+(deftest expiry-concentrations-promoting-time-and-independent-forks
+  (doseq [t [Long/MIN_VALUE Long/MAX_VALUE 1267650600228229401496703205376N]
+          spread [0 1]]
+    (let [options (assoc opts :max-pending 100 :max-retired 100)
+          queries (mapv #(assoc query :id % :time-us (+' t (* spread %))) (range 100))
+          seed (reduce add (dns/init options) (reverse queries))
+          watermark (+' t 199)
+          expected (scan-advance (without-expiry-hint seed) watermark)
+          run #(dns/advance % watermark)
+          left (future (run seed)) right (future (run (edn/read-string (pr-str seed))))
+          left (deref left 10000 :timeout) right (deref right 10000 :timeout)]
+      (is (= expected (update left :state without-expiry-hint)))
+      (is (= left right))
+      (is (= 100 (count (:pending seed))))
+      (is (empty? (get-in left [:state :pending])))
+      (is (= (:state (dns/finish seed)) (:state (dns/finish (edn/read-string (pr-str seed)))))))))
+
+(declare expiry-agrees-with-full-scan)
+
+(defspec expiry-agrees-with-full-scan 300
+  (prop/for-all [actions (gen/vector (gen/tuple (gen/elements [:query :response :advance])
+                                                (gen/choose 0 19) (gen/choose -100 600)) 0 120)]
+                (let [initial (dns/init (assoc opts :max-pending 8 :max-retired 8))
+                      invoke (fn [f s]
+                               (try (let [r (f s)] (update r :state without-expiry-hint))
+                                    (catch clojure.lang.ExceptionInfo e {:error (ex-data e)})))
+                      results
+                      (reduce (fn [{:keys [state ok?]} [kind id t]]
+                                (let [w (max (or (:watermark-us state) t) t)
+                                      event (if (= kind :query) (assoc query :id id :time-us t)
+                                                (response (assoc query :id id) t))
+                                      actual-f (if (= :advance kind) #(dns/advance % w) #(dns/step % event))
+                                      reference-f (if (= :advance kind) #(scan-advance % w) #(dns/step % event))
+                                      actual (invoke actual-f state)
+                                      reference (invoke reference-f (without-expiry-hint state))
+                                      legacy (invoke actual-f (without-expiry-hint state))
+                                      restored (invoke actual-f (edn/read-string (pr-str state)))
+                                      next-state (if (:error actual) state (:state (actual-f state)))]
+                                  {:state next-state :ok? (and ok? (= actual reference legacy restored))}))
+                              {:state initial :ok? true} actions)]
+                  (and (:ok? results) (= initial (dns/init (assoc opts :max-pending 8 :max-retired 8)))))))

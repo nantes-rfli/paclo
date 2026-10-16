@@ -1,0 +1,33 @@
+{:baseline "452de98cf6d1a604e5823e80dc1cf5edadfe4b67"
+ :accepted-dns-blob "85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6"
+ :initial-scalar-dns-blob "802b23940d749d2dfb85717e90f15b4b18ea57d0"
+ :records
+ {"main-cli.edn" {:source :baseline :runner :unchanged-dns-cli-perf :warmups 3 :runs 5}
+  "legacy-cli.edn" {:cli-source "2e15af7" :analysis-equivalent? false :warmups 3 :runs 5}
+  "candidate-cli-*.edn" {:source :accepted :runner :unchanged-dns-cli-perf :warmups 3 :runs 5}
+  "scan-expiry.edn" {:source :baseline-with-scan-before-sort-patch
+                     :baseline-header-typo "452de98a"
+                     :cpu-counters-include-snapshot-overhead? true}
+  "hint-expiry-exploratory.edn" {:source :accepted-with-allocating-hint-patch}
+  "initial/*.edn" {:source :initial-scalar :warmups 5 :runs 7}
+  "scan-method-*.edn" {:scope :isolated-retired-scan
+                       :baseline :double-comparison-and-write-each-live-key
+                       :current :skip-known-live-keys}
+  "scan-accumulator-*.edn" {:scope :isolated-retired-scan
+                            :baseline :double-comparison-and-write-each-live-key
+                            :current :scalar-return-with-local-retained-map-holder
+                            :adopted? false}
+  "expiry-*.edn" {:source :accepted :scope :dns-advance}
+  "pipeline-*.edn" {:source :accepted :scope :explicit-per-scenario}
+  "anomalies-*.edn" {:source :accepted :scope :decoded-packet-replay}
+  "window-*.edn" {:source :accepted :window-implementation-changed? false}
+  "large-*.edn" {:source :accepted :scope :dns-advance-100000-keys}
+  "stress-*.edn" {:source :accepted :scope :successive-actual-expiry}
+  "trace-*.edn" {:source :accepted :capture-sha256 "041eeb6f98bb398f1ee8b09651b5b5a84f6a62639f95bf226f9e7b77355d9f28"}
+  "steady-*.edn" {:source :accepted :scope :native-high-density-across-expiry :warmups 2 :runs 5}
+  "dispatch-*.edn" {:scope :same-main-var-vs-function-control}
+  "retention.edn" {:source :accepted :scope :forced-gc-independent-roots}}
+ :notes ["No samples discarded; initial candidates retained separately."
+         "Hot measurement functions and inputs are unchanged between final repetitions."
+         "CPU and allocation have the caveats in the investigation report."
+         "No production trace, real-NIC or other-platform performance claim."]}

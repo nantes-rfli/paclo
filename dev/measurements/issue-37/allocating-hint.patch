@@ -1,0 +1,43 @@
+--- a/src/paclo/dns.clj
++++ b/src/paclo/dns.clj
+@@ -199,28 +199,19 @@
+     (if (and (contains? state ::next-expiry-us)
+              (or (nil? next-expiry) (< watermark-us next-expiry)))
+       {:state (assoc state :watermark-us watermark-us) :events []}
+-      (let [minimum (volatile! nil)
+-            ;; Mutation is confined to this scan. Only the resulting integer
+-            ;; and persistent maps/vector can escape into a published snapshot.
+-            remember! (fn [deadline] (vreset! minimum (earlier @minimum deadline)))
+-            retired
+-            (reduce-kv (fn [retained k until]
+-                         (let [next @minimum]
+-                           ;; This minimum is already above the watermark.
+-                           ;; Later times need neither another comparison nor
+-                           ;; another volatile write.
+-                           (cond
+-                             (and next (<= next until)) retained
+-                             (<= until watermark-us) (dissoc retained k)
+-                             :else (do (vreset! minimum until) retained))))
+-                       (:retired state) (:retired state))
+-            expired
+-            (reduce-kv (fn [expired k entry]
++      (let [[retired next-expiry]
++            (reduce-kv (fn [[retained next-expiry] k until]
++                         (if (<= until watermark-us)
++                           [(dissoc retained k) next-expiry]
++                           [retained (earlier next-expiry until)]))
++                       [(:retired state) nil] (:retired state))
++            [expired next-expiry]
++            (reduce-kv (fn [[expired next-expiry] k entry]
+                          (if (<= (:deadline-us entry) watermark-us)
+-                           (conj expired [k entry])
+-                           (do (remember! (:deadline-us entry)) expired)))
+-                       [] (:pending state))
++                           [(conj expired [k entry]) next-expiry]
++                           [expired (earlier next-expiry (:deadline-us entry))]))
++                       [[] next-expiry] (:pending state))
+             expired (ordered expired)
+-            state (assoc state :watermark-us watermark-us :retired retired ::next-expiry-us @minimum)]
++            state (assoc state :watermark-us watermark-us :retired retired ::next-expiry-us next-expiry)]
+         {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
+          :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))))

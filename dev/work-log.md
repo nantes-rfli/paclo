@@ -3233,3 +3233,147 @@ final-head CI results after this commit as well. Independent review of PR #56
 is the next unfinished item. Leave it open and do not merge/release; Issue #34
 stays closed and #37/#44/P09/P10 remain outside this task. Offline CI does not
 establish live/NIC or other-platform paired-performance validation.
+
+## Issue #37 DNS performance investigation (2026-10-17)
+
+Started with a clean supplied checkout on `codex/flow-key-reuse`. Read AGENTS,
+CONTRIBUTING, v1 API contract, accepted plan, Issue #37/PR #36, P07-B design/
+measurements and current DNS/window/CLI/tests/fixtures. Fetch latest main and
+create `codex/issue-37-dns-performance` from
+`452de98cf6d1a604e5823e80dc1cf5edadfe4b67`, after merged PRs #55/#56.
+The first sandbox fetch could not write `.git/FETCH_HEAD`; approved Git execution
+succeeded. GitHub CLI network reads similarly succeeded in network-capable
+execution. No worktree, dependency, version, flow/P06 or CI gate changes.
+Issue #34 stays closed; Issue #44/P09/P10/release/merge work is excluded.
+
+`bash dev/script/codex.sh doctor`: exit 0, JDK 21.0.12.1 / Clojure 1.12.1 /
+macOS x86_64, four-packet actual libpcap read. Required source checks confirm
+retired-map scans and sorting of all pending keys at each advance. Reproduced
+unchanged original runner on fixed main; extracted only old RTT/QPS sources
+from `2e15af7` and reproduced its normalized full-input CLI measurement.
+Raw EDN is retained under `dev/measurements/issue-37/`. Old nil-RTT output is
+context, never an equivalent correctness/performance target.
+
+Exploratory candidate 1 filters pending before sorting, preserving deadline/key
+order. Candidate 2 adds a conservative optional integer lower bound for the next
+expiry. It avoids all scans before the hint, accepts old EDN without it, and
+keeps immutable state/forks. Removing a key may leave an early hint; a scan
+recomputes it. Earlier retries lower it. Finish clears it. No per-key index or
+new public option. An initial per-key `[aggregate minimum]` scan allocation was
+rejected after retired sparse/sequential measurements; final scan confines one
+volatile scalar to the call and publishes only its integer plus persistent data.
+Exploratory raw data is kept with its limitations in the report (including the
+first header's mistyped abbreviated ref and CPU-counter boundary correction).
+
+Added a full-scan expiry oracle, legacy/EDN/fork comparisons, earlier retry,
+stale hint, simultaneous expiry, BigInt times and atomic bound-error coverage.
+Both focused DNS invocations complete with exit 0: 19 tests / 298 assertions,
+including existing 600 and new 300 property cases. Kondo initially flags one
+unused benchmark import; removed it, then all changed Clojure files lint clean.
+LSP clean-ns/format completes for production/test/measurement sources before
+final measurements. Production measured blob is
+`802b23940d749d2dfb85717e90f15b4b18ea57d0`.
+
+Two independent serial 512 MiB JVM repetitions are running for expiry, pipeline,
+anomalies, windows, 100000-key states and a public real trace. Timed suites use
+five warmups/seven alternating samples, reversed initial order in repetition 2;
+complete results must agree after excluding only the internal hint. Native,
+projection, delivery and output same-source pairs quantify control variation.
+Benchmark setup errors (raw capture retaining decode-only options; in-memory
+raw packets missing explicit caplen for QPS) were corrected before final runs.
+They were harness failures, not production changes; incomplete files were
+replaced by complete reruns. Full final results and delivery validation follow.
+
+Fetched Wireshark SampleCaptures `dns.cap` outside the repo: 4338 bytes,
+SHA-256 `041eeb6f98bb398f1ee8b09651b5b5a84f6a62639f95bf226f9e7b77355d9f28`.
+Record exact public source/reproduction in the report; do not redistribute the
+capture or claim it represents a long production/resolver workload. Long/high
+cardinality coverage uses generated offline PCAP and reports that limitation.
+
+### Expiry candidate refinement
+
+Complete initial-scalar paired measurements are retained under
+`dev/measurements/issue-37/initial/`; no negative samples were removed.
+At 10000 retired keys / 1000 actual successive expiries, the initial scalar
+hint takes 231.5/325.2 ms versus main 119.5/179.1 ms. At 100000, 8726.9/8508.9
+versus 5281.3/5762.7 ms. This exposes extra minimum-recalculation work, while
+mixed pending/retired expiry and no-expiry paths improve strongly.
+
+Two independent isolated scan comparisons motivate skipping keys at least the
+known live minimum: that minimum is already above the watermark, so such keys
+need neither another comparison nor a volatile write. A separate scalar-return
+reduction with a volatile retained-map holder shows noisier full-deletion costs;
+reject it in favor of the smaller branch change. These isolated method timings
+compare scan methods, not main or full CLI. Both method raw series are retained.
+Final production blob is `85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6`.
+Focused DNS suite again exits 0 (19 / 298, including 900 property cases), LSP
+format/clean-ns and changed-source kondo pass. Only dev consumer formatting
+changed in this pass; no production formatting drift. Final runner records
+production and runner blobs automatically. Re-running complete paired suites
+on this accepted source, plus 100000-entry EDN/retention and unchanged original
+CLI. Full final evidence and delivery checks follow below.
+
+### Final paired evidence and local delivery checks
+
+Final source remains `85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6`.
+The summarizer validates 354 paired conditions / 4940 timed samples, all
+complete results equal after excluding only the optional internal scalar.
+Final and initial raw files, rejected-candidate patches and both summaries are
+retained; no negative timing samples are removed. Same-main dispatch controls
+show -1.7% to +0.9% throughput with effectively identical allocation.
+
+The 4000-packet/2000-qname native RTT stats pipeline, excluding output,
+improves about 2.0x sync and 2.5x async in both independent JVMs. A separate
+40000-packet/default-timeout steady workload crosses actual quarantine expiry
+and improves 1.9-2.2x, with all 20000 matches and bounded 10000 retired entries.
+Long low-density results are small/noisy. Standalone original complete-CLI
+timings are slower than the earlier main measurement, including unchanged QPS;
+no universal CLI speedup is claimed. The tiny real Wireshark trace agrees
+exactly but establishes no attributable throughput benefit. No suitable long
+production trace or sustained wall-clock/live-NIC performance was validated.
+
+Repeated actual retired expiry remains slower: 16.9-38.4% lower throughput
+at 10000 keys, 12.6-15.4% at 100000. The report explicitly records this
+tradeoff. One integer avoids the strong no-expiry/mixed-workload cost without
+per-key index retention. A future index requires separate update/retention
+evidence. Do not use a closing keyword for Issue #37; leave closure to review.
+Forced-GC roots/EDN round-trips cover 1000/10000/100000 pending and retired;
+100000-root heap estimates remain about 83 MB / 49 MB. These inputs add
+35 EDN characters per root, not per key. Arbitrary integer width follows the
+existing time contract; no strict byte-memory or per-key reduction is claimed.
+
+Local results (exit 0 unless a failed attempt is described):
+
+- `check`: 487 Clojure tests / 18648 assertions, 10 JUnit tests, native
+  four-packet smoke. Existing regression, properties, CLI, window, PCAPNG and
+  independent-consumer tests remain in the unchanged suite.
+- `perf`: 50k full-decode 501.8 ms, unchanged 1000/1200 ms warn/fail limits.
+- `verify_doc_examples.py`: all 34 examples; `verify_doc_links.py`: maintained
+  local links and anchors. Parser tests: 15; link tests: nine. Link tests first
+  fail on the macOS `/var` temporary-root alias; rerunning with canonical
+  `TMPDIR=/private/tmp` passes without changing checker or assertions.
+- `test_eastwood_runner.py`: four real JVM exit-status probes pass, including
+  deliberate unanalyzed-namespace failure. Full analysis covers 109 namespaces,
+  551 informational warnings, zero exceptions. Initial lint stops at manifest
+  indentation; fix it. A later sandboxed Markdown invocation cannot access npm;
+  the network-capable invocation identifies 15 long report prose lines, now
+  wrapped. No gate, threshold, warning policy or analysis scope changes.
+- `package`: JAR built. JAR-only `-Srepro` consumer outside the checkout passes
+  exact DNS, old/EDN state, concurrent capacity-one fan-out, BigInt retries and
+  quarantine, authored PCAPNG native-byte replay/decode and window composition.
+  All production/native-binding/extension resources are asserted to load from
+  `jar:` URLs. `prepare` restores development Java test classes afterward.
+- SpotBugs, CheckStyle, JaCoCo and gate pass; line coverage 43.8% versus the
+  unchanged 25.0% threshold.
+- The opt-in benchmark rejects an unknown suite with a nonzero exit and the
+  expected error; real successful suites and summary commands are exercised.
+- `git diff --check` passes; raw measurement SHA-256 values remain unchanged
+  across final formatting. Generated untracked Python bytecode is removed.
+
+Full lint completion and independent PR/CI evidence follow below.
+
+Final full `bash dev/script/codex.sh lint` completes with exit 0 after the
+document wrapping fix: zero kondo warnings/errors, 109 Eastwood namespaces /
+zero exceptions, no namespace/format differences, 40 Markdown files /
+zero errors. Production and measurement files remain at their measured
+hashes. All requested local gates are now complete; PR CI is the next check.

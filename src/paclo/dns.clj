@@ -97,7 +97,8 @@
       (when-not (and (integer? value) (pos? value)) (fail! :invalid-options)))
     {:options {:timeout-us timeout-us :max-pending max-pending
                :max-retired max-retired :reuse-delay-us reuse-delay-us}
-     :watermark-us nil :pending {} :retired {} :finished? false}))
+     :watermark-us nil :pending {} :retired {} :finished? false
+     ::next-expiry-us nil}))
 
 (defn- open! [state]
   (when (:finished? state) (fail! :finished)))
@@ -115,6 +116,17 @@
 (defn- ordered [pending]
   (sort-by (fn [[k v]] [(:deadline-us v) (key-order k)]) pending))
 
+(defn- earlier [a b]
+  (if (nil? a) b (min a b)))
+
+(defn- schedule [state deadline]
+  ;; A conservative lower bound, not an index or an exact minimum. Removing a
+  ;; query may leave an early hint; reaching it merely triggers a fresh scan.
+  ;; Old EDN snapshots lack the hint and must scan before establishing one.
+  (if (contains? state ::next-expiry-us)
+    (update state ::next-expiry-us earlier deadline)
+    state))
+
 (defn- retire [state k entry]
   (let [until (+' (:deadline-us entry) (get-in state [:options :reuse-delay-us]))]
     (when (and (or (nil? (:watermark-us state)) (> until (:watermark-us state)))
@@ -122,7 +134,7 @@
       (fail! :max-retired))
     (cond-> (update state :pending dissoc k)
       (or (nil? (:watermark-us state)) (> until (:watermark-us state)))
-      (assoc-in [:retired k] until))))
+      (-> (assoc-in [:retired k] until) (schedule until)))))
 
 (defn- query-result [kind k entry]
   {:kind kind :transaction k :query (:query entry) :deadline-us (:deadline-us entry)
@@ -151,15 +163,18 @@
         (if (>= t (:deadline-us entry))
           (diagnostic :expiry-required)
           (let [query (if (< t (get-in entry [:query :time-us])) event (:query entry))]
-            {:state (assoc-in state [:pending k]
-                              {:query query :deadline-us (+' (:time-us query) (get-in state [:options :timeout-us]))
-                               :retransmissions (inc' (:retransmissions entry))})
+            {:state (let [deadline (+' (:time-us query) (get-in state [:options :timeout-us]))]
+                      (-> state
+                          (assoc-in [:pending k] {:query query :deadline-us deadline
+                                                  :retransmissions (inc' (:retransmissions entry))})
+                          (schedule deadline)))
              :events []}))
         (do
           (when (>= (count (:pending state)) (get-in state [:options :max-pending])) (fail! :max-pending))
-          {:state (assoc-in state [:pending k]
-                            {:query event :deadline-us (+' t (get-in state [:options :timeout-us]))
-                             :retransmissions 0})
+          {:state (let [deadline (+' t (get-in state [:options :timeout-us]))]
+                    (-> state
+                        (assoc-in [:pending k] {:query event :deadline-us deadline :retransmissions 0})
+                        (schedule deadline)))
            :events []}))
       (nil? entry) (diagnostic :unmatched-response)
       :else
@@ -180,17 +195,39 @@
   (open! state)
   (time! watermark-us)
   (when (and (:watermark-us state) (< watermark-us (:watermark-us state))) (fail! :watermark-regression))
-  (let [state (assoc state :watermark-us watermark-us
-                     :retired (reduce-kv (fn [retained k until]
-                                           (if (<= until watermark-us) (dissoc retained k) retained))
-                                         (:retired state) (:retired state)))
-        expired (filter (fn [[_ entry]] (<= (:deadline-us entry) watermark-us)) (ordered (:pending state)))]
-    {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
-     :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))
+  (let [next-expiry (::next-expiry-us state)]
+    (if (and (contains? state ::next-expiry-us)
+             (or (nil? next-expiry) (< watermark-us next-expiry)))
+      {:state (assoc state :watermark-us watermark-us) :events []}
+      (let [minimum (volatile! nil)
+            ;; Mutation is confined to this scan. Only the resulting integer
+            ;; and persistent maps/vector can escape into a published snapshot.
+            remember! (fn [deadline] (vreset! minimum (earlier @minimum deadline)))
+            retired
+            (reduce-kv (fn [retained k until]
+                         (let [next @minimum]
+                           ;; This minimum is already above the watermark.
+                           ;; Later times need neither another comparison nor
+                           ;; another volatile write.
+                           (cond
+                             (and next (<= next until)) retained
+                             (<= until watermark-us) (dissoc retained k)
+                             :else (do (vreset! minimum until) retained))))
+                       (:retired state) (:retired state))
+            expired
+            (reduce-kv (fn [expired k entry]
+                         (if (<= (:deadline-us entry) watermark-us)
+                           (conj expired [k entry])
+                           (do (remember! (:deadline-us entry)) expired)))
+                       [] (:pending state))
+            expired (ordered expired)
+            state (assoc state :watermark-us watermark-us :retired retired ::next-expiry-us @minimum)]
+        {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
+         :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))))
 
 (defn finish
   "Emit :unfinished queries in deadline/key order; clear pending and retired.
    Idempotent and terminal. Does not fabricate responses, timeouts or a watermark."
   [state]
-  {:state (assoc state :pending {} :retired {} :finished? true)
+  {:state (assoc state :pending {} :retired {} :finished? true ::next-expiry-us nil)
    :events (mapv (fn [[k entry]] (query-result :unfinished k entry)) (ordered (:pending state)))})

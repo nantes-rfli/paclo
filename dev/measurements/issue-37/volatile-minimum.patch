@@ -1,0 +1,20 @@
+--- a/src/paclo/dns.clj
++++ b/src/paclo/dns.clj
+@@ -205,14 +205,9 @@
+             remember! (fn [deadline] (vreset! minimum (earlier @minimum deadline)))
+             retired
+             (reduce-kv (fn [retained k until]
+-                         (let [next @minimum]
+-                           ;; This minimum is already above the watermark.
+-                           ;; Later times need neither another comparison nor
+-                           ;; another volatile write.
+-                           (cond
+-                             (and next (<= next until)) retained
+-                             (<= until watermark-us) (dissoc retained k)
+-                             :else (do (vreset! minimum until) retained))))
++                         (if (<= until watermark-us)
++                           (dissoc retained k)
++                           (do (remember! until) retained)))
+                        (:retired state) (:retired state))
+             expired
+             (reduce-kv (fn [expired k entry]
