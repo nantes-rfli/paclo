@@ -12,7 +12,8 @@
    [java.io Closeable]))
 
 (declare bidirectional-reversal-and-edn aggregation-and-ranking-ignore-input-order
-         unidirectional-keys-do-not-collide exact-counter-totals)
+         unidirectional-keys-do-not-collide exact-counter-totals
+         map-boundary-snapshots-fork-and-resume)
 
 (def packet {:ip-version 4 :protocol 17
              :src-ip 167772161 :src-port 12000
@@ -268,3 +269,120 @@
                  :src-ip [Long/MIN_VALUE Long/MIN_VALUE]
                  :dst-ip [Long/MIN_VALUE Long/MAX_VALUE])]
     (is (= (:dst-ip p) (:src-ip (flow/key p {:direction :bidir}))))))
+
+(deftest flow-map-boundaries-and-caller-maps
+  (doseq [direction [:unidir :bidir]
+          size [0 1 7 8 9 10]
+          empty-map [{} clojure.lang.PersistentHashMap/EMPTY (sorted-map-by #(compare (:src-port %1) (:src-port %2)))]]
+    (let [rf (flow/aggregate-rf {:max-flows 11 :direction direction})
+          packets (mapv #(assoc packet :src-port %) (range 1 (inc size)))
+          initial (with-meta (assoc (rf) :owner :caller
+                                    :flows (with-meta empty-map {:owner :flows})
+                                    :summary (with-meta (assoc (:summary (rf)) :owner :summary)
+                                               {:owner :summary}))
+                    {:owner :state})
+          prefix (reduce rf initial packets)
+          saved (pr-str prefix)
+          p (assoc packet :src-port (if (zero? size) 1 size))
+          equal-key (flow/key p {:direction direction})
+          stored (find (:flows prefix) equal-key)
+          updated (rf prefix p)
+          added (rf prefix (assoc p :src-port 11))]
+      (when stored
+        (is (= equal-key (key stored)))
+        (is (not (identical? equal-key (key stored))) "equal packet keys are freshly constructed"))
+      (is (= (if (zero? size) 1 2) (get-in updated [:flows equal-key :packets])))
+      (is (= (inc size) (count (:flows added))))
+      (is (= saved (pr-str prefix)) "updates and additions preserve the shared snapshot")
+      (is (= updated (rf (edn/read-string saved) p)))
+      (doseq [state [updated added]]
+        (is (= :caller (:owner state)))
+        (is (= :summary (get-in state [:summary :owner])))
+        (is (= (meta initial) (meta state)))
+        (is (= (meta (:flows initial)) (meta (:flows state))))
+        (is (= (meta (:summary initial)) (meta (:summary state))))
+        (is (identical? state (rf state))))
+      (when (instance? clojure.lang.PersistentTreeMap empty-map)
+        (is (instance? clojure.lang.PersistentTreeMap (:flows updated)))
+        (is (= (.comparator ^clojure.lang.PersistentTreeMap empty-map)
+               (.comparator ^clojure.lang.PersistentTreeMap (:flows added)))))))
+  (let [rf (flow/aggregate-rf {:max-flows 10})
+        states (reductions rf (rf) (map #(assoc packet :src-port %) (range 10)))]
+    (doseq [n [7 8]]
+      (is (instance? clojure.lang.PersistentArrayMap (:flows (nth states n)))))
+    (is (instance? clojure.lang.PersistentHashMap (:flows (nth states 9))))))
+
+(deftest hash-map-errors-and-exact-counters
+  (doseq [direction [:unidir :bidir]]
+    (let [rf (flow/aggregate-rf {:max-flows 9 :direction direction})
+          packets (mapv #(assoc packet :src-port %) (range 9))
+          state (reduce rf (rf) packets)
+          p (first packets)
+          fk (flow/key p {:direction direction})
+          big (bigint (.shiftLeft java.math.BigInteger/ONE 100))]
+      (doseq [start [Long/MAX_VALUE big]]
+        (let [seed (-> state
+                       (assoc-in [:flows fk] {:packets start :captured-bytes start :wire-bytes start})
+                       (assoc :summary {:seen start :aggregated start :skipped start}))
+              result (reduce rf seed [p {}])]
+          (is (= {:packets (inc' start) :captured-bytes (+' start 40) :wire-bytes (+' start 50)}
+                 (get-in result [:flows fk])))
+          (is (= {:seen (+' start 2) :aggregated (inc' start) :skipped (inc' start)}
+                 (:summary result)))))
+      (doseq [[seed input message data]
+              [[state (assoc p :src-port 10) "flow cardinality limit exceeded"
+                {:reason :max-flows :max-flows 9 :flow (flow/key (assoc p :src-port 10) {:direction direction})}]
+               [state (assoc p :len 39) "flow aggregation requires valid :caplen and :len"
+                {:reason :invalid-lengths :caplen 40 :len 39}]
+               ;; Preserve the existing nil-value convention, even for a present key.
+               [(assoc-in state [:flows fk] nil) p "flow cardinality limit exceeded"
+                {:reason :max-flows :max-flows 9 :flow fk}]]]
+        (try
+          (rf seed input)
+          (is false "expected the unchanged error contract")
+          (catch clojure.lang.ExceptionInfo error
+            (is (= message (ex-message error)))
+            (is (= data (ex-data error))))))
+      (is (= (reduce rf (rf) (take 4 packets))
+             (transduce (take 4) rf packets)))
+      (is (= state (transduce identity (flow/aggregate-rf {:max-flows 9 :direction direction}) packets))))))
+
+(defspec map-boundary-snapshots-fork-and-resume 100
+  (prop/for-all [size (gen/choose 7 10)
+                 suffix (gen/vector (gen/choose 0 11) 1 25)
+                 direction (gen/elements [:unidir :bidir])]
+                (let [rf (flow/aggregate-rf {:max-flows 12 :direction direction})
+                      prefix (mapv #(assoc packet :src-port %) (range size))
+                      tail (mapv #(assoc packet :src-port %) suffix)
+                      snapshot (reduce rf (rf) prefix)
+                      saved (pr-str snapshot)
+                      left (reduce rf snapshot tail)
+                      right (reduce rf snapshot (reverse tail))]
+                  (and (= saved (pr-str snapshot))
+                       (= left right (reduce rf (edn/read-string saved) tail)
+                          (reduce rf (rf) (into prefix tail)))
+                       (identical? left (rf left))))))
+
+(deftest hash-map-seeded-pcap-fanout
+  (let [opts {:path "test/resources/cooked/sll2.pcap" :decode-mode :flow :max Long/MAX_VALUE}
+        rf (flow/aggregate-rf {:max-flows 100 :direction :bidir})
+        seed (reduce rf (rf) (map #(assoc packet :src-port %) (range 1024 1033)))
+        saved (pr-str seed)
+        packets (core/reduce-packets opts conj [])
+        expected (transduce identity rf seed packets)]
+    (is (instance? clojure.lang.PersistentHashMap (:flows seed)))
+    (is (= expected (core/reduce-packets opts rf seed)))
+    (is (= expected (:result (core/reduce-packets-report opts rf seed))))
+    (is (= (reduce rf seed (take 3 packets))
+           (core/reduce-packets (assoc opts :xform (take 3)) rf seed)))
+    (with-open [^Closeable capture (core/start-capture opts)
+                ^Closeable fanout (stream/fan-out (core/capture-packets capture)
+                                                  {:a {:buffer-mode :blocking :buffer-cap 1}
+                                                   :b {:buffer-mode :blocking :buffer-cap 1}}
+                                                  {:cancel! #(core/stop-capture! capture)})
+                ^Closeable a (stream/branch fanout :a) ^Closeable b (stream/branch fanout :b)]
+      (let [left (future (reduce rf seed a))
+            right (future (transduce identity rf (edn/read-string saved) b))]
+        (is (= expected (deref left 10000 :timeout)))
+        (is (= expected (deref right 10000 :timeout)))))
+    (is (= saved (pr-str seed)))))

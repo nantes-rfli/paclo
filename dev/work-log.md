@@ -3086,3 +3086,150 @@ and **independent review of PR #55** as next unfinished work. PR remains open
 and unmerged; no release, artifact publication, issue #37/#44 or P09/P10 work.
 The final evidence-only commit records these outcomes; its CI checks are followed
 on the PR. Other-platform performance and live/NIC performance remain unvalidated.
+
+## Existing flow key reuse follow-up (2026-10-16)
+
+Supplied checkout starts clean at `a79f1be`; its tree exactly matches fetched
+latest main `6095c7fa8b1c2ec982064860d0b08c7e5bd931f4` (PR #55 squash merge).
+GitHub reports no open PRs and Issue #34 closed. Created
+`codex/flow-key-reuse` from origin/main in the supplied checkout. Read AGENTS,
+CONTRIBUTING, v1 contract, accepted plan, current source/tests, CI and prior
+Issue #34 evidence. Doctor passes JDK 21.0.12.1, Clojure 1.12.1, macOS x86_64
+and actual four-packet native read. No dependencies or Java sources changed.
+The prior research was found at `/private/tmp/paclo-flow-study-20261015`;
+report/prototype were inspected, and its measurements remain historical context.
+
+Candidate changes only the eligible-packet lookup/update: PersistentHashMap
+uses find/val and stored key; other maps retain get and the fresh canonical key.
+All arithmetic, length validation, nil-value/cardinality convention, error data,
+summary/state updates and completion remain unchanged. No constructor cache,
+mutable state, new API or implementation selector. Hash-map node traversal still
+occurs for lookup and update; key identity avoids the second deep comparison.
+
+Initial focused test exits 0: 18 tests / 814 assertions and 750 property cases.
+Coverage adds 7/8/9 transitions, explicitly supplied hash and sorted maps, equal
+but distinct keys, metadata/caller entries, forks/EDN/completion, exact Long and
+2^100 counters on hash maps, precise errors and reduced termination. Existing
+PCAP, fan-out and P06/P07/P08 composition tests remain. A subsequent test-only
+clarification explicitly seeds PersistentHashMap.EMPTY (rather than hash-map).
+
+Extended the existing paired runner, without a new framework: boundary sizes,
+25/50/75% revisit fractions, all-new IPv4/IPv6, a deterministic hot set and native
+SLL2 replay. Each timed sample compares its complete result after all counters
+stop. Separate retained experiments hold at least two results (about 100k entries
+normally, 200k for all-new) to fit the same 512 MiB heap. Timing comparisons run
+serially without concurrent tests/lint/builds. Measured production blob:
+`13fa5acd21ad03dda2bcf50f3d9ca0466d04f35c`; runner blob at measurement start:
+`0e977854c914c81cb78baceda1860a6209f6871c`. Final evidence follows.
+
+### Paired performance acceptance
+
+Both independent serial JVMs exit 0, each with 50 paired conditions / 900 timed
+samples; repetition 2 swaps namespace roles and initial implementation order.
+Separate main/main control exits 0 for 12 pairs / 216 samples. The summarizer
+validates all 2016 complete results, 100000 seen packets per sample, nine samples
+per row, retained-result equality and reachable inputs. No sample was removed.
+Commands (all with -J-Xms512m -J-Xmx512m -M:dev): runner main
+`6095c7fa8b1c2ec982064860d0b08c7e5bd931f4 key-reuse`, swapped script and control
+script in `/private/tmp/paclo-flow-key-reuse-20261016`. The report contains exact
+reproduction forms; the CSV records normalized roles, all sample counters,
+summary/flow counts, retention and timing dispersion.
+
+Adopt the candidate, contingent on delivery gates. Repeated 9/10/10000-flow
+aggregates improve 7.1–21.1% in both IP versions/directions/JVMs; reproducible
+allocation savings are 352 / 316.8 B/packet. JVM 2 has an additional IPv6
+24 B/packet offset even on fallback/all-new; do not attribute it to key reuse.
+Main/main allocation agrees in all twelve control conditions. Small 7/8-flow
+throughput ranges -4.7 to +3.6%, all-new -2.6 to +4.9%, versus main/main -3.4 to
++5.4%. Small-map negative extrema do not recur in JVM 2. 25/50/75% revisit cases
+range -0.6 to +11.3%; hot-set input +12.2 to +16.1%. DNS native -1.8 to +3.1%
+with no allocation improvement; SLL2 native +0.7 to +3.1%, -203 B/packet.
+These are this implementation's observations, separate from prior research.
+
+No retained-memory reduction is claimed: estimates differ by about -5.3 to
++5.3 B/flow. GC count/time increase in 28/40 of the 100 paired comparisons,
+respectively. Outliers remain, including two baseline rows with about 54%
+elapsed CV. Two JVMs/nine samples do not establish formal significance or
+universal bounds. No production trace, live/NIC, other-platform performance,
+RSS/peak-memory or long-run GC-pause validation. Full tables and limitations:
+[performance report](flow-key-reuse-performance.md) and
+[measurement CSV](flow-key-reuse-measurements.csv).
+
+### Local delivery validation
+
+After benchmarks completed, added explicit hash-seeded SLL2 native reduction,
+report, early reduced termination and capacity-one fan-out using the same reducer
+in both futures, one resumed from EDN. Seed remains immutable. Final focused
+`bash dev/script/codex.sh test -n paclo.flow-test`: exit 0, 19 tests / 821
+assertions, including 750 property cases. Full `bash dev/script/codex.sh check`:
+exit 0, 484 tests / 18553 assertions, JUnit 10/10 and real four-packet smoke.
+All P06/P07/P08, native formats/PCAPNG, CLI, lifecycle and fan-out suites remain.
+
+`clojure -M:spotbugs` and `clojure -M:checkstyle`: exit 0.
+`clojure -M:jacoco`, followed by `clojure -M:jacoco-gate`: complete reports,
+43.8% line coverage against unchanged 25% threshold, PASS/exit 0.
+`python3 dev/script/verify_doc_links.py` and `git diff --check`: exit 0.
+Remaining full lint, executable examples, existing performance gate,
+package/independent JAR consumer and CI evidence follows.
+
+All 34 maintained executable examples complete with exit 0. First full lint
+passes kondo, all 106 Eastwood namespaces (481 informational warnings, zero
+exceptions), lsp clean-ns/format, then fails MD012 at three added blank lines.
+The second full invocation again passes Clojure checks but catches the remaining
+extra blank at report EOF. Trimmed that trailing blank as well; standalone
+Markdown lint passes all 39 files. No rule/exclusion/threshold changed.
+Final full lint is rerun after these corrections and local-evidence updates.
+
+`bash dev/script/codex.sh perf`: exit 0, 630.2 ms against unchanged 1000/1200 ms
+warning/failure budgets; no concurrent tests/lint/benchmarks. `package`: exit 0,
+unchanged `paclo-1.3.0-SNAPSHOT.jar`. JAR resource inspection includes core,
+flow/project, window, PCAPNG source/writer and native binding. Packaged flow
+source exactly equals the measured production source.
+
+Independent `/private/tmp/paclo-flow-key-reuse-20261016/consumer` has only a
+local/root JAR dependency and executes `clojure -Srepro -M consumer.clj`: exit 0,
+`:jar-consumer-ok :flow-key-reuse :exact :snapshots :pcapng :window`.
+Resource URLs use jar protocol; checks include real DNS aggregation, exact
+2^100 counters/limits, IPv6 unsigned ordering, hash-map snapshots/forks/EDN and
+mixed PCAPNG-to-flow/window composition. `prepare` exits 0 afterward, restoring
+Java test classes deleted by packaging. Local kondo/lsp versions are
+2026.05.25 / 2026.05.05-12.58.26; unchanged CI pins will also be validated.
+GitHub main remains `6095c7f` at the pre-PR check.
+
+Final complete `bash dev/script/codex.sh lint`: exit 0. Kondo has zero
+warnings/errors; Eastwood analyzes all 106 namespaces with 481 informational
+warnings and zero exceptions; lsp has nothing to clean/format; Markdown checks
+all 39 files with zero errors. All requested local gates now have successful
+completed exits. Production and runner blobs remain the measured versions.
+For the noninteractive commit hook, a temporary PATH-local `clj` wrapper execs
+the installed `clojure` CLI with unchanged arguments, as in the preceding task;
+this avoids Homebrew clj's missing rlwrap requirement. No hook or check is skipped
+and no repository/system tool configuration is changed. CI/PR evidence follows.
+
+### PR and supported-platform CI
+
+Implementation commit `3d37a8890a55cb97296bbb6d974ec24c203cee54` completes the
+unchanged pre-commit hook (484 tests / 18553 assertions, clean formatting,
+Markdown and kondo) and creates [PR #56](https://github.com/nantes-rfli/paclo/pull/56)
+on `codex/flow-key-reuse`, against main `6095c7f`. PR is attached to this chat,
+open and unmerged. Committed production/runner blobs exactly match measurement.
+Generated Python bytecode caches are removed; no unrelated work is present.
+
+[CI run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042)
+on exact head `3d37a88` completes successfully. JSON integrity check confirms
+all 12 jobs succeed: build-checks, documentation-checks, Linux x64/JDK21 and
+macOS ARM64/JDK17 compatibility, Linux ARM64 monitor, Eastwood, coverage,
+three performance shards, performance-results and required build aggregate.
+Downloaded job logs confirm actual OS/architecture checks, 484 tests / 18559
+assertions on both Linux environments and 484 / 18553 on macOS. All have zero
+failures/errors. CI has JUnit/Java quality, 43.8% / unchanged 25% coverage gate,
+unchanged performance gate 769.9 ms / 1200 ms, all 34 examples and cljdoc load,
+all 27 merged performance scenarios, pinned kondo/lsp and full Eastwood with
+481 informational warnings and zero exceptions. No gate/configuration changed.
+
+This evidence-only follow-up records the accepted implementation and independent
+review handoff; no production/test/measurement source changes. The PR carries
+final-head CI results after this commit as well. Independent review of PR #56
+is the next unfinished item. Leave it open and do not merge/release; Issue #34
+stays closed and #37/#44/P09/P10 remain outside this task. Offline CI does not
+establish live/NIC or other-platform paired-performance validation.

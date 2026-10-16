@@ -1,7 +1,8 @@
 (ns paclo.dev.flow-aggregate-perf
-  "Issue #34 paired exact aggregation comparison (no capture throughput claim).
+  "Paired exact aggregation comparison (no capture throughput claim).
    clojure -J-Xms512m -J-Xmx512m -M:dev -m paclo.dev.flow-aggregate-perf e069657
    Second argument filters names or selects profile-baseline/profile-current.
+   Select key-reuse for boundary, mixed-revisit and all-new coverage.
    Optional third writes a JFR; profile runs are separate from timing comparisons."
   (:require
    [clojure.java.io :as io]
@@ -46,22 +47,28 @@
   (core/reduce-packets {:path path :decode-mode mode :max Long/MAX_VALUE}
                        conj []))
 
-(defn- scenarios []
+(defn- scenarios [key-reuse?]
   (concat
-   (for [version [4 6] cardinality [10 10000]]
+   (for [version [4 6] cardinality (if key-reuse? [7 8 9 10 10000 25000 50000 75000 100000] [10 10000])]
      {:name (str "ipv" version "-" cardinality) :scope :aggregation-only :max-flows cardinality
       :inputs (synthetic version cardinality) :alternate-reversal? true})
+   (when key-reuse?
+     [{:name "ipv4-hotset" :scope :aggregation-only :max-flows 10000
+       :inputs (synthetic 4 10000) :hotset? true :alternate-reversal? true}])
    (for [path ["test/resources/dns-sample.pcap" "test/resources/cooked/sll2.pcap"]
          mode [:flow nil]]
      {:name (str path (if mode "-projected" "-decode"))
       :scope (if mode :pcap-projection-replay :pcap-bytes-decode-replay)
       :path path :inputs (read-pcap path mode) :decode? (nil? mode)})))
 
-(defn- expand-inputs [inputs alternate-reversal?]
+(defn- expand-inputs [inputs alternate-reversal? hotset?]
   (let [n (count inputs)]
     (when (zero? n) (throw (ex-info "empty benchmark input" {})))
     (mapv (fn [i]
-            (let [p (nth inputs (mod i n))]
+            (let [index (if hotset?
+                          (if (zero? (mod i 10)) (+ 100 (mod (quot i 10) (- n 100))) (mod (quot i 10) 100))
+                          (mod i n))
+                  p (nth inputs index)]
               (if (and alternate-reversal? (odd? (quot i n))) (reverse-packet p) p)))
           (range packet-count))))
 
@@ -71,7 +78,7 @@
                 (update :ms + (.getCollectionTime bean))))
           {:count 0 :ms 0} (ManagementFactory/getGarbageCollectorMXBeans)))
 
-(defn- sample [run inputs]
+(defn- sample [run inputs expected]
   (let [^ThreadMXBean bean (ManagementFactory/getThreadMXBean)
         gc-before (gc-state)
         allocated (.getCurrentThreadAllocatedBytes bean)
@@ -82,7 +89,9 @@
         cpu (- (.getCurrentThreadCpuTime bean) cpu)
         allocated (- (.getCurrentThreadAllocatedBytes bean) allocated)
         gc-after (gc-state)]
-    {:ns elapsed :cpu-ns cpu :allocated allocated
+    ;; Compare the complete result after stopping all measured counters.
+    (when-not (= expected result) (throw (ex-info "measured result mismatch" {})))
+    {:equal? true :ns elapsed :cpu-ns cpu :allocated allocated
      :gc-count (- (:count gc-after) (:count gc-before))
      :gc-ms (- (:ms gc-after) (:ms gc-before))
      :summary (:summary result) :flows (count (:flows result))}))
@@ -96,7 +105,7 @@
   ;; Each result is independent. Shared immutable input endpoints are excluded.
   (let [expected (run inputs)
         flows (count (:flows expected))
-        copies (max 10 (quot 100000 (max 1 flows)))
+        copies (max 2 (quot 100000 (max 1 flows)))
         owner (atom inputs)
         before (used-heap)
         results (mapv (fn [_] (run @owner)) (range copies))
@@ -116,7 +125,7 @@
      :samples samples}))
 
 (defn- compare-scenario [constructors {:keys [name inputs decode? alternate-reversal?] :as scenario} direction]
-  (let [expanded (expand-inputs inputs (and alternate-reversal? (= direction :bidir)))
+  (let [expanded (expand-inputs inputs (and alternate-reversal? (= direction :bidir)) (:hotset? scenario))
         opts {:max-flows (or (:max-flows scenario) packet-count) :direction direction}
         variants (mapv (fn [[implementation constructor]]
                          (let [rf (constructor opts)
@@ -136,7 +145,7 @@
     (dotimes [_ warmups] (doseq [{:keys [run]} variants] (run expanded)))
     (dotimes [round runs]
       (doseq [{:keys [implementation run]} (if (even? round) variants (reverse variants))]
-        (swap! samples update implementation (fnil conj []) (sample run expanded))))
+        (swap! samples update implementation (fnil conj []) (sample run expanded expected))))
     (doseq [{:keys [implementation retained-run]} variants]
       (println (pr-str (merge (select-keys scenario [:name :scope :path])
                               {:direction direction :implementation implementation :equal? true}
@@ -144,20 +153,24 @@
                               (retained retained-run inputs))))
       (flush))))
 
-(defn- compare-native [constructors]
-  (let [path "test/resources/dns-sample.pcap"
-        file (File/createTempFile "paclo-flow-perf-" ".pcap")]
-    (try
+(defn- compare-native [constructors key-reuse?]
+  (doseq [[name path linktype] (if key-reuse?
+                                 [["dns" "test/resources/dns-sample.pcap" 1]
+                                  ["sll2" "test/resources/cooked/sll2.pcap" 276]]
+                                 [["dns" "test/resources/dns-sample.pcap" 1]])]
+    (let [file (File/createTempFile "paclo-flow-perf-" ".pcap")]
+      (try
       ;; Repeat actual fixture bytes; the same generated file serves both reducers.
-      (core/write-pcap! (take packet-count (cycle (read-pcap path nil))) (.getAbsolutePath file))
-      (doseq [direction [:unidir :bidir]]
-        (compare-scenario constructors
-                          {:name "dns-native-replay" :scope :native-read-decode-aggregate
-                           :path path :native-path (.getAbsolutePath file)
-                           :inputs (read-pcap path :flow)} direction))
-      (finally
-        (when-not (.delete file)
-          (throw (ex-info "cannot delete benchmark capture" {:path (.getAbsolutePath file)})))))))
+        (core/write-pcap! (take packet-count (cycle (read-pcap path nil)))
+                          (.getAbsolutePath file) {:linktype linktype})
+        (doseq [direction [:unidir :bidir]]
+          (compare-scenario constructors
+                            {:name (str name "-native-replay") :scope :native-read-decode-aggregate
+                             :path path :native-path (.getAbsolutePath file)
+                             :inputs (read-pcap path :flow)} direction))
+        (finally
+          (when-not (.delete file)
+            (throw (ex-info "cannot delete benchmark capture" {:path (.getAbsolutePath file)}))))))))
 
 (defn- profile-run [constructor]
   ;; Separate from timed comparisons: stack collection perturbs execution.
@@ -208,12 +221,13 @@
           (.start recording))
         (if (contains? #{"profile-baseline" "profile-current"} selected)
           (profile-run (if (= selected "profile-baseline") baseline-rf flow/aggregate-rf))
-          (let [constructors [[:baseline baseline-rf] [:current flow/aggregate-rf]]]
-            (doseq [scenario (scenarios) :when (or (nil? selected) (str/includes? (:name scenario) selected))
+          (let [constructors [[:baseline baseline-rf] [:current flow/aggregate-rf]]
+                key-reuse? (= selected "key-reuse")]
+            (doseq [scenario (scenarios key-reuse?) :when (or key-reuse? (nil? selected) (str/includes? (:name scenario) selected))
                     direction [:unidir :bidir]]
               (compare-scenario constructors scenario direction))
-            (when (or (nil? selected) (= "native" selected))
-              (compare-native constructors))))
+            (when (or key-reuse? (nil? selected) (= "native" selected))
+              (compare-native constructors key-reuse?))))
         (when jfr-path
           (.stop recording)
           (.dump recording (Paths/get jfr-path (make-array String 0))))))

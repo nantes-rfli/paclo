@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- Reuse stored keys when updating hash-map flow aggregates, reducing temporary
+  allocation on revisited flows. Small maps and other caller-supplied map types
+  retain the previous path; public API, immutable snapshots and exact counters
+  are unchanged.
 - Reduce temporary allocation in exact flow aggregation with single-key persistent
   map updates and indexed IPv6 word access. Public keys, exact counters, bounds
   and immutable reducer snapshots retain their existing contract (Issue #34).
