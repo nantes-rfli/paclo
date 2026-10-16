@@ -1,0 +1,10 @@
+--- a/src/paclo/dns.clj
++++ b/src/paclo/dns.clj
+@@ -184,6 +184,6 @@
+                      :retired (reduce-kv (fn [retained k until]
+                                            (if (<= until watermark-us) (dissoc retained k) retained))
+                                          (:retired state) (:retired state)))
+-        expired (filter (fn [[_ entry]] (<= (:deadline-us entry) watermark-us)) (ordered (:pending state)))]
++        expired (ordered (filter (fn [[_ entry]] (<= (:deadline-us entry) watermark-us)) (:pending state)))]
+     {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
+      :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))

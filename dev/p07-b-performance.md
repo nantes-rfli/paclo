@@ -2,6 +2,10 @@
 
 Measured on 2026-10-13, macOS x86_64, Temurin JDK 21.0.12.1, Clojure 1.12.1.
 Baseline CLI source is main `2e15af7`; final source is the P07-B PR.
+This is historical P07-B evidence. The later
+[Issue #37 investigation](issue-37-dns-performance.md) measures current main
+and the DNS expiry follow-up separately, without treating the old incorrect
+RTT implementation as an equivalent performance target.
 
 ## Method
 

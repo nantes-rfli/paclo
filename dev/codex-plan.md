@@ -43,9 +43,17 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Default next task: **independent review of flow key reuse PR #56**.
-PR #55 merged as `6095c7f`; Issue #34 is closed. The explicitly requested
-follow-up starts from that main and does not reopen Issue #34.
+Current task: **Issue #37 DNS performance investigation and measured optimization**.
+PR #55 merged as `6095c7f` and PR #56 as `452de98`; Issue #34 is closed.
+Issue #37 starts independently from main `452de98` and retains both flow changes.
+Issue #37 investigation, measured implementation and local verification are complete;
+see [the performance report](issue-37-dns-performance.md). Repeated actual retired
+expiry remains a documented tradeoff; Issue closure belongs to independent review.
+[PR #57](https://github.com/nantes-rfli/paclo/pull/57) is open; its implementation
+head `f507d42` passes all twelve unchanged CI jobs. Final-head CI is recorded on
+the PR after the verification-only documentation updates.
+Next unfinished item: independent review of PR #57, including the retired-expiry
+tradeoff and Issue #37 closure decision. Do not merge before review.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -61,6 +69,24 @@ P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
+
+## Performance follow-up: Issue #37
+
+Status: **done** for investigation, implementation and verification on
+[PR #57](https://github.com/nantes-rfli/paclo/pull/57), from main
+`452de98cf6d1a604e5823e80dc1cf5edadfe4b67`; independent review remains.
+Reproduced P07-B's complete CLI measurement and historical `2e15af7` source,
+then compared only equivalent correct main/candidate results. Separated native
+capture/full decode, DNS projection/matching/expiry, window/QPS, bounded RTT
+reporting, serialization and delivery. Investigated sparse/dense expiry, bounds,
+retained memory, reorder/diagnostics and long offline replay. One optional
+integer lower bound avoids premature scans; only expired pending entries sort.
+No per-key expiry index, new public option, dependency or flow/P06 change.
+The [investigation](issue-37-dns-performance.md) records results and limitations,
+including slower repeated actual retired expiry and missing long production
+trace evidence. Implementation head `f507d42` passes all twelve CI jobs;
+final-head CI is maintained on PR #57. Leave Issue #37 closure to review.
+Keep Issue #44, P09/P10 and release/merge work outside this task.
 
 ## Performance follow-up: Issue #34
 
@@ -82,13 +108,14 @@ consumer pass. Implementation `c4f2a27` passes all 12 unchanged CI jobs on
 [run 38738630317](https://github.com/nantes-rfli/paclo/actions/runs/38738630317),
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
 checks are maintained on the PR; actual commands/results are in the work log.
-The separately requested key reuse follow-up below is the current task;
-issues #37/#44, P09/P10, release and threshold changes remain outside it.
+The separately requested key reuse follow-up below merged as PR #56. Issue #37
+is now handled independently above; Issue #44, P09/P10, release and threshold
+changes remain outside the current task.
 
 ## Performance follow-up: existing flow key reuse
 
 Status: **done** for implementation and validation on
-[PR #56](https://github.com/nantes-rfli/paclo/pull/56); independent review remains.
+[PR #56](https://github.com/nantes-rfli/paclo/pull/56), merged as `452de98`.
 Explicitly requested on 2026-10-16 from main
 `6095c7fa8b1c2ec982064860d0b08c7e5bd931f4`. Reuse stored keys only for
 PersistentHashMap updates with standard find/key/val/assoc; retain the previous
@@ -107,9 +134,9 @@ and isolated JAR consumer pass. No gate, dependency or version changes.
 Implementation `3d37a88` passes all 12 unchanged CI jobs on
 [run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042),
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
-checks are maintained on the PR. Next unfinished item: independent review of
-PR #56. Issue #34 remains closed; no merge, release, P09/P10 or unrelated issue
-work is authorized.
+checks are maintained on the PR. Review and merge are complete; Issue #34
+remains closed. The independent Issue #37 follow-up above is the current task;
+release, P09/P10 and unrelated issue work remain outside it.
 
 ## CI maintenance: Issue #48
 

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- Avoid DNS expiry scans before the next possible deadline using one immutable
+  integer hint; sort only expired queries. Strict matching, diagnostics, bounds,
+  exact time, old EDN snapshots and CLI reports remain supported (Issue #37).
 - Reuse stored keys when updating hash-map flow aggregates, reducing temporary
   allocation on revisited flows. Small maps and other caller-supplied map types
   retain the previous path; public API, immutable snapshots and exact counters
