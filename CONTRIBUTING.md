@@ -156,6 +156,39 @@ dry run and requires current main plus a dated changelog section. The Publish
 workflow runs only a subset of CI; require the complete CI results separately,
 including Linux ARM64, before approving a release.
 
+## Distribution compatibility
+
+`build/jar`, `build/javac` (including `:deps/prep-lib`) and `build/javac-test`
+share `--release 17 -Xlint:all -Werror -proc:none`. The release option checks both
+class-file compatibility and the Java 17 API baseline even when compiling on JDK 21.
+CI uses the build tasks directly; a failed package build cannot fall back to
+an unconfigured `javac` invocation.
+
+Build the candidate once with JDK 21, then prepare a separate consumer bundle:
+
+```bash
+bash dev/script/codex.sh package
+python3 dev/script/verify_distribution.py prepare target/paclo-1.3.0-SNAPSHOT.jar /tmp/paclo-distribution
+python3 dev/script/verify_distribution.py consume /tmp/paclo-distribution --report /tmp/consumer-jdk21.json
+```
+
+Use a fresh output directory for `prepare`; it checks all class-file versions,
+the exact production source/binding inventory and existing Maven coordinates/
+dependencies, and records the source commit, tracked-file dirty state, build JVM and hashes.
+Test fixtures and the consumer harness are outside the JAR. Set `--version` to
+the existing candidate version when using `PACLO_VERSION`, as Publish does.
+Switch only the runtime to JDK 17 and invoke `consume` on the **same bundle**;
+do not rebuild. Each consumer verifies hashes before execution and writes a
+runtime/commit/JAR identity report after success. `-Srepro` and a temporary project
+keep repository roots, user deps and recompiled bindings out of the classpath.
+
+CI uploads the JDK 21 JAR once from `build-checks`; two jobs without checkout
+download it on JDK 17/21. Both must succeed in the required `build` aggregate.
+The bundle's `provenance.json` and both consumer reports are Actions artifacts.
+Publish performs the same package inspection and saves provenance; CI remains
+the full cross-runtime gate. No workflow dispatch or publication is needed to
+validate a pull request.
+
 ## Handoff
 
 Update the relevant task status and dependencies in `dev/codex-plan.md`.
