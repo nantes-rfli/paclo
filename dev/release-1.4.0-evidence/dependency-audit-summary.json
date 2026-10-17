@@ -1,0 +1,29 @@
+{
+  "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39013091814",
+  "source_commit": "dfc5c5b4dbe39859b06431fa9c4b12714b89498d",
+  "conclusion": "success",
+  "scan_info": {
+    "engineVersion": "12.1.6",
+    "dataSource": [
+      {
+        "name": "NVD API Last Checked",
+        "timestamp": "2026-10-17T07:18:17Z"
+      },
+      {
+        "name": "NVD API Last Modified",
+        "timestamp": "2026-10-17T07:16:50Z"
+      }
+    ]
+  },
+  "dependencies_scanned": 23,
+  "vulnerabilities": 0,
+  "suppressed_vulnerabilities": 0,
+  "report_json_sha256": "07ac7f83d565e2ffa78c45bb56ee02e61422521759f69fc2e21d6adc99ddd8d2",
+  "artifact_url": "https://github.com/nantes-rfli/paclo/actions/runs/39013091814/artifacts/12093572948",
+  "artifact_zip_sha256": "6c58e36741359f54acc682592abd3b9ef84e9d7c594aba9739f6518f623a45e0",
+  "limitations": [
+    "Sonatype OSS Index analyzer disabled because credentials are absent; NVD CVE analysis completed.",
+    "Scan covers the default production classpath, not all development/build dependencies."
+  ],
+  "findings": []
+}

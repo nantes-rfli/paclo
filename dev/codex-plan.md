@@ -46,10 +46,20 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **v1.4.0 release preparation**, from latest main
-`82705b9c601b2361be8f9446f519f54673aa0d64` after merged PR #59/#60/#61.
-Implementation and local verification: **done**; final CI evidence is recorded
-on the preparation PR, and independent review/merge remain pending.
+Current task: **v1.4.0 final metadata/evidence PR**, from main
+`dfc5c5b4dbe39859b06431fa9c4b12714b89498d`, after PR #62 merged.
+Documentation/evidence preparation: **done**. Final-head CI, same-JAR JDK 17/21
+identities, fresh branch-head Dependency Audit and review results are maintained
+in the finalization PR description without another evidence-only source commit.
+The publication day remains unconfirmed, so no dated heading is invented;
+README/install still select published v1.3.0. No runtime/dependency/workflow change.
+The maintainer confirmed completed independent review outside GitHub; latest
+baseline main CI passed all 14 jobs, including ARM64 and distribution consumers.
+[Publish dry-run](release-1.4.0-dry-run.md) passed with main/1.4.0/dry_run=true;
+its actual JAR passed independent JDK17/21 consumers without rebuilding.
+The refreshed same-SHA Dependency Audit passed with zero detected CVEs;
+OSS Index was disabled without credentials. See the report for exact scope,
+hashes, original provenance and retained runtime identities.
 The maintainer approved v1.4.0, D1 capture-preserving
 Writer metadata/strict validation and D2 exact bounded DNS/explicit failures,
 with public migration guidance. Include P01–P08 and merged fixes; exclude P09/P10.
@@ -59,10 +69,12 @@ released-contract comparison and [readiness audit](release-readiness-p06-p08.md)
 retains earlier evidence. Published stable remains v1.3.0; the development
 fallback is 1.4.0-SNAPSHOT and explicit candidate packaging uses PACLO_VERSION=1.4.0.
 
-Next unfinished item: independent review and merge of the release-preparation
-PR after all 14 CI jobs pass, then a separately requested Publish dry-run from
-current main. No tag, release, deploy, non-dry-run Publish or merge is authorized
-in this task; no Publish workflow, including dry-run, is dispatched here.
+Next unfinished item: maintainer acceptance of the finalization PR with its
+final-head checks/review, then separate formal publication authorization and
+confirmed-day metadata, followed by full validation of the resulting main SHA.
+The [checklist](release-1.4.0-checklist.md#publication-handoff--requires-separate-explicit-authorization)
+records the handoff, including tag-push deployment behavior. No tag, release,
+deploy, non-dry-run Publish or merge is performed here. The candidate remains unpublished.
 Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
 JIT/thermal/retention limits remain recorded; no issue closure, Flow or live/NIC
 speedup claim is made.

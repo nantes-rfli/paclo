@@ -10,6 +10,10 @@ formerly accepted inputs; review the checklist below before upgrading.
 The [API contract](cljdoc-api-contract.md) specifies the exact rules, and the
 [compatibility assessment](../dev/release-compatibility-version.md) retains the
 released v1.3.0 comparison. Publication requires separate approval.
+The [completed dry-run](../dev/release-1.4.0-dry-run.md) includes JDK 17/21 tests
+of the actual Publish JAR. Follow the [release checklist](../dev/release-1.4.0-checklist.md)
+for evidence on the final source commit; neither a passing dry-run nor these
+notes make the v1.4.0 Clojars coordinate available.
 
 ## Upgrade checklist
 
