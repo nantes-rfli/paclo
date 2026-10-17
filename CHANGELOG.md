@@ -13,6 +13,14 @@ each change's scope; PCAPNG metadata I/O is now provided separately by P08-E2/E3
 Version candidates and migration risks are recorded in the
 [release readiness audit](dev/release-readiness-p06-p08.md).
 
+### Fixed — Distribution compatibility
+
+- Compile Java bindings with `javac --release 17` on both supported JDKs.
+  JDK 21-built distribution JARs now contain Java 17-compatible bytecode and
+  cannot compile references to newer JDK APIs. CI runs the same packaged JAR
+  in isolated JDK 17 and JDK 21 consumers, checking contents, POM and SHA-256.
+  No packet processing or public API behavior changes.
+
 ### Performance
 
 - Avoid DNS expiry scans before the next possible deadline using one immutable

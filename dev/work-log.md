@@ -3736,3 +3736,65 @@ final-head CI/platform results are maintained in that PR's description/checks.
 No review, merge, issue closure or publication is claimed. Next unfinished work:
 review this audit and then make the separate Java17 distribution/consumer fix
 before versioned release preparation.
+
+## 2026-10-17 Java 17 distribution compatibility correction
+
+Task starts from clean supplied checkout; fetched latest main `3f63c1e6be59816e1f26df437e32a8da39998171`
+(PR #59 merged), branch `codex/java17-distribution`. No new worktree.
+Read CONTRIBUTING, API contract, accepted plan and authoritative readiness audit.
+`doctor` passes on macOS x86_64/Temurin 21.0.12.1/Clojure 1.12.1/libpcap,
+including the real four-packet offline read. Local JDKs are 21 and 13; no JDK 17.
+
+Reproduced the pre-fix Publish/package route by temporarily restoring exactly
+`origin/main:build.clj`, running `bash dev/script/codex.sh package`, saving
+`/private/tmp/paclo-java17-before.jar`, then restoring the correction. All ten
+class headers are major 65. Corrected package is ten major 61 with the same POM
+coordinates/dependencies and production source inventory. No public/runtime
+behavior changes. `jar`, `javac`, `javac-test` share release17/strict options;
+three CI direct-javac fallbacks removed. An isolated `List.getFirst()` canary
+fails on JDK21 with `--release 17` and succeeds with default JDK21 javac, proving
+the API restriction as well as the class target. Existing bindings compile.
+
+Added exact JAR inspection and external isolated consumer bundle. Seven Python
+regressions pass: valid17, one nested65, preview, missing namespace, leaked
+test/fixture/dev-root, coordinate/dependency/scope changes, modified same-name JAR.
+Consumer uses only local/root paclo.jar plus original POM dependencies with
+`-Srepro`, checks JAR resource/code origins and classpath directories, and runs
+real offline/native/all-DLT/writer/analysis/annotations/ownership probes.
+Initial harness corrections: use a Class local for binding CodeSource reflection;
+fan-out needs two branches, both consumed concurrently. These were harness errors,
+not product regressions. Final local JDK21 consumer prints
+`:distribution-consumer-ok ... :annotations :closed`, exit 0.
+Preliminary JAR SHA-256 `6bbfe480fd39671c86bc738e9e259fe7b553f42ea3810e45b3b806ed2139727f`,
+base commit `3f63c1e`, dirty true; clean CI identity/results recorded separately.
+
+CI uploads the one JDK21 build-checks JAR, with provenance and external inputs;
+checkout-free JDK17/21 jobs each verify hashes before execution and JAR identity
+after execution, then upload runtime reports. Required build includes both.
+Publish inspects/saves provenance without changing version/publication controls.
+No Publish run, tag, deployment, merge, dependency update, performance optimization
+or P09/P10 work. Full local checks, CI timing/results and PR evidence follow.
+
+Local gate progress before opening the independent PR:
+
+- `bash dev/script/codex.sh prepare`: exit 0.
+- `bash dev/script/codex.sh check`: exit 0; ten JUnit, 490 Clojure tests /
+  19036 assertions, zero failures/errors, real offline smoke.
+- `clojure -T:build spotbugs`, `checkstyle`, `jacoco` and
+  `JACOCO_MIN_LINE=0.25 clojure -T:build jacoco-gate`: all exit 0; 43.8% line
+  coverage, unchanged 25% gate. Production and test output majors all 61.
+- `bash dev/script/codex.sh perf`: exit 0, 718.7 ms; unchanged 1000/1200 ms
+  warning/failure budgets. This is the offline gate, not a throughput claim.
+- `bash dev/script/codex.sh package`: exit 0; embedded POM and every Clojure
+  source entry are byte-identical before/after. JDK21 independent consumer
+  repeated after harness finalization: exit 0 with the same preliminary JAR.
+- `python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'`:
+  seven tests pass. Both workflow YAML files parse, shell syntax and
+  `git diff --check` pass.
+- Initial full `lint` reached zero Kondo errors/warnings, all Eastwood namespaces
+  without exceptions and clean namespace/format dry runs, then failed at npx:
+  sandbox DNS `ENOTFOUND registry.npmjs.org` and unwritable npm logs. Offline npx
+  also reports `ENOTCACHED`; these are not counted as passing lint. The exact
+  wrapper is rerunning with normal network/cache permissions. No rule changed.
+- Executable docs/link and five fixture generators/Python contract checks are
+  running; complete results and GitHub CI are still pending at this commit.

@@ -206,6 +206,51 @@ reads, both writer paths and all public namespaces/annotations. Recheck every
 packaged class version. Preserve all existing gates/thresholds. Do not merely
 remove the JDK17 claim or treat its source CI as artifact validation.
 
+### Distribution correction (2026-10-17)
+
+The separate build correction starts at main `3f63c1e` (PR #59 merged).
+The original mismatch above is reproduced using the unmodified main build:
+`bash dev/script/codex.sh package` under JDK 21 produces ten classes at major 65.
+The corrected build produces ten at major 61, without Java/native/API behavior
+changes or dependency/version changes. `--release 17` also rejects newer JDK API
+references; a `List.getFirst()` canary compiles with the JDK 21 default but fails
+with the shared release options. Existing production bindings compile cleanly.
+
+| Compilation path | Corrected configuration |
+| --- | --- |
+| `build/jar`, including Publish, package and install | Shared `--release 17 -Xlint:all -Werror -proc:none` |
+| `build/javac`, including development wrapper and `:deps/prep-lib` | Same shared options |
+| `build/javac-test`, which also compiles `src-java` | Same shared options |
+| Compatibility/ARM64/coverage CI | `build/jar`; removed direct unconfigured `javac` fallback |
+
+`verify_distribution.py prepare` checks **every** packaged class, exact production
+source/binding inventory, embedded/external POM, original coordinates/dependencies
+and absence of extra entries. `paclo/dev.clj` is an existing production namespace;
+no development root, fixtures or tests are packaged. The external consumer bundle
+contains eight real fixtures and a standalone harness, separately from the JAR.
+`provenance.json` records commit, tracked-file dirty state, build JVM, class versions and SHA-256
+for the JAR and every input. Both consumers verify that manifest and record the
+same JAR digest before and after execution in their runtime result reports.
+
+CI extends the existing JDK 21 `build-checks` package step with inspection and one
+artifact upload. Two additional Linux jobs, without checkout or Java compilation,
+download that artifact and use `-Srepro` from fresh temporary consumer projects.
+They check public namespace and Java code origins, native JNR/offline reads,
+Ethernet/SLL/SLL2/Raw/NULL/LOOP full and flow decode, all six Classic DLT round
+trips, rich PCAPNG exact metadata/time round trip, Flow/DNS/Window, DNS/TLS
+annotations, managed fan-out and closed/early-reduced resources. The required
+`build` aggregate now also fails unless both distribution consumers succeed.
+Publish uses the same inspection and saves provenance; no Publish execution is
+part of this correction. Existing 12 jobs and thresholds remain intact.
+
+Local JDK 21 consumer passes with JAR SHA-256
+`6bbfe480fd39671c86bc738e9e259fe7b553f42ea3810e45b3b806ed2139727f`.
+This preliminary local build records base commit `3f63c1e` and tracked-file dirty state;
+clean committed CI candidate identity, JDK 17/21 results and timing follow below.
+No local JDK 17 is installed; its runtime acceptance must come from actual CI.
+Linux/macOS source CI and these offline artifact probes do not establish Windows,
+live capture, other JDKs, every filesystem or performance-target validation.
+
 ## Quality and package evidence
 
 Local host: macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, system libpcap.

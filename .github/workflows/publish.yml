@@ -129,6 +129,9 @@ jobs:
           test -f "${{ steps.vars.outputs.artifact }}"
           test -f "${{ steps.vars.outputs.pom }}"
 
+      - name: Verify release JAR compatibility, contents and identity
+        run: python3 dev/script/verify_distribution.py prepare "${{ steps.vars.outputs.artifact }}" target/distribution --version "${{ steps.vars.outputs.version }}"
+
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
@@ -136,6 +139,7 @@ jobs:
           path: |
             ${{ steps.vars.outputs.artifact }}
             ${{ steps.vars.outputs.pom }}
+            target/distribution/provenance.json
           if-no-files-found: error
 
       - name: Publish to Clojars

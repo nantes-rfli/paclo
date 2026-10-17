@@ -35,6 +35,9 @@
 (def version (resolve-version))
 (def class-dir "target/classes")
 (def test-class-dir "target/test-classes")
+;; --release also rejects references to JDK APIs introduced after Java 17.
+;; javac-test includes production sources, so it must share this baseline.
+(def javac-opts ["--release" "17" "-Xlint:all" "-Werror" "-proc:none"])
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
@@ -74,7 +77,7 @@
     (b/javac {:src-dirs ["src-java"]
               :class-dir class-dir
               :basis basis
-              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]}))
+              :javac-opts javac-opts}))
   (b/write-pom (assoc (pom-params) :class-dir class-dir))
   (b/jar {:class-dir class-dir
           :jar-file jar-file
@@ -98,7 +101,7 @@
     (b/javac {:src-dirs   ["src-java"]
               :class-dir  class-dir
               :basis      basis
-              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))
+              :javac-opts javac-opts})))
 
 (defn spotbugs
   "Run SpotBugs on compiled classes (target/classes)."
@@ -145,7 +148,7 @@
     (b/javac {:src-dirs   ["src-java" "test-java"]
               :class-dir  test-class-dir
               :basis      basis
-              :javac-opts ["-Xlint:all" "-Werror" "-proc:none"]})))
+              :javac-opts javac-opts})))
 
 (defn junit
   "Run JUnit Platform (Java tests). Assumes javac-test has been executed."
