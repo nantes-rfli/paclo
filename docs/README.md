@@ -11,6 +11,7 @@ documented separately from historical release and design records.
 - [Metadata-aware PCAPNG reading and writing](pcapng.md)
 - [Decode extensions](extensions.md)
 - [Performance measurement](performance.md)
+- [Migration from v1.3.0 (next-release draft)](migration-from-1.3.md)
 - [Migration guide (0.4 to 1.0)](migration-0.4-to-1.0.md)
 - [Roadmap](ROADMAP.md)
 - [API on cljdoc](https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT)

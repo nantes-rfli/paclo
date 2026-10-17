@@ -1,0 +1,98 @@
+{
+  "source_commit": "2f97ab25cc9e46550aa24be80d11ccc667dab2d3",
+  "runtime": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode)\n",
+  "variants": {
+    "v1.3.0": {
+      "jar_sha256": "65a98348320ad905939e72fbf825b57111d704057698718863487edd22797a1b",
+      "examples_ref": "774c49064bcbd56bf6fb72ea75ee8ef7bbfbcf11",
+      "cases": {
+        "library": {
+          "exit": 0,
+          "stdout": "[:supported-names-and-arities :retained]\n[:legacy :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:captured :written {:time :wall-clock, :caplen 60, :len 60}]\n[:both :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:partial-new :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:partial-legacy :written {:time :wall-clock, :caplen 60, :len 60}]\n[:nil-legacy :written {:time :wall-clock, :caplen 60, :len 60}]\n[:fractional-legacy :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:negative :written {:time [4294967295 0], :caplen 60, :len 60}]\n[:bad-usec :written {:time [1700000000 1000000], :caplen 60, :len 60}]\n[:truncated :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:bad-caplen :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:bad-len :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:mismatch :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:snaplen-excess :written {:time [1700000000 123], :caplen 65537, :len 65537}]\n[:decode {:decode? true} :absent {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :decode-error \"frame too short: 10 bytes\"}]\n[:decode {:decode? true} 999 {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :linktype 999, :decode-error \"frame too short: 10 bytes\"}]\n[:decode {:decode-mode :flow} :absent {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :decode-error \"truncated ethernet header\"}]\n[:decode {:decode-mode :flow} 999 {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :decode-error \"truncated ethernet header\"}]\n[:native-read :returned 0 :eof]\n",
+          "stderr": ""
+        },
+        "flow": {
+          "exit": 0,
+          "stdout": "[{:flow {:proto :udp, :src \"10.0.0.1:58555\", :dst \"1.1.1.1:53\"}, :packets 1, :bytes 82} {:flow {:proto :udp, :src \"1.1.1.1:53\", :dst \"10.0.0.1:58555\"}, :packets 1, :bytes 178} {:flow {:proto :udp, :src \"8.8.8.8:53\", :dst \"10.0.0.1:57996\"}, :packets 1, :bytes 97} {:flow {:proto :udp, :src \"10.0.0.1:57996\", :dst \"8.8.8.8:53\"}, :packets 1, :bytes 81}]\n",
+          "stderr": "flows= 4  total-packets= 4  topN= 10  mode= unidir  metric= packets\n"
+        },
+        "flow-bound": {
+          "exit": 4,
+          "stdout": "",
+          "stderr": "ERROR: unknown flag: --max-flows\n"
+        },
+        "rtt": {
+          "exit": 0,
+          "stdout": "[{:id 26905, :qname \"example.com\", :qtype :A, :client \"10.0.0.1:58555\", :server \"1.1.1.1:53\", :rcode :noerror} {:id 59856, :qname \"google.com\", :qtype :A, :client \"10.0.0.1:57996\", :server \"8.8.8.8:53\", :rcode :noerror}]\n",
+          "stderr": "pairs= 2  topN= 50  bpf= \"udp and port 53\"  format= edn  client= nil  server= nil nil\n"
+        },
+        "rtt-stats": {
+          "exit": 0,
+          "stdout": "{:pairs 2, :with-rtt 0, :rtt {:count 0, :min nil, :p50 nil, :p95 nil, :p99 nil, :avg nil, :max nil}, :rcode {:counts {:noerror 2}, :ratio {:noerror 1.0}}}\n",
+          "stderr": "mode=stats bpf= \"udp and port 53\"  format= edn  client= nil  server= nil nil\n"
+        },
+        "qps-client": {
+          "exit": 0,
+          "stdout": "[{:t 1756012568000, :key \"10.0.0.1\", :count 1, :bytes 82} {:t 1756012568000, :key \"1.1.1.1\", :count 1, :bytes 178} {:t 1756012572000, :key \"10.0.0.1\", :count 1, :bytes 81} {:t 1756012572000, :key \"8.8.8.8\", :count 1, :bytes 97}]\n",
+          "stderr": "{:warned-buckets? false, :empty-per-key-truncated? false, :format :edn, :log-punycode-fail false, :group :client, :async-dropped 0, :async-mode :buffer, :emit-empty-per-key false, :async-cancelled? false, :async-timeout-ms nil, :max-buckets 200000, :rows 4, :bucket-ms 1000, :emit-empty-buckets false, :total 4, :punycode false, :elapsed-ms 62.36013, :async-buffer 1024, :async? false, :warn-buckets-threshold 100000}\n"
+        },
+        "qps-server": {
+          "exit": 0,
+          "stdout": "[{:t 1756012568000, :key \"1.1.1.1\", :count 1, :bytes 82} {:t 1756012568000, :key \"10.0.0.1\", :count 1, :bytes 178} {:t 1756012572000, :key \"8.8.8.8\", :count 1, :bytes 81} {:t 1756012572000, :key \"10.0.0.1\", :count 1, :bytes 97}]\n",
+          "stderr": "{:warned-buckets? false, :empty-per-key-truncated? false, :format :edn, :log-punycode-fail false, :group :server, :async-dropped 0, :async-mode :buffer, :emit-empty-per-key false, :async-cancelled? false, :async-timeout-ms nil, :max-buckets 200000, :rows 4, :bucket-ms 1000, :emit-empty-buckets false, :total 4, :punycode false, :elapsed-ms 27.216194, :async-buffer 1024, :async? false, :warn-buckets-threshold 100000}\n"
+        },
+        "qps-bound": {
+          "exit": 0,
+          "stdout": "[{:t 1700000000000, :key :noerror, :count 1, :bytes 82}]\n",
+          "stderr": "{:warned-buckets? false, :empty-per-key-truncated? false, :format :edn, :log-punycode-fail false, :group :rcode, :async-dropped 0, :async-mode :buffer, :emit-empty-per-key false, :async-cancelled? false, :async-timeout-ms nil, :max-buckets 1, :rows 1, :bucket-ms 1000, :emit-empty-buckets false, :total 4, :punycode false, :elapsed-ms 23.854185, :async-buffer 1024, :async? false, :warn-buckets-threshold 100000}\n"
+        }
+      }
+    },
+    "candidate": {
+      "jar_sha256": "8f153f45daa9a4e00176923bb3c75169ecac64157f0272f03436a5bd9a1812e8",
+      "examples_ref": "2f97ab25cc9e46550aa24be80d11ccc667dab2d3",
+      "cases": {
+        "library": {
+          "exit": 0,
+          "stdout": "[:supported-names-and-arities :retained]\n[:legacy :written {:time [1700000000 123], :caplen 60, :len 60}]\n[:captured :written {:time [1700000001 456], :caplen 60, :len 60}]\n[:both :written {:time [1700000001 456], :caplen 60, :len 60}]\n[:partial-new :rejected \"partial :ts-sec/:ts-usec timestamp\"]\n[:partial-legacy :written {:time :wall-clock, :caplen 60, :len 60}]\n[:nil-legacy :rejected \"invalid :sec: expected integer in 0..4294967295\"]\n[:fractional-legacy :rejected \"invalid :sec: expected integer in 0..4294967295\"]\n[:negative :rejected \"invalid :sec: expected integer in 0..4294967295\"]\n[:bad-usec :rejected \"invalid :usec: expected integer in 0..999999\"]\n[:truncated :written {:time [1700000000 123], :caplen 60, :len 120}]\n[:bad-caplen :rejected \":caplen must match byte-array length\"]\n[:bad-len :rejected \":len must be >= :caplen\"]\n[:mismatch :rejected \"packet :linktype must match writer :linktype\"]\n[:snaplen-excess :rejected \":caplen must be <= :snaplen\"]\n[:decode {:decode? true} :absent {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :decode-error \"frame too short: 10 bytes\", :diagnostics [{:stage :decode, :reason :short-frame, :location {:offset 0, :required 14, :available 10}}]}]\n[:decode {:decode? true} 999 {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :linktype 999, :decode-error \"unsupported linktype\", :diagnostics [{:stage :decode, :reason :unsupported-linktype, :linktype 999}]}]\n[:decode {:decode-mode :flow} :absent {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :linktype nil, :decode-error \"truncated ethernet header\", :diagnostics [{:stage :flow, :reason :short-frame, :location {:offset 0, :required 14, :available 10}}]}]\n[:decode {:decode-mode :flow} 999 {:ts-sec 1, :ts-usec 0, :caplen 10, :len 10, :linktype 999, :decode-error \"unsupported linktype\", :diagnostics [{:stage :flow, :reason :unsupported-linktype, :linktype 999}]}]\n[:native-read :thrown \"pcap_next_ex failed\" {:reason :pcap-read-failed, :phase :pcap-next-ex, :rc -1, :native-error \"truncated dump file; tried to read 16 header bytes, only got 7\"}]\n",
+          "stderr": ""
+        },
+        "flow": {
+          "exit": 0,
+          "stdout": "[{:flow {:proto :udp, :src \"1.1.1.1:53\", :dst \"10.0.0.1:58555\"}, :packets 1, :bytes 178} {:flow {:proto :udp, :src \"8.8.8.8:53\", :dst \"10.0.0.1:57996\"}, :packets 1, :bytes 97} {:flow {:proto :udp, :src \"10.0.0.1:57996\", :dst \"8.8.8.8:53\"}, :packets 1, :bytes 81} {:flow {:proto :udp, :src \"10.0.0.1:58555\", :dst \"1.1.1.1:53\"}, :packets 1, :bytes 82}]\n",
+          "stderr": "flows= 4  total-packets= 4  topN= 10  mode= unidir  metric= packets\n"
+        },
+        "flow-bound": {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "Execution error (ExceptionInfo) at paclo.flow/aggregate-rf$fn (flow.clj:107).\nflow cardinality limit exceeded\n\nFull report at:\n/var/folders/k5/n9lmd86n3hjf8cxd__4h8__m0000gn/T/clojure-6721932708329299795.edn\n"
+        },
+        "rtt": {
+          "exit": 0,
+          "stdout": "[{:id 59856, :qname \"google.com\", :qtype :A, :client \"10.0.0.1:57996\", :server \"8.8.8.8:53\", :rcode :noerror, :rtt-ms 10.241} {:id 26905, :qname \"example.com\", :qtype :A, :client \"10.0.0.1:58555\", :server \"1.1.1.1:53\", :rcode :noerror, :rtt-ms 15.817}]\n",
+          "stderr": "{:watermark-us 1756012572888903, :diagnostics {}, :read 4, :async-dropped 0, :async-mode :buffer, :dropped 0, :mode :pairs, :async-cancelled? false, :delivered 4, :async-timeout-ms nil, :pairs 2, :qnames 0, :reorder-us 0, :complete? true, :async-buffer 1024, :async? false, :cancelled? false}\n"
+        },
+        "rtt-stats": {
+          "exit": 0,
+          "stdout": "{:pairs 2, :with-rtt 2, :rtt {:count 2, :min 10.241, :p50 10.241, :p95 15.817, :p99 15.817, :avg 13.029, :max 15.817}, :rcode {:counts {:noerror 2}, :ratio {:noerror 1.0}}}\n",
+          "stderr": "{:watermark-us 1756012572888903, :diagnostics {}, :read 4, :async-dropped 0, :async-mode :buffer, :dropped 0, :mode :stats, :async-cancelled? false, :delivered 4, :async-timeout-ms nil, :pairs 2, :qnames 0, :reorder-us 0, :complete? true, :async-buffer 1024, :async? false, :cancelled? false}\n"
+        },
+        "qps-client": {
+          "exit": 0,
+          "stdout": "[{:t 1756012568000, :key \"10.0.0.1\", :count 2, :bytes 260} {:t 1756012572000, :key \"10.0.0.1\", :count 2, :bytes 178}]\n",
+          "stderr": "{:warned-buckets? false, :empty-per-key-truncated? false, :format :edn, :watermark-us 1756012572888903, :log-punycode-fail false, :diagnostics {}, :group :client, :read 4, :async-dropped 0, :async-mode :buffer, :max-windows 10000, :dropped 0, :emit-empty-per-key false, :async-cancelled? false, :delivered 4, :async-timeout-ms nil, :max-buckets 200000, :rows 2, :bucket-ms 1000, :emit-empty-buckets false, :total 4, :punycode false, :max-groups 200000, :reorder-us 0, :complete? true, :open-tail-windows 1, :async-buffer 1024, :async? false, :cancelled? false, :warn-buckets-threshold 100000}\n"
+        },
+        "qps-server": {
+          "exit": 0,
+          "stdout": "[{:t 1756012568000, :key \"1.1.1.1\", :count 2, :bytes 260} {:t 1756012572000, :key \"8.8.8.8\", :count 2, :bytes 178}]\n",
+          "stderr": "{:warned-buckets? false, :empty-per-key-truncated? false, :format :edn, :watermark-us 1756012572888903, :log-punycode-fail false, :diagnostics {}, :group :server, :read 4, :async-dropped 0, :async-mode :buffer, :max-windows 10000, :dropped 0, :emit-empty-per-key false, :async-cancelled? false, :delivered 4, :async-timeout-ms nil, :max-buckets 200000, :rows 2, :bucket-ms 1000, :emit-empty-buckets false, :total 4, :punycode false, :max-groups 200000, :reorder-us 0, :complete? true, :open-tail-windows 1, :async-buffer 1024, :async? false, :cancelled? false, :warn-buckets-threshold 100000}\n"
+        },
+        "qps-bound": {
+          "exit": 5,
+          "stdout": "",
+          "stderr": "ERROR: max-buckets exceeded {:reason :max-buckets, :limit 1, :required 2}\n"
+        }
+      }
+    }
+  }
+}
