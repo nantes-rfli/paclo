@@ -51,7 +51,8 @@ Current task: **release readiness audit after P06–P08** from latest main
 P01–P08 and stabilization/performance implementations are merged; no new stable
 version is published. The [release readiness report](release-readiness-p06-p08.md)
 records the inventory, compatibility decisions, current checks and release gates.
-Audit authoring and local verification are complete; independent review remains.
+Audit authoring and local verification are complete on
+[PR #59](https://github.com/nantes-rfli/paclo/pull/59); independent review remains.
 Next unfinished item: independent review of this audit, then explicit acceptance
 of compatibility/migration scope and version selection in a separate release
 preparation PR. First fix the JDK 21-built JAR/JDK 17 distribution mismatch

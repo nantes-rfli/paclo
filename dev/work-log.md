@@ -3726,3 +3726,13 @@ A temporary PATH shim invokes the installed Clojure CLI noninteractively; the
 hook still runs its original full tests, formatter, Markdown and kondo checks.
 No SKIP flag or repository hook change is used. PR/final CI evidence is tracked
 on the submitted PR to avoid repeated evidence-only commits.
+
+Audit implementation commit: `303198180aa7f8d5e4617c00e1cfa38641e5e520`.
+[PR #59](https://github.com/nantes-rfli/paclo/pull/59) is open for independent
+review against main `752c364`, with only twelve Markdown files changed. The
+existing commit hook passed its complete 490-test suite, format/namespace,
+Markdown and kondo checks without a skip. This handoff records the PR link;
+final-head CI/platform results are maintained in that PR's description/checks.
+No review, merge, issue closure or publication is claimed. Next unfinished work:
+review this audit and then make the separate Java17 distribution/consumer fix
+before versioned release preparation.
