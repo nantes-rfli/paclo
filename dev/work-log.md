@@ -3798,3 +3798,89 @@ Local gate progress before opening the independent PR:
   wrapper is rerunning with normal network/cache permissions. No rule changed.
 - Executable docs/link and five fixture generators/Python contract checks are
   running; complete results and GitHub CI are still pending at this commit.
+
+Independent [PR #60](https://github.com/nantes-rfli/paclo/pull/60) opened with
+implementation `e008dd0be3ce41ae9a41c92ce34088546f83da99`; base main `3f63c1e`.
+Local `gh` authentication is invalid, so PR/Actions inspection uses the connected
+GitHub tools; git fetch/push uses the existing SSH remote. No login/token changes.
+The configured `.githooks/pre-commit` initially fails because `clj` requires absent
+rlwrap. Used its documented SKIP_TESTS/SKIP_FMT flags after successful equivalent
+`check` and lsp dry runs; its Markdown and Kondo checks ran successfully. No hook,
+rule, test or gate was removed or edited. The working tree remained scoped.
+
+Completed local verification:
+
+- Full `bash dev/script/codex.sh lint` rerun with normal network/cache permissions:
+  exit 0. Kondo zero errors/warnings; all 113 Eastwood namespaces (including the
+  standalone consumer), 599 informational warnings, zero exceptions; clean-ns
+  and format dry runs clean; 42 Markdown files, zero errors. Initial 600-warning
+  run preceded making the explicit decode-ext registry probe use its require.
+- `python3 dev/script/verify_doc_examples.py`: exit 0, all 34 maintained examples.
+- `python3 dev/script/verify_doc_links.py`: exit 0.
+- All five `make_capture_format_fixtures.py`, `make_cooked_fixtures.py`,
+  `make_raw_ip_fixtures.py`, `make_null_loop_fixtures.py`,
+  `make_pcapng_contract_fixtures.py --check` commands: exit 0 (28 + 4 + 3 + 12 + 10).
+  `python3 test/resources/test_pcapng_contract_fixtures.py`: six tests pass.
+- Local independent consumer's final harness runs against the same preliminary
+  JAR digest already recorded, with only current consumer directory/JARs on its
+  classpath. No local JDK17 runtime pass is claimed.
+
+Actual clean CI candidate identities, both runtime results, all jobs and measured
+CI duration follow. No release/tag/deploy/merge is authorized or performed.
+
+### PR #60 implementation CI and identical distribution JAR
+
+[Run 38993389235](https://github.com/nantes-rfli/paclo/actions/runs/38993389235)
+for head `e008dd0be3ce41ae9a41c92ce34088546f83da99`: **all 14/14 jobs pass**.
+Original 12 jobs all succeed (including informational coverage and Linux ARM64),
+as do both mandatory artifact consumers. Required aggregate prints
+`distribution-consumer=success`; no gate/threshold was weakened or bypassed.
+Linux x64 and ARM64 source tests: 490 / 19042 assertions; macOS ARM64 JDK17:
+490 / 19036. Zero failures/errors. Existing CI perf gate 336.7 ms, Java line
+coverage 43.8% / unchanged 25%. Full Eastwood, docs and all 27 measurement
+scenarios/results pass.
+
+Single JDK21 candidate:
+
+- Actions checkout/source commit `66f81b8549750a708c6a2ef903d75b370f135600` is the
+  synthetic PR merge of implementation `e008dd0` and base main `3f63c1e`.
+  Provenance says tracked-file dirty false; build JVM Temurin 21.0.12.1.
+- Artifact `distribution-jdk21-38993389235`, ID `12085732197`, ZIP SHA-256
+  `1085f515df0b9532d83e258879d350cd3cb42ec0f210aa57e22f3de3f59ba7f5`.
+  Downloaded it through the connected GitHub artifact tool, extracted outside
+  the checkout and ran the local `verify_distribution.py verify` on the actual
+  files. ZIP digest matches Actions, and JAR/provenance/POM/inventory all pass.
+- JAR SHA-256:
+  `358b8d526d744939a47559f6b4189c37d325c31288e3e3e290bc5c2f5ed78d89`.
+  Every class is major61. External and embedded POM match; five dependencies and
+  coordinates remain original. All 18 source entries remain original bytes.
+- `distribution-consumer (17)`, job `117280805042`: Temurin 17.0.20.1,
+  success with exactly that SHA-256 before/after and source commit; prints
+  `:distribution-consumer-ok` for every probe. Runtime report artifact
+  `distribution-consumer-jdk17-38993389235`, ID `12086341073`.
+- `distribution-consumer (21)`, job `117280804991`: Temurin 21.0.12.1,
+  same success, full SHA-256 and source commit. Runtime report artifact
+  `distribution-consumer-jdk21-38993389235`, ID `12086261257`.
+- Both jobs have no checkout or Java compilation/build step. They download the
+  same immutable Actions artifact, verify all manifest hashes, then execute a
+  fresh `-Srepro` consumer outside the checkout with only local/root JAR plus
+  unchanged dependencies. Neither runtime consumes recompiled source bindings.
+  This resolves the JDK17 failure's identified class-major cause, rather than
+  treating a source rebuild or workaround as success.
+
+CI time measured from log timestamps: verifier/regressions/bundle 0.15 s;
+artifact upload 1.1 s; JDK17 consumer setup-through-upload 27.4 s; JDK21 39.5 s
+in parallel after build-checks. The new consumers add about 46 s after the
+build-checks finish (99.3 s in this run; prior main run 38988905927 took 147.7 s).
+The build-checks-start through required aggregate finish interval is 193.4 s,
+versus 190.8 s before (+2.6 s); source compatibility, not artifact consumers,
+finishes last here. These are single runs with runner/cache/network variation,
+not a speedup claim or fixed added budget. There are two new jobs (12 to 14),
+with all existing work/quality/performance thresholds retained.
+
+Remaining limits: no local JDK17 installation, Windows, other JDKs/platforms,
+live/NIC capture, arbitrary filesystem or performance-target validation. Linux
+same-artifact 17/21 and existing Linux x64/ARM64/macOS ARM64 source checks are
+actual passes. No release version assignment, tag, Publish dispatch, deployment,
+merge, issue closure, feature/dependency work or optimization was performed.
+Next: independent PR #60 review. Evidence-only commit final checks remain on PR.

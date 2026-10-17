@@ -6,9 +6,10 @@ Audit date: 2026-10-17 (Asia/Tokyo). Audited latest main:
 Compatibility baseline: tag `v1.3.0` and its published JAR, not historical plan sketches.
 
 **Decision: proceed with release preparation, but do not publish yet.** The
-Java 17 distribution mismatch below is a release blocker. Complete that separate
-build/consumer correction, accept the migration changes explicitly, and verify
-the final release candidate before publication. P09/P10 are not prerequisites.
+Java 17 distribution mismatch identified by the audit is corrected in
+[PR #60](https://github.com/nantes-rfli/paclo/pull/60), with the same JDK 21-built
+artifact passing JDK 17 and JDK 21 consumers below. Accept the migration changes
+explicitly and verify the final release candidate before publication. P09/P10 are not prerequisites.
 The preferred version candidate is **1.4.0**, conditional on that compatibility
 acceptance; a patch cannot represent the added public APIs. No version, tag,
 publication, issue state or merge is changed by this audit.
@@ -162,7 +163,7 @@ accepted by reviewers; **retained function arities do not make these invisible**
 | P08-B1 error propagation | Corrupt files formerly appearing as EOF may now throw. Use `:pass` with error callbacks/report stats only when a failed prefix is explicitly acceptable. | Bug fix with operational impact |
 | P06 Flow CLI | Default 100000 unique-flow budget; canonical tie ordering; async errors propagate. Raise explicit bound when appropriate and handle failure. | Observable example-command change |
 | P07-B DNS CLI | Correct RTT/mean, strict question matching, QR-oriented client/server grouping, reorder/expiry, full offline EOF, finite limits and overflow exit 5 instead of truncated output. Pair counts/group keys/output volume can change on previously accepted inputs. | Observable semantic migration; not byte-for-byte v1.3 CLI behavior |
-| JDK artifact | JDK 21 output cannot load on JDK 17 despite advertised support. | Release blocker below |
+| JDK artifact | The original JDK 21 output could not load on JDK 17 despite advertised support. | Corrected and tested on both runtimes below |
 
 A JAR-only probe run outside the checkout under JDK21 confirmed these actual
 writer differences against the cached published 1.3.0 artifact:
@@ -187,9 +188,10 @@ silently certify unconditional backward compatibility.
 
 ## Release blocker: Java 17 distribution
 
-`build.clj` calls `b/javac` without `--release 17`/target configuration.
-Publish selects JDK 21. Inspection of locally compiled bindings and the packaged
-JAR shows class-file **major 65**, requiring Java 21; Java 17 accepts up to 61, per the
+Original audit finding (the correction is recorded in the next subsection):
+`build.clj` called `b/javac` without `--release 17`/target configuration.
+Publish selects JDK 21. Inspection of the original bindings and packaged
+JAR showed class-file **major 65**, requiring Java 21; Java 17 accepts up to 61, per the
 [JVM class-file specification](https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.1).
 The cached published 1.3.0 JAR also contains major 65, so this is a pre-existing
 publication/support inconsistency, not a new source API removal.
@@ -199,7 +201,7 @@ source tests. It never consumes the JDK21 Publish artifact. All green source
 matrix jobs therefore leave this distribution gap open. The local machine has
 JDK21 and JDK13, not JDK17; no local JDK17 runtime pass is claimed.
 
-Required separate correction: retain JDK17 support, compile production classes
+Correction acceptance criterion: retain JDK17 support, compile production classes
 to Java17-compatible bytecode using the release build, and run **the same JAR**
 without source/Java recompilation on JDK17 and JDK21. Include native offline
 reads, both writer paths and all public namespaces/annotations. Recheck every
@@ -245,15 +247,66 @@ part of this correction. Existing 12 jobs and thresholds remain intact.
 
 Local JDK 21 consumer passes with JAR SHA-256
 `6bbfe480fd39671c86bc738e9e259fe7b553f42ea3810e45b3b806ed2139727f`.
-This preliminary local build records base commit `3f63c1e` and tracked-file dirty state;
-clean committed CI candidate identity, JDK 17/21 results and timing follow below.
-No local JDK 17 is installed; its runtime acceptance must come from actual CI.
+This preliminary local build records base commit `3f63c1e` and tracked-file dirty state.
+The authoritative clean CI candidate has the identity below.
+[CI run 38993389235](https://github.com/nantes-rfli/paclo/actions/runs/38993389235)
+builds implementation head `e008dd0be3ce41ae9a41c92ce34088546f83da99` using
+GitHub's synthetic PR merge checkout `66f81b8549750a708c6a2ef903d75b370f135600`,
+tracked-file dirty state **false**, Temurin **21.0.12.1**. Its one
+[candidate artifact](https://github.com/nantes-rfli/paclo/actions/runs/38993389235/artifacts/12085732197)
+contains JAR SHA-256:
+
+```text
+358b8d526d744939a47559f6b4189c37d325c31288e3e3e290bc5c2f5ed78d89
+```
+
+| Independent runtime | Same JAR SHA-256 before/after | Result |
+| --- | --- | --- |
+| Linux x64 / Temurin 17.0.20.1 | `358b8d52...5ed78d89` | All consumer probes pass |
+| Linux x64 / Temurin 21.0.12.1 | `358b8d52...5ed78d89` | All consumer probes pass |
+
+Both report the exact full digest above and identical source commit; neither
+job checks out source, compiles Java or builds a JAR. Runtime evidence artifacts
+are `distribution-consumer-jdk17-38993389235` (ID `12086341073`) and
+`distribution-consumer-jdk21-38993389235` (ID `12086261257`). The downloaded
+candidate ZIP also matches the Actions digest
+`1085f515df0b9532d83e258879d350cd3cb42ec0f210aa57e22f3de3f59ba7f5`;
+local inspection of its actual JAR reconfirms every header/POM/content/hash.
+ZIP and JAR digests refer to different files. All 18 Clojure source entries and
+the embedded POM are byte-identical to the reproduced pre-fix JAR.
+
+Measured from CI log timestamps: artifact regressions/inspection/bundle preparation
+add about **0.15 s**, upload about **1.1 s**. The two new consumer jobs run in
+parallel after build-checks, taking **27.4 s (17)** and **39.5 s (21)** including
+setup, dependency fetch and report upload. This adds roughly 46 s after this run's
+build-checks finish, and two jobs (12 to 14); overlap with source/docs jobs can
+hide the extra critical path cost. Build-checks itself took **99.3 s**, versus
+**147.7 s** in baseline run `38988905927`. These single runs have different runner/
+cache/network conditions; the difference is not a claimed speedup or fixed CI
+budget. All old quality/performance thresholds and checks are retained.
+
+All **14/14 jobs** in run `38993389235` succeed: the original 12 (including
+Linux/macOS source compatibility, ARM64 monitor, Java quality, coverage, docs,
+Eastwood, three performance shards/results and aggregate) plus both distribution
+consumers. The aggregate explicitly reports `distribution-consumer=success`.
+Source suites pass 490 tests / 19042 assertions on Linux x64/ARM64 and 490 / 19036
+on macOS ARM64. The existing CI performance gate is 336.7 ms; coverage is 43.8%
+against the unchanged 25% gate. Local `check`, lint, Java quality, package,
+34 documentation examples, links, five fixture generators and the Python
+artifact/PCAPNG regressions also pass; full commands are in the work log.
+The build-checks-start to aggregate-finish log interval is 193.4 s versus 190.8 s
+in the cited baseline (about +2.6 s). Queueing and normal variation are included;
+the new consumer jobs finished before the source compatibility critical path.
+Final evidence-only head checks are maintained on PR #60.
+
+No local JDK 17 is installed; its runtime acceptance above is from actual CI.
 Linux/macOS source CI and these offline artifact probes do not establish Windows,
 live capture, other JDKs, every filesystem or performance-target validation.
 
 ## Quality and package evidence
 
-Local host: macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, system libpcap.
+The following table preserves the original audit evidence, before the correction
+above. Local host: macOS x86_64, Temurin 21.0.12.1, Clojure 1.12.1, system libpcap.
 This is distinct from macOS ARM64 CI. Full commands/results are in the
 [work log](work-log.md#2026-10-17-release-readiness-audit-after-p06p08).
 
@@ -324,10 +377,11 @@ Neither is a reason to delay this release once the mandatory conditions pass.
 
 ## Recommended release sequence and acceptance
 
-1. Independently review this documentation audit. Merge only after review and
-   human approval; preserve historical records and current canonical contract.
-2. Make a separate scoped build/consumer PR for the Java17 artifact defect.
-   Require unchanged full CI plus identical release-JAR consumers on 17/21.
+1. Audit PR #59 is merged as `3f63c1e`; preserve its historical findings and
+   the current canonical contract.
+2. Independently review and accept the scoped build/consumer correction on
+   PR #60. Full unchanged CI and identical release-JAR consumers on 17/21 pass;
+   merge still requires review and human approval.
 3. Approve migration scope and version (preferred 1.4.0; major if a supported
    break remains). Prepare a separate release PR: move Unreleased entries into a
    dated version section, align README install/status, API availability labels,
@@ -350,10 +404,10 @@ Neither is a reason to delay this release once the mandatory conditions pass.
    existing version. Verify downloaded Clojars artifact checksum and independent
    consumers, then versioned cljdoc API/doc coverage, before announcing completion.
 
-Package inspection found 41 entries, including all public namespaces, internal
+Original audit package inspection found 41 entries, including all public namespaces, internal
 PCAPNG/flow implementation, DNS/TLS annotations and ten native binding classes.
-No test/dev directory or fixture corpus is packaged. All ten classes are major
-65, confirming the blocker. Maven metadata uses the expected coordinates,
+No test/dev directory or fixture corpus is packaged. Its ten classes were major
+65; the corrected candidate above has ten major 61 classes. Maven metadata uses the expected coordinates,
 `1.3.0-SNAPSHOT` and SCM tag `v1.3.0-SNAPSHOT` for this unversioned audit build;
 its five dependencies exactly match default deps (no CSV/tool/test dependencies).
 The POM declares MIT; a standalone LICENSE text is absent from the JAR, as in
