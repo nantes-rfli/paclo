@@ -4380,3 +4380,134 @@ actual deployed/tag artifact. No local/root dependency substitutes for this
 coordinate-resolution check. Initial consumer command launch preceded creation
 of its temporary working directory and did not start; creating that directory
 first corrected the setup, after which the actual validation passed.
+
+## Issue #37 remaining retired-key expiry evaluation (2026-10-17)
+
+Explicit post-v1.4.0 follow-up; P09/P10, release/version/dependency changes,
+merge and issue closure remain outside implementation scope. Initial working
+tree was clean on codex/publish-v1.4.0-docs at
+14a92d513de1c26dd7cdc059434acd409343278d. Use the supplied checkout, no worktree.
+Read CONTRIBUTING, the published API contract, plan, DNS source/tests, PR #57's
+report/measurements and connected GitHub Issue #37 / PR #57. GitHub confirms
+issue #37 open and #57 merged as e444b10. The initial gh issue/pr reads could not
+connect to api.github.com under the shell network restriction; connected GitHub
+reads succeeded. No remote write was attempted.
+
+`bash dev/script/codex.sh doctor` passes: macOS x86_64, Temurin 21.0.12.1,
+Clojure 1.12.1 (CLI 1.12.5.1654), four native offline packets/438 bytes, lint tools
+available. sw_vers reports 15.4.1. Current DNS blob 85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6
+matches v1.4.0 exactly. The old legacy and pre-#57 baselines are not rerun.
+
+The opt-in dns-expiry-perf runner reuses dns-perf generators, alternating paired
+counter/equality machinery and native PCAP controls, but loads the fixed current
+DNS/window/CLI baseline into separate namespaces. Only temporary candidate source
+is loaded in the experiment JVM. Production/test/API/CI source remains unchanged.
+Patches retain both the initial deadline-vector index and the compact singleton /
+bulk-release refinement. Independent process logs in dev/measurements/issue-37-final
+record source identities, fixed 512MiB heap, warmups, samples, CPU/allocation/GC,
+public result equality and retention/EDN checks. No timing runs overlap builds,
+tests, lint or other timing runs. A harness startup failed before sampling during
+initial runner editing; the completed runs retain every timed sample.
+
+The compact candidate's isolated DNS namespace run passes 19 tests/298 assertions,
+including900 generated property cases. Its existing test-only normalization helper
+also removes the optional prototype index, so full-scan oracle and legacy snapshot
+checks remain meaningful. No regression test or production source is edited.
+Detailed results, final decision and verification follow below after the two
+independent compact repetitions complete.
+
+Final evaluation chooses A: adopt the hybrid metadata index. Complete final
+matrix:55 distinct timed conditions in two independent JVMs, 110 pairs / 1524
+samples. Additional 20-warmup sensitivity runs and identical-source controls
+retain all short/native samples. The existing summarizer validates 340 paired
+conditions / 4720 timed samples across all candidates/controls. All public results
+agree; run-ID completeness, retention root counts and EDN round trips are checked.
+The manifest records SHA256s and all five exact measurement-time runner blobs.
+Reapplying the final patch reproduces source SHA256
+76cbd1aba39f565aaadf3c929789a9a69301d746696729749fba2c89c96622be.
+Final production code tokens match that measured source, ignoring only formatting
+and comments. The detailed report includes every negative row and scope limit.
+
+At 100000 keys / 1000 actual expiries, baseline 4075/4861 ms becomes 1.915/1.998 ms.
+EDN-restored replay including rebuild becomes 113/114 ms instead of 5173/4389 ms.
+Steady native 40000-packet stats improves 2.9–3.4x. Longer-warmed ordinary native
+medians change −3.6%..+4.6%, within same-source control variation −5.4%..+5.5%.
+Low-density native replay costs about 1–3% elapsed, with slightly less allocation.
+Direct short 1000-key spaced builds show large alias/loading sensitivity even
+for identical source (+29/+41% with 20 warmups); no regression/speedup attribution
+is made from those percentages and no unrelated-run subtraction is used.
+Large spaced-state construction costs 7–11% more elapsed. The index adds roughly
+7–8% retained DNS heap (~3.8 MB / 100000 keys), keeping standard EDN character count
+and initial restored heap unchanged. First large spaced EDN index rebuild costs
+roughly 100 ms/~77 MB transient allocation; frequent restore/single-step/checkpoint
+workflows can be slower. No suitable representative long production PCAP, live
+NIC/soak/RSS or other-platform performance validation is claimed.
+
+Small initial states retain the old scan path through 1024 keys. Larger states
+build a persistent deadline index in retired-map metadata, keep it until empty,
+and release due buckets without scanning every key. Equal-deadline singletons /
+vectors and full-release clearing limit overhead. Exactly one membership per
+retired key, no stale queue entries or mutable published data. Standard EDN omits
+the cache; explicit metadata EDN and old snapshots remain readable. No public
+option/state-data key, new dependency, version, workflow, threshold or P09/P10
+change. Published v1.4.0 bytes/contracts remain unchanged; this is unreleased.
+
+Fetched main 17e2088 (reviewed docs PR #65). Its tree 7805ed71099001a28c4a85318d6bc8ca5b91aa08
+matches the initial 14a92d5 tree exactly. Switched to a new branch from fetched
+main, codex/issue-37-retired-expiry, preserving all task files and avoiding the
+squashed docs commit in the PR diff. No additional worktree.
+
+Actual local verification after implementation:
+
+- `bash dev/script/codex.sh test -n paclo.dns-test`: 22 tests/387 assertions,
+  including 1000 generated DNS property cases, exit 0. The three added tests cover
+  indexed/EDN/legacy forks, cache membership/limits, exact errors/atomic failures,
+  explicit printed metadata and promoting Long.MIN/MAX/BigInt retry/expiry time.
+- `bash dev/script/codex.sh check`: 493 tests/19125 assertions, ten JUnit tests,
+  native four-packet/438-byte smoke, exit 0.
+- `bash dev/script/codex.sh lint`:kondo 0 errors/warnings, Eastwood 115 namespaces /
+  632 informational warnings/zero exceptions, ns/format dry-runs unchanged.
+  The final Markdown stage failed on sandbox ENOTFOUND registry.npmjs.org and
+  an unwritable npm log directory. Reran only that stage with network access;
+  fixed two new-document formatting errors and reran unchanged rules: 49 files,
+  zero errors. This is not recorded as an exit 0 for the failed wrapper command.
+- `python3 dev/script/verify_doc_examples.py`:all 36 examples pass, exit 0.
+  `python3 dev/script/verify_doc_links.py`:all local links/anchors pass.
+- `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`,
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`:exit 0,43.8% line coverage with
+  the unchanged 25% threshold.
+- `bash dev/script/codex.sh perf`: 446.4 ms, unchanged 1000/1200 ms warning/failure
+  thresholds, exit 0. No overlapping lint/tests/benchmarks during this gate.
+- `bash dev/script/codex.sh package`, distribution prepare and JAR-only JDK 21
+  consume all pass. Local dirty-tree snapshot JAR SHA256
+  6bd94bbbee0a839ab83d692d76ac6d63588df5025bd6cc894ff475766438c609.
+  This is not the published 1.4.0 artifact. `prepare` passes afterward to restore
+  compiled test classes. Local JDK 17 is unavailable; the unchanged same-JAR CI
+  consumers must validate 17/21 from the committed source.
+- `git diff --check` passes. CI workflow/deps/build files have no diff; all 14
+  existing jobs and quality/performance budgets are preserved.
+
+Implementation and local acceptance are complete. Independent PR creation and
+final-head CI results are recorded in the PR description attached to this chat;
+Issue #37 remains open for review/closure judgment. Do not merge before review.
+Next item is independent review of this scoped optimization and its documented
+tradeoffs; Issue #44 acceptance, P09/P10 and publication stay separate.
+
+All four reproducible patches use zero-context unified diff format to avoid
+whitespace-only diff-context lines in newly tracked artifacts. After that format
+correction, each reapplies to its exact recorded source SHA256; no measured
+source or sample is changed. The future runner selects canonical main17e2088,
+whose four loaded sources and complete tree match measured14a92d5 byte-for-byte.
+
+The first commit attempt stopped before hook tests: the installed interactive
+`clj` launcher requires unavailable `rlwrap`. The repository hook is unchanged.
+A task-local `/tmp` launcher forwards `clj` arguments to the same `clojure` CLI
+for noninteractive `-M:test`; no hook or test stage is skipped. This avoids adding
+an interactive editor dependency solely for the commit environment.
+
+Implementation commit: `660b287444cf444505c18d042753ec3cc1174c90`.
+Its normal pre-commit hook completes all 493 tests / 19125 assertions, namespace
+cleanup/format, Markdown lint and kondo without skipping a stage. The task-local
+noninteractive launcher changes no repository hook. The following evidence
+commit adds this immutable implementation reference only; final-head remote CI
+and the independent review URL are retained in the PR description.

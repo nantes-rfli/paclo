@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Changes after v1.4.0 belong here.
 
+### Performance
+
+- Index repeated DNS retired-key expiry in large states with immutable deadline
+  buckets. Small initial states retain the existing scan path. Standard EDN
+  state data, old snapshots, exact time, diagnostics and bounds stay compatible;
+  the optional metadata index adds bounded storage and a rebuild after restore.
+  See the [measured tradeoffs](dev/issue-37-retired-expiry-evaluation.md) (Issue #37).
+
 ## [1.4.0] - 2026-10-17
 
 This release includes P01–P08 and merged stabilization, performance and Java

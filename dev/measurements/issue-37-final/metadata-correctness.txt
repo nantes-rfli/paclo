@@ -1,0 +1,10 @@
+{:baseline "14a92d513de1c26dd7cdc059434acd409343278d", :runner-source-blob "11306f8fa7fe97420ccfea84fa04ba3b5253d64f", :heap-max 536870912, :reverse? false, :clojure "1.12.1", :dns-source-blob "85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6", :candidate-source "/tmp/paclo-dns-index-metadata.clj", :arch "x86_64", :jdk "21.0.12.1", :scope "correctness", :candidate-sha256 "63ee93ef0d68f19cd2bae4fb9e2988588621821002cd812a5117ffcbd4fd81e8", :warmups 5, :os "Mac OS X", :runs 7}
+
+Testing paclo.dns-test
+{:result true, :num-tests 200, :seed 1792237363790, :time-elapsed-ms 1515, :test-var "bounded-mixed-transitions"}
+{:result true, :num-tests 200, :seed 1792237365908, :time-elapsed-ms 384, :test-var "deterministic-bounded-edn"}
+{:result true, :num-tests 200, :seed 1792237366294, :time-elapsed-ms 26, :test-var "exact-single-use-rtt"}
+{:result true, :num-tests 300, :seed 1792237366391, :time-elapsed-ms 3055, :test-var "expiry-agrees-with-full-scan"}
+
+Ran 19 tests containing 298 assertions.
+0 failures, 0 errors.

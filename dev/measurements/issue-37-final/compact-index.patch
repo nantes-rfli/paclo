@@ -1,0 +1,52 @@
+--- a/src/paclo/dns.clj
++++ b/src/paclo/dns.clj
+@@ -101 +101 @@
+-     ::next-expiry-us nil}))
++     ::next-expiry-us nil ::retired-expiries (sorted-map)}))
+@@ -129,0 +130,14 @@
++(defn- index-key [index until k]
++  (assoc index until (if-let [existing (get index until)]
++                      (if (vector? existing) (conj existing k) [existing k])
++                      k)))
++
++(defn- retired-index [state]
++  ;; EDN maps lose their sorted type; legacy snapshots have no index at all.
++  (let [index (::retired-expiries state)]
++    (cond
++      (sorted? index) index
++      (some? index) (into (sorted-map) index)
++      :else (reduce-kv (fn [index k until] (index-key index until k))
++                       (sorted-map) (:retired state)))))
++
+@@ -137 +151,2 @@
+-      (-> (assoc-in [:retired k] until) (schedule until)))))
++      (-> (assoc ::retired-expiries (index-key (retired-index state) until k))
++          (assoc-in [:retired k] until) (schedule until)))))
+@@ -206,11 +221,10 @@
+-            retired
+-            (reduce-kv (fn [retained k until]
+-                         (let [next @minimum]
+-                           ;; This minimum is already above the watermark.
+-                           ;; Later times need neither another comparison nor
+-                           ;; another volatile write.
+-                           (cond
+-                             (and next (<= next until)) retained
+-                             (<= until watermark-us) (dissoc retained k)
+-                             :else (do (vreset! minimum until) retained))))
+-                       (:retired state) (:retired state))
++            [retired index]
++            (let [index (retired-index state)]
++              (if (and (seq index) (<= (key (first (rseq index))) watermark-us))
++                [{} (sorted-map)]
++                (loop [retired (:retired state) index index]
++              (if-let [[until ks] (first index)]
++                (if (<= until watermark-us)
++                  (recur (if (vector? ks) (reduce dissoc retired ks) (dissoc retired ks)) (dissoc index until))
++                  (do (remember! until) [retired index]))
++                [retired index]))))
+@@ -224 +238 @@
+-            state (assoc state :watermark-us watermark-us :retired retired ::next-expiry-us @minimum)]
++            state (assoc state :watermark-us watermark-us :retired retired ::retired-expiries index ::next-expiry-us @minimum)]
+@@ -232 +246 @@
+-  {:state (assoc state :pending {} :retired {} :finished? true ::next-expiry-us nil)
++  {:state (assoc state :pending {} :retired {} :finished? true ::next-expiry-us nil ::retired-expiries (sorted-map))

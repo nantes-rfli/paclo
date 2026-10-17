@@ -983,9 +983,19 @@ nil means no scheduled expiry; otherwise it is an integer lower bound on the
 next retained deadline. It may remain conservatively early after a match.
 Pass state back unchanged, or serialize/restore it as EDN; old snapshots without
 the hint remain accepted and establish it on the next advance. There is no
-mutable or per-key expiry index. Before the hint is reached, advance costs O(1).
-At or beyond it, scanning costs O(pending + retired), plus O(E log E) sorting
-for the E expired queries. Dense expiry can still require repeated full scans.
+mutable state. In published v1.4.0 there is no per-key expiry index: before the
+hint is reached, advance costs O(1); at or beyond it, scanning costs
+O(pending + retired), plus O(E log E) sorting for the E expired queries.
+Repeated actual expiry can require repeated full scans in that release.
+
+Unreleased source retains the same state data and public behavior, with an
+optional immutable deadline index in retired-map metadata for large states.
+Standard EDN print/read omits that cache; old/restored snapshots remain accepted
+and rebuild it when needed. Small initial states keep the scan path; an active
+index visits due deadlines instead of every live retired key. Index storage is
+O(retired), and rebuilding a large restored state costs O(retired log retired)
+once. No public option, new state-data key or relaxed retention limit is added.
+See [the evaluation and costs](../dev/issue-37-retired-expiry-evaluation.md).
 
 Exact transaction keys contain `:id`, `:protocol`, `:ip-version`, oriented
 `:client`/`:server` endpoints, `:qname`, `:qtype`, `:qclass`. Responses reverse

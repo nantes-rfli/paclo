@@ -354,7 +354,10 @@
     (is (= 2 (count (:retired state))))))
 
 (defn- without-expiry-hint [state]
-  (dissoc state :paclo.dns/next-expiry-us))
+  ;; Legacy EDN has neither the scalar hint nor the optional metadata index.
+  (-> state
+      (dissoc :paclo.dns/next-expiry-us)
+      (update :retired with-meta nil)))
 
 (defn- scan-advance
   "Simple reference: scan all keys and sort expired entries, with no hint."
@@ -451,3 +454,117 @@
                                   {:state next-state :ok? (and ok? (= actual reference legacy restored))}))
                               {:state initial :ok? true} actions)]
                   (and (:ok? results) (= initial (dns/init (assoc opts :max-pending 8 :max-retired 8)))))))
+
+(defn- valid-retired-index? [state]
+  (if-let [index (:paclo.dns/retired-expiries (meta (:retired state)))]
+    (let [members (for [[until ks] index k (if (vector? ks) ks [ks])] [k until])]
+      (and (= (count (:retired state)) (count members))
+           (= (:retired state) (into {} members))))
+    true))
+
+(deftest retired-expiry-cache-edn-boundaries-and-independent-snapshots
+  (let [queries (mapv #(assoc query :id % :time-us %) (range 1030))
+        state (reduce (fn [s q] (:state (dns/step (add s q) (response q (inc (:time-us q))))))
+                      (dns/init (assoc opts :max-retired 1030)) queries)
+        plain (edn/read-string (pr-str state))
+        with-printed-meta (edn/read-string (binding [*print-meta* true] (pr-str state)))
+        legacy (without-expiry-hint plain)
+        annotated (update state :retired vary-meta assoc :caller :retained)
+        frozen (binding [*print-meta* true] (pr-str state))]
+    (is (= #{:options :watermark-us :pending :retired :finished? :paclo.dns/next-expiry-us}
+           (set (keys plain))))
+    (is (nil? (meta (:retired plain))))
+    (doseq [w [149 150 151 155 1179 1180]]
+      (let [actual (dns/advance state w)
+            expected (scan-advance legacy w)]
+        (is (= expected (update actual :state without-expiry-hint)))
+        (is (= actual (dns/advance plain w) (dns/advance with-printed-meta w)
+               (dns/advance legacy w)))
+        (is (valid-retired-index? (:state actual)))
+        (is (= :retained (-> (dns/advance annotated w) :state :retired meta :caller)))))
+    (let [a (future (dns/advance state 150)) b (future (dns/advance plain 1179))]
+      (is (= 1029 (count (get-in (deref a 10000 :timeout) [:state :retired]))))
+      (is (empty? (get-in (deref b 10000 :timeout) [:state :retired]))))
+    (let [q (assoc query :id 2000 :time-us 10)
+          pending (add state q)
+          failure (try (dns/step pending (response q 11)) nil
+                       (catch clojure.lang.ExceptionInfo e [(ex-message e) (ex-data e)]))]
+      (is (= ["max-retired" {:reason :max-retired}] failure))
+      (is (= 1030 (count (:retired state))))
+      (is (valid-retired-index? pending)))
+    (is (= frozen (binding [*print-meta* true] (pr-str state))))
+    (is (= state plain))
+    (is (empty? (-> (dns/finish state) :state :retired meta)))))
+
+(declare indexed-expiry-agrees-with-scan)
+
+(defspec indexed-expiry-agrees-with-scan 100
+  (let [options {:timeout-us 20 :reuse-delay-us 50 :max-pending 8 :max-retired 1032}
+        seed (reduce (fn [s i]
+                       (let [q (assoc query :id i :time-us i)]
+                         (:state (dns/step (add s q) (response q (inc i))))))
+                     (dns/init options) (range 1030))
+        seed (:state (dns/advance seed 69))
+        frozen (binding [*print-meta* true] (pr-str seed))
+        invoke (fn [f s]
+                 (try (f s)
+                      (catch clojure.lang.ExceptionInfo e {:error [(ex-message e) (ex-data e)]})))
+        plain-result #(if (:state %) (update % :state without-expiry-hint) %)]
+    (prop/for-all [actions (gen/vector (gen/tuple (gen/elements [:query :response :advance])
+                                                  (gen/one-of [(gen/choose 0 31) (gen/choose 1030 1055)])
+                                                  (gen/choose -20 20) (gen/choose 0 4)) 0 40)]
+                  (let [restored (edn/read-string (pr-str seed))
+                        result
+                        (reduce (fn [{:keys [actual reference restored cursor ok?]} [kind id offset increment]]
+                                  (let [cursor (+ cursor increment)
+                                        t (+ cursor offset)
+                                        w (max cursor (or (:watermark-us actual) cursor))
+                                        q (assoc query :id id :time-us t)
+                                        event (if (= kind :query) q (response q t))
+                                        run (if (= kind :advance) #(dns/advance % w) #(dns/step % event))
+                                        scan (if (= kind :advance) #(scan-advance % w) #(dns/step % event))
+                                        a (invoke run actual) b (invoke scan reference) c (invoke run restored)
+                                        next-a (if (:error a) actual (:state a))
+                                        next-b (if (:error b) reference (without-expiry-hint (:state b)))
+                                        next-c (if (:error c) restored (:state c))]
+                                    {:actual next-a :reference next-b :restored next-c :cursor cursor
+                                     :ok? (and ok? (= (plain-result a) (plain-result b) (plain-result c))
+                                               (valid-retired-index? next-a) (valid-retired-index? next-c)
+                                               (<= (count (:pending next-a)) 8)
+                                               (<= (count (:retired next-a)) 1032))}))
+                                {:actual seed :reference (without-expiry-hint seed) :restored restored
+                                 :cursor 69 :ok? true} actions)]
+                    (and (:ok? result)
+                         (= (:actual result) (:restored result))
+                         (= (:actual result) (edn/read-string (pr-str (:actual result))))
+                         (= frozen (binding [*print-meta* true] (pr-str seed))))))))
+
+(deftest indexed-expiry-preserves-promoting-time-and-earlier-retries
+  (doseq [t [Long/MIN_VALUE Long/MAX_VALUE 1267650600228229401496703205376N]]
+    (let [options (assoc opts :max-retired 1030)
+          seed (reduce (fn [s i]
+                         (let [q (assoc query :id i :time-us (+' t i))]
+                           (:state (dns/step (add s q) (response q (+' (:time-us q) 1))))))
+                       (dns/init options) (range 1030))
+          plain (edn/read-string (pr-str seed))]
+      (is (some? (:paclo.dns/retired-expiries (meta (:retired seed)))))
+      (doseq [w [(+' t 149) (+' t 150) (+' t 1179)]]
+        (let [actual (dns/advance seed w)]
+          (is (= (scan-advance (without-expiry-hint plain) w)
+                 (update actual :state without-expiry-hint)))
+          (is (= actual (dns/advance plain w)))
+          (is (valid-retired-index? (:state actual)))))
+      (let [live (:state (dns/advance seed (+' t 150)))
+            q (assoc query :id 2000 :time-us (+' t 160))
+            retried (add (add live q) (assoc q :time-us (+' t 150)))
+            at (dns/advance retried (+' t 250))]
+        (is (empty? (:events (dns/advance retried (+' t 249)))))
+        (is (= [:timeout] (kinds at)))
+        (is (= (+' t 250) (get-in at [:events 0 :deadline-us])))
+        (is (= 1 (get-in at [:events 0 :retransmissions])))
+        (is (= (scan-advance (without-expiry-hint retried) (+' t 250))
+               (update at :state without-expiry-hint)))
+        (is (valid-retired-index? (:state at)))
+        (is (= (dns/advance (:state at) (+' t 300))
+               (dns/advance (edn/read-string (pr-str (:state at))) (+' t 300)))))
+      (is (= seed plain)))))

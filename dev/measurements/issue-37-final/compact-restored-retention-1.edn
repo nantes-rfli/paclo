@@ -1,0 +1,7 @@
+{:baseline "14a92d513de1c26dd7cdc059434acd409343278d", :runner-source-blob "a6acc0242725090325a2b65741f4a598f5533068", :heap-max 536870912, :reverse? false, :clojure "1.12.1", :dns-source-blob "85d9fea2b46d9666165fe2cfdb414a3fc64b4ce6", :candidate-source "/tmp/paclo-dns-index-compact.clj", :arch "x86_64", :jdk "21.0.12.1", :scope "restored-retention", :candidate-sha256 "36e4731997d8bfcdd56227057cdbe89ff7dffb64ae70e6f44b2473f5131af11c", :warmups 5, :os "Mac OS X", :runs 7}
+{:restored-retention [1000 :baseline], :roots 5, :entries 5000, :estimated-heap-bytes 2188840}
+{:restored-retention [1000 :current], :roots 5, :entries 5000, :estimated-heap-bytes 5279208}
+{:restored-retention [10000 :baseline], :roots 5, :entries 50000, :estimated-heap-bytes 25187784}
+{:restored-retention [10000 :current], :roots 5, :entries 50000, :estimated-heap-bytes 50270488}
+{:restored-retention [100000 :baseline], :roots 1, :entries 100000, :estimated-heap-bytes 50935368}
+{:restored-retention [100000 :current], :roots 1, :entries 100000, :estimated-heap-bytes 101941304}
