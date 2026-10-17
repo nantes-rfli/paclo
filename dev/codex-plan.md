@@ -43,17 +43,15 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **Issue #37 DNS performance investigation and measured optimization**.
-PR #55 merged as `6095c7f` and PR #56 as `452de98`; Issue #34 is closed.
-Issue #37 starts independently from main `452de98` and retains both flow changes.
-Issue #37 investigation, measured implementation and local verification are complete;
-see [the performance report](issue-37-dns-performance.md). Repeated actual retired
-expiry remains a documented tradeoff; Issue closure belongs to independent review.
-[PR #57](https://github.com/nantes-rfli/paclo/pull/57) is open; its implementation
-head `f507d42` passes all twelve unchanged CI jobs. Final-head CI is recorded on
-the PR after the verification-only documentation updates.
-Next unfinished item: independent review of PR #57, including the retired-expiry
-tradeoff and Issue #37 closure decision. Do not merge before review.
+Current task: **Issue #44 Ethernet decode performance investigation**.
+PR #57 merged as `e444b10`; this independent task starts from that main.
+Investigation, measured implementation and local verification are complete;
+see [the performance report](issue-44-ethernet-performance.md). Preserve all
+negative results and leave Issue closure to independent acceptance review.
+Next unfinished item: independent review of
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58), including Issue #44's
+remaining JIT/measurement limits. Final-head CI evidence is maintained there.
+Do not merge before review.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -69,6 +67,24 @@ P08-B1 merged through [PR #41](https://github.com/nantes-rfli/paclo/pull/41)
 at `c729e19`. P08-A merged through PR #38 at `8663e69`.
 Implement one reviewable item or a documented slice at a time. Update this
 queue after completion; do not start all phases together.
+
+## Performance follow-up: Issue #44
+
+Status: **done** for investigation, implementation and local verification,
+from main `e444b10ba84513b460916482e1236c202fa27b84` on
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58); independent review remains.
+The [report](issue-44-ethernet-performance.md) and 944 raw comparison pairs retain
+B2/C/D2/current baselines, two-JVM multi-DLT/VLAN/IPv4/IPv6 transformation/native
+Classic/PCAPNG/fixture replay, CPU/allocation/GC/retention and JIT controls.
+Only private char-array stores change: Ethernet Full improves 9.1–76.1% in
+transformation and 9.6–32.3% with native reads; cooked Full also improves, with
+allocation parity. Flow is unchanged; negative/noisy rows and rejected VLAN/DLT
+candidates remain documented. No old-speed, live/NIC or equivalence claim.
+Local 490 tests / 19036 assertions, ten JUnit, all 112 Eastwood namespaces,
+34 executable docs, fixtures, Java quality, unchanged 457.4 ms performance gate
+and two independent JAR consumers pass. Final-head CI is recorded on the PR.
+Issue #44 stays open for acceptance; Issue #37 remaining work, P09/P10, versions,
+releases and merge are excluded.
 
 ## Performance follow-up: Issue #37
 

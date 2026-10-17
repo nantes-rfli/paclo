@@ -158,12 +158,14 @@
   (.position buffer (int offset))
   (if (zero? length)
     ""
-    (let [result (char-array (dec (* length 3)))]
+    ;; aset with a primitive array type compiles to a direct char store.
+    ;; aset-char goes through java.lang.reflect.Array/setChar on this hot path.
+    (let [^chars result (char-array (dec (* length 3)))]
       (dotimes [index length]
         (let [value (bit-and (.get buffer) 0xff) output (* index 3)]
-          (aset-char result output (.charAt ^String hex-digits (int (bit-shift-right value 4))))
-          (aset-char result (inc output) (.charAt ^String hex-digits (int (bit-and value 15))))
-          (when (< index (dec length)) (aset-char result (+ output 2) \:))))
+          (aset result (int output) (.charAt ^String hex-digits (int (bit-shift-right value 4))))
+          (aset result (int (inc output)) (.charAt ^String hex-digits (int (bit-and value 15))))
+          (when (< index (dec length)) (aset result (int (+ output 2)) \:))))
       (String. result))))
 
 (defn header

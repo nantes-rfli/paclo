@@ -1,0 +1,14 @@
+diff --git a/src/paclo/linktype.clj b/src/paclo/linktype.clj
+index b77c329..e24aae8 100644
+--- a/src/paclo/linktype.clj
++++ b/src/paclo/linktype.clj
+@@ -161 +161 @@
+-    (let [result (char-array (dec (* length 3)))]
++    (let [^chars result (char-array (dec (* length 3)))]
+@@ -164,3 +164,3 @@
+-          (aset-char result output (.charAt ^String hex-digits (int (bit-shift-right value 4))))
+-          (aset-char result (inc output) (.charAt ^String hex-digits (int (bit-and value 15))))
+-          (when (< index (dec length)) (aset-char result (+ output 2) \:))))
++          (aset result (int output) (.charAt ^String hex-digits (int (bit-shift-right value 4))))
++          (aset result (int (inc output)) (.charAt ^String hex-digits (int (bit-and value 15))))
++          (when (< index (dec length)) (aset result (int (+ output 2)) \:))))
