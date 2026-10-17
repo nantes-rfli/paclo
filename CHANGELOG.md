@@ -7,45 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-P01–P08 and the follow-ups below are implemented on repository main. No stable
-release after v1.3.0 has been published. Phase-specific exclusions below describe
-each change's scope; PCAPNG metadata I/O is now provided separately by P08-E2/E3.
-Version candidates and migration risks are recorded in the
-[release readiness audit](dev/release-readiness-p06-p08.md).
+Future changes after the v1.4.0 candidate belong here.
 
-### Fixed — Distribution compatibility
+## [1.4.0] (unreleased)
 
-- Compile Java bindings with `javac --release 17` on both supported JDKs.
-  JDK 21-built distribution JARs now contain Java 17-compatible bytecode and
-  cannot compile references to newer JDK APIs. CI runs the same packaged JAR
-  in isolated JDK 17 and JDK 21 consumers, checking contents, POM and SHA-256.
-  No packet processing or public API behavior changes.
+Approved release scope; **not published**. The release date is intentionally
+unset. Replace this heading with `## [1.4.0] - YYYY-MM-DD` only when the actual
+publication date is confirmed. v1.3.0 remains the latest published stable version.
 
-### Performance
+This candidate includes P01–P08 and merged stabilization, performance and Java
+compatibility fixes; P09/P10 are excluded. The
+[migration guide](docs/migration-from-1.3.md) explains Writer metadata precedence
+and stricter validation, exact bounded DNS reports and explicit CLI failures.
+See the [release notes draft](docs/release-notes-1.4.0.md) and
+[acceptance checklist](dev/release-1.4.0-checklist.md) for scope and evidence.
+Phase-specific exclusions below describe each change's scope; PCAPNG metadata
+I/O is now provided separately by P08-E2/E3.
 
-- Avoid DNS expiry scans before the next possible deadline using one immutable
-  integer hint; sort only expired queries. Strict matching, diagnostics, bounds,
-  exact time, old EDN snapshots and CLI reports remain supported (Issue #37).
-- Reuse stored keys when updating hash-map flow aggregates, reducing temporary
-  allocation on revisited flows. Small maps and other caller-supplied map types
-  retain the previous path; public API, immutable snapshots and exact counters
-  are unchanged.
-- Reduce temporary allocation in exact flow aggregation with single-key persistent
-  map updates and indexed IPv6 word access. Public keys, exact counters, bounds
-  and immutable reducer snapshots retain their existing contract (Issue #34).
-
-### Fixed — Issue #40 investigation
-
-- Managed capture serializes native break/close during concurrent stop/close,
-  preventing a stop caller from using a freed handle. Close clears any packet
-  offered during shutdown after the producer has finished.
-- Documented the reproduced legacy lazy capture limitation: abandoning a full
-  blocking queue can retain its producer/native source indefinitely, past
-  count/time/predicate limits. No automatic abandonment detection or lazy API
-  behavior change is introduced. Offline/live prefix examples use `with-open`
-  managed capture; synchronous `reduced` is also a deterministic alternative.
-
-### Added — P08-E3
+### Added
 
 - `paclo.pcapng/write-pcapng!` synchronously writes ordered SHB/IDB/EPB/SPB and
   permitted opaque events, preserving mixed section byte orders/interfaces,
@@ -55,8 +34,6 @@ Version candidates and migration risks are recorded in the
   a closed sibling temp via exclusive atomic rename on supported Linux/macOS
   filesystems, refusing existing names and unsafe fallbacks. Primary failures and
   cleanup details survive; Classic `core/write-pcap!` is unchanged.
-
-### Added
 
 - P08-E2 review corrections: enforce the packet byte ceiling from fixed EPB/SPB
   headers before allocating/reading the remaining block body. Positive regression
@@ -166,6 +143,10 @@ Version candidates and migration risks are recorded in the
 
 ### Changed
 
+- P01: align current public API documentation and examples with implemented
+  behavior, separate historical records and verify maintained examples in CI.
+  Complete the v1.3.0 → v1.4.0 migration guide for Writer and CLI changes.
+
 - Issue #44: construct full-decode Ethernet/cooked address strings with direct
   primitive char-array stores, avoiding reflective writes. Shared framing,
   public packet/VLAN shapes, diagnostics and numeric flow projection are unchanged.
@@ -195,6 +176,21 @@ Version candidates and migration risks are recorded in the
 
 ### Fixed
 
+- Compile Java bindings with `javac --release 17` on both supported JDKs.
+  JDK 21-built distribution JARs now contain Java 17-compatible bytecode and
+  cannot compile references to newer JDK APIs. CI runs the same packaged JAR
+  in isolated JDK 17 and JDK 21 consumers, checking contents, POM and SHA-256.
+  No packet processing or public API behavior changes.
+
+- Managed capture serializes native break/close during concurrent stop/close,
+  preventing a stop caller from using a freed handle. Close clears any packet
+  offered during shutdown after the producer has finished.
+- Documented the reproduced legacy lazy capture limitation: abandoning a full
+  blocking queue can retain its producer/native source indefinitely, past
+  count/time/predicate limits. No automatic abandonment detection or lazy API
+  behavior change is introduced. Offline/live prefix examples use `with-open`
+  managed capture; synchronous `reduced` is also a deterministic alternative.
+
 - P08-B2: reject explicit invalid/mismatched packet DLTs, mixed-DLT sequences,
   caplen above snaplen and invalid/unknown options. Non-Ethernet maps previously
   mislabeled Ethernet by two-argument calls now require matching `{:linktype dlt}`.
@@ -214,8 +210,8 @@ Version candidates and migration risks are recorded in the
   Non-report callers can observe failures through `:on-error`.
 - Failed offline/live/configured setup closes its native handle once, including
   BPF/netmask failures, without masking the original cause. Lazy terminal/error
-  notification no longer blocks on a full packet queue. Early abandonment of
-  still-running lazy delivery remains issue #40; managed capture supports close.
+  notification no longer blocks on a full packet queue. Legacy lazy abandonment
+  remains an accepted limitation from Issue #40; managed capture supports close.
 
 - P02: `write-pcap!` accepts read packet maps directly, preserving packet bytes,
   timestamps, captured lengths and original lengths, including truncated records.
@@ -228,6 +224,19 @@ Version candidates and migration risks are recorded in the
   DLT options as described above. Source global
   headers and timestamp precision are not copied; older libpcap's post-2038
   timestamp interpretation remains a native limitation.
+
+### Performance
+
+- Avoid DNS expiry scans before the next possible deadline using one immutable
+  integer hint; sort only expired queries. Strict matching, diagnostics, bounds,
+  exact time, old EDN snapshots and CLI reports remain supported (Issue #37).
+- Reuse stored keys when updating hash-map flow aggregates, reducing temporary
+  allocation on revisited flows. Small maps and other caller-supplied map types
+  retain the previous path; public API, immutable snapshots and exact counters
+  are unchanged.
+- Reduce temporary allocation in exact flow aggregation with single-key persistent
+  map updates and indexed IPv6 word access. Public keys, exact counters, bounds
+  and immutable reducer snapshots retain their existing contract (Issue #34).
 
 ## [1.3.0] - 2026-08-01
 

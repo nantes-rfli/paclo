@@ -14,12 +14,15 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - Stable release: `v1.3.0` (published on August 1, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Repository main: P01–P08 and stabilization/performance follow-ups implemented
-  in `[Unreleased]`; see the [roadmap](docs/ROADMAP.md) and
-  [release readiness audit](dev/release-readiness-p06-p08.md)
+- Release candidate: **v1.4.0, not published**, with P01–P08 and merged
+  stabilization/performance/build fixes; P09/P10 are excluded. See the
+  [release notes draft](docs/release-notes-1.4.0.md),
+  [migration guide](docs/migration-from-1.3.md) and [roadmap](docs/ROADMAP.md)
 
 The install coordinates below still select v1.3.0. Features marked `[Unreleased]`
-require repository main and are not in that published artifact.
+belong to the v1.4.0 candidate and require repository source or a locally built
+candidate JAR; they are not in the published v1.3.0 artifact. No v1.4.0 Clojars
+coordinate or Git tag is available yet.
 
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
@@ -457,9 +460,11 @@ The representative matrix is Linux x86_64/JDK 21, macOS arm64/JDK 17, and
 Linux arm64/JDK 21. The architecture assertions prevent floating runner labels
 from silently changing the coverage represented by a job name.
 
-The JDK 17 job validates a source build. The release audit found that JDK 21
-packaging currently emits Java 21 classes; [distribution compatibility](dev/release-readiness-p06-p08.md#release-blocker-java-17-distribution)
-must be fixed and verified before the next stable release.
+The v1.4.0 candidate compiles bindings with `--release 17` (class-file major 61),
+including when built on JDK 21. Two checkout-free CI consumers run the same
+JDK 21-built JAR on JDK 17 and 21. The published v1.3.0 JAR contains major-65
+classes and requires JDK 21; JDK 17 users of v1.3.0 must build from source.
+See [distribution evidence](dev/release-1.4.0-checklist.md#distribution-verification).
 
 ## Performance baselines
 

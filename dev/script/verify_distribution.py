@@ -176,7 +176,7 @@ def main():
     prep = commands.add_parser("prepare")
     prep.add_argument("jar", type=Path)
     prep.add_argument("output", type=Path)
-    prep.add_argument("--version", default="1.3.0-SNAPSHOT")
+    prep.add_argument("--version", default="1.4.0-SNAPSHOT")
     for command in ("verify", "consume"):
         sub = commands.add_parser(command)
         sub.add_argument("bundle", type=Path)

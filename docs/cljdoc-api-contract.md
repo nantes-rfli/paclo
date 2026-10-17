@@ -2,9 +2,10 @@
 
 This page defines the stable library contract for v1.x.
 It focuses on user-facing namespaces. Sections marked `[Unreleased]` describe
-repository main, beyond published v1.3.0; see the
-[release readiness audit](../dev/release-readiness-p06-p08.md) for migration
-risks and version decisions.
+the approved v1.4.0 candidate, beyond published v1.3.0. v1.4.0 is not published
+yet. See the [v1.3.0 → v1.4.0 migration guide](migration-from-1.3.md) for Writer
+metadata/validation and DNS CLI behavior changes, and the
+[release checklist](../dev/release-1.4.0-checklist.md) for acceptance status.
 
 ## Scope
 

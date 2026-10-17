@@ -78,13 +78,14 @@ jobs:
         shell: bash
         run: |
           set -e
-          # Keep JAR/package validation and compiled classes for subsequent checks.
-          clojure -T:build jar
+          # Build one unpublished v1.4.0 candidate for both runtime consumers.
+          # Keep compiled classes for subsequent checks.
+          PACLO_VERSION=1.4.0 clojure -T:build jar
 
       - name: Verify JDK 21 distribution and prepare independent consumer
         run: |
           python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'
-          python3 dev/script/verify_distribution.py prepare target/paclo-1.3.0-SNAPSHOT.jar target/distribution
+          python3 dev/script/verify_distribution.py prepare target/paclo-1.4.0.jar target/distribution --version 1.4.0
 
       - name: Upload the single JDK 21 distribution
         uses: actions/upload-artifact@v4
@@ -106,6 +107,9 @@ jobs:
         run: |
           bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
           bash dev/script/codex.sh smoke
+
+      - name: Verify release metadata guard
+        run: python3 -B -m unittest discover -s dev/script -p 'test_verify_release_metadata.py'
 
       - name: SpotBugs
         shell: bash

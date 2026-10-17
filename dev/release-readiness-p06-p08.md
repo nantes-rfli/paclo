@@ -12,6 +12,13 @@ current 14-job CI/artifact evidence and release scope. The
 [migration draft](../docs/migration-from-1.3.md) is for v1.3.0 users.
 The original measurements below remain dated historical evidence.
 
+Subsequent maintainer decision: **v1.4.0 release preparation is approved**, retaining
+D1 Writer correctness/validation and D2 exact bounded DNS/failure semantics.
+PR #61 is merged as `82705b9`. P01–P08 and merged fixes are included; P09/P10 are
+excluded. Publication is not authorized. The [v1.4.0 checklist](release-1.4.0-checklist.md)
+and [migration guide](../docs/migration-from-1.3.md) supersede the pending-decision
+and proposed release sequence below. The actual release date remains unset.
+
 **Decision: proceed with release preparation, but do not publish yet.** The
 Java 17 distribution mismatch identified by the audit is corrected in
 [PR #60](https://github.com/nantes-rfli/paclo/pull/60), with the same JDK 21-built
