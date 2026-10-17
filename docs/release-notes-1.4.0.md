@@ -1,11 +1,12 @@
 <!-- markdownlint-disable MD013 -->
-# Paclo v1.4.0 release notes — draft
+# Paclo v1.4.0 release notes
 
-**Publication authorized for 2026-10-17 (Asia/Tokyo); deployment pending.**
-Until publication is verified, v1.3.0 remains the latest stable version and its
-README installation coordinates remain unchanged. The final release commit must
-pass all gates and a fresh Publish dry-run before the v1.4.0 tag is pushed.
-See the [release checklist](../dev/release-1.4.0-checklist.md) for execution status.
+**Released 2026-10-17 (Asia/Tokyo).**
+[Clojars 1.4.0](https://clojars.org/org.clojars.nanto/paclo/versions/1.4.0) and
+[GitHub Release v1.4.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0)
+are available. Published JAR/POM hashes match the tag-triggered Publish artifacts;
+independent JDK 17/21 consumers passed on the actual downloaded Clojars bytes.
+See the [publication record](../dev/release-1.4.0-publication.md) for source and evidence.
 
 Paclo v1.4.0 prepares packet preservation and bounded analysis for ordinary
 Clojure data workflows. It includes P01–P08 and merged correctness, lifecycle,
@@ -32,7 +33,7 @@ borrowed buffers, batching, parallel decode and mmap are outside this release.
 - Fix the managed native stop/close race and reduce measured Flow allocation,
   DNS premature expiry scans and full-decode address formatting costs.
 - Ship Java 17-compatible binding classes (major 61), built with `--release 17`
-  even on JDK21; CI runs one candidate JAR in independent JDK17/21 consumers.
+  even on JDK21; CI runs one distribution JAR in independent JDK17/21 consumers.
 
 ## Migration from v1.3.0
 
@@ -62,11 +63,12 @@ The [CHANGELOG](../CHANGELOG.md#140---2026-10-17) has the detailed change invent
 
 ## Availability and limits
 
-Keep the [README installation coordinates](../README.md#install) at v1.3.0 until
-publication. A local `PACLO_VERSION=1.4.0` JAR is a candidate, not evidence of a
-Clojars release. The development default is `1.4.0-SNAPSHOT`. The published
-v1.3.0 JAR contains Java21 bytecode; Java17 users of that version need a source
-build. v1.4.0's packaged classes restore the advertised Java17 baseline.
+Use the [README installation coordinates](../README.md#install) for v1.4.0.
+Clojure 1.12.x, JDK 17/21 and system libpcap remain supported. The development
+default is still `1.4.0-SNAPSHOT`; it is distinct from the published artifact.
+The earlier v1.3.0 JAR remains available and contains Java 21 bytecode; Java 17
+users of that version need a source build. v1.4.0's packaged classes restore the
+advertised Java 17 baseline.
 
 [Issue #37](https://github.com/nantes-rfli/paclo/issues/37) stays open and
 non-blocking: repeated actual retired-key expiry and long production-trace
@@ -84,7 +86,7 @@ private/opaque meanings. Native core PCAPNG reads still lose rich metadata and
 normalize time to microseconds. Other OSes and live performance targets have
 not been validated by offline CI.
 
-Review the [final acceptance checklist](../dev/release-1.4.0-checklist.md) for
-quality evidence, the final PR's commit-specific checks and remaining publication
-steps. The completed dry-run validates its recorded source only; any changed
-release commit requires fresh validation before publication.
+Review the [acceptance checklist](../dev/release-1.4.0-checklist.md) and
+[publication record](../dev/release-1.4.0-publication.md) for measured quality,
+artifact identities and remaining validation limits. Historical dry-run reports
+retain their original source/build identities.

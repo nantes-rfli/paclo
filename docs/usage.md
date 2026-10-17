@@ -348,7 +348,7 @@ counters. A dropping queue never returns dropped packets to the consumer.
                   "out.pcap")
 ```
 
-P02 in `[Unreleased]` accepts read packet maps directly. A complete
+P02 in `v1.4.0` accepts read packet maps directly. A complete
 `:ts-sec`/`:ts-usec` pair takes precedence over legacy `:sec`/`:usec`, even when
 the pairs conflict. Seconds must be integers in `0..4294967295`, microseconds
 in `0..999999`; zero is valid. A partial new pair or invalid complete selected
@@ -385,7 +385,7 @@ packets. Use your own Ethernet PCAP path and output path in an application.
     (finally (.delete out))))
 ```
 
-P08-B2 in `[Unreleased]` adds a third options map. Defaults remain
+P08-B2 in `v1.4.0` adds a third options map. Defaults remain
 `{:linktype 1 :snaplen 65536}`; `:linktype` is a nonnegative native libpcap DLT
 integer in `0..2147483647`, and `:snaplen` is an integer in `1..2147483647`.
 Unknown options (including `:format`) and explicit invalid values such as nil
@@ -485,7 +485,7 @@ is included in the dependency JAR.
 
 See [decode extensions](extensions.md) for the full contract and an executable
 example of independent DNS/TLS fan-out branches. Treat shared packet bytes as
-read-only. Explicit selection and public annotations are in `[Unreleased]` (P03).
+read-only. Explicit selection and public annotations are in `v1.4.0` (P03).
 
 ## CLI workflows
 
@@ -802,7 +802,7 @@ propagate after channel cleanup. EDN/JSONL and blocking/dropping modes remain.
 
 ## Pure bounded time windows
 
-The P07-A APIs are available in `[Unreleased]`. Supply event time and watermark
+The P07-A APIs are available in `v1.4.0`. Supply event time and watermark
 explicitly; they never read a clock or retain all output. Each consumer starts
 with its own state. Here all packet times come from the real offline fixture;
 the final watermark is an explicit caller decision. This example intentionally

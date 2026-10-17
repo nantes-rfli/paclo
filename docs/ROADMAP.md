@@ -21,6 +21,10 @@ It is intentionally concise and focuses on user-visible outcomes.
 - `v1.3.0` (released, 2026-08-01): composable packet transforms and
   bounded, observable multi-consumer fan-out
 
+- `v1.4.0` (released, 2026-10-17): metadata-preserving capture I/O, explicit
+  extensions/diagnostics, bounded Flow/Window/DNS analysis, multi-DLT decoding
+  and metadata-aware PCAPNG read/write
+
 ## Released milestones and historical evidence
 
 - v1.0: stable API, publication, Clojars and cljdoc support; details in
@@ -31,6 +35,8 @@ It is intentionally concise and focuses on user-visible outcomes.
   details in [v1.2 release record](archive/release-v1.2.0-checklist.md).
 - v1.3: packet transformations and bounded multi-consumer fan-out;
   details in [v1.3 release record](archive/release-v1.3.0-checklist.md).
+- v1.4: packet preservation, bounded analysis and PCAPNG metadata;
+  details in [v1.4 publication record](../dev/release-1.4.0-publication.md).
 
 The canonical release-by-release change list is [CHANGELOG](../CHANGELOG.md).
 Completed acceptance checks remain in the archived checklists, not in this live
@@ -41,18 +47,18 @@ roadmap. The current CI gates and developer procedures are documented in
 
 The accepted next-development queue is maintained in
 [`dev/codex-plan.md`](../dev/codex-plan.md), with dependencies and acceptance criteria.
-P01–P08 are implemented and merged for the approved **v1.4.0 candidate (unreleased)**, including
+P01–P08 are implemented and published in **v1.4.0 (2026-10-17)**, including
 packet metadata preservation, explicit extensions, diagnostics, flow/window/DNS
 analysis, Linux/macOS multi-DLT decoding and metadata-aware PCAPNG I/O.
 Stabilization and measured flow/DNS/Ethernet improvements are also merged.
 The plan assigns completed items to v1.4.0; older phase labels in historical
 records do not imply separate releases. Developer setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-`v1.3.0` remains the published stable version. v1.4.0 preparation retains the
-approved Writer correctness/validation and DNS bounded-report/failure policies;
-see the [migration guide](migration-from-1.3.md), [release notes draft](release-notes-1.4.0.md)
-and [acceptance checklist](../dev/release-1.4.0-checklist.md). No publication date
-is assigned, and publication requires separate authorization.
+`v1.4.0` is the published stable version, retaining approved Writer correctness/
+validation and DNS bounded-report/failure policies. See the
+[migration guide](migration-from-1.3.md), [release notes](release-notes-1.4.0.md)
+and [publication record](../dev/release-1.4.0-publication.md) for actual release
+artifacts and acceptance evidence.
 Issue #37 remains a non-blocking DNS performance follow-up. PR #58 is reviewed
 and merged; Issue #44 remains open pending issue-level acceptance. P09/P10
 remain blocked on a concrete integration need or measured workload shortfall.

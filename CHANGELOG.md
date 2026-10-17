@@ -15,7 +15,7 @@ This release includes P01–P08 and merged stabilization, performance and Java
 compatibility fixes; P09/P10 are excluded. The
 [migration guide](docs/migration-from-1.3.md) explains Writer metadata precedence
 and stricter validation, exact bounded DNS reports and explicit CLI failures.
-See the [release notes draft](docs/release-notes-1.4.0.md) and
+See the [release notes](docs/release-notes-1.4.0.md) and
 [acceptance checklist](dev/release-1.4.0-checklist.md) for scope and evidence.
 Phase-specific exclusions below describe each change's scope; PCAPNG metadata
 I/O is now provided separately by P08-E2/E3.

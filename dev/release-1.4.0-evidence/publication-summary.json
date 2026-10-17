@@ -1,0 +1,16 @@
+{
+  "release_source": "74a17b00c0f20f3ab51ef4aa10578088ccafe923",
+  "tag_object": "fb98630904ec1f9cef9604d387c1289c07480514",
+  "publication_date_jst": "2026-10-17",
+  "main_ci": 39017426361,
+  "dependency_audit": 39017436182,
+  "final_dry_run": 39017696585,
+  "tag_publish": 39017886556,
+  "published_jar_sha256": "fe70ac9005edfea4d48fee30c69383ce3dd814e0e56c8b432d573193fc26eb2e",
+  "published_pom_sha256": "91a5f668b7e9daf06735f09a10efe9dba9daec8946704cc7ce696456d2338d56",
+  "clojars_artifacts_match_tag_publish": true,
+  "v1_3_0_jar_unchanged": true,
+  "github_release_url": "https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0",
+  "github_release_published_at": "2026-10-17T08:38:16Z",
+  "initial_cljdoc_build": 117558
+}

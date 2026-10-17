@@ -82,7 +82,7 @@ functions are pure, the same input and vector produce deterministic output.
    conj []))
 ```
 
-These APIs are additions in `[Unreleased]` (P03); v1.3.0 uses global hooks.
+These APIs are additions in `v1.4.0` (P03); v1.3.0 uses global hooks.
 
 ## Independent fan-out branches
 

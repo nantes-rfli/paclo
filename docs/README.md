@@ -13,7 +13,7 @@ documented separately from historical release and design records.
 - [Performance measurement](performance.md)
 - [Migration from v1.3.0 to v1.4.0](migration-from-1.3.md)
 - [Migration guide (0.4 to 1.0)](migration-0.4-to-1.0.md)
-- [v1.4.0 release notes draft (not published)](release-notes-1.4.0.md)
+- [v1.4.0 release notes](release-notes-1.4.0.md)
 - [Roadmap](ROADMAP.md)
 - [API on cljdoc](https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT)
 

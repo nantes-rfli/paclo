@@ -1,9 +1,9 @@
 # Metadata-aware PCAPNG reading and writing
 
-These APIs are implemented in the **v1.4.0 candidate (not published)**,
-marked `[Unreleased]` (P08-E2/E3), beyond published v1.3.0. They require candidate
-source/JARs until publication. See the [migration guide](migration-from-1.3.md)
-and [release notes draft](release-notes-1.4.0.md).
+These APIs are available in **v1.4.0**, published on 2026-10-17 (P08-E2/E3),
+beyond v1.3.0. See the [migration guide](migration-from-1.3.md),
+[release notes](release-notes-1.4.0.md) and
+[publication evidence](../dev/release-1.4.0-publication.md).
 The native capture API remains a separate input path.
 
 `paclo.pcapng/open-source` reads an offline PCAPNG file through a bounded Java
