@@ -1,0 +1,10 @@
+
+Testing paclo.dns-test
+{:result true, :num-tests 200, :seed 1792239620309, :time-elapsed-ms 1335, :test-var "bounded-mixed-transitions"}
+{:result true, :num-tests 200, :seed 1792239622650, :time-elapsed-ms 273, :test-var "deterministic-bounded-edn"}
+{:result true, :num-tests 100, :seed 1792239622974, :time-elapsed-ms 17486, :test-var "indexed-expiry-agrees-with-scan"}
+{:result true, :num-tests 200, :seed 1792239640688, :time-elapsed-ms 18, :test-var "exact-single-use-rtt"}
+{:result true, :num-tests 300, :seed 1792239640780, :time-elapsed-ms 3118, :test-var "expiry-agrees-with-full-scan"}
+
+Ran 22 tests containing 387 assertions.
+0 failures, 0 errors.

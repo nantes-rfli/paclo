@@ -1,0 +1,1 @@
+{:libpcap "libpcap version 1.10.1", :jdk "21.0.12.1", :os-version "15.4.1", :gc ["G1 Young Generation" "G1 Concurrent GC" "G1 Old Generation"]}

@@ -1,5 +1,9 @@
 # Issue #37: bounded DNS analysis performance
 
+Subsequent post-v1.4.0 work evaluates only the remaining actual retired-key
+expiry scan: [final evaluation and measured tradeoffs](issue-37-retired-expiry-evaluation.md).
+The PR #57 measurements and decisions below remain historical evidence.
+
 Investigation date: 2026-10-17 (Asia/Tokyo). Fixed correct baseline:
 `452de98cf6d1a604e5823e80dc1cf5edadfe4b67`, after merged PRs #55/#56.
 Those flow optimizations are retained without changes. Issue #34 remains closed;

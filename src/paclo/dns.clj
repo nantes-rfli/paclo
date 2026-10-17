@@ -127,6 +127,26 @@
     (update state ::next-expiry-us earlier deadline)
     state))
 
+;; Keep small initial states on the existing scan path. Once built, the
+;; persistent cache stays with the retired map until that map is empty.
+(def ^:private retired-index-threshold 1024)
+
+(defn- index-key [index until k]
+  (assoc index until (if-let [existing (get index until)]
+                       (if (vector? existing) (conj existing k) [existing k])
+                       k)))
+
+(defn- retired-index [state]
+  ;; Standard EDN omits metadata, so old/restored large states rebuild once.
+  ;; Explicitly printed metadata may retain an index as an ordinary EDN map.
+  (let [index (::retired-expiries (meta (:retired state)))]
+    (cond
+      (sorted? index) index
+      (some? index) (into (sorted-map) index)
+      (> (count (:retired state)) retired-index-threshold)
+      (reduce-kv (fn [index k until] (index-key index until k))
+                 (sorted-map) (:retired state)))))
+
 (defn- retire [state k entry]
   (let [until (+' (:deadline-us entry) (get-in state [:options :reuse-delay-us]))]
     (when (and (or (nil? (:watermark-us state)) (> until (:watermark-us state)))
@@ -134,7 +154,14 @@
       (fail! :max-retired))
     (cond-> (update state :pending dissoc k)
       (or (nil? (:watermark-us state)) (> until (:watermark-us state)))
-      (-> (assoc-in [:retired k] until) (schedule until)))))
+      (-> (assoc :retired
+                 (let [retired (assoc (:retired state) k until)
+                       index (if (::retired-expiries (meta retired))
+                               (index-key (retired-index state) until k)
+                               (when (> (count retired) retired-index-threshold)
+                                 (retired-index (assoc state :retired retired))))]
+                   (if index (with-meta retired (assoc (meta retired) ::retired-expiries index)) retired)))
+          (schedule until)))))
 
 (defn- query-result [kind k entry]
   {:kind kind :transaction k :query (:query entry) :deadline-us (:deadline-us entry)
@@ -203,17 +230,24 @@
             ;; Mutation is confined to this scan. Only the resulting integer
             ;; and persistent maps/vector can escape into a published snapshot.
             remember! (fn [deadline] (vreset! minimum (earlier @minimum deadline)))
-            retired
-            (reduce-kv (fn [retained k until]
-                         (let [next @minimum]
-                           ;; This minimum is already above the watermark.
-                           ;; Later times need neither another comparison nor
-                           ;; another volatile write.
-                           (cond
-                             (and next (<= next until)) retained
-                             (<= until watermark-us) (dissoc retained k)
-                             :else (do (vreset! minimum until) retained))))
-                       (:retired state) (:retired state))
+            [retired index]
+            (if-let [index (retired-index state)]
+              (if (and (seq index) (<= (key (first (rseq index))) watermark-us))
+                [(empty (:retired state)) (sorted-map)]
+                (loop [retired (:retired state) index index]
+                  (if-let [[until ks] (first index)]
+                    (if (<= until watermark-us)
+                      (recur (if (vector? ks) (reduce dissoc retired ks) (dissoc retired ks))
+                             (dissoc index until))
+                      (do (remember! until) [retired index]))
+                    [retired index])))
+              [(reduce-kv (fn [retained k until]
+                            (let [next @minimum]
+                              (cond
+                                (and next (<= next until)) retained
+                                (<= until watermark-us) (dissoc retained k)
+                                :else (do (vreset! minimum until) retained))))
+                          (:retired state) (:retired state)) nil])
             expired
             (reduce-kv (fn [expired k entry]
                          (if (<= (:deadline-us entry) watermark-us)
@@ -221,7 +255,11 @@
                            (do (remember! (:deadline-us entry)) expired)))
                        [] (:pending state))
             expired (ordered expired)
-            state (assoc state :watermark-us watermark-us :retired retired ::next-expiry-us @minimum)]
+            state (assoc state :watermark-us watermark-us :retired (cond
+                                                                     (seq index) (with-meta retired (assoc (meta retired) ::retired-expiries index))
+                                                                     index (vary-meta retired dissoc ::retired-expiries)
+                                                                     :else retired)
+                         ::next-expiry-us @minimum)]
         {:state (reduce (fn [s [k entry]] (retire s k entry)) state expired)
          :events (mapv (fn [[k entry]] (query-result :timeout k entry)) expired)}))))
 

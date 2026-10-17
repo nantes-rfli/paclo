@@ -1,0 +1,13 @@
+{:baseline "14a92d513de1c26dd7cdc059434acd409343278d", :heap-max 536870912, :reverse? false, :clojure "1.12.1", :candidate-source "/tmp/paclo-dns-index.clj", :arch "x86_64", :jdk "21.0.12.1", :scope "retention", :candidate-sha256 "3492fea129cdfbb757bd1e84c2bd7f8818574845b7be5ba8556cf70f318732a3", :warmups 5, :os "Mac OS X", :runs 7}
+{:retention [1000 false :baseline], :roots 10, :entries 10000, :estimated-heap-bytes 7765960, :edn-characters 399666, :roundtrip? true}
+{:retention [1000 false :current], :roots 10, :entries 10000, :estimated-heap-bytes 8289744, :edn-characters 399677, :roundtrip? true}
+{:retention [1000 true :baseline], :roots 10, :entries 10000, :estimated-heap-bytes 4960320, :edn-characters 171996, :roundtrip? true}
+{:retention [1000 true :current], :roots 10, :entries 10000, :estimated-heap-bytes 5960744, :edn-characters 345785, :roundtrip? true}
+{:retention [10000 false :baseline], :roots 10, :entries 100000, :estimated-heap-bytes 81566760, :edn-characters 4044666, :roundtrip? true}
+{:retention [10000 false :current], :roots 10, :entries 100000, :estimated-heap-bytes 81563176, :edn-characters 4044677, :roundtrip? true}
+{:retention [10000 true :baseline], :roots 10, :entries 100000, :estimated-heap-bytes 48097224, :edn-characters 1737996, :roundtrip? true}
+{:retention [10000 true :current], :roots 10, :entries 100000, :estimated-heap-bytes 58040232, :edn-characters 3495785, :roundtrip? true}
+{:retention [100000 false :baseline], :roots 1, :entries 100000, :estimated-heap-bytes 82849912, :edn-characters 40922446, :roundtrip? true}
+{:retention [100000 false :current], :roots 1, :entries 100000, :estimated-heap-bytes 82769120, :edn-characters 40922457, :roundtrip? true}
+{:retention [100000 true :baseline], :roots 1, :entries 100000, :estimated-heap-bytes 48758128, :edn-characters 17566886, :roundtrip? true}
+{:retention [100000 true :current], :roots 1, :entries 100000, :estimated-heap-bytes 58898736, :edn-characters 35333565, :roundtrip? true}

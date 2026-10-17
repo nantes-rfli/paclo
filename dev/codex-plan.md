@@ -46,7 +46,22 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **v1.4.0 formal publication — done; post-publication docs prepared**.
+Current task: **Issue #37 final evaluation and measured optimization — implementation complete**.
+Scope is the post-PR #57 actual-expiry scan at 10000/100000 retired keys,
+including update/allocation/GC/retention and old EDN snapshot costs. The
+[final evaluation](issue-37-retired-expiry-evaluation.md) adopts an immutable
+metadata index above a private small-state cutoff. Standard EDN data remains
+unchanged; large restored states rebuild the cache. Two independent JVMs verify
+all 55 final timed conditions; controls, costs and limitations are recorded.
+Local verification is recorded in the work log; final-head CI and the independent
+PR are maintained in its description. All 14 CI jobs, public contracts, bounds
+and thresholds remain unchanged. Issue #37 stays open through review; do not
+merge before review. P09/P10 remain blocked.
+Next unfinished item: independent review of this Issue #37 optimization and its
+closure decision, including missing representative long production PCAP evidence.
+Do not start Issue #44 acceptance, P09/P10 or publication automatically.
+
+Previous task: **v1.4.0 formal publication — done; post-publication docs prepared**.
 Published on 2026-10-17 (Asia/Tokyo) from fixed release main
 `74a17b00c0f20f3ab51ef4aa10578088ccafe923`, after reviewed/green dated PR #64.
 All 14 final-main jobs, ARM64, same-JAR JDK17/21 consumers, 36 runnable examples,
@@ -67,9 +82,8 @@ release tag, public API JAR or deployed artifact. No further release deployment.
 
 Post-publication acceptance is recorded in the docs PR: complete its normal
 CI/review/merge and cljdoc article refresh before marking the overall task done.
-Next unfinished development item after that acceptance: separately requested
-Issue #37 follow-up or Issue #44 issue-level acceptance; do not start either
-automatically.
+The separately requested Issue #37 follow-up is the current task above.
+Issue #44 issue-level acceptance remains a separate requested task.
 The development fallback remains 1.4.0-SNAPSHOT; no new version, dependency,
 workflow or quality-budget change. Historical dry-run evidence remains unchanged.
 Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
@@ -127,8 +141,11 @@ The [investigation](issue-37-dns-performance.md) records results and limitations
 including slower repeated actual retired expiry and missing long production
 trace evidence. Implementation head `f507d42` passes all twelve CI jobs;
 final-head CI is maintained on PR #57. Issue #37 remains open: repeated actual retired expiry and long realistic
-production-trace evidence are outstanding. It is a non-blocking performance
-follow-up; investigation/merge does not complete all issue acceptance goals.
+production-trace evidence were outstanding after that merge. The separately
+requested post-publication [final evaluation](issue-37-retired-expiry-evaluation.md)
+now proposes the bounded immutable index, with old/EDN compatibility and measured
+update/retention costs. It remains an unreleased independent optimization; the
+published v1.4.0 artifact is unchanged and Issue #37 stays open for review.
 
 ## Performance follow-up: Issue #34
 
