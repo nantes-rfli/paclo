@@ -4280,3 +4280,36 @@ anchor corrected it. No checker, threshold or behavior was changed. `prepare`
 restores compiled Java test classes before the retained hook runs. The system's
 missing rlwrap is handled by a temporary clj launcher delegating unchanged
 arguments to the installed Clojure CLI, without changing or skipping the hook.
+
+## v1.4.0 formal release — dated metadata (2026-10-17)
+
+The maintainer explicitly authorized formal Clojars publication, GitHub Release,
+actual-day metadata, required PR review/merge, final verification, single tag
+creation/push and post-publication documentation. Retain D1/D2, P01–P08 scope,
+all dependencies/APIs/quality budgets; P09/P10 remain out of scope.
+Initial working tree was clean. Fetched latest main c8982fd after PRs #59–#63
+merged; GitHub APIs confirmed all five merges, stable v1.3.0, no v1.4.0 tag or
+Release, and Clojars API latest_version/latest_release1.3.0 with no1.4.0 version.
+Main's checklist/Publish workflow match PR #63. UTC08:19 corresponds to Japan
+17:19 on2026-10-17, so the approved actual-day CHANGELOG date is appropriate.
+`bash dev/script/codex.sh doctor` passes on macOS x86_64/Temurin21.0.12.1,
+Clojure1.12.1, four real offline libpcap packets/438 bytes. Use the supplied
+checkout on codex/release-v1.4.0; no extra worktree.
+
+Metadata changes date CHANGELOG to2026-10-17, remove obsolete date-unconfirmed
+prose, correct its two incoming heading links, and retain explicit unpublished
+availability in release notes/migration. README installation is unchanged.
+The compatibility report's historical assessment is preserved; only its local
+changelog link follows the new heading. The new publication record separates
+source-bound gates and deployment stages from prior historical dry-run evidence.
+Plan/checklist reflect actual authorization and tag-only deployment, including
+stop-on-failure/no-redeployment rules. No production/script/workflow change.
+
+Local dated-metadata validation succeeds in publishing and dry-run modes. Run
+existing metadata regressions, Markdown/link and whitespace checks; retain the
+ordinary commit hook. Record exact final PR head, review and CI in its description
+before merge. After merge pin the resulting main SHA and verify complete CI,
+same-JAR consumers, examples/quality/performance, fresh audit and actual Publish
+dry-run bytes before the single authorized tag push. Published-byte checks,
+GitHub Release and a separately reviewed/green post-publication docs PR follow.
+Do not mark deployment complete from dispatch or workflow success alone.

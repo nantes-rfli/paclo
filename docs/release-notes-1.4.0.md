@@ -1,11 +1,11 @@
 <!-- markdownlint-disable MD013 -->
 # Paclo v1.4.0 release notes — draft
 
-**Unpublished candidate; publication date not confirmed.** v1.3.0 remains the
-latest stable version on Clojars/GitHub. The [Publish dry-run](../dev/release-1.4.0-dry-run.md)
-passed, including inspection and JDK 17/21 consumers of its actual JAR.
-These notes are ready for final release review; publication requires separate
-authorization, confirmed release-day metadata and validation of that final commit.
+**Publication authorized for 2026-10-17 (Asia/Tokyo); deployment pending.**
+Until publication is verified, v1.3.0 remains the latest stable version and its
+README installation coordinates remain unchanged. The final release commit must
+pass all gates and a fresh Publish dry-run before the v1.4.0 tag is pushed.
+See the [release checklist](../dev/release-1.4.0-checklist.md) for execution status.
 
 Paclo v1.4.0 prepares packet preservation and bounded analysis for ordinary
 Clojure data workflows. It includes P01–P08 and merged correctness, lifecycle,
@@ -58,7 +58,7 @@ nonzero JVM exit; it does not use DNS code 5.
 
 See the complete [migration guide](migration-from-1.3.md),
 [public API contract](cljdoc-api-contract.md) and [PCAPNG guide](pcapng.md).
-The [CHANGELOG](../CHANGELOG.md#140-unreleased) has the detailed change inventory.
+The [CHANGELOG](../CHANGELOG.md#140---2026-10-17) has the detailed change inventory.
 
 ## Availability and limits
 
@@ -87,4 +87,4 @@ not been validated by offline CI.
 Review the [final acceptance checklist](../dev/release-1.4.0-checklist.md) for
 quality evidence, the final PR's commit-specific checks and remaining publication
 steps. The completed dry-run validates its recorded source only; any changed
-release commit requires fresh validation before separately authorized publication.
+release commit requires fresh validation before publication.

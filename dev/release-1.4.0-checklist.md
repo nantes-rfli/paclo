@@ -1,10 +1,17 @@
 <!-- markdownlint-disable MD013 -->
 # v1.4.0 release preparation and acceptance
 
-Status: **unpublished; final metadata/evidence PR awaiting acceptance**,
-2026-10-17 (Asia/Tokyo). No publication date is confirmed. Stable installation
-coordinates remain v1.3.0; CHANGELOG retains `## [1.4.0] (unreleased)`.
-Formal publication requires a separate explicit authorization.
+Status: **formal publication authorized; dated metadata and final validation in progress**,
+2026-10-17 (Asia/Tokyo). The maintainer explicitly approved v1.4.0 publication,
+the actual-day CHANGELOG, tag creation/push, Clojars deployment, GitHub Release
+and post-publication documentation PR. The sole deployment path is a v1.4.0 tag
+push; never dispatch dry_run=false. README stays at v1.3.0 until Clojars is verified.
+
+PRs #59–#63 are merged; starting main is
+`c8982fdea8860622bbb10c2da7bc4b752184dba1`. The prior checklist/Publish workflow
+contents are unchanged from PR #63. The [publication record](release-1.4.0-publication.md)
+tracks final-main evidence and actual deployment. Historical tables below retain
+their original source identities.
 
 ## Scope and completed baseline
 
@@ -65,11 +72,13 @@ Before accepting that PR, verify:
 5. Review the complete diff and final evidence. The PR remains open for maintainer
    acceptance; neither review nor CI authorizes merge, tag creation or publication.
 
-No release date is inserted in this PR because the actual publication day is
-unconfirmed. A dated CHANGELOG is therefore still a **publication blocker**.
-The existing publishing metadata guard must continue rejecting this undated
-candidate, while its dry-run check accepts it. A future dated commit must pass
-these checks again; passing finalization CI does not bypass that requirement.
+The publication day is now confirmed as 2026-10-17 (Asia/Tokyo); the metadata PR
+uses that dated CHANGELOG heading. After review/merge, fix the resulting main
+SHA and validate all 14 jobs, same-JAR consumers and fresh audit. Then perform
+the final main/1.4.0/dry_run=true Publish and inspect/consume its actual JAR.
+Before creating/pushing the tag, require main to remain at that SHA and the
+actual Japan publication day to match CHANGELOG. On any failed gate or mismatch,
+stop before deploying. Do not move/recreate a tag or retry deployment on failure.
 
 ## Remaining issues and validation limits
 
@@ -93,8 +102,9 @@ establish every OS/JDK pair or live performance target. No gate is relaxed.
 
 ## Publication handoff — requires separate explicit authorization
 
-These are instructions for a later authorized release task; they are not executed
-by finalization, review, merge acceptance or dry-run approval.
+The maintainer has now authorized this procedure. Execute each gate in order;
+record actual results in the publication record. Prior dry-run approval alone
+was not publication authorization.
 
 1. Obtain explicit formal publication authorization and confirm the actual
    publication day. Recheck that v1.4.0 is absent from Clojars, tags and Releases.
@@ -119,8 +129,9 @@ by finalization, review, merge acceptance or dry-run approval.
    candidate. An authorized operator may then create/push the release tag at
    that exact SHA. **Pushing a v* tag starts Publish and Clojars deployment**;
    tag creation/push must wait for formal publication authorization. Do not also
-   dispatch another publishing run. This task creates no tag or GitHub Release
-   and never runs dry_run=false.
+   dispatch another publishing run. Never run dry_run=false. If the tag push does not start Publish, stop without
+   selecting another deployment path. On deployment failure inspect Clojars for
+   partial publication; do not move/delete/recreate the tag or redeploy.
 6. Verify deployed JAR/POM coordinates/hashes and Clojars availability. Only then
    update stable installation/availability documentation and, if separately
    authorized, publish the GitHub Release/announcement. Record actual publication

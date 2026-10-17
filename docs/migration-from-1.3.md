@@ -1,15 +1,16 @@
 <!-- markdownlint-disable MD013 -->
 # Migration from v1.3.0 to v1.4.0
 
-v1.4.0 is the approved next stable version and is **not published yet**. These
-notes describe its candidate behavior, including P01–P08 and merged fixes.
+v1.4.0 publication is authorized for 2026-10-17 (Asia/Tokyo), but deployment
+is **not completed yet**. These notes describe the approved release behavior,
+including P01–P08 and merged fixes.
 The maintainer approved retaining capture-preserving Writer precedence/strict
 validation (D1) and exact bounded DNS aggregation/explicit failures (D2).
 These decisions have observable migration effects, including failures on some
 formerly accepted inputs; review the checklist below before upgrading.
 The [API contract](cljdoc-api-contract.md) specifies the exact rules, and the
 [compatibility assessment](../dev/release-compatibility-version.md) retains the
-released v1.3.0 comparison. Publication requires separate approval.
+released v1.3.0 comparison. Publication proceeds only after final validation.
 The [completed dry-run](../dev/release-1.4.0-dry-run.md) includes JDK 17/21 tests
 of the actual Publish JAR. Follow the [release checklist](../dev/release-1.4.0-checklist.md)
 for evidence on the final source commit; neither a passing dry-run nor these

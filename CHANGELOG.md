@@ -7,18 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Future changes after the v1.4.0 candidate belong here.
+Changes after v1.4.0 belong here.
 
-## [1.4.0] (unreleased)
+## [1.4.0] - 2026-10-17
 
-Approved release scope; **not published**. The release date is intentionally
-unset pending separate publication authorization and a confirmed publication
-day. Replace this heading with `## [1.4.0] - YYYY-MM-DD` only for that actual day,
-then validate the resulting commit before publication. v1.3.0 remains the latest
-published stable version. The completed [Publish dry-run](dev/release-1.4.0-dry-run.md)
-records candidate validation; it does not announce availability.
-
-This candidate includes P01–P08 and merged stabilization, performance and Java
+This release includes P01–P08 and merged stabilization, performance and Java
 compatibility fixes; P09/P10 are excluded. The
 [migration guide](docs/migration-from-1.3.md) explains Writer metadata precedence
 and stricter validation, exact bounded DNS reports and explicit CLI failures.
