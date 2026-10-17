@@ -168,7 +168,7 @@ extensions, diagnostics/DLTs, Flow/Window/DNS analysis and CLI migration,
 Classic/PCAPNG I/O, the managed break/close race stabilization, PR #55/#56 Flow
 allocation/key reuse, PR #57 DNS expiry hint, PR #58 typed MAC stores and PR #60
 artifact correction. See the [readiness inventory](release-readiness-p06-p08.md#implemented-inventory)
-and [v1.4.0 candidate changelog](../CHANGELOG.md#140-unreleased). P09/P10 are outside this release.
+and [v1.4.0 candidate changelog](../CHANGELOG.md#140---2026-10-17). P09/P10 are outside this release.
 
 - **Keep [Issue #37](https://github.com/nantes-rfli/paclo/issues/37) open, non-blocking.** PR #57 reduces premature scans but repeated
   actual retired expiry and long production-trace evaluation remain. No claim

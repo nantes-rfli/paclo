@@ -46,35 +46,25 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **v1.4.0 final metadata/evidence PR**, from main
-`dfc5c5b4dbe39859b06431fa9c4b12714b89498d`, after PR #62 merged.
-Documentation/evidence preparation: **done**. Final-head CI, same-JAR JDK 17/21
-identities, fresh branch-head Dependency Audit and review results are maintained
-in the finalization PR description without another evidence-only source commit.
-The publication day remains unconfirmed, so no dated heading is invented;
-README/install still select published v1.3.0. No runtime/dependency/workflow change.
-The maintainer confirmed completed independent review outside GitHub; latest
-baseline main CI passed all 14 jobs, including ARM64 and distribution consumers.
-[Publish dry-run](release-1.4.0-dry-run.md) passed with main/1.4.0/dry_run=true;
-its actual JAR passed independent JDK17/21 consumers without rebuilding.
-The refreshed same-SHA Dependency Audit passed with zero detected CVEs;
-OSS Index was disabled without credentials. See the report for exact scope,
-hashes, original provenance and retained runtime identities.
-The maintainer approved v1.4.0, D1 capture-preserving
-Writer metadata/strict validation and D2 exact bounded DNS/explicit failures,
-with public migration guidance. Include P01–P08 and merged fixes; exclude P09/P10.
-The [release checklist](release-1.4.0-checklist.md) owns final acceptance/results;
-[compatibility assessment](release-compatibility-version.md) preserves the
-released-contract comparison and [readiness audit](release-readiness-p06-p08.md)
-retains earlier evidence. Published stable remains v1.3.0; the development
-fallback is 1.4.0-SNAPSHOT and explicit candidate packaging uses PACLO_VERSION=1.4.0.
+Current task: **v1.4.0 formal release — in progress**, explicitly authorized by
+maintainer for 2026-10-17 (Asia/Tokyo), from main
+`c8982fdea8860622bbb10c2da7bc4b752184dba1` after merged PRs #59–#63.
+D1/D2 and P01–P08 scope remain unchanged; P09/P10 are excluded.
+The [publication record](release-1.4.0-publication.md) owns actual execution
+status. The metadata PR dates CHANGELOG but retains unpublished availability;
+README installation remains v1.3.0 until Clojars success is verified.
 
-Next unfinished item: maintainer acceptance of the finalization PR with its
-final-head checks/review, then separate formal publication authorization and
-confirmed-day metadata, followed by full validation of the resulting main SHA.
-The [checklist](release-1.4.0-checklist.md#publication-handoff--requires-separate-explicit-authorization)
-records the handoff, including tag-push deployment behavior. No tag, release,
-deploy, non-dry-run Publish or merge is performed here. The candidate remains unpublished.
+Next unfinished item: review/merge the dated-metadata PR, then pin the resulting
+main SHA; require all 14 CI jobs, ARM64, same-JAR JDK 17/21 consumers, 36 runnable
+docs, existing quality/performance gates and fresh Dependency Audit. Run the
+final Publish dry-run from that unchanged main and consume its actual JAR on
+17/21 without rebuilding. Only then create/push v1.4.0 once, through the existing
+tag-triggered workflow. Verify deployed hashes and consumers before GitHub
+Release, then review/CI/merge a separate post-publication documentation PR.
+No manual dry_run=false, tag replacement/redeployment, dependency/API/threshold
+change or unrelated feature work. Stop on failed gates or identity mismatches.
+The prior [dry-run](release-1.4.0-dry-run.md) and PR #63 evidence remain historical;
+do not reuse their JAR identity for this release build.
 Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
 JIT/thermal/retention limits remain recorded; no issue closure, Flow or live/NIC
 speedup claim is made.
