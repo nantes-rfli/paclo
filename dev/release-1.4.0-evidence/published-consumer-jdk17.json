@@ -1,0 +1,6 @@
+{
+  "source_commit": "74a17b00c0f20f3ab51ef4aa10578088ccafe923",
+  "jar_sha256": "fe70ac9005edfea4d48fee30c69383ce3dd814e0e56c8b432d573193fc26eb2e",
+  "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode)",
+  "status": "passed"
+}

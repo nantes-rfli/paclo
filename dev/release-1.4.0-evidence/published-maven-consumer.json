@@ -1,0 +1,8 @@
+{
+  "coordinates": "org.clojars.nanto/paclo:1.4.0",
+  "runtime": "Temurin17.0.20.1+1",
+  "status": "passed",
+  "jar_sha256": "fe70ac9005edfea4d48fee30c69383ce3dd814e0e56c8b432d573193fc26eb2e",
+  "source": "Clojars Maven resolution in an independent -Srepro project",
+  "offline_fixture_packets": 4
+}

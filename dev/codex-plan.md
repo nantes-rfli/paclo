@@ -46,25 +46,32 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **v1.4.0 formal release — in progress**, explicitly authorized by
-maintainer for 2026-10-17 (Asia/Tokyo), from main
-`c8982fdea8860622bbb10c2da7bc4b752184dba1` after merged PRs #59–#63.
-D1/D2 and P01–P08 scope remain unchanged; P09/P10 are excluded.
-The [publication record](release-1.4.0-publication.md) owns actual execution
-status. The metadata PR dates CHANGELOG but retains unpublished availability;
-README installation remains v1.3.0 until Clojars success is verified.
+Current task: **v1.4.0 formal publication — done; post-publication docs prepared**.
+Published on 2026-10-17 (Asia/Tokyo) from fixed release main
+`74a17b00c0f20f3ab51ef4aa10578088ccafe923`, after reviewed/green dated PR #64.
+All 14 final-main jobs, ARM64, same-JAR JDK17/21 consumers, 36 runnable examples,
+quality/performance gates and refreshed NVD audit passed. Final Publish dry-run
+and its actual-JAR consumers passed; a single annotated v1.4.0 push triggered
+successful Clojars deployment. Actual deployed JAR/POM match that run's artifacts
+and published-byte consumers pass on both JDKs. GitHub Release v1.4.0 is public.
+The [publication record](release-1.4.0-publication.md) retains exact hashes/URLs,
+original provenance/runtime reports, audit limitations and carry-over decisions.
+D1/D2 and P01–P08 scope are unchanged; P09/P10 remain blocked.
 
-Next unfinished item: review/merge the dated-metadata PR, then pin the resulting
-main SHA; require all 14 CI jobs, ARM64, same-JAR JDK 17/21 consumers, 36 runnable
-docs, existing quality/performance gates and fresh Dependency Audit. Run the
-final Publish dry-run from that unchanged main and consume its actual JAR on
-17/21 without rebuilding. Only then create/push v1.4.0 once, through the existing
-tag-triggered workflow. Verify deployed hashes and consumers before GitHub
-Release, then review/CI/merge a separate post-publication documentation PR.
-No manual dry_run=false, tag replacement/redeployment, dependency/API/threshold
-change or unrelated feature work. Stop on failed gates or identity mismatches.
-The prior [dry-run](release-1.4.0-dry-run.md) and PR #63 evidence remain historical;
-do not reuse their JAR identity for this release build.
+The post-publication documentation PR updates stable README coordinates to 1.4.0,
+API/PCAPNG/roadmap/release-note availability and measured release records. Its
+normal CI/review/merge evidence lives in its PR description. cljdoc's initial
+1.4.0 build succeeded (18 namespaces); after the docs PR merges, use the official
+docs-only cljdoc-1.4.0 tag/rebuild for accurate articles without changing the
+release tag, public API JAR or deployed artifact. No further release deployment.
+
+Post-publication acceptance is recorded in the docs PR: complete its normal
+CI/review/merge and cljdoc article refresh before marking the overall task done.
+Next unfinished development item after that acceptance: separately requested
+Issue #37 follow-up or Issue #44 issue-level acceptance; do not start either
+automatically.
+The development fallback remains 1.4.0-SNAPSHOT; no new version, dependency,
+workflow or quality-budget change. Historical dry-run evidence remains unchanged.
 Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
 JIT/thermal/retention limits remain recorded; no issue closure, Flow or live/NIC
 speedup claim is made.

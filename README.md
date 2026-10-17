@@ -11,20 +11,19 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 
 ## Project status
 
-- Stable release: `v1.3.0` (published on August 1, 2026)
+- Stable release: `v1.4.0` (published on October 17, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Release candidate: **v1.4.0, not published**, with P01–P08 and merged
-  stabilization/performance/build fixes; P09/P10 are excluded. See the
-  [release notes draft](docs/release-notes-1.4.0.md),
-  [migration guide](docs/migration-from-1.3.md) and [roadmap](docs/ROADMAP.md)
+- v1.4.0 includes P01–P08 and merged stabilization/performance/build fixes;
+  P09/P10 are excluded. See the [release notes](docs/release-notes-1.4.0.md),
+  [migration guide](docs/migration-from-1.3.md) and [roadmap](docs/ROADMAP.md).
+- [GitHub Release v1.4.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0)
+  and [publication evidence](dev/release-1.4.0-publication.md).
 
-The install coordinates below still select v1.3.0. Features marked `[Unreleased]`
-belong to the v1.4.0 candidate and require repository source or a locally built
-candidate JAR; they are not in the published v1.3.0 artifact. No v1.4.0 Clojars
-coordinate or Git tag is available yet.
+The install coordinates below select the verified v1.4.0 Clojars release.
+Features identified as v1.4.0 are included in that published artifact.
 
-Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
+Repository `v1.4.0` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
 Linux SLL (113), SLL2 (276), Raw IP (12), NULL (0) and LOOP (108) IPv4/IPv6 on Linux/macOS. Other explicit types produce
 `:unsupported-linktype` diagnostics. Standalone
@@ -37,7 +36,7 @@ or converted. See the [cooked capture examples](docs/usage.md#reading-non-ethern
 and [writer contract](docs/cljdoc-api-contract.md#write-pcap).
 
 For ordered PCAPNG sections/interfaces/options and exact timestamps, use the
-separate [`paclo.pcapng` APIs](docs/pcapng.md) (Unreleased P08-E2/E3).
+separate [`paclo.pcapng` APIs](docs/pcapng.md) (v1.4.0 P08-E2/E3).
 It owns a bounded synchronous FileChannel source that you reduce once with
 `with-open`. `pcapng/write-pcapng!` consumes ordered events synchronously and
 publishes a new file with exclusive atomic rename on supported Linux/macOS file
@@ -144,7 +143,7 @@ valid prefix; see [write options and errors](docs/usage.md#write-pcap).
 
 ```edn
 {:deps
- {org.clojars.nanto/paclo {:mvn/version "1.3.0"}}}
+ {org.clojars.nanto/paclo {:mvn/version "1.4.0"}}}
 ```
 
 ### deps.edn (Git tag)
@@ -153,7 +152,7 @@ valid prefix; see [write options and errors](docs/usage.md#write-pcap).
 {:deps
  {org.clojars.nanto/paclo
   {:git/url "https://github.com/nantes-rfli/paclo.git"
-   :git/tag "v1.3.0"}}}
+   :git/tag "v1.4.0"}}}
 ```
 
 If your environment requires Java class prep for git dependencies, run once in your consumer project:
@@ -224,7 +223,7 @@ Use either `:decode? true` for full decoding with decode extensions, or
 `:decode-mode :flow` for a flat flow projection (not both).
 Capture APIs apply `:xform` after the built-in packet transformation.
 
-In `[Unreleased]` (P03), full decode accepts an ordered `:extensions` vector
+In `v1.4.0` (P03), full decode accepts an ordered `:extensions` vector
 of functions. Omission keeps dynamic global hooks; `[]` disables them, and
 explicit selection runs only its functions. Public DNS/TLS annotations and
 independent fan-out examples are in [decode extensions](docs/extensions.md).
@@ -405,7 +404,7 @@ clojure -M:dev -m examples.tls-sni-scan in.pcap 'tcp and port 443' 10 jsonl
 
 For full argument tables and behavior details, see `docs/usage.md`.
 
-## Bounded event-time analysis (Unreleased)
+## Bounded event-time analysis (v1.4.0)
 
 `paclo.window` and `paclo.dns` provide pure immutable `init`, `step`, `advance`
 and `finish` APIs. Supply integer microsecond event times and monotonic watermarks;
@@ -433,11 +432,11 @@ completion diagnostics; see [migration details](docs/usage.md#delivery-and-migra
 | Namespace | Public functions | Notes |
 | --- | --- | --- |
 | `paclo.core` | `bpf`, `packets`, `packet-xf`, `reduce-packets`, `reduce-packets-report`, `start-capture`, `capture-packets`, `stop-capture!`, `capture-stats`, `write-pcap!`, `list-devices` | User-facing API |
-| `paclo.flow` | `key`, `aggregate-rf`, `top-n` | Bounded flow analysis (Unreleased P06) |
-| `paclo.window` | `init`, `step`, `advance`, `finish` | Bounded tumbling windows (Unreleased P07-A) |
-| `paclo.dns` | `packet-time-us`, `packet->event`, `init`, `step`, `advance`, `finish` | Pure DNS analysis (Unreleased P07-A) |
+| `paclo.flow` | `key`, `aggregate-rf`, `top-n` | Bounded flow analysis (v1.4.0 P06) |
+| `paclo.window` | `init`, `step`, `advance`, `finish` | Bounded tumbling windows (v1.4.0 P07-A) |
+| `paclo.dns` | `packet-time-us`, `packet->event`, `init`, `step`, `advance`, `finish` | Pure DNS analysis (v1.4.0 P07-A) |
 | `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
-| `paclo.pcapng` | `open-source`, `source-info`, `write-pcapng!` | [Bounded PCAPNG metadata/exact-time I/O](docs/pcapng.md) (Unreleased P08-E2/E3) |
+| `paclo.pcapng` | `open-source`, `source-info`, `write-pcapng!` | [Bounded PCAPNG metadata/exact-time I/O](docs/pcapng.md) (v1.4.0 P08-E2/E3) |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
@@ -460,7 +459,7 @@ The representative matrix is Linux x86_64/JDK 21, macOS arm64/JDK 17, and
 Linux arm64/JDK 21. The architecture assertions prevent floating runner labels
 from silently changing the coverage represented by a job name.
 
-The v1.4.0 candidate compiles bindings with `--release 17` (class-file major 61),
+The v1.4.0 release compiles bindings with `--release 17` (class-file major 61),
 including when built on JDK 21. Two checkout-free CI consumers run the same
 JDK 21-built JAR on JDK 17 and 21. The published v1.3.0 JAR contains major-65
 classes and requires JDK 21; JDK 17 users of v1.3.0 must build from source.

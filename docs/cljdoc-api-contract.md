@@ -1,11 +1,11 @@
 # Public API Contract (v1.x)
 
 This page defines the stable library contract for v1.x.
-It focuses on user-facing namespaces. Sections marked `[Unreleased]` describe
-the approved v1.4.0 candidate, beyond published v1.3.0. v1.4.0 is not published
-yet. See the [v1.3.0 → v1.4.0 migration guide](migration-from-1.3.md) for Writer
+It focuses on user-facing namespaces through **v1.4.0**, published on
+2026-10-17. Version notes distinguish additions from the earlier v1.3.0 release.
+See the [v1.3.0 → v1.4.0 migration guide](migration-from-1.3.md) for Writer
 metadata/validation and DNS CLI behavior changes, and the
-[release checklist](../dev/release-1.4.0-checklist.md) for acceptance status.
+[publication record](../dev/release-1.4.0-publication.md) for acceptance evidence.
 
 ## Scope
 
@@ -16,7 +16,7 @@ Public namespaces:
 - `paclo.window`
 - `paclo.dns`
 - `paclo.stream`
-- `paclo.pcapng` (Unreleased P08-E2/E3)
+- `paclo.pcapng` (v1.4.0 P08-E2/E3)
 - `paclo.decode-ext`
 - `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`
   (supported annotation functions; other protocol internals remain excluded)
@@ -50,7 +50,7 @@ with a native read error; public readers propagate it by default. `:pass`
 retains the valid prefix and exposes failure through callbacks/report statistics.
 No complete PCAPNG read/write round trip is guaranteed.
 The separate [PCAPNG APIs](pcapng.md) implement `paclo.pcapng/open-source`,
-`source-info` and `write-pcapng!` in Unreleased P08-E2/E3. The bounded synchronous
+`source-info` and `write-pcapng!` in v1.4.0 P08-E2/E3. The bounded synchronous
 source retains ordered metadata and exact timestamps. Writer consumes events
 once with `(write-pcapng! events path)` or `(write-pcapng! events path opts)`.
 Default `:mode :preserve` keeps known semantics; `:lossy` requires explicit
@@ -102,7 +102,7 @@ Paclo does not copy every packet for fan-out or diagnostics.
 
 ### Link-type dispatch
 
-P05 adds source link-type awareness in `[Unreleased]`; released v1.3.0 does not
+P05 adds source link-type awareness in `v1.4.0`; released v1.3.0 does not
 detect source link types.
 
 `:linktype` is the numeric value from
@@ -642,7 +642,7 @@ configured stop applies.
   timestamp round trips beyond 2038 depend on the installed libpcap. Paclo does
   not reinterpret native reader timestamps in this change.
 
-Direct packet-map metadata preservation is implemented by P02 in `[Unreleased]`;
+Direct packet-map metadata preservation is implemented by P02 in `v1.4.0`;
 released v1.3.0 still requires timestamp adaptation and loses original lengths.
 
 ### `list-devices`
@@ -665,7 +665,7 @@ released v1.3.0 still requires timestamp adaptation and loses original lengths.
 
 ## `paclo.flow`
 
-P06 adds three supported pure analysis functions in `[Unreleased]`.
+P06 adds three supported pure analysis functions in `v1.4.0`.
 
 ### `key`
 
@@ -852,7 +852,7 @@ requires, or use the supported `core/packet-xf {:decode-mode :flow}` instead.
 - Repository CLI consumers include `:dns-ext` for the DNS namespace; both
   namespaces remain included in the dependency JAR.
 
-Explicit selection and the public annotations are additions in `[Unreleased]`
+Explicit selection and the public annotations are additions in `v1.4.0`
 (P03); released v1.3.0 supports the global registry only.
 
 ## Stability notes
@@ -863,7 +863,7 @@ Explicit selection and the public annotations are additions in `[Unreleased]`
 
 ## `paclo.window`
 
-P07-A adds pure bounded tumbling windows in `[Unreleased]`. State is an immutable
+P07-A adds pure bounded tumbling windows in `v1.4.0`. State is an immutable
 EDN map; capture, scheduling, clocks, output and reducers remain caller-owned.
 
 ### `init`, `step`, `advance`, `finish`

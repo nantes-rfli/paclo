@@ -1,20 +1,18 @@
 <!-- markdownlint-disable MD013 -->
 # Migration from v1.3.0 to v1.4.0
 
-v1.4.0 publication is authorized for 2026-10-17 (Asia/Tokyo), but deployment
-is **not completed yet**. These notes describe the approved release behavior,
-including P01–P08 and merged fixes.
+v1.4.0 was published on **2026-10-17 (Asia/Tokyo)** and is available from
+[Clojars](https://clojars.org/org.clojars.nanto/paclo/versions/1.4.0). These notes
+describe its released behavior, including P01–P08 and merged fixes.
 The maintainer approved retaining capture-preserving Writer precedence/strict
 validation (D1) and exact bounded DNS aggregation/explicit failures (D2).
 These decisions have observable migration effects, including failures on some
 formerly accepted inputs; review the checklist below before upgrading.
 The [API contract](cljdoc-api-contract.md) specifies the exact rules, and the
 [compatibility assessment](../dev/release-compatibility-version.md) retains the
-released v1.3.0 comparison. Publication proceeds only after final validation.
-The [completed dry-run](../dev/release-1.4.0-dry-run.md) includes JDK 17/21 tests
-of the actual Publish JAR. Follow the [release checklist](../dev/release-1.4.0-checklist.md)
-for evidence on the final source commit; neither a passing dry-run nor these
-notes make the v1.4.0 Clojars coordinate available.
+released v1.3.0 comparison. The [publication record](../dev/release-1.4.0-publication.md)
+records final-main validation, tag-triggered deployment and independent JDK 17/21
+consumers of the actual published JAR.
 
 ## Upgrade checklist
 
@@ -22,8 +20,8 @@ notes make the v1.4.0 Clojars coordinate available.
 - Rebaseline DNS RTT values/pair counts and QR-oriented client/server groups.
 - Configure finite analysis/report limits and handle every nonzero CLI exit.
 - Require complete reports when loss or cancellation is unacceptable.
-- Validate the candidate JAR on your runtime; keep published v1.3.0 coordinates
-  until v1.4.0 is actually available. See the [release notes](release-notes-1.4.0.md).
+- Validate the published v1.4.0 JAR on your runtime before upgrading. See the
+  [release notes](release-notes-1.4.0.md) and [installation coordinates](../README.md#install).
 
 ## Classic PCAP inputs
 
@@ -167,6 +165,6 @@ does not switch Classic Writer format. SPB time can be absent: choose a measured
 analysis policy instead of converting absence to zero or current time.
 
 JDK 17 and 21 remain supported with Clojure 1.12.x and system libpcap. The v1.4.0
-candidate restores JDK17-compatible distributed classes (major 61); the published
+release restores JDK17-compatible distributed classes (major 61); the published
 v1.3.0 JAR contains major 65 and needs JDK21, or a Java17 source build. Validate the exact JAR
 you deploy; a JDK17 source build alone does not validate a JDK21-built artifact.

@@ -4313,3 +4313,70 @@ same-JAR consumers, examples/quality/performance, fresh audit and actual Publish
 dry-run bytes before the single authorized tag push. Published-byte checks,
 GitHub Release and a separately reviewed/green post-publication docs PR follow.
 Do not mark deployment complete from dispatch or workflow success alone.
+
+## v1.4.0 publication and post-publication documentation (2026-10-17)
+
+Reviewed/green dated metadata PR #64 merged as release main
+74a17b00c0f20f3ab51ef4aa10578088ccafe923. This SHA remained fixed through
+publication. Main CI39017426361 passed all14 jobs, including ARM64, source
+compatibility and same-JAR17/21 consumers; logs confirm 490 Clojure tests/zero
+failures, ten JUnit tests, Java quality/lint/Eastwood/format, all36 examples,
+unchanged317.1ms performance gate and all27 measurement scenarios.
+Audit39017436182 succeeded at this SHA:23 production dependencies, zero detected/
+suppressed CVEs; NVD checked08:28:04Z, modified08:16:28Z, engine12.1.6. OSS Index
+was disabled without credentials; development/build-only coverage is not implied.
+
+Final Publish dry-run39017696585 used main/1.4.0/dry_run=true at that SHA. Dated
+metadata/gates/build/inspection/upload pass; both publishing steps skipped,
+Dry-run summary success. Downloaded actual JAR/POM/provenance passed exact
+inventory/source/class/coordinates/dependency/SCM/license checks. Hash-matched
+support files retain original build provenance. Both independent JDK17/21
+consumers passed without rebuilding, checking JAR identity before/after.
+Rechecked unchanged main, Japan date17:34 on2026-10-17 and absent version/tag/
+Release immediately before tag creation.
+
+Created annotated v1.4.0 objectfb98630904ec1f9cef9604d387c1289c07480514 at the
+fixed release SHA and pushed once. Tag eventpush run39017886556 started and
+succeeded, including Clojars publish/Publish summary; Dry-run summary skipped.
+No manual dry_run=false, fallback, tag movement/recreation or duplicate deploy.
+Actual Clojars JAR/POM both download and match the tag-run artifacts. Both
+published-byte17/21 consumers pass using fresh temporary -Srepro projects with
+no Paclo rebuild, covering public/native/six-DLT/Classic/PCAPNG/analysis/
+annotation/lifecycle probes. Previous1.3.0 remains downloadable with its original
+JAR hash. GitHub Release v1.4.0 was created only after these checks, on the
+existing tag, stable/non-draft, at08:38:16Z (17:38 JST). Release notes preserve
+D1/D2 migration and data-loss/partial-report/platform/lifecycle/performance limits.
+
+Independently verified JAR SHA256 values: mainCI
+379b8ab805dcfbb9eec517949ae5c013059e058956465fd83b9b5d231dfb6928;
+finaldry-run ed8e4f4a2686d1b09574c3d99f8a35d573a0afc4414bbfe1adca71018450bf57;
+tagrun/deployed fe70ac9005edfea4d48fee30c69383ce3dd814e0e56c8b432d573193fc26eb2e.
+External/embedded/deployed POM SHA256
+91a5f668b7e9daf06735f09a10efe9dba9daec8946704cc7ce696456d2338d56.
+The publication record links actual runs/downloads; durable provenance, consumer,
+audit and publication JSON is retained in dev/release-1.4.0-evidence, without
+machine-specific absolute paths or credentials. Historical dry-run facts remain
+unchanged; only a subsequent-publication note is appended.
+
+cljdoc initially offered a build form for1.4.0. Submitted build117558; it succeeded
+and imported18 namespaces. All nine supported API/annotation pages return200
+and show expected vars. Initial articles use the release tag and retain its
+pre-publication README. After this docs PR passes normal CI/review and merges,
+use the documented cljdoc-1.4.0 article-only tag/rebuild; it does not match the
+Publish v* trigger and cannot change the release tag/JAR. Later docs-tag SHA,
+article refresh and exact docs PR CI/review/merge are retained in its PR description.
+
+This separate PR updates only published installation/availability and measured
+release records. D1/D2, code/scripts/workflows/dependencies/APIs/quality budgets
+and development fallback version remain unchanged. Issue #37 stays open and
+non-blocking. Issue #44 acceptance supports closing the measured Ethernet
+investigation/optimization scope with JIT/thermal/retention/live-NIC limits;
+issue-level acceptance remains separate and no issue is closed. P09/P10 stay blocked.
+
+The updated README Maven installation coordinate was exercised in a separate
+-Srepro JDK17 project: Clojars downloaded1.4.0, core/flow/pcapng loaded and the
+native fixture yielded four packets. Its resolved Maven JAR hash matches the
+actual deployed/tag artifact. No local/root dependency substitutes for this
+coordinate-resolution check. Initial consumer command launch preceded creation
+of its temporary working directory and did not start; creating that directory
+first corrected the setup, after which the actual validation passed.

@@ -1,0 +1,6 @@
+{
+  "source_commit": "74a17b00c0f20f3ab51ef4aa10578088ccafe923",
+  "jar_sha256": "ed8e4f4a2686d1b09574c3d99f8a35d573a0afc4414bbfe1adca71018450bf57",
+  "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode)",
+  "status": "passed"
+}

@@ -1,0 +1,88 @@
+[
+  {
+    "namespace": "paclo.core",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.core",
+    "expected_vars_present": [
+      "packet-xf",
+      "reduce-packets",
+      "write-pcap!"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.flow",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.flow",
+    "expected_vars_present": [
+      "aggregate-rf",
+      "top-n"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.window",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.window",
+    "expected_vars_present": [
+      "init",
+      "step",
+      "advance",
+      "finish"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.dns",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.dns",
+    "expected_vars_present": [
+      "packet-time-us",
+      "packet->event",
+      "init",
+      "step"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.stream",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.stream",
+    "expected_vars_present": [
+      "fan-out",
+      "branch",
+      "stats"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.pcapng",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.pcapng",
+    "expected_vars_present": [
+      "open-source",
+      "source-info",
+      "write-pcapng!"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.decode-ext",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.decode-ext",
+    "expected_vars_present": [
+      "register!",
+      "apply!"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.proto.dns-ext",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.proto.dns-ext",
+    "expected_vars_present": [
+      "annotate-dns"
+    ],
+    "status": "passed"
+  },
+  {
+    "namespace": "paclo.proto.tls-ext",
+    "url": "https://cljdoc.org/d/org.clojars.nanto/paclo/1.4.0/api/paclo.proto.tls-ext",
+    "expected_vars_present": [
+      "annotate-tls-sni"
+    ],
+    "status": "passed"
+  }
+]

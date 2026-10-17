@@ -1,17 +1,16 @@
 <!-- markdownlint-disable MD013 -->
 # v1.4.0 release preparation and acceptance
 
-Status: **formal publication authorized; dated metadata and final validation in progress**,
-2026-10-17 (Asia/Tokyo). The maintainer explicitly approved v1.4.0 publication,
-the actual-day CHANGELOG, tag creation/push, Clojars deployment, GitHub Release
-and post-publication documentation PR. The sole deployment path is a v1.4.0 tag
-push; never dispatch dry_run=false. README stays at v1.3.0 until Clojars is verified.
+Status: **v1.4.0 published and deployed bytes verified**, 2026-10-17 (Asia/Tokyo).
+[Clojars 1.4.0](https://clojars.org/org.clojars.nanto/paclo/versions/1.4.0) and
+[GitHub Release](https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0) are public.
+The [publication record](release-1.4.0-publication.md) owns actual final-main,
+dry-run, tag deployment, hashes, consumer and audit evidence. Stable installation
+coordinates now select v1.4.0; historical tables below retain their original SHAs.
 
-PRs #59–#63 are merged; starting main is
-`c8982fdea8860622bbb10c2da7bc4b752184dba1`. The prior checklist/Publish workflow
-contents are unchanged from PR #63. The [publication record](release-1.4.0-publication.md)
-tracks final-main evidence and actual deployment. Historical tables below retain
-their original source identities.
+Release source: `74a17b00c0f20f3ab51ef4aa10578088ccafe923`; annotated v1.4.0 tag
+object: `fb98630904ec1f9cef9604d387c1289c07480514`. The tag was pushed once;
+no manual dry_run=false, duplicate deployment or tag movement occurred.
 
 ## Scope and completed baseline
 
@@ -24,9 +23,9 @@ their original source identities.
 - [x] [PR #62](https://github.com/nantes-rfli/paclo/pull/62) merged at main
   `dfc5c5b4dbe39859b06431fa9c4b12714b89498d`. The maintainer confirmed completed
   independent review outside GitHub; there are no GitHub review submissions.
-- [x] README, [release notes draft](../docs/release-notes-1.4.0.md), migration,
+- [x] README, [release notes](../docs/release-notes-1.4.0.md), migration,
   [API contract](../docs/cljdoc-api-contract.md), PCAPNG guide and roadmap retain
-  accurate unpublished availability. The development default is 1.4.0-SNAPSHOT;
+  accurate published availability after deployment verification. The development default is 1.4.0-SNAPSHOT;
   explicit candidate packaging uses PACLO_VERSION=1.4.0.
 
 Measured acceptance for **dfc5c5b**, not a future commit:
@@ -49,41 +48,34 @@ separate this actual Publish JAR from PR #62 CI and earlier local builds:
 
 ## Distribution verification
 
-The finalization PR records its exact final head, review outcome, CI run and
-all 14 conclusions, artifact identities and fresh Dependency Audit in its
-**PR description**. This avoids adding another evidence-only source commit
-after final validation. Repository evidence above is immutable baseline history;
-it must not be relabeled as a scan/build of this PR.
+PR #63 finalized evidence; dated [PR #64](https://github.com/nantes-rfli/paclo/pull/64)
+passed all 14 jobs/review and merged. The resulting fixed main SHA passed
+[CI 39017426361](https://github.com/nantes-rfli/paclo/actions/runs/39017426361),
+all 14 jobs including ARM64 and same-JAR JDK17/21 consumers, all 36 executable
+examples and unchanged quality/performance gates. Its fresh
+[audit](https://github.com/nantes-rfli/paclo/actions/runs/39017436182) found zero CVEs.
 
-Before accepting that PR, verify:
+The [final Publish dry-run](https://github.com/nantes-rfli/paclo/actions/runs/39017696585)
+validated the same SHA and dated CHANGELOG; its actual JAR was inspected and
+consumed independently on JDK17/21 without rebuilding. Only after all gates,
+unchanged main/date and absence checks passed was v1.4.0 pushed. The
+[tag-triggered Publish](https://github.com/nantes-rfli/paclo/actions/runs/39017886556)
+succeeded; both actual Clojars downloads match its artifacts byte-for-byte and
+both published-byte consumers pass. v1.3.0 remains available and unchanged.
+See original clean provenance/runtime reports and separate per-build hashes in
+the publication record; a prior JAR hash was never assumed to identify a rebuild.
 
-1. Only release documentation/evidence changed; no dependency, runtime behavior,
-   performance budget, workflow, release version or published install coordinate changed.
-2. All 14 CI jobs pass on the final PR revision, including Linux ARM64 separately
-   from the aggregate build, and both checkout-free JDK 17/21 distribution consumers.
-   Coverage is informational in the existing workflow, but its job must also succeed.
-3. Download the newly generated single JDK 21 candidate bundle and both consumer
-   identity reports. Record its JAR/POM SHA-256 and original clean provenance;
-   require both consumers to identify that same JAR without rebuilding.
-   Record PR head SHA separately from the synthetic merge SHA used by PR CI,
-   and confirm the merge tree equals the intended candidate tree.
-4. Dispatch Dependency Audit on the final PR branch, verify its head SHA equals
-   the final PR head and triage the reports. Do not update dependencies silently.
-5. Review the complete diff and final evidence. The PR remains open for maintainer
-   acceptance; neither review nor CI authorizes merge, tag creation or publication.
-
-The publication day is now confirmed as 2026-10-17 (Asia/Tokyo); the metadata PR
-uses that dated CHANGELOG heading. After review/merge, fix the resulting main
-SHA and validate all 14 jobs, same-JAR consumers and fresh audit. Then perform
-the final main/1.4.0/dry_run=true Publish and inspect/consume its actual JAR.
-Before creating/pushing the tag, require main to remain at that SHA and the
-actual Japan publication day to match CHANGELOG. On any failed gate or mismatch,
-stop before deploying. Do not move/recreate a tag or retry deployment on failure.
+A separate post-publication documentation PR updates README coordinates,
+API/PCAPNG/roadmap/release-note status and this record. Its final revision must
+pass normal CI/review before merge; exact outcome is retained in that PR's
+description to avoid a self-referential evidence commit. cljdoc's initial build
+117558 imported 18 namespaces; the docs-only article override/rebuild follows
+that documentation merge without altering the release artifact/tag.
 
 ## Remaining issues and validation limits
 
-No new technical blocker was found in the completed baseline checks. The final
-PR's checks and review must actually complete before claiming its acceptance.
+No new technical release blocker was found in the completed final checks.
+Publication and actual deployed-byte verification are complete.
 
 [Issue #37](https://github.com/nantes-rfli/paclo/issues/37) remains open and
 non-blocking. PR #57 avoids premature DNS scans, but repeated actual retired-key
@@ -102,9 +94,10 @@ establish every OS/JDK pair or live performance target. No gate is relaxed.
 
 ## Publication handoff — requires separate explicit authorization
 
-The maintainer has now authorized this procedure. Execute each gate in order;
-record actual results in the publication record. Prior dry-run approval alone
-was not publication authorization.
+This authorized procedure was executed once for v1.4.0; measured results are in
+the publication record. Retain it as release history and guidance, not a request
+to repeat an already completed deployment. Prior dry-run approval alone was not
+publication authorization.
 
 1. Obtain explicit formal publication authorization and confirm the actual
    publication day. Recheck that v1.4.0 is absent from Clojars, tags and Releases.

@@ -1,0 +1,22 @@
+{
+  "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39017436182",
+  "source_commit": "74a17b00c0f20f3ab51ef4aa10578088ccafe923",
+  "scan_info": {
+    "engineVersion": "12.1.6",
+    "dataSource": [
+      {
+        "name": "NVD API Last Checked",
+        "timestamp": "2026-10-17T08:28:04Z"
+      },
+      {
+        "name": "NVD API Last Modified",
+        "timestamp": "2026-10-17T08:16:28Z"
+      }
+    ]
+  },
+  "dependencies": 23,
+  "vulnerabilities": 0,
+  "suppressed": 0,
+  "report_sha256": "d9935d174928d4188c5193ba3a2a005485d330d918ec5c4bd833d3c0dc7a75d6",
+  "oss_index": "disabled: credentials unavailable; NVD CVE analysis completed"
+}

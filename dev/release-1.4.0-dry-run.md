@@ -126,3 +126,11 @@ No Clojars deployment, Git tag, GitHub Release, publishing dispatch, dependency
 update or merge was performed. Issue #37/#44 follow-ups and documented live/NIC,
 platform, opaque-PCAPNG and legacy lazy-abandonment limits remain as recorded
 in the release checklist; offline success does not validate those environments.
+
+## Subsequent publication
+
+This report remains the historical dfc5c5b dry-run record, with its original
+hashes and unpublished-at-the-time status. v1.4.0 was subsequently published on
+2026-10-17 after fresh checks of a different release SHA; see the
+[publication record](release-1.4.0-publication.md). Do not transfer this report's
+JAR identity to the later deployed artifact.
