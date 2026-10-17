@@ -1,9 +1,16 @@
 <!-- markdownlint-disable MD013 -->
 # Release readiness after P06–P08
 
-Audit date: 2026-10-17 (Asia/Tokyo). Audited latest main:
+Original audit date: 2026-10-17 (Asia/Tokyo). Original audited main:
 `752c3646eab58070f05b6fa11aa8ff4142173022`, after PR #58.
 Compatibility baseline: tag `v1.3.0` and its published JAR, not historical plan sketches.
+
+Follow-up assessment: latest main `2f97ab25cc9e46550aa24be80d11ccc667dab2d3`
+contains merged PR #60. The [compatibility/version proposal](release-compatibility-version.md)
+now owns the detailed released-contract comparison, unresolved D1/D2 decisions,
+current 14-job CI/artifact evidence and release scope. The
+[migration draft](../docs/migration-from-1.3.md) is for v1.3.0 users.
+The original measurements below remain dated historical evidence.
 
 **Decision: proceed with release preparation, but do not publish yet.** The
 Java 17 distribution mismatch identified by the audit is corrected in
@@ -140,51 +147,18 @@ Unread suffixes are not validated after early stop.
 
 ## Compatibility and version decision
 
-[SemVer 2.0.0](https://semver.org/spec/v2.0.0.html) requires minor increments for
-compatible added public functionality and major increments for incompatible
-public changes. P06/P07/P08 API additions exclude a 1.3.x patch for this bundle.
-Plan labels v1.4/v1.5/Later were proposals, not published milestones.
+The [detailed follow-up](release-compatibility-version.md) compares published
+v1.3.0 with main after PR #60. **1.4.0 is the first candidate, not an approved
+version.** Writer interpretation of legacy maps with extra metadata (D1) and
+official CLI success/error semantics (D2) need explicit human classification.
+A genuine supported contract break requires 2.0.0 or a separate compatibility
+restoration before a minor; approving migration prose cannot waive SemVer.
 
-| Candidate | Assessment |
-| --- | --- |
-| 1.3.1 | Reject for this bundle: adds supported namespaces/functions/options |
-| 1.4.0 | Preferred next minor if the documented correctness changes below are accepted within the v1 contract and Java 17 distribution is repaired |
-| 1.5.0 | Technically a minor, but unnecessary merely because P06/P07 carried v1.5 planning labels; use only for an explicit release sequencing decision |
-| 2.0.0 | Required if the accepted release scope intentionally breaks previously supported behavior, including dropping JDK 17 rather than repairing the artifact; not justified solely by feature count |
-
-The following behavior differences must be in the release migration notes and
-accepted by reviewers; **retained function arities do not make these invisible**:
-
-| Change/evidence | Impact and migration | Classification |
-| --- | --- | --- |
-| P02 timestamp precedence and validation (`pcap/packet-timestamp`, roundtrip tests) | New complete `:ts-*` wins over `:sec/:usec`; partial new pair throws; complete nil/coercible noninteger/negative/out-of-range values now fail; malformed lengths fail. Supply valid complete integer microseconds/lengths and remove conflicting stale fields intentionally. Raw/missing/partial legacy fallback remains. | Correctness/validation changes; callers relying on old coercion/ignored metadata can break |
-| P08-B2 framing/snaplen validation (`validate-framing!`, writer tests) | Two-argument non-Ethernet maps and excess caplen now fail instead of emitting mislabeled/inconsistent files. Supply matching native DLT/snaplen; do not erase known metadata to bypass validation. | Intentional rejection of invalid output, not unrestricted two-argument equivalence |
-| P05 DLT and P04 diagnostics | Exact whole-map equality/schema consumers see extra keys; unknown explicit types reject instead of Ethernet parsing. Treat additive fields as open and use raw mode for unsupported framing. | Additive data plus correctness correction |
-| P08-B1 error propagation | Corrupt files formerly appearing as EOF may now throw. Use `:pass` with error callbacks/report stats only when a failed prefix is explicitly acceptable. | Bug fix with operational impact |
-| P06 Flow CLI | Default 100000 unique-flow budget; canonical tie ordering; async errors propagate. Raise explicit bound when appropriate and handle failure. | Observable example-command change |
-| P07-B DNS CLI | Correct RTT/mean, strict question matching, QR-oriented client/server grouping, reorder/expiry, full offline EOF, finite limits and overflow exit 5 instead of truncated output. Pair counts/group keys/output volume can change on previously accepted inputs. | Observable semantic migration; not byte-for-byte v1.3 CLI behavior |
-| JDK artifact | The original JDK 21 output could not load on JDK 17 despite advertised support. | Corrected and tested on both runtimes below |
-
-A JAR-only probe run outside the checkout under JDK21 confirmed these actual
-writer differences against the cached published 1.3.0 artifact:
-
-| Input | Published 1.3.0 | Audited JAR |
-| --- | --- | --- |
-| Valid legacy `1700000000/123` | Preserves time | Preserves time |
-| Both timestamp pairs | Uses legacy pair | Uses capture pair |
-| Partial new pair plus complete legacy | Uses legacy pair | Throws partial-new-time error |
-| Complete nil/fractional legacy | Clock fallback / coerces fractions | Throws validation error |
-| 60 captured bytes, `:len 120` | Writes len 60 | Preserves len 120 |
-| Explicit DLT 113 with default writer | Writes Ethernet-labeled file | Throws mismatch error |
-
-The old official CLI policy fixes stdout/stderr and exit codes 1–4, which remain;
-new analysis/source/bound failures add exit 5. A consumer assuming only 1–4 or
-old client/server grouping needs migration. Historical deprecation promises must
-not be rewritten to pretend these changes were already released. Reviewers must
-explicitly accept these as correctness/boundedness fixes, or commission a separate
-compatible opt-in adjustment; if the chosen scope retains a genuine supported
-behavior break, select 2.0.0. This audit does not implement that adjustment or
-silently certify unconditional backward compatibility.
+All original public names/arities remain, but writer precedence/validation,
+length/framing enforcement, native errors, diagnostics, Flow bounds/ranking and
+DNS computation/group/report/exit behavior have observable differences.
+The linked assessment records each change's authority, affected users,
+mitigation and SemVer evaluation, with reproducible JAR-only evidence.
 
 ## Release blocker: Java 17 distribution
 
@@ -322,7 +296,7 @@ This is distinct from macOS ARM64 CI. Full commands/results are in the
 | Performance | Existing gate passes at 452.1 ms, unchanged 1000/1200 ms warning/failure budgets; 27-scenario quick matrix passes in current main CI |
 | Package/consumers | JAR builds; contents/POM inspected; three outside-checkout JDK21 consumers pass (all DLTs, DNS/PCAPNG/windows, Flow); JDK17 artifact remains blocked |
 
-Latest main [CI run 38988905927](https://github.com/nantes-rfli/paclo/actions/runs/38988905927)
+Original audited main [CI run 38988905927](https://github.com/nantes-rfli/paclo/actions/runs/38988905927)
 completed successfully with all 12 jobs. PR #58 final head `9b9b02c` also passed
 [run 38955008505](https://github.com/nantes-rfli/paclo/actions/runs/38955008505).
 Verified jobs include Linux x64/JDK21, macOS ARM64/JDK17, Linux ARM64/JDK21,
@@ -349,7 +323,7 @@ run the existing workflow before publication, without a bulk dependency update.
 
 | Item | Assessment | Before/after release |
 | --- | --- | --- |
-| Java17 artifact | Confirmed distribution/support mismatch | Must fix/verify before stable publication |
+| Java17 artifact | Original mismatch corrected in merged PR #60; current main same-JAR consumers pass on 17/21 | Preserve the mandatory gate and recheck final candidate |
 | Compatibility/migration decision | Writer and CLI behavior changes above require explicit acceptance and chosen version | Must resolve before naming/tagging the release |
 | Issue #37 | Open; PR #57 reviewed and merged as `e444b10`. Repeated actual retired expiry remains O(retired), with measured throughput losses 12.6–38.4%; long representative production-PCAP evidence is missing | Non-blocking follow-up; keep open; correctness/bounds must not be weakened |
 | Issue #44 | Open; PR #58 independently reviewed and merged as `752c364`. Repeatable Ethernet Full improvements 9.1–76.1% transformation / 9.6–32.3% native, allocation parity; cooked benefits also retained | Non-blocking; recommend closure after accepting this evidence and remaining JIT/thermal/retention limits |
@@ -379,9 +353,8 @@ Neither is a reason to delay this release once the mandatory conditions pass.
 
 1. Audit PR #59 is merged as `3f63c1e`; preserve its historical findings and
    the current canonical contract.
-2. Independently review and accept the scoped build/consumer correction on
-   PR #60. Full unchanged CI and identical release-JAR consumers on 17/21 pass;
-   merge still requires review and human approval.
+2. PR #60 is reviewed and merged as `2f97ab2`. Main CI 38996721327 passes
+   all 14 jobs including identical JAR consumers on 17/21. Preserve those gates.
 3. Approve migration scope and version (preferred 1.4.0; major if a supported
    break remains). Prepare a separate release PR: move Unreleased entries into a
    dated version section, align README install/status, API availability labels,

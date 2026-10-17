@@ -46,26 +46,25 @@ retain original scope; completion summaries and the current task take precedence
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **Java 17 distribution compatibility correction**, from latest
-main `3f63c1e6be59816e1f26df437e32a8da39998171` after PR #59 merged.
-Implementation and verification: **done** on
-[PR #60](https://github.com/nantes-rfli/paclo/pull/60); independent review remains,
-with no merge or publication. Implementation `e008dd0` passes all 14 CI jobs on
-[run 38993389235](https://github.com/nantes-rfli/paclo/actions/runs/38993389235),
-including both consumers of the same JDK 21-built JAR (SHA-256 `358b8d52...5ed78d89`).
-All ten bindings are major 61 instead of 65; POM/source bytes and native/public
-behavior are unchanged. Final evidence-only head checks are maintained on the PR.
-Preserve all public/native behavior and JDK 21 support;
-share `--release 17` across production compilation paths and require isolated
-JDK 17/21 consumers of one JDK 21-built JAR. Existing source matrix jobs remain.
-The [release readiness report](release-readiness-p06-p08.md) records the original
-blocker and correction evidence; [work log](work-log.md) records commands/results.
-Next unfinished item: independent PR #60 review, then explicitly accept
-migration scope/version in separate release
-preparation. No version, tag, publication, merge, new feature or performance work.
-Issue #37 stays open; Issue #44 can be closed after accepting
-PR #58's documented optimization and measurement limits. This audit does not
-close issues, change versions, publish, tag or merge. P09/P10 remain blocked.
+Current task: **next-release compatibility assessment and version proposal**,
+from latest main `2f97ab25cc9e46550aa24be80d11ccc667dab2d3` after PR #60.
+Assessment, migration draft and local verification: **done**; independent PR
+review and human release decisions remain pending. The
+[decision proposal](release-compatibility-version.md) owns the released-contract
+comparison; [readiness audit](release-readiness-p06-p08.md) retains earlier evidence.
+PR #59 merged as `3f63c1e`; PR #60 is reviewed/merged as `2f97ab2`.
+Current main CI 38996721327 has all 14 jobs successful, including both consumers
+of one JDK21-built JAR (SHA-256 `8f153f45...a1812e8`) on JDK17/21.
+
+Next unfinished item: independent review of this documentation PR and human
+resolution of Writer D1 / CLI D2 contract interpretations, then explicit version,
+migration and release-scope approval. 1.4.0 remains the first candidate; if a
+formal contract break remains, require a separate restoration PR or 2.0.0.
+No version, release changelog section, tag, publication or merge is authorized.
+Include P01–P08 and merged stabilization/performance/build follow-ups; exclude
+P09/P10. Issue #37 stays open/non-blocking. Recommend #44 closure only after
+separate acceptance of PR #58's bounded evidence and limits; do not claim Flow
+or live/NIC speedup. This task leaves both issues unchanged.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).

@@ -3884,3 +3884,132 @@ same-artifact 17/21 and existing Linux x64/ARM64/macOS ARM64 source checks are
 actual passes. No release version assignment, tag, Publish dispatch, deployment,
 merge, issue closure, feature/dependency work or optimization was performed.
 Next: independent PR #60 review. Evidence-only commit final checks remain on PR.
+
+## 2026-10-17: Next-release compatibility and version proposal
+
+Requested scope: independent documentation/assessment PR from latest main after
+PR #59/#60, no version assignment/publication or production/API correction.
+Initial `git status --short --untracked-files=all` clean. Read AGENTS,
+CONTRIBUTING, API contract, accepted plan, readiness report, changelog and prior
+work-log evidence. Fetched origin and created `codex/release-compatibility-version`
+from `2f97ab25cc9e46550aa24be80d11ccc667dab2d3` in supplied checkout. Git metadata
+and GitHub/network reads used normal approved sandbox escalation. No rejection.
+
+Read live PR #59/#60 merge/body/check data, PR #58 independent review and Issue
+Issues #37/#44 original requirements/current open states. PR #60 is merged as 2f97ab2.
+Main CI 38996721327 reports all 14 jobs successful, with no skipped/failed jobs.
+Downloaded main distribution/provenance and both consumer report artifacts to
+`/tmp/paclo-main-distribution`. Clean source commit 2f97ab2; build Temurin21.0.12.1;
+all ten classes major61. Both Temurin17.0.20.1 and21.0.12.1 reports identify the
+same SHA-256 `8f153f45daa9a4e00176923bb3c75169ecac64157f0272f03436a5bd9a1812e8`;
+local JAR hash agrees. PR #60 final CI38993735942 also reports 14/14 success.
+These are separate run identities, not mixed artifacts or rebuilt consumers.
+
+Fresh Clojars download `/tmp/paclo-published-1.3.0.jar` matches cached JAR SHA-256
+`65a98348320ad905939e72fbf825b57111d704057698718863487edd22797a1b`.
+Nine released binding classes are major65. Inspected tag-v1.3.0 API/README/usage,
+migration/deprecation policy, actual Writer and CLI sources rather than using
+current docs to redefine old guarantees. Read SemVer2.0.0 rules6–8 from upstream.
+
+The [assessment](release-compatibility-version.md) separates guaranteed,
+incidental and erroneous behavior for every requested compatibility category.
+Preferred 1.4.0 remains conditional on unresolved D1 Writer-extra-metadata and
+D2 official-CLI policy interpretations. Human acceptance cannot waive a genuine
+SemVer break: require a separate restoration PR or 2.0.0 if a formal guarantee
+is broken. No public API is changed. The user migration draft is linked from the
+docs index and adds two registered executable examples; exact API rules stay in
+the existing canonical contract. P01–P08/stabilization/performance/build fixes
+are proposed in scope, P09/P10 excluded, #37 open/non-blocking, #44 closure only
+after separate issue-level acceptance with no Flow/historical/NIC speedup claim.
+
+Added an opt-in external comparison driver and standalone dev probe; they never
+compile library code or modify JARs. Each variant uses a fresh temporary consumer
+with `-Srepro`, local/root JAR and verified Java/Clojure JAR resource origins.
+CLI sources are extracted unchanged from each revision as external inputs because
+the dev examples are not packaged in the library. Raw output/status is retained.
+Direct record-header inspection distinguishes old invalid writes from reader
+rejection. Initial comparison passes all probes; then probe forms were wrapped
+in a side-effect-free namespace/-main so ordinary lint loading is safe, formatted,
+and rerun with extra RTT stats/server group cases. No library change resulted.
+
+Observed: old dual-pair time uses legacy versus capture on main; partial new,
+nil/fractional/range/length/framing/snaplen cases change as documented. All old
+supported names/arities retained. Old native truncated header appears as EOF;
+main throws with structured native rc/reason. Same four real packets give equal
+Flow rows/totals with changed ties; RTT gains 10.241/15.817ms; QPS client groups
+combine both directions. Four buckets with max-buckets1 go from truncated row/
+exit0 to no stdout/exit5. New Flow bound uses JVM exit1, not DNS exit5.
+This is explicit valid-input behavioral migration, not an arity-only conclusion.
+
+Local verification so far:
+
+- `bash dev/script/codex.sh doctor`: exit0, macOS x86_64, JDK21.0.12.1,
+  Clojure1.12.1, libpcap offline four packets/438 bytes.
+- `bash dev/script/codex.sh check`: exit0; ten JUnit tests, 490 Clojure tests /
+  19036 assertions, no failure/error, native offline smoke. Existing fixtures,
+  properties and heap/wire tests run unchanged.
+- `python3 dev/script/verify_doc_links.py` and `git diff --check`: pass during
+  authoring. Final lint/docs/package/performance/consumer results follow below.
+
+Additional final local evidence:
+
+- Final `compare.py OLD.jar MAIN-CI.jar OUTPUT.json`: exit 0; 16 subprocess cases
+  (eight per version), expected nonzero bound/unknown-flag cases preserved in
+  `dev/release-compatibility/comparison.json`. RTT stats change from with-rtt 0 /
+  nil average to with-rtt 2 / 13.029 ms; server groups confirm QR role orientation.
+  No source recompilation, altered historical sources or normalized old limits.
+- `python3 -m unittest discover -s dev/script -p test_verify_doc_examples.py`:
+  15 tests pass. Full executable-document gate passes all 36 examples. The
+  invalid-time migration example was then strengthened from preparation-only
+  validation to real Writer rejection plus successful corrected-file readback;
+  that exact changed example is independently rerun and passes.
+- `TMPDIR=/private/tmp python3 -B -m unittest discover -s dev/script -p
+  test_verify_doc_links.py`: all nine pass, including the intentional printed
+  invalid-link fixture. Actual local Markdown links/heading anchors pass.
+- `python3 -B -m unittest discover -s dev/script -p
+  test_verify_distribution.py`: seven artifact-gate regressions pass.
+- Initial full `lint` has zero kondo warnings/errors, all 113 Eastwood namespaces
+  complete (600 informational warnings, zero exceptions), then fails only on the
+  new probe's require layout in clean-ns. Corrected that layout; independent
+  clean-ns/format/kondo checks pass. Initial Markdown run catches an issue number
+  at the beginning of a work-log line (MD018); corrected prose. Complete wrapper
+  is rerun unchanged below; no rule, gate or threshold is relaxed.
+- `bash dev/script/codex.sh perf`: exit 0, 594.4 ms; unchanged 1000/1200 ms
+  warning/failure limits. No performance improvement claim from this run.
+- `bash dev/script/codex.sh package`: exit 0. `verify_distribution.py prepare`
+  and `consume --report` both pass for `/tmp/paclo-version-local-distribution`.
+  Local JAR SHA-256 `e41328d23b1ac09b64749671810f78a31aa3e3e2006c966a096543792f4d5132`;
+  source base 2f97ab2 with tracked docs dirty (not clean-release provenance), ten
+  major-61 classes. Inventory and all production source/class/POM bytes match
+  the downloaded main CI JAR; only pom.properties build timestamp differs.
+  Isolated JDK 21 consumer covers all existing offline public/format/lifetime
+  probes and reports passed. JDK 17 execution is from actual main CI, not local.
+- `prepare` restores Java tests after package; packaging did not overlap tests,
+  compilation or performance. cljdoc namespace-load command with existing pinned
+  `0.0.1315-c9e9a7e` succeeds (`:cljdoc-loaded`); historical harmless cuerdas name
+  shadowing warnings remain. No remote cljdoc publication is attempted.
+
+Final wrapper/PR handoff and final-head CI are recorded after these checks.
+The release version, D1/D2 and issue closure remain human decisions. No Publish
+workflow (including dry run), tag, release, deploy, issue mutation or merge occurs.
+
+Final full `bash dev/script/codex.sh lint`: exit 0; zero kondo warnings/errors,
+113 Eastwood namespaces / 600 informational warnings / zero exceptions, clean-ns
+and format dry runs unchanged, all 44 Markdown files pass. Local links and
+`git diff --check` pass after the final status update. All new examples remain
+registered in the existing CI gate. No source/dependency/build/workflow/changelog
+implementation diff. Assessment and local verification are done; human D1/D2,
+version/scope and issue acceptance plus independent PR review remain unfinished.
+Final-head GitHub CI results will be recorded on the PR rather than generating
+an additional evidence-only commit after that CI run.
+
+Commit hook's first attempt stops before tests because installed `clj` requires
+missing rlwrap. A temporary `/tmp/paclo-version-hook-bin/clj` delegates the same
+arguments to `/usr/local/bin/clojure` for noninteractive use. No hook/config/rule
+is edited or skipped. Retry runs the ordinary tests/format/Markdown/kondo hooks.
+
+Implementation commit: `docs: assess next release compatibility and version scope`
+on `codex/release-compatibility-version`. The independent PR uses the requested
+`docs: decide next release compatibility and version scope` title. Final-head
+14-job CI and identical JAR runtime identities are maintained in its description;
+independent review and human D1/D2/version/scope approval are the next work item.

@@ -37,6 +37,16 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "migration-classic-time": Check(
+        "Migration Classic timestamp selection", "clojure",
+        '(= [{:ts-sec 1700000000 :ts-usec 123 :caplen 60 :len 60} '
+        '{:ts-sec 1700000001 :ts-usec 456 :caplen 60 :len 120} '
+        '{:ts-sec 1700000002 :ts-usec 789 :caplen 60 :len 120}] result)',
+    ),
+    "migration-invalid-time": Check(
+        "Migration rejects uncertain capture time", "clojure",
+        '(= {:rejected true :verified-time {:ts-sec 1700000001 :ts-usec 456}} result)',
+    ),
     "usage-offline-prefix": Check(
         "Usage safely closed offline prefix", "clojure",
         '(and (= 2 (count result)) (every? :decoded result))',
@@ -202,6 +212,8 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "migration-classic-time",
+    "migration-invalid-time",
     "readme-raw-ip-full",
     "usage-raw-ip-flow",
     "readme-cooked-decode",
