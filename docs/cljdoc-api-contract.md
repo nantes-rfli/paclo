@@ -1,7 +1,10 @@
 # Public API Contract (v1.x)
 
 This page defines the stable library contract for v1.x.
-It is intentionally compact and focused on user-facing namespaces.
+It focuses on user-facing namespaces. Sections marked `[Unreleased]` describe
+repository main, beyond published v1.3.0; see the
+[release readiness audit](../dev/release-readiness-p06-p08.md) for migration
+risks and version decisions.
 
 ## Scope
 
@@ -712,7 +715,8 @@ integers on overflow. Configuration is excluded from aggregate data.
 the bound throw `ex-info` with `:reason :max-flows`, `:max-flows` and `:flow`.
 Existing keys still update at the bound. No eviction or approximation occurs.
 Invalid options throw at reducer construction. Duration/expiration remain caller
-policy; windows and DNS correlation remain P07.
+policy; separate bounded count/byte windows and DNS correlation are available
+in `paclo.window` and `paclo.dns` below.
 
 ### `top-n`
 

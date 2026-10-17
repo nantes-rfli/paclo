@@ -1,5 +1,8 @@
 # Metadata-aware PCAPNG reading and writing
 
+These APIs are implemented in repository `[Unreleased]` (P08-E2/E3), beyond
+published v1.3.0. The native capture API remains a separate input path.
+
 `paclo.pcapng/open-source` reads an offline PCAPNG file through a bounded Java
 FileChannel cursor. `source-info` reports its lifecycle and counters. The
 existing `core/packets`, `reduce-packets` and Classic `write-pcap!` retain their

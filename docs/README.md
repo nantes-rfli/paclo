@@ -8,7 +8,7 @@ documented separately from historical release and design records.
 - [Getting started and install](../README.md)
 - [Usage guide](usage.md)
 - [Public API contract (v1.x)](cljdoc-api-contract.md)
-- [Metadata-aware PCAPNG reader](pcapng.md)
+- [Metadata-aware PCAPNG reading and writing](pcapng.md)
 - [Decode extensions](extensions.md)
 - [Performance measurement](performance.md)
 - [Migration guide (0.4 to 1.0)](migration-0.4-to-1.0.md)
@@ -36,6 +36,7 @@ statements of the current public API.
 - [Contributor setup and verification](../CONTRIBUTING.md)
 - [Accepted development queue](../dev/codex-plan.md)
 - [Execution and verification log](../dev/work-log.md)
+- [P01–P08 release readiness audit](../dev/release-readiness-p06-p08.md)
 
 The runnable examples under current documentation are verified in CI.
 Historical code examples are not executed as part of the current API contract.

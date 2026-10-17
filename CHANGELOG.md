@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+P01–P08 and the follow-ups below are implemented on repository main. No stable
+release after v1.3.0 has been published. Phase-specific exclusions below describe
+each change's scope; PCAPNG metadata I/O is now provided separately by P08-E2/E3.
+Version candidates and migration risks are recorded in the
+[release readiness audit](dev/release-readiness-p06-p08.md).
+
 ### Performance
 
 - Avoid DNS expiry scans before the next possible deadline using one immutable

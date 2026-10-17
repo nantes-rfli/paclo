@@ -185,10 +185,12 @@ Live output additionally includes `stage-counts`, `queue-stats`,
 Schema version 2 is not intended to be read as schema version 1 without an
 explicit compatibility layer.
 
-The reference profile reports median, minimum, and maximum values. The current
-CI job checks that the quick profile completes and reports consistent counts;
-it does not enforce a throughput threshold until stable baselines have been
-collected.
+The reference profile reports median, minimum, and maximum values. CI quick
+measurements validate all 27 scenarios across three datasets and report consistent
+counts without a throughput threshold. Separately, the required existing
+`clojure -M:perf-gate` measures a synthetic 50,000-packet decode/write path with
+unchanged warning/failure budgets of 1000/1200 ms. Neither check establishes
+real-NIC throughput or DNS CLI performance.
 
 ## Optimization decisions and historical results
 
@@ -207,3 +209,11 @@ The [Issue #34 flow aggregation investigation](../dev/issue-34-flow-performance.
 records a paired exact-aggregate baseline, CPU/allocation analysis, accepted and
 rejected candidates, fixture replay and retained-memory limits. Its opt-in runner
 is separate from the existing performance gate.
+
+Merged follow-ups also record [flow key reuse](../dev/flow-key-reuse-performance.md),
+[DNS analysis](../dev/issue-37-dns-performance.md) and
+[Ethernet decoding](../dev/issue-44-ethernet-performance.md). Their negative
+results, JIT controls and platform/trace limits remain part of the evidence.
+Issue #37 is still open; PR #58 is merged, with Issue #44 closure awaiting
+issue-level acceptance. The [release audit](../dev/release-readiness-p06-p08.md)
+separates these decisions from required performance gates.

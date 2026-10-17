@@ -14,7 +14,12 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - Stable release: `v1.3.0` (published on August 1, 2026)
 - Clojars: `org.clojars.nanto/paclo`
 - cljdoc: <https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT>
-- Roadmap status: v1.3.0 released (see `docs/ROADMAP.md`)
+- Repository main: P01–P08 and stabilization/performance follow-ups implemented
+  in `[Unreleased]`; see the [roadmap](docs/ROADMAP.md) and
+  [release readiness audit](dev/release-readiness-p06-p08.md)
+
+The install coordinates below still select v1.3.0. Features marked `[Unreleased]`
+require repository main and are not in that published artifact.
 
 Repository `[Unreleased]` captures expose native DLT `:linktype`. Raw reads
 support non-Ethernet PCAPs; full/flow decode supports Ethernet/VLAN (DLT 1),
@@ -416,8 +421,9 @@ explicit classifications. Capture, clocks and output remain caller-owned.
 ```
 
 See [executable PCAP examples](docs/usage.md#pure-bounded-time-windows) and the
-[API contract](docs/cljdoc-api-contract.md#paclowindow). Existing DNS CLIs remain
-unchanged; their migration and bounded reporting are P07-B.
+[API contract](docs/cljdoc-api-contract.md#paclowindow). Repository DNS RTT/QPS
+CLIs now use these APIs with finite report limits, strict matching and explicit
+completion diagnostics; see [migration details](docs/usage.md#delivery-and-migration).
 
 ## Public API surface (v1.x)
 
@@ -428,16 +434,17 @@ unchanged; their migration and bounded reporting are P07-B.
 | `paclo.window` | `init`, `step`, `advance`, `finish` | Bounded tumbling windows (Unreleased P07-A) |
 | `paclo.dns` | `packet-time-us`, `packet->event`, `init`, `step`, `advance`, `finish` | Pure DNS analysis (Unreleased P07-A) |
 | `paclo.stream` | `fan-out`, `branch`, `stats` | Bounded multi-consumer distribution |
-| `paclo.pcapng` | `open-source`, `source-info` | [Bounded PCAPNG metadata/exact-time reader](docs/pcapng.md) (Unreleased P08-E2) |
+| `paclo.pcapng` | `open-source`, `source-info`, `write-pcapng!` | [Bounded PCAPNG metadata/exact-time I/O](docs/pcapng.md) (Unreleased P08-E2/E3) |
 | `paclo.decode-ext` | `register!`, `unregister!`, `installed`, `apply!` | Post-decode hook API |
 
 Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
-`paclo.stream.impl`, `paclo.pcapng.cursor`) are not part of the compatibility contract, except supported
+`paclo.flow.project`, `paclo.linktype`, `paclo.stream.impl`,
+`paclo.pcapng.cursor`, `paclo.pcapng.writer`) are not part of the compatibility contract, except supported
 `paclo.proto.dns-ext/annotate-dns` and `paclo.proto.tls-ext/annotate-tls-sni`.
 
 ## Compatibility matrix
 
-| Layer | Supported | CI gate status (2026-07-30) | Notes |
+| Layer | Supported | CI gate status (2026-10-17) | Notes |
 | --- | --- | --- | --- |
 | Clojure | `1.12.x` | Required | Baseline in `deps.edn` is `1.12.1` |
 | JDK | `17`, `21` | Required | Representative compatibility jobs cover both |
@@ -449,6 +456,10 @@ Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
 The representative matrix is Linux x86_64/JDK 21, macOS arm64/JDK 17, and
 Linux arm64/JDK 21. The architecture assertions prevent floating runner labels
 from silently changing the coverage represented by a job name.
+
+The JDK 17 job validates a source build. The release audit found that JDK 21
+packaging currently emits Java 21 classes; [distribution compatibility](dev/release-readiness-p06-p08.md#release-blocker-java-17-distribution)
+must be fixed and verified before the next stable release.
 
 ## Performance baselines
 

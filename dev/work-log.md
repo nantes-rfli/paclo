@@ -3586,3 +3586,143 @@ Do not treat an interrupted earlier-head run as final verification. No workflow,
 threshold, dependency, version, production code or measurement data changes
 follow the implementation commit. Issue #44 remains open for independent
 acceptance; no review approval, merge or release is implied.
+
+## 2026-10-17: Release readiness audit after P06–P08
+
+Requested scope: current implementation/API/doc/CI/package/Issue audit from latest
+main, document corrections and an independent PR; no tag, publication, Issue
+closure or merge. Initial `git status --short --untracked-files=all` was clean.
+Fetched main and created `codex/release-readiness-p06-p08` from
+`752c3646eab58070f05b6fa11aa8ff4142173022` in the supplied checkout.
+Read CONTRIBUTING, API contract and accepted plan before editing.
+
+The [readiness report](release-readiness-p06-p08.md) records complete inventory,
+format/lifetime/OS boundaries, SemVer alternatives, required fixes, Issue decisions
+and the recommended release sequence. P01–P08 and follow-up implementations are
+merged; P09/P10 remain blocked. Prefer 1.4.0 only after explicit compatibility
+acceptance and the Java17 artifact correction; publication is not ready.
+
+Confirmed blocker: `javap -verbose target/classes/paclo/jnr/PcapLibrary.class`
+reports major 65; `build.clj` has no release target, while Publish builds with
+JDK21 and docs advertise JDK17. The cached Clojars v1.3.0 JAR also has major 65.
+Source-build CI on JDK17 does not test that distributed JAR. No local JDK17 is
+installed (only 21/13); require a separate build correction and identical JAR
+consumers on 17/21. No runtime/build/workflow fix is made in this docs-only scope.
+
+Live GitHub checks via the connected GitHub API confirm main run 38988905927 and
+PR #58 final-head run 38955008505 all twelve jobs successful. PR #58 is reviewed
+and merged as 752c364 on 2026-10-17. Issue #44 remains open; recommend evidence-
+bounded closure after accepting its remaining measurement limits. PR #57 review
+explicitly keeps Issue #37 open for actual retired expiry and production-trace
+work. #40 and #34 are closed, without claiming lazy abandonment repaired.
+Dependency Audit run 38428605480 succeeded 2026-10-13 at 8312d10; a fresh release
+scan remains a release acceptance check. `git diff v1.3.0..HEAD -- deps.edn` is empty.
+
+Direct Clojars API GET reports latest/version 1.3.0; GitHub latest release and
+versioned cljdoc agree. Web search's project-page cache showed 1.2.0 and was not
+treated as current state. Local network sandbox initially prevented GitHub/Clojars
+reads; approved read-only network commands succeeded. Fetch/switch required normal
+Git metadata write escalation. No approval rejection occurred.
+
+Document corrections preserve the authority structure: README/ROADMAP now state
+P01–P08 complete but Unreleased; README includes PCAPNG writer and P07-B migration;
+API/usage remove stale future-P07 language; PCAPNG availability is explicit;
+performance distinguishes quick measurements from the existing timed gate;
+CHANGELOG retains phase scope/history and its Unreleased boundary. CONTRIBUTING
+links current release conditions and explains Publish's partial gate coverage.
+Plan review/merge/next-item states are updated, without rewriting old work-log
+handoffs or released changelog sections.
+
+Verification commands and results:
+
+- `bash dev/script/codex.sh doctor`: exit 0, macOS x86_64, Temurin 21.0.12.1,
+  Clojure 1.12.1, real offline read four packets / 438 bytes.
+- `bash dev/script/codex.sh check`: exit 0; 490 Clojure tests / 19036 assertions,
+  zero failures/errors; ten JUnit tests and offline native smoke pass. Real
+  captures, PCAPNG wire/heap and property regressions remain unchanged.
+- API source comparison against v1.3.0 plus runtime public Var/arity inspection
+  via `/tmp/paclo-release-api-audit.clj`: exit 0, baseline names/arities retained.
+  Behavioral exceptions are separately recorded; constructors are unsupported.
+- Five existing fixture generator `--check` commands (with `python3 -B`): pass
+  28 format, 4 cooked, 3 Raw, 12 NULL/LOOP and 10 PCAPNG-contract captures.
+- `python3 -m unittest discover -s dev/script -p test_verify_doc_examples.py`:
+  15 tests pass. `python3 dev/script/verify_doc_examples.py`: exit 0, all 34
+  maintained examples pass. Two existing Flow examples were subsequently corrected and re-executed below.
+- `python3 dev/script/test_eastwood_runner.py`: exit 0; four real subprocess
+  probes, including expected negative analysis exit 1/unanalyzed namespace.
+- `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`,
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`: exit 0; line coverage 43.8%,
+  unchanged 25% gate.
+- Link-checker unit tests initially failed on macOS's symlinked default temp
+  directory (`/var` versus resolved `/private/var`), not a bad repository link.
+  `TMPDIR=/private/tmp python3 -m unittest discover -s dev/script -p
+  test_verify_doc_links.py` passes all nine tests unchanged. The expected
+  invalid-fixture error printed by one passing test is intentional. An interim
+  real-link check caught the not-yet-written work-log heading; final check follows.
+
+Additional validation results, package details and PR handoff follow below.
+
+- Initial `bash dev/script/codex.sh lint` analyzed all 112 Eastwood namespaces
+  (593 informational warnings, zero exceptions), kondo zero warnings/errors and
+  clean-ns/format dry runs, then failed solely at npm network access. The same
+  full wrapper is rerun with approved network access; no linter/rule changed.
+  Markdown lint independently passes all 42 files after correcting two audit
+  formatting errors (line length and an Issue number at start of line).
+- `clojure -Sdeps '{:deps {cljdoc/cljdoc {:mvn/version
+  "0.0.1315-c9e9a7e"}}}' -M -e "(require 'cljdoc.doc-tree) (println
+  :cljdoc-loaded)"`: exit 0. This is the existing CI namespace-load check, not
+  an actual remote documentation publication.
+- `bash dev/script/codex.sh perf`: exit 0, 452.1 ms, unchanged 1000/1200 ms
+  warning/failure budgets. Local checks do not establish a new live/NIC target.
+- `bash dev/script/codex.sh package`: exit 0; inspected 41 JAR entries, all
+  expected public/annotation/internal resources and ten binding classes, with
+  no test/dev roots or fixtures. All ten class versions are 65. Embedded POM
+  coordinates/version/SCM are org.clojars.nanto/paclo / 1.3.0-SNAPSHOT /
+  v1.3.0-SNAPSHOT; five dependencies match default deps. MIT is in the POM,
+  standalone LICENSE text is absent. No release version override was used.
+- Isolated `/private/tmp/paclo-release-candidate-consumer/deps.edn` contains
+  `:paths []` and only the local/root JAR dependency. Existing Ethernet and DNS
+  consumer scripts loaded with `-i` run under `clojure -Srepro -M` outside the
+  checkout: both exit 0, asserting jar-protocol resources and checking all six
+  DLTs/full/flow/extensions/byte identity, exact DNS/EDN snapshots, independent
+  fan-out, PCAPNG author/read and Window composition. A separate Flow probe
+  checks bidirectional keys, exact totals and immutable/EDN-resumed snapshots.
+  Its first temporary script had an unmatched parenthesis and failed to compile;
+  the script was corrected without repository changes and rerun.
+- Published v1.3.0 JAR-only API baseline check: exit 0. A shared eight-case
+  writer probe against published/candidate JARs confirms legacy time retention,
+  changed dual-pair precedence, partial/nil/fractional validation, truncated wire
+  length preservation and explicit DLT mismatch rejection. Concrete results are
+  tabulated in the readiness report.
+- `prepare` restores Java test classes after package; no packaging runs concurrently
+  with compilation/tests/performance. Generated Python `__pycache__` files are
+  removed before submission; they were absent in the initial clean checkout.
+
+Final local results: all three JAR consumers pass on JDK21 (Flow included),
+`prepare` exits 0, all 34 executable docs and cljdoc loading pass. Real repository
+links and `git diff --check` pass. The network-enabled full lint retry repeated
+all Clojure analyses successfully but caught Markdown interpretation of a newly
+appended unquoted `__pycache__` name in this log; it is now quoted and the full
+wrapper is rerun unchanged. No functional source, dependency, workflow, threshold,
+release version or historical release section is changed. Audit authoring and
+local verification complete; PR review and the separate Java17 correction are
+the next unfinished work.
+
+Final API call-site inspection found two maintained usage snippets calling
+`flow/top-n` with a number instead of its documented options map. They happened
+to pass because the implementation used default n=10 and the tiny fixtures had
+at most eight flows. Corrected them to `{:n 10}` / `{:n 8}` without changing
+runtime validation. Re-execute those two examples with the unchanged registered
+checks; also exercise `{:n 1}` to demonstrate actual requested limiting.
+
+Final full `bash dev/script/codex.sh lint` exits 0: kondo zero errors/warnings,
+112 Eastwood namespaces / 593 informational warnings / zero exceptions,
+namespace and formatting dry runs clean, all 42 Markdown files pass. Both
+changed documentation examples and their n=1 variants exit 0. The successful
+result supersedes the intermediate environmental/Markdown failures above.
+
+For committing, the existing hook uses `clj`, but this host lacks `rlwrap`.
+A temporary PATH shim invokes the installed Clojure CLI noninteractively; the
+hook still runs its original full tests, formatter, Markdown and kondo checks.
+No SKIP flag or repository hook change is used. PR/final CI evidence is tracked
+on the submitted PR to avoid repeated evidence-only commits.
