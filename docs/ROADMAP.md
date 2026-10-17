@@ -41,13 +41,19 @@ roadmap. The current CI gates and developer procedures are documented in
 
 The accepted next-development queue is maintained in
 [`dev/codex-plan.md`](../dev/codex-plan.md), with dependencies and acceptance criteria.
-It prioritizes faithful packet round trips, explicit extension composition, data
-contracts, and reusable analysis. Release labels there are candidates. Developer
+P01–P08 are implemented and merged in repository `[Unreleased]`, including
+packet metadata preservation, explicit extensions, diagnostics, flow/window/DNS
+analysis, Linux/macOS multi-DLT decoding and metadata-aware PCAPNG I/O.
+Stabilization and measured flow/DNS/Ethernet improvements are also merged.
+Release labels in the plan are historical candidates, not separate releases. Developer
 setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-`v1.3.0` is shipped. P02 packet metadata preservation is implemented in
-`[Unreleased]`, with CI and review tracked in the accepted plan. P03 is in progress;
-acceptance still requires review and merge.
+`v1.3.0` remains the published stable version. The
+[release readiness audit](../dev/release-readiness-p06-p08.md) records API
+compatibility risks, version candidates and release acceptance conditions.
+Issue #37 remains a non-blocking DNS performance follow-up. PR #58 is reviewed
+and merged; Issue #44 remains open pending issue-level acceptance. P09/P10
+remain blocked on a concrete integration need or measured workload shortfall.
 
 - [ ] Stabilize arm64 success rate against long observation windows
 - [ ] Keep publish/release automation healthy (token rotation, workflow maintenance)

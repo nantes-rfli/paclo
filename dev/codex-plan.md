@@ -19,7 +19,10 @@ and replayed. Preserve the small public API and the current v1 contract.
 ## Work queue
 
 Statuses: `ready`, `blocked` (by the listed prerequisites), `in-progress`, `done`.
-Release labels are planning candidates, not scheduled or approved publications.
+Release labels are historical planning candidates, not scheduled or approved
+publications. All completed P01–P08 items currently belong to `[Unreleased]`;
+phase numbers do not require separate minor releases. Task descriptions below
+retain original scope; completion summaries and the current task take precedence.
 
 | ID | Candidate | Task | Depends on | Status |
 | --- | --- | --- | --- | --- |
@@ -43,15 +46,20 @@ Release labels are planning candidates, not scheduled or approved publications.
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **Issue #44 Ethernet decode performance investigation**.
-PR #57 merged as `e444b10`; this independent task starts from that main.
-Investigation, measured implementation and local verification are complete;
-see [the performance report](issue-44-ethernet-performance.md). Preserve all
-negative results and leave Issue closure to independent acceptance review.
-Next unfinished item: independent review of
-[PR #58](https://github.com/nantes-rfli/paclo/pull/58), including Issue #44's
-remaining JIT/measurement limits. Final-head CI evidence is maintained there.
-Do not merge before review.
+Current task: **release readiness audit after P06–P08** from latest main
+`752c3646eab58070f05b6fa11aa8ff4142173022` (PR #58 merged).
+P01–P08 and stabilization/performance implementations are merged; no new stable
+version is published. The [release readiness report](release-readiness-p06-p08.md)
+records the inventory, compatibility decisions, current checks and release gates.
+Audit authoring and local verification are complete on
+[PR #59](https://github.com/nantes-rfli/paclo/pull/59); independent review remains.
+Next unfinished item: independent review of this audit, then explicit acceptance
+of compatibility/migration scope and version selection in a separate release
+preparation PR. First fix the JDK 21-built JAR/JDK 17 distribution mismatch
+identified in the audit, with the same artifact consumed on JDK 17 and 21.
+Issue #37 stays open; Issue #44 can be closed after accepting
+PR #58's documented optimization and measurement limits. This audit does not
+close issues, change versions, publish, tag or merge. P09/P10 remain blocked.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -72,7 +80,8 @@ queue after completion; do not start all phases together.
 
 Status: **done** for investigation, implementation and local verification,
 from main `e444b10ba84513b460916482e1236c202fa27b84` on
-[PR #58](https://github.com/nantes-rfli/paclo/pull/58); independent review remains.
+[PR #58](https://github.com/nantes-rfli/paclo/pull/58); independently reviewed
+and merged as `752c364` on 2026-10-17.
 The [report](issue-44-ethernet-performance.md) and 944 raw comparison pairs retain
 B2/C/D2/current baselines, two-JVM multi-DLT/VLAN/IPv4/IPv6 transformation/native
 Classic/PCAPNG/fixture replay, CPU/allocation/GC/retention and JIT controls.
@@ -83,14 +92,15 @@ candidates remain documented. No old-speed, live/NIC or equivalence claim.
 Local 490 tests / 19036 assertions, ten JUnit, all 112 Eastwood namespaces,
 34 executable docs, fixtures, Java quality, unchanged 457.4 ms performance gate
 and two independent JAR consumers pass. Final-head CI is recorded on the PR.
-Issue #44 stays open for acceptance; Issue #37 remaining work, P09/P10, versions,
-releases and merge are excluded.
+Issue #44 remains open for issue-level acceptance. The release audit recommends
+closure with the measurement limits retained; this is not a historical-speed or
+Flow speedup claim. Issue #37 remaining work and P09/P10 stay separate.
 
 ## Performance follow-up: Issue #37
 
 Status: **done** for investigation, implementation and verification on
 [PR #57](https://github.com/nantes-rfli/paclo/pull/57), from main
-`452de98cf6d1a604e5823e80dc1cf5edadfe4b67`; independent review remains.
+`452de98cf6d1a604e5823e80dc1cf5edadfe4b67`; reviewed and merged as `e444b10`.
 Reproduced P07-B's complete CLI measurement and historical `2e15af7` source,
 then compared only equivalent correct main/candidate results. Separated native
 capture/full decode, DNS projection/matching/expiry, window/QPS, bounded RTT
@@ -101,8 +111,9 @@ No per-key expiry index, new public option, dependency or flow/P06 change.
 The [investigation](issue-37-dns-performance.md) records results and limitations,
 including slower repeated actual retired expiry and missing long production
 trace evidence. Implementation head `f507d42` passes all twelve CI jobs;
-final-head CI is maintained on PR #57. Leave Issue #37 closure to review.
-Keep Issue #44, P09/P10 and release/merge work outside this task.
+final-head CI is maintained on PR #57. Issue #37 remains open: repeated actual retired expiry and long realistic
+production-trace evidence are outstanding. It is a non-blocking performance
+follow-up; investigation/merge does not complete all issue acceptance goals.
 
 ## Performance follow-up: Issue #34
 
@@ -151,8 +162,8 @@ Implementation `3d37a88` passes all 12 unchanged CI jobs on
 [run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042),
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
 checks are maintained on the PR. Review and merge are complete; Issue #34
-remains closed. The independent Issue #37 follow-up above is the current task;
-release, P09/P10 and unrelated issue work remain outside it.
+remains closed. The later Issue #37 and #44 implementations are merged;
+remaining issue acceptance and release readiness are tracked above.
 
 ## CI maintenance: Issue #48
 
@@ -186,7 +197,7 @@ including Linux x64/JDK21, macOS ARM64/JDK17 and the Linux ARM64 monitor.
 Evidence is tracked in [the work log](work-log.md); the final evidence-only
 commit's checks are reported in the PR. Merge acceptance completes P02;
 this status update does not establish a separate independent review.
-P03 is now accepted; P04 is the current feature.
+P03 and P04 subsequently completed; see their summaries below.
 
 Released v1.3.0 reads emit `:ts-sec`/`:ts-usec`; its writer consumes `:sec`/`:usec`.
 Passing a captured map directly to that writer replaces its time with wall-clock time.
@@ -288,12 +299,13 @@ and clean JAR consumer pass. All 12 implementation CI jobs passed on `64b0df6`,
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21. Measurement evidence and limitations are in the
 work log; persistent analysis costs more than the old unchecked mutable CLI.
 P07 is split into P07-A (pure analysis) and P07-B (CLI migration).
-Performance improvement remains tracked separately in issue #34.
+Performance improvement subsequently merged through PR #55/#56; Issue #34 is closed.
 
 Extract the useful behavior in `dev/examples/flow_topn.clj` into small supported
 functions: unidirectional/bidirectional keys, counts/bytes, and result projection.
 Keep formatting and CLI argument handling in examples. Choose a public namespace
-deliberately; `paclo.flow` is currently internal.
+deliberately. At the P06 baseline `paclo.flow` was internal; the new supported
+analysis API now occupies that namespace, with projection in `paclo.flow.project`.
 
 Acceptance: vectors, offline packets, and managed streams reuse the same analysis;
 results are ordinary data. Specify ordering, IPv4/IPv6, absent ports, and whether
@@ -406,7 +418,7 @@ starts from P08-C main `9d83bb2`. Local check passes 418 tests, 10 JUnit tests,
 isolated JAR consumer pass. The [performance evidence](p08-d1-performance.md)
 retains mixed and controlled single-DLT comparisons, negative variation and
 unchanged allocations/gates. D2's [handoff](p08-d2-null-loop.md) is complete;
-NULL/LOOP runtime probes/decoders remain unfinished. Implementation
+NULL/LOOP runtime probes/decoders subsequently completed in D2 below. Implementation
 [CI run 38543025204](https://github.com/nantes-rfli/paclo/actions/runs/38543025204)
 passed all 12 jobs, including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64.
 Final evidence-head checks are maintained on the PR. No release or merge here.
@@ -454,9 +466,10 @@ precision and container-order inference remain outside this item.
 Status: **done**, merged as `2e7e357` through
 [PR #47](https://github.com/nantes-rfli/paclo/pull/47). Design, deterministic
 fixtures and characterization are complete in this task; no new public API or
-production reader/writer is implemented. Baseline is D2 main `ccebcad`.
+production reader/writer was implemented by E1 itself. E2/E3 subsequently
+implemented those APIs. E1 baseline is D2 main `ccebcad`.
 The [E1 contract and handoff](p08-e1-pcapng-contracts.md) is authoritative for
-future PCAPNG event/descriptors, exact ticks/resolution/offset/absence,
+the PCAPNG event/descriptors, exact ticks/resolution/offset/absence,
 Closeable single-consumer reduction, limits, failure and output loss policies.
 P08-A remains historical native evidence; the v1 contract remains implemented
 behavior. Ten additional captures and six Python wire/arithmetic tests run via
@@ -516,7 +529,9 @@ output, P09/P10, release or merge authority.
 
 Status: **done** for investigation, correction and validation on
 [PR #54](https://github.com/nantes-rfli/paclo/pull/54), from E3 main `b83bd31`.
-Independent review remains; Issue #40 stays open for the limitation decision.
+Independent review and merge completed as `e069657`; the legacy lazy limitation
+remains documented and is not repaired by the managed break/close race fix.
+Issue #40 is closed as completed with that limitation accepted.
 Real offline PCAP reproduction uses 128 packets and a capacity-one queue:
 after a one-packet prefix, two enqueues complete and the third blocks in `put`.
 The producer/native source remain alive past the time limit and a changed stop
@@ -534,13 +549,13 @@ Local check (477 tests / 17817 assertions), lint, Java quality, 34 runnable
 examples and the unchanged performance gate (613.6 ms / 1200 ms) pass.
 Implementation `f256b72` passes all 12 unchanged CI jobs, including both required
 compatibility environments and Linux ARM64; details are in the work log.
-Next unfinished item: independent review of PR #54 and the Issue #40 closure
-decision. No merge is authorized before review.
+This implementation is complete; later release/issue decisions are tracked in
+the current task above.
 Do not start P09/P10 or unrelated performance issues automatically.
 
 ## P08-P10: Evidence-driven expansion
 
-- P08: first inventory what the installed libpcap already reads. Explicitly define
+- P08 (completed through E3): first inventory what the installed libpcap already reads. Explicitly define
   supported PCAPNG blocks, multiple interfaces/link types, timestamp resolution,
   read versus write support, and metadata loss. Add support in fixture-backed slices.
 - P09: add optional export/inspection integrations only for a concrete user workflow.

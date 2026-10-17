@@ -623,7 +623,7 @@ Classic PCAP output uses `{:linktype 12}`; libpcap writes savefile code 101.
       rf (flow/aggregate-rf {:max-flows 100})]
   {:versions (set (map :ip-version packets))
    :linktypes (set (map :linktype packets))
-   :top (flow/top-n (reduce rf (rf) packets) 10)})
+   :top (flow/top-n (reduce rf (rf) packets) {:n 10})})
 ```
 
 NULL/LOOP use native DLT 0/108 on the measured Linux/macOS platforms, with
@@ -711,7 +711,7 @@ aggregate. The first eight fixture records are valid DNS, TLS and ICMP packets:
       aggregate (reduce rf (rf) packets)]
   {:versions (set (map :ip-version packets))
    :linktypes (set (map :linktype packets))
-   :top (flow/top-n aggregate 8)})
+   :top (flow/top-n aggregate {:n 8})})
 ```
 
 ## Reusable flow analysis
@@ -780,7 +780,8 @@ remains in the reducer closure and is absent from result data.
 `:max-flows` is required and must be a positive integer. New keys beyond that
 bound throw `ex-info` with `:reason :max-flows`; existing flows still update at
 the bound. No flows are evicted. This is exact finite aggregation; duration and
-expiration are the caller's responsibility until P07's windows.
+expiration are the caller's responsibility. For separate bounded time-window
+counts and captured bytes, see [time windows](#pure-bounded-time-windows).
 
 `flow/top-n` returns a vector of maps with `:flow` and the three counters.
 `:metric` is `:packets` (default), `:captured-bytes`, or `:wire-bytes`; `:n` is a

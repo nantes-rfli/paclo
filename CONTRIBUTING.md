@@ -146,6 +146,16 @@ Run `python3 -m unittest discover -s dev/script -p 'test_verify_doc_links.py'`
 when modifying its parsing logic. Current runnable code examples are checked
 separately; archived examples are not executed by the maintained-example gate.
 
+## Release preparation
+
+Use the [P01–P08 readiness audit](dev/release-readiness-p06-p08.md) for current
+compatibility decisions and acceptance conditions. Archived release checklists
+are historical evidence. Publication is a separate authorized task: a `v*` tag
+push triggers Clojars deployment, while manual Publish defaults to a non-publishing
+dry run and requires current main plus a dated changelog section. The Publish
+workflow runs only a subset of CI; require the complete CI results separately,
+including Linux ARM64, before approving a release.
+
 ## Handoff
 
 Update the relevant task status and dependencies in `dev/codex-plan.md`.
