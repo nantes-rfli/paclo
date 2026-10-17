@@ -41,16 +41,18 @@ roadmap. The current CI gates and developer procedures are documented in
 
 The accepted next-development queue is maintained in
 [`dev/codex-plan.md`](../dev/codex-plan.md), with dependencies and acceptance criteria.
-P01–P08 are implemented and merged in repository `[Unreleased]`, including
+P01–P08 are implemented and merged for the approved **v1.4.0 candidate (unreleased)**, including
 packet metadata preservation, explicit extensions, diagnostics, flow/window/DNS
 analysis, Linux/macOS multi-DLT decoding and metadata-aware PCAPNG I/O.
 Stabilization and measured flow/DNS/Ethernet improvements are also merged.
-Release labels in the plan are historical candidates, not separate releases. Developer
-setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+The plan assigns completed items to v1.4.0; older phase labels in historical
+records do not imply separate releases. Developer setup and verification are in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-`v1.3.0` remains the published stable version. The
-[release readiness audit](../dev/release-readiness-p06-p08.md) records API
-compatibility risks, version candidates and release acceptance conditions.
+`v1.3.0` remains the published stable version. v1.4.0 preparation retains the
+approved Writer correctness/validation and DNS bounded-report/failure policies;
+see the [migration guide](migration-from-1.3.md), [release notes draft](release-notes-1.4.0.md)
+and [acceptance checklist](../dev/release-1.4.0-checklist.md). No publication date
+is assigned, and publication requires separate authorization.
 Issue #37 remains a non-blocking DNS performance follow-up. PR #58 is reviewed
 and merged; Issue #44 remains open pending issue-level acceptance. P09/P10
 remain blocked on a concrete integration need or measured workload shortfall.

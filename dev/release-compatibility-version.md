@@ -1,7 +1,18 @@
 <!-- markdownlint-disable MD013 -->
 # Next stable release: compatibility and version proposal
 
-Status: **proposal; human approval required**, 2026-10-17 (Asia/Tokyo).
+Status: **release policy approved; publication not authorized**, 2026-10-17 (Asia/Tokyo).
+The maintainer's subsequent release-preparation request approves v1.4.0, retention
+of D1 Writer metadata correctness/strict validation and D2 exact bounded DNS
+aggregation/explicit failures, and inclusion of P01–P08 plus merged fixes.
+P09/P10 are excluded. This settles the earlier decision queue for preparation;
+it does not claim that every formerly accepted input behaves identically.
+The completed [migration guide](../docs/migration-from-1.3.md) explains those effects.
+[Current checklist](release-1.4.0-checklist.md) owns remaining acceptance and
+publication steps. Issue closure is not authorized by that request.
+
+The original proposal below is retained as dated evidence. Its pending-approval
+language and old candidate paths describe the assessment before that approval.
 Baseline: latest main `2f97ab25cc9e46550aa24be80d11ccc667dab2d3`, after
 [PR #59](https://github.com/nantes-rfli/paclo/pull/59) and
 [PR #60](https://github.com/nantes-rfli/paclo/pull/60) merged. All implementation
@@ -157,7 +168,7 @@ extensions, diagnostics/DLTs, Flow/Window/DNS analysis and CLI migration,
 Classic/PCAPNG I/O, the managed break/close race stabilization, PR #55/#56 Flow
 allocation/key reuse, PR #57 DNS expiry hint, PR #58 typed MAC stores and PR #60
 artifact correction. See the [readiness inventory](release-readiness-p06-p08.md#implemented-inventory)
-and [Unreleased changelog](../CHANGELOG.md#unreleased). P09/P10 are outside this release.
+and [v1.4.0 candidate changelog](../CHANGELOG.md#140-unreleased). P09/P10 are outside this release.
 
 - **Keep [Issue #37](https://github.com/nantes-rfli/paclo/issues/37) open, non-blocking.** PR #57 reduces premature scans but repeated
   actual retired expiry and long production-trace evaluation remain. No claim

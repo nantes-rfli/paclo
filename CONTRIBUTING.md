@@ -152,8 +152,9 @@ Use the [P01–P08 readiness audit](dev/release-readiness-p06-p08.md) for curren
 compatibility decisions and acceptance conditions. Archived release checklists
 are historical evidence. Publication is a separate authorized task: a `v*` tag
 push triggers Clojars deployment, while manual Publish defaults to a non-publishing
-dry run and requires current main plus a dated changelog section. The Publish
-workflow runs only a subset of CI; require the complete CI results separately,
+dry run and requires current main. Dry-run accepts an explicitly unreleased
+version heading; publishing still requires a real dated changelog section.
+The Publish workflow runs only a subset of CI; require the complete CI results separately,
 including Linux ARM64, before approving a release.
 
 ## Distribution compatibility
@@ -168,7 +169,7 @@ Build the candidate once with JDK 21, then prepare a separate consumer bundle:
 
 ```bash
 bash dev/script/codex.sh package
-python3 dev/script/verify_distribution.py prepare target/paclo-1.3.0-SNAPSHOT.jar /tmp/paclo-distribution
+python3 dev/script/verify_distribution.py prepare target/paclo-1.4.0-SNAPSHOT.jar /tmp/paclo-distribution
 python3 dev/script/verify_distribution.py consume /tmp/paclo-distribution --report /tmp/consumer-jdk21.json
 ```
 

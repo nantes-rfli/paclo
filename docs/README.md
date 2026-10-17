@@ -11,8 +11,9 @@ documented separately from historical release and design records.
 - [Metadata-aware PCAPNG reading and writing](pcapng.md)
 - [Decode extensions](extensions.md)
 - [Performance measurement](performance.md)
-- [Migration from v1.3.0 (next-release draft)](migration-from-1.3.md)
+- [Migration from v1.3.0 to v1.4.0](migration-from-1.3.md)
 - [Migration guide (0.4 to 1.0)](migration-0.4-to-1.0.md)
+- [v1.4.0 release notes draft (not published)](release-notes-1.4.0.md)
 - [Roadmap](ROADMAP.md)
 - [API on cljdoc](https://cljdoc.org/d/org.clojars.nanto/paclo/CURRENT)
 
@@ -37,6 +38,7 @@ statements of the current public API.
 - [Contributor setup and verification](../CONTRIBUTING.md)
 - [Accepted development queue](../dev/codex-plan.md)
 - [Execution and verification log](../dev/work-log.md)
+- [v1.4.0 acceptance checklist and verification](../dev/release-1.4.0-checklist.md)
 - [P01–P08 release readiness audit](../dev/release-readiness-p06-p08.md)
 
 The runnable examples under current documentation are verified in CI.

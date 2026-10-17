@@ -19,52 +19,53 @@ and replayed. Preserve the small public API and the current v1 contract.
 ## Work queue
 
 Statuses: `ready`, `blocked` (by the listed prerequisites), `in-progress`, `done`.
-Release labels are historical planning candidates, not scheduled or approved
-publications. All completed P01–P08 items currently belong to `[Unreleased]`;
-phase numbers do not require separate minor releases. Task descriptions below
-retain original scope; completion summaries and the current task take precedence.
+Release scope below reflects the approved v1.4.0 preparation decision, not
+publication authorization. All completed P01–P08 items are assigned to that
+unreleased candidate; phase numbers do not require separate minor releases.
+Task descriptions below retain original scope; completion summaries and the current task take precedence.
 
-| ID | Candidate | Task | Depends on | Status |
+| ID | Release scope | Task | Depends on | Status |
 | --- | --- | --- | --- | --- |
-| P01 | v1.3.x | Align public documentation with v1.3 behavior | — | done |
-| P02 | v1.3.x or v1.4 | Preserve packet metadata through PCAP read/write | — | done |
-| P03 | v1.4 | Explicit per-pipeline decode extensions | P01 | done |
-| P04 | v1.4 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
-| P05 | v1.4 or later | Identify link types and report unsupported decoding | P04 | done |
-| P06 | v1.5 | Reusable flow keys and aggregates | P04 | done |
-| P07-A | v1.5 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
-| P07-B | v1.5 | DNS CLI migration and bounded reporting | P07-A | done |
-| P08-A | Later | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
-| P08-B1 | Later | Native read failures and failed-open ownership | P08-A | done |
-| P08-B2 | Later | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
-| P08-C | Later | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
-| P08-D1 | Later | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
-| P08-D2 | Later | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
-| P08-E1 | Later | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | done |
-| P08-E2 | Later | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | done |
-| P08-E3 | Later | Explicit PCAPNG writer preservation and loss policies | P08-E2 | done |
+| P01 | v1.4.0 | Align public documentation with v1.3 behavior | — | done |
+| P02 | v1.4.0 | Preserve packet metadata through PCAP read/write | — | done |
+| P03 | v1.4.0 | Explicit per-pipeline decode extensions | P01 | done |
+| P04 | v1.4.0 | Packet/flow contracts and structured diagnostics | P02, P03 | done |
+| P05 | v1.4.0 | Identify link types and report unsupported decoding | P04 | done |
+| P06 | v1.4.0 | Reusable flow keys and aggregates | P04 | done |
+| P07-A | v1.4.0 | Pure bounded time windows and DNS correlation | P03, P04, P06 | done |
+| P07-B | v1.4.0 | DNS CLI migration and bounded reporting | P07-A | done |
+| P08-A | v1.4.0 | Capture capability inventory and fixture-backed scope | P05, P07-B | done |
+| P08-B1 | v1.4.0 | Native read failures and failed-open ownership | P08-A | done |
+| P08-B2 | v1.4.0 | Explicit single-DLT Classic PCAP writer | P08-B1 | done |
+| P08-C | v1.4.0 | Shared link framing and SLL/SLL2 full/flow decoding | P08-B2 | done |
+| P08-D1 | v1.4.0 | Raw IP IPv4/IPv6 full/flow decoding | P08-C | done |
+| P08-D2 | v1.4.0 | NULL/LOOP full/flow decoding after AF/endian probes | P08-D1 | done |
+| P08-E1 | v1.4.0 | Metadata-aware PCAPNG and exact timestamp contract design | P08-D2 | done |
+| P08-E2 | v1.4.0 | Bounded metadata-aware PCAPNG reader and exact input time | P08-E1 | done |
+| P08-E3 | v1.4.0 | Explicit PCAPNG writer preservation and loss policies | P08-E2 | done |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 
-Current task: **next-release compatibility assessment and version proposal**,
-from latest main `2f97ab25cc9e46550aa24be80d11ccc667dab2d3` after PR #60.
-Assessment, migration draft and local verification: **done**; independent PR
-review and human release decisions remain pending. The
-[decision proposal](release-compatibility-version.md) owns the released-contract
-comparison; [readiness audit](release-readiness-p06-p08.md) retains earlier evidence.
-PR #59 merged as `3f63c1e`; PR #60 is reviewed/merged as `2f97ab2`.
-Current main CI 38996721327 has all 14 jobs successful, including both consumers
-of one JDK21-built JAR (SHA-256 `8f153f45...a1812e8`) on JDK17/21.
+Current task: **v1.4.0 release preparation**, from latest main
+`82705b9c601b2361be8f9446f519f54673aa0d64` after merged PR #59/#60/#61.
+Implementation and local verification: **done**; final CI evidence is recorded
+on the preparation PR, and independent review/merge remain pending.
+The maintainer approved v1.4.0, D1 capture-preserving
+Writer metadata/strict validation and D2 exact bounded DNS/explicit failures,
+with public migration guidance. Include P01–P08 and merged fixes; exclude P09/P10.
+The [release checklist](release-1.4.0-checklist.md) owns final acceptance/results;
+[compatibility assessment](release-compatibility-version.md) preserves the
+released-contract comparison and [readiness audit](release-readiness-p06-p08.md)
+retains earlier evidence. Published stable remains v1.3.0; the development
+fallback is 1.4.0-SNAPSHOT and explicit candidate packaging uses PACLO_VERSION=1.4.0.
 
-Next unfinished item: independent review of this documentation PR and human
-resolution of Writer D1 / CLI D2 contract interpretations, then explicit version,
-migration and release-scope approval. 1.4.0 remains the first candidate; if a
-formal contract break remains, require a separate restoration PR or 2.0.0.
-No version, release changelog section, tag, publication or merge is authorized.
-Include P01–P08 and merged stabilization/performance/build follow-ups; exclude
-P09/P10. Issue #37 stays open/non-blocking. Recommend #44 closure only after
-separate acceptance of PR #58's bounded evidence and limits; do not claim Flow
-or live/NIC speedup. This task leaves both issues unchanged.
+Next unfinished item: independent review and merge of the release-preparation
+PR after all 14 CI jobs pass, then a separately requested Publish dry-run from
+current main. No tag, release, deploy, non-dry-run Publish or merge is authorized
+in this task; no Publish workflow, including dry-run, is dispatched here.
+Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
+JIT/thermal/retention limits remain recorded; no issue closure, Flow or live/NIC
+speedup claim is made.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).

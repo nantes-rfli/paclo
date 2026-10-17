@@ -82,6 +82,9 @@ jobs:
           echo "pom=target/classes/META-INF/maven/org.clojars.nanto/paclo/pom.xml" >> "$GITHUB_OUTPUT"
 
       - name: Verify release source and metadata
+        env:
+          PACLO_RELEASE_VERSION: ${{ steps.vars.outputs.version }}
+          PACLO_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
@@ -108,10 +111,12 @@ jobs:
             fi
           fi
 
-          if ! grep -Fq "## [${{ steps.vars.outputs.version }}] - " CHANGELOG.md; then
-            echo "CHANGELOG.md has no dated section for ${{ steps.vars.outputs.version }}."
-            exit 1
+          python3 -B -m unittest discover -s dev/script -p 'test_verify_release_metadata.py'
+          metadata_args=("$PACLO_RELEASE_VERSION")
+          if [[ "$PACLO_DRY_RUN" == "true" ]]; then
+            metadata_args+=(--dry-run)
           fi
+          python3 dev/script/verify_release_metadata.py "${metadata_args[@]}"
 
       - name: Run release gates
         shell: bash

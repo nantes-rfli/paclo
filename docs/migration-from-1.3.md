@@ -1,10 +1,24 @@
 <!-- markdownlint-disable MD013 -->
-# Migration from v1.3.0 (next-release draft)
+# Migration from v1.3.0 to v1.4.0
 
-The next version is **not assigned or approved**. These notes describe repository
-main after PR #60. See the [compatibility/version proposal](../dev/release-compatibility-version.md)
-for disputed contract interpretations and approval requirements. The
-[API contract](cljdoc-api-contract.md) remains the precise specification.
+v1.4.0 is the approved next stable version and is **not published yet**. These
+notes describe its candidate behavior, including P01–P08 and merged fixes.
+The maintainer approved retaining capture-preserving Writer precedence/strict
+validation (D1) and exact bounded DNS aggregation/explicit failures (D2).
+These decisions have observable migration effects, including failures on some
+formerly accepted inputs; review the checklist below before upgrading.
+The [API contract](cljdoc-api-contract.md) specifies the exact rules, and the
+[compatibility assessment](../dev/release-compatibility-version.md) retains the
+released v1.3.0 comparison. Publication requires separate approval.
+
+## Upgrade checklist
+
+- Audit Writer maps for stale capture timestamps, lengths and DLT metadata.
+- Rebaseline DNS RTT values/pair counts and QR-oriented client/server groups.
+- Configure finite analysis/report limits and handle every nonzero CLI exit.
+- Require complete reports when loss or cancellation is unacceptable.
+- Validate the candidate JAR on your runtime; keep published v1.3.0 coordinates
+  until v1.4.0 is actually available. See the [release notes](release-notes-1.4.0.md).
 
 ## Classic PCAP inputs
 
@@ -113,8 +127,8 @@ all extra fields. Unsupported framing can be read raw; it is not decoded as Ethe
 
 Formats/positional arguments are retained. Output volume, group keys, matches,
 metadata and valid-file success can change. Review the [bounded CLI options](usage.md#bounded-dns-cli-reports-p07-b)
-before increasing memory budgets. Human acceptance of the proposed release's
-CLI compatibility interpretation remains pending.
+before increasing memory budgets. The approved v1.4.0 policy retains these
+correctness and resource bounds; it does not restore silent truncation or guessed pairs.
 
 ## Choose the API and output format deliberately
 
@@ -147,6 +161,7 @@ have different obligations; see [PCAPNG guide](pcapng.md). A `.pcapng` filename
 does not switch Classic Writer format. SPB time can be absent: choose a measured
 analysis policy instead of converting absence to zero or current time.
 
-JDK 17 and 21 remain supported with Clojure 1.12.x and system libpcap. The next
-candidate restores JDK17-compatible distributed classes. Validate the exact JAR
+JDK 17 and 21 remain supported with Clojure 1.12.x and system libpcap. The v1.4.0
+candidate restores JDK17-compatible distributed classes (major 61); the published
+v1.3.0 JAR contains major 65 and needs JDK21, or a Java17 source build. Validate the exact JAR
 you deploy; a JDK17 source build alone does not validate a JDK21-built artifact.

@@ -4013,3 +4013,132 @@ on `codex/release-compatibility-version`. The independent PR uses the requested
 `docs: decide next release compatibility and version scope` title. Final-head
 14-job CI and identical JAR runtime identities are maintained in its description;
 independent review and human D1/D2/version/scope approval are the next work item.
+
+## 2026-10-17 — v1.4.0 release preparation
+
+User-authorized scope: v1.4.0, keep D1 Writer capture metadata/strict validation
+and D2 exact bounded DNS/failures, publish migration guidance, include P01–P08
+and merged fixes, exclude P09/P10. Publication, tag, GitHub Release, Clojars,
+non-dry-run Publish and merging are prohibited. Even Publish dry-run is deferred
+until a separate request after review/merge. No issue mutation is requested.
+
+Started with clean `git status --short --untracked-files=all`. Read AGENTS,
+CONTRIBUTING, readiness/compatibility reports, migration/API/PCAPNG docs,
+CHANGELOG/ROADMAP/plan, CI/Publish/build/distribution scripts and PR #59/#60/#61.
+All three PRs are merged. `git fetch --no-tags origin main` and
+`git switch -c codex/prepare-v1.4.0-release origin/main` use latest main
+`82705b9c601b2361be8f9446f519f54673aa0d64` in the supplied checkout. Git metadata
+writes needed sandbox escalation and were approved. No extra worktree.
+`gh auth status` reports its existing token invalid; connected GitHub tools work,
+and the existing SSH Git remote fetch works. No interactive auth or token changes.
+Read-only public API curl requests needed approved network escalation.
+
+Prepared a clearly unreleased v1.4.0 CHANGELOG section without a release date,
+retained v1.3.0 installation coordinates, completed migration guidance and aligned
+API/PCAPNG/roadmap/plan availability. Added draft release notes and a final
+acceptance checklist with blockers and post-merge dry-run steps. Corrected stale
+README text claiming the PR #60 Java17 artifact repair was still outstanding,
+while recording that the already published v1.3.0 JAR itself has major65.
+The earlier compatibility report is retained as dated evidence with the user's
+subsequent D1/D2/version/scope decision at its top, without pretending observable
+migration impacts disappeared.
+
+Development default and distribution verifier default advance to 1.4.0-SNAPSHOT.
+CI build-checks explicitly packages PACLO_VERSION=1.4.0 once and sends that
+candidate to the existing checkout-free 17/21 consumers. All 14 jobs, compiler
+options/dependencies/thresholds remain. Source compatibility jobs still build the
+snapshot. Publish metadata validation now permits an explicitly unreleased
+heading only in manual dry-run, so future dry-run does not need a fictitious
+publication date. Actual publishing requires a valid calendar date. Added four
+regression tests covering candidate-vs-publication, dated headings, invalid dates,
+wrong/missing headings and invalid version syntax; CI and Publish run them.
+Only the metadata checker is run locally; no Publish workflow is dispatched.
+
+Verification so far:
+
+- `bash dev/script/codex.sh doctor`: exit0, macOS x86_64, Temurin21.0.12.1,
+  Clojure1.12.1, four real libpcap fixture packets / 438 bytes.
+- `bash dev/script/codex.sh check`: exit0, ten JUnit and 490 Clojure tests /
+  19036 assertions, zero failures/errors, native smoke. Includes existing
+  PCAP/PCAPNG real round-trip, independent wire, property/lifecycle/heap checks.
+- `python3 -B -m unittest discover -s dev/script -p test_verify_release_metadata.py`:
+  four tests pass. `python3 dev/script/verify_release_metadata.py 1.4.0 --dry-run`
+  accepts the explicit candidate heading (metadata check only).
+- Documentation parser/link/distribution regression suites: 15/9/7 pass. The
+  link suite's deliberately printed absent.md error is an expected negative
+  fixture; suite exit0. Actual `verify_doc_links.py` and `git diff --check` pass.
+- Live Clojars API recheck: latest_version and latest_release are 1.3.0.
+  Latest main CI [38999502746](https://github.com/nantes-rfli/paclo/actions/runs/38999502746)
+  succeeds at baseline 82705b9. Final PR acceptance is separate.
+- Latest existing Dependency Audit [38428605480](https://github.com/nantes-rfli/paclo/actions/runs/38428605480)
+  succeeds, 2026-10-13, source 8312d10. This is not a fresh release-SHA scan;
+  refresh/triage before publication. No dependency update/audit dispatch here.
+- Live issues #37/#44 are still open. Keep #37 non-blocking; record PR #58
+  gains with JIT/thermal/retained-heap/negative-result limits for #44. Neither
+  issue is closed, and no Flow/historical-speed/live-NIC claim is made.
+
+Full lint, executable docs, Java quality, unchanged performance gate, candidate
+package/POM and independent consumer results follow below. Local JDK17 is not
+installed (java_home lists 21/13); final candidate CI must supply same-JAR JDK17
+execution, not infer it from a source build or old CI artifact.
+
+Completed local acceptance:
+
+- Full lint stages: clj-kondo zero warnings/errors; all 113 Eastwood namespaces
+  analyzed, 600 informational warnings, zero exceptions. clean-ns/format dry runs
+  report nothing to clear/format. Initial Markdown invocation failed because the
+  sandbox could not resolve registry.npmjs.org or write npm logs. Approved
+  network/cache retry `bash dev/script/mdlint.sh` uses unchanged pinned
+  markdownlint-cli2 0.18.1 and passes all 46 files. No rules are relaxed.
+- `python3 -B dev/script/test_eastwood_runner.py`: four tests pass, including
+  deliberate failures/unanalysed namespaces producing nonzero exit status.
+- `clojure -M:spotbugs`, `clojure -M:checkstyle`, `clojure -M:jacoco`,
+  `JACOCO_MIN_LINE=0.25 clojure -M:jacoco-gate`: exit0; line coverage43.8%,
+  unchanged25% threshold. XML reports copied to /tmp/paclo-v140-quality before
+  packaging deletes target. No Java implementation changes.
+- `python3 -B dev/script/verify_doc_examples.py`: all36 examples pass, including
+  both real-I/O Writer migration examples. `verify_doc_links.py` passes local
+  paths/anchors; it deliberately does not validate every external URL.
+- `python3 -B -m unittest discover -s test/resources -p test_*.py`: six pass.
+  All five existing fixture-generator `--check` commands pass: 28 capture,
+  four cooked, three RawIP, twelve NULL/LOOP, ten PCAPNG contract captures.
+  Writer independent wire checks also run in the full Clojure suite.
+- Existing pinned cljdoc namespace-load command succeeds (`:cljdoc-loaded`);
+  historical cuerdas name-shadowing warnings remain. No cljdoc publication.
+- `bash dev/script/codex.sh perf`: exit0, 446.5ms; existing1000/1200ms warning/
+  failure budgets. This is gate acceptance, not a performance improvement claim.
+  The existing three-shard/27-scenario measurement remains required in final CI.
+- `PACLO_VERSION=1.4.0 bash dev/script/codex.sh package`: exit0. Followed only
+  after tests/compilation/perf completed by distribution prepare/consume in
+  /tmp/paclo-v140-distribution using explicit `--version 1.4.0`; both pass.
+  JAR SHA256 `1378838db828b784556698c4aa2d8ad2d3a67e02af591582ebe81f1a49af95ad`;
+  embedded/external POM SHA256 `91a5f668b7e9daf06735f09a10efe9dba9daec8946704cc7ce696456d2338d56`.
+  All ten classes exactlymajor61; production inventory/bytes, five unchanged
+  dependencies, coordinates, pom.properties, MIT and SCM URL/connections/tag
+  v1.4.0 verified. SCM tag text does not create a Git tag.
+  Local provenance is baseline82705b9 with tracked preparation changes dirty,
+  Temurin21.0.12.1; it is not clean release provenance. Independent consumer
+  verifies hash before/after and passes all offline API/format/lifetime probes.
+- CI/Publish YAML parsed with platform Ruby YAML, all50/eight run-step scripts
+  pass bash syntax checks without executing Publish. Four new metadata guard
+  tests run in ordinary CI and remain part of the future Publish metadata step.
+- GitHub latest release API confirms v1.3.0, published2026-08-01; Clojars latest
+  release/version both1.3.0. No install coordinate is changed to an unavailable
+  published version. Current dependency graph is unchanged.
+
+Implementation/local verification are done. Create the independent preparation
+PR titled `chore: prepare Paclo v1.4.0 release candidate`; final-head CI URL,
+all14 results and its single candidate JAR/17/21 runtime identities are maintained
+in that PR description so recording evidence does not create a new untested head.
+Independent review/merge and separately requested post-merge Publish dry-run are
+the next unfinished work. The checklist records security refresh, dry-run and
+publication/date authorization as remaining publication gates. No new runtime
+blocker was found locally; CI/platform/consumer evidence must actually pass.
+No tag, Publish dispatch (even dry-run), GitHub Release, Clojars deploy, issue
+closure, quality relaxation, new public API or merge is performed.
+
+Before commit, `prepare` restores Java test classes after package. The ordinary
+pre-commit hook is retained: a temporary /tmp/paclo-v140-hook-bin/clj delegates to
+/usr/local/bin/clojure because this machine lacks rlwrap. No hook or check is
+skipped or edited. Final links, metadata regressions and diff whitespace checks
+pass before staging; the commit hook runs its normal tests/format/Markdown/kondo.
