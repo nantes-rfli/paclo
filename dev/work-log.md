@@ -4504,3 +4504,10 @@ The first commit attempt stopped before hook tests: the installed interactive
 A task-local `/tmp` launcher forwards `clj` arguments to the same `clojure` CLI
 for noninteractive `-M:test`; no hook or test stage is skipped. This avoids adding
 an interactive editor dependency solely for the commit environment.
+
+Implementation commit: `660b287444cf444505c18d042753ec3cc1174c90`.
+Its normal pre-commit hook completes all 493 tests / 19125 assertions, namespace
+cleanup/format, Markdown lint and kondo without skipping a stage. The task-local
+noninteractive launcher changes no repository hook. The following evidence
+commit adds this immutable implementation reference only; final-head remote CI
+and the independent review URL are retained in the PR description.
