@@ -4142,3 +4142,141 @@ pre-commit hook is retained: a temporary /tmp/paclo-v140-hook-bin/clj delegates 
 /usr/local/bin/clojure because this machine lacks rlwrap. No hook or check is
 skipped or edited. Final links, metadata regressions and diff whitespace checks
 pass before staging; the commit hook runs its normal tests/format/Markdown/kondo.
+
+## v1.4.0 Publish dry-run verification (2026-10-17)
+
+Completed the explicitly requested dry-run and Dependency Audit from latest main
+`dfc5c5b4dbe39859b06431fa9c4b12714b89498d`, after PR #62 merged. Initial
+`git status --short --untracked-files=all` was clean; the supplied checkout was
+retained, with local branch `codex/verify-v1.4.0-dry-run` selected from origin/main.
+No new worktree, remote source changes, commit or PR was needed for validation.
+Read CONTRIBUTING, the v1 API contract, accepted plan and release checklist.
+`bash dev/script/codex.sh doctor` passed (macOS x86_64/Temurin21.0.12.1,
+Clojure1.12.1, four offline packets/438 bytes).
+
+Preconditions and authorization:
+
+- GitHub PR #62 is merged, merge SHA equals main. There were no GitHub review
+  submissions or comments, so Publish was held until the maintainer explicitly
+  confirmed completed independent review outside GitHub and instructed proceeding.
+- `gh api .../actions/runs/39012456023/jobs` confirms all 14 latest-main CI jobs
+  successful, including arm64-monitor and distribution-consumer17/21.
+- Clojars official API latest_version/latest_release both1.3.0 before/after;
+  no v1.4.0 tag or GitHub Release. Main CHANGELOG has the exact unreleased heading.
+- `git fetch --no-tags origin main` and a diff confirmed candidate checkout
+  contents match current main. Local CLI initially could not reach GitHub from
+  the sandbox; approved network access succeeded with existing authentication.
+  No login/token changes or credential export was performed.
+
+Commands and results:
+
+- `gh workflow run publish.yml --repo nantes-rfli/paclo --ref main -f version=1.4.0 -f dry_run=true`:
+  [run39013121398](https://github.com/nantes-rfli/paclo/actions/runs/39013121398)
+  success. Source guard fetched origin/main and required SHA equality. Logs show
+  PACLO_DRY_RUN=true; version1.4.0. Main remained dfc5c5b before/after execution.
+- All validation/build/upload steps passed. Release gates ran 490 tests /
+  19042 assertions, zero failures/errors; unchanged performance gate335.2ms.
+  Publish to Clojars and Publish summary skipped; Dry-run summary succeeded.
+- `gh run download 39013121398 --name paclo-1.4.0` fetched the actual Publish
+  JAR/POM/provenance. Independent artifact ZIP download/hash matched GitHub's
+  digest225bc2fb47e337d41c645fa9c79a47dc85542b94a2459926d012ac772ef35e0e.
+  JAR SHA256d226794493dcd4a5840d2f04ead8068c02e47a8c6b9ac275ca9f5adaacbddd10;
+  POM SHA25691a5f668b7e9daf06735f09a10efe9dba9daec8946704cc7ce696456d2338d56.
+- `python3 dev/script/verify_distribution.py prepare <downloaded-jar> <fresh-bundle> --version 1.4.0`
+  inspected/copied without rebuilding. Exact source/inventory, ten major61
+  classes, coordinates/properties and five unchanged direct dependencies pass.
+  Separate XML/byte inspection confirms external/embedded POM equality, SCM
+  URL/connections/intended tag v1.4.0 and MIT license. No tag was created.
+  Every bundle-file digest matches original Publish provenance; restore that
+  unchanged original provenance after local support-file assembly, preserving
+  the actual GitHub build JVM and clean source identity.
+- `python3 <bundle>/verify_distribution.py consume <bundle> --report <jdk-report>`
+  with only JAVA_HOME/PATH switched to Temurin17.0.20.1+1 and21.0.12.1+1:
+  both exit0 on macOS x86_64, same actual Publish JAR before/after. Separate
+  temporary projects use -Srepro and assert all library/binding origins are the
+  JAR; public/native/six-DLT/Classic/PCAPNG/Flow/DNS/window/annotation/lifecycle
+  probes pass. No package/javac task was run per consumer. Official JDK17 archive
+  was checksum-verified and extracted under /tmp only, without system installation.
+- `gh workflow run dependency-audit.yml --repo nantes-rfli/paclo --ref main`:
+  [run39013091814](https://github.com/nantes-rfli/paclo/actions/runs/39013091814)
+  success on dfc5c5b. Downloaded reports show 23 production-classpath dependencies,
+  zero detected/suppressed vulnerabilities, severity NONE; NVD last checked
+  07:18:17Z and last modified07:16:50Z on2026-10-17. Report ZIP digest verified.
+  OSS Index disabled without credentials; NVD CVE analysis completed. Default
+  production classpath audit does not clear all development/build dependencies.
+  Node20/setup-java-v4 deprecations and ubuntu-latest migration are non-blocking
+  workflow maintenance notices. No dependency/workflow update was performed.
+
+Full downloads/logs, consumer bundle and JDK were kept in temporary local storage;
+durable original provenance, both runtime
+reports, inspection, step results and audit summary are retained in
+`dev/release-1.4.0-evidence/`. The detailed
+[verification report](release-1.4.0-dry-run.md) links the GitHub artifacts.
+Updated plan/checklist record completed gates and the next unfinished item:
+separate publication authorization, actual-date/availability metadata and full
+validation of any resulting release SHA. No new technical blocker was detected
+within this verification scope. Issue37/44 follow-ups and existing live/platform/
+format/lazy-lifetime limits remain unchanged; offline results do not clear them.
+No Clojars deploy, tag, GitHub Release, dry_run=false, merge or publication occurred.
+
+Documentation checks: `python3 dev/script/verify_doc_links.py` and
+`git diff --check` pass. Initial sandbox Markdown lint waited on restricted npm
+access and was interrupted (exit130); the approved network/cache retry
+`bash dev/script/mdlint.sh` passed all 47 files with zero errors using unchanged
+markdownlint-cli2 0.18.1. Retained JSON identities and Publish skip/success states
+were checked together after copying evidence. No behavior change was made.
+
+## v1.4.0 final metadata/evidence PR (2026-10-17)
+
+The requested finalization carries forward the previous task's uncommitted
+Publish dry-run report, plan/checklist/log updates and six JSON evidence files.
+Initial status contained exactly those changes; no unrelated work was discarded.
+The supplied checkout is based on main dfc5c5b4dbe39859b06431fa9c4b12714b89498d;
+renamed its local working branch to codex/finalize-v1.4.0-release. GitHub main
+still points to dfc5c5b and Issue #37 remains open. No new worktree was created.
+Read CONTRIBUTING, API contract, accepted plan, dry-run report and release notes/
+migration/checklist. `bash dev/script/codex.sh doctor` passes on macOS x86_64,
+Temurin 21.0.12.1, Clojure 1.12.1, real libpcap fixture: four packets / 438 bytes.
+
+Finalization decisions:
+
+- The actual publication day has not been confirmed and this request prohibits
+  publication. Keep the exact unreleased CHANGELOG heading; explicitly record
+  the dated-heading publication blocker and future dated-commit revalidation.
+  No provisional date is presented as an actual release date. README and all
+  published install coordinates remain v1.3.0.
+- Retain original Publish provenance and actual-JAR JDK 17/21 reports as baseline
+  evidence, not as final-PR build identities. Remove newly added local temporary
+  paths from durable records; no machine-specific paths or credentials are added.
+- Replace stale checklist preparation/dirty-local evidence with measured main CI,
+  Publish and audit results, then define exact final-PR acceptance and later
+  publication steps. The checklist states that a tag push deploys to Clojars and
+  must wait for separate formal authorization. No workflow/dependency changes.
+- Final-check release notes and migration against the implemented v1 contract:
+  D1/D2 migration, published v1.3.0 coordinates, bytecode compatibility, exact
+  bounded DNS failure/completeness behavior, format/lifecycle/performance limits
+  remain intact. Only evidence/availability handoff prose changes; examples and
+  API behavior remain unchanged. Issue #37 stays non-blocking and open.
+
+Local Markdown/link, metadata guard and retained-evidence checks are performed
+before commit; the ordinary pre-commit hook remains enabled. After final push,
+record the exact final PR head, synthetic merge build source (and tree equality),
+all 14 CI conclusions, new single-JAR/POM SHA-256, both matching runtime reports,
+branch-head Dependency Audit and review in the PR description. This avoids an
+extra source commit after verification. Do not attribute old main dry-run hashes
+to the new CI artifact or call a synthetic merge SHA the PR head.
+
+Next unfinished item is maintainer acceptance, then separately authorized
+publication with a confirmed day and complete validation of any resulting main
+commit. This task creates the PR and performs review; it does not merge, create
+or push tags, deploy, dispatch dry_run=false, or create a GitHub Release.
+
+Pre-commit local verification passed: Markdown lint 47 files / zero errors,
+local links/anchors, four release-metadata regression tests, dry-run metadata
+acceptance and explicit undated-publication rejection, original artifact and
+retained JSON identity/class/POM checks, and diff whitespace. A removed checklist
+heading initially broke one README link; preserving the Distribution verification
+anchor corrected it. No checker, threshold or behavior was changed. `prepare`
+restores compiled Java test classes before the retained hook runs. The system's
+missing rlwrap is handled by a temporary clj launcher delegating unchanged
+arguments to the installed Clojure CLI, without changing or skipping the hook.

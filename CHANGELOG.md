@@ -12,8 +12,11 @@ Future changes after the v1.4.0 candidate belong here.
 ## [1.4.0] (unreleased)
 
 Approved release scope; **not published**. The release date is intentionally
-unset. Replace this heading with `## [1.4.0] - YYYY-MM-DD` only when the actual
-publication date is confirmed. v1.3.0 remains the latest published stable version.
+unset pending separate publication authorization and a confirmed publication
+day. Replace this heading with `## [1.4.0] - YYYY-MM-DD` only for that actual day,
+then validate the resulting commit before publication. v1.3.0 remains the latest
+published stable version. The completed [Publish dry-run](dev/release-1.4.0-dry-run.md)
+records candidate validation; it does not announce availability.
 
 This candidate includes P01–P08 and merged stabilization, performance and Java
 compatibility fixes; P09/P10 are excluded. The

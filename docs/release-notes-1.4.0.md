@@ -1,9 +1,11 @@
 <!-- markdownlint-disable MD013 -->
 # Paclo v1.4.0 release notes — draft
 
-**Unpublished candidate; publication date not assigned.** v1.3.0 remains the
-latest stable version on Clojars/GitHub. These notes are ready for release review;
-they are not a release announcement or publication authorization.
+**Unpublished candidate; publication date not confirmed.** v1.3.0 remains the
+latest stable version on Clojars/GitHub. The [Publish dry-run](../dev/release-1.4.0-dry-run.md)
+passed, including inspection and JDK 17/21 consumers of its actual JAR.
+These notes are ready for final release review; publication requires separate
+authorization, confirmed release-day metadata and validation of that final commit.
 
 Paclo v1.4.0 prepares packet preservation and bounded analysis for ordinary
 Clojure data workflows. It includes P01–P08 and merged correctness, lifecycle,
@@ -83,5 +85,6 @@ normalize time to microseconds. Other OSes and live performance targets have
 not been validated by offline CI.
 
 Review the [final acceptance checklist](../dev/release-1.4.0-checklist.md) for
-quality evidence, remaining publication blockers and the separately authorized
-post-merge Publish dry-run procedure.
+quality evidence, the final PR's commit-specific checks and remaining publication
+steps. The completed dry-run validates its recorded source only; any changed
+release commit requires fresh validation before separately authorized publication.
