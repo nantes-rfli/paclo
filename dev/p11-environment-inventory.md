@@ -3,6 +3,7 @@
 ## Executive summary
 
 Checked on **2026-10-18 (Asia/Tokyo)**, consolidating upstream evidence at 09:50.
+JNR tag/registry evidence was rechecked at 10:07 after review.
 Repository baseline: latest fetched main
 `97873f79eb5360d47b59692127e760e4ea1ec188`. This is an investigation and handoff;
 no dependency, source, CI, build setting, release version or support policy changes here.
@@ -97,7 +98,7 @@ specific advisory in a row is not a clean security scan.
 | --- | --- | --- | --- |
 | `org.clojure/clojure` / production | 1.12.1 | **1.12.6**, 2026-09-02, [downloads](https://clojure.org/releases/downloads), [versioned changes](https://github.com/clojure/clojure/blob/clojure-1.12.6/changes.md) | LazySeq visibility, compiler, reify metadata and gen-class fixes; serialization restrictions. Prioritize P12 for correctness/security, with unchanged public contracts |
 | `org.clojure/core.async` / production | 1.6.681 | **1.9.865**, 2026-03-19, [official history](https://github.com/clojure/core.async#releases-and-dependency-information) | Inactive alt retention fix, executor/callback dispatch changes, io-thread virtual threads when available, datafy. Paclo uses impl protocols and reusable fn-handler: high lifecycle risk; own P14 PR, no new flow framework |
-| `com.github.jnr/jnr-ffi` / production | 2.2.14 | **2.3.2**, 2026-09-15, [release](https://github.com/jnr/jnr-ffi/releases/tag/2.3.2) | Aligned multibyte string terminator scan; intervening ABI/platform/dependency changes. Native memory/loader and generated-bytecode risk; separate platform-tested P14 PR |
+| `com.github.jnr/jnr-ffi` / production | 2.2.14 | **2.3.3**, tagged/published 2026-09-15, [tag](https://github.com/jnr/jnr-ffi/tree/2.3.3), [Central POM](https://repo.maven.apache.org/maven2/com/github/jnr/jnr-ffi/2.3.3/jnr-ffi-2.3.3.pom); latest GitHub Release remains [2.3.2](https://github.com/jnr/jnr-ffi/releases/tag/2.3.2) | 2.3.3 changes the jffi Java/native dependencies from 1.4.0 to 1.4.3; 2.3.2 added aligned multibyte string terminator scanning. Native memory/loader and generated-bytecode risk; separate platform-tested P14 evaluation |
 | `org.clojure/data.json` / production | 2.5.0 | **2.5.2**, [history](https://github.com/clojure/data.json#change-log) | Repeated-read EOF fix, control-character diagnostics, parent/Clojure updates. Low urgency; check JSON CLI/report round trips, numeric types and diagnostic changes before adoption |
 | `com.github.spotbugs/spotbugs-annotations` / production | 4.8.6 | **4.10.5**, [versioned changes](https://github.com/spotbugs/spotbugs/blob/4.10.5/CHANGELOG.md) | Method/constructor suppression also covers lambdas. Align deliberately with analyzer candidate; annotations still appear in published POM, so package checks required; no removal/re-scope proposed here |
 | `org.clojure/data.csv` / optional `:csv` | 1.1.0 | **1.1.1**, 2025-12-30, [history](https://github.com/clojure/data.csv#change-log) | Parent POM update; no identified Paclo behavior need. Keep optional and defer; verify quoting/newlines and reader lifetime if changed |
@@ -109,13 +110,30 @@ SpotBugs annotations. Do not add direct overrides merely to make versions newer.
 
 Upstream core.async 1.9.865's
 [published POM](https://repo.maven.apache.org/maven2/org/clojure/core.async/1.9.865/core.async-1.9.865.pom)
-selects tools.analyzer.jvm 1.3.3. JNR 2.3.2's
+selects tools.analyzer.jvm 1.3.3. For JNR, **GitHub Release, Git tag and Maven
+publication are distinct evidence**. The
+[latest GitHub Release API](https://api.github.com/repos/jnr/jnr-ffi/releases/latest)
+still identifies 2.3.2. Its
 [published POM](https://repo.maven.apache.org/maven2/com/github/jnr/jnr-ffi/2.3.2/jnr-ffi-2.3.2.pom)
-selects ASM 9.10.1 and **jffi 1.4.0**. Although
-[jffi 1.4.1](https://github.com/jnr/jffi/releases/tag/jffi-1.4.1) exists with a
-native boot-path fix, updating JNR does not automatically select it. Dependency
-mediation across analyzer/JNR/ASM must be checked in the actual proposed graph.
-Newer ASM is a reason to investigate, not evidence that current JNR fails on 25.
+selects ASM 9.10.1 and jffi 1.4.0. However, the newer
+[2.3.3 tag](https://github.com/jnr/jnr-ffi/tree/2.3.3), created on 2026-09-15,
+and [Maven Central metadata](https://repo.maven.apache.org/maven2/com/github/jnr/jnr-ffi/maven-metadata.xml)
+confirm **2.3.3** as the published update candidate. Both the
+[tagged POM](https://github.com/jnr/jnr-ffi/blob/2.3.3/pom.xml) and
+[Central POM](https://repo.maven.apache.org/maven2/com/github/jnr/jnr-ffi/2.3.3/jnr-ffi-2.3.3.pom)
+select **jffi 1.4.3**, in compile scope and runtime/native classifier scope,
+while retaining ASM 9.10.1. The
+[2.3.2-to-2.3.3 diff](https://github.com/jnr/jnr-ffi/compare/2.3.2...2.3.3)
+changes only the project version and those two jffi pins. The earlier observation
+that 2.3.2 does not select separately released jffi 1.4.1 is specific to 2.3.2;
+it must not be generalized to the newer published candidate.
+
+P14 should evaluate 2.3.3 and its actual jffi 1.4.3/native graph, including
+version-specific jffi changes and supported-platform loading/ABI behavior;
+no Paclo compatibility or security clearance follows from publication alone.
+Dependency mediation across analyzer/JNR/ASM must be checked in the proposed
+resolved graph. Newer ASM is a reason to investigate, not evidence that current
+JNR fails on JDK25. No candidate is adopted or executed in P11.
 
 ## Development, build, test and audit dependencies
 
@@ -354,7 +372,7 @@ Public behavior changes require API docs/changelog; no such change occurs here.
 | 3a. Audit reliability and scope | P14; evaluate nvd5.3.0/tool isolation and advisory/native coverage | Preserve default scan, CVSS7 threshold, database/report timestamps, no suppressions added to hide findings; demonstrate alias isolation and selected optional/tool graphs separately. Credentials/network failure is incomplete, not clean |
 | 3b. CLI + tools.build | Separate tool/build slice, or split CLI and build if regressions require attribution | Cold/warm dependency setup, Git SHA resolution, prep-lib, javac17 API baseline, process exit/output, JAR contents/POM/provenance and -Srepro same-bundle consumers; keep all package gates |
 | 3c. core.async1.9.865 | P14; internal protocol coupling and retention fixes justify isolated evaluation | Stream/fan-out regression tests for nil/false, drops/backpressure, ordering, full-queue close, exception/abandon/repeated close, blocked producer release, counters and bounded retention; repeat on17/21, full check/static/docs/perf/distribution. Do not adopt core.async.flow |
-| 3d. JNR2.3.2 | P14; native/ASM changes need attribution independent of async | Resolved jffi/ASM graph, Java/JUnit/native real fixtures, BPF success/failure, struct layouts, failed-open cleanup, writer precision/errors, same-JAR17/21 and supported OS/CPU CI. Record native library version/path; preserve evidence of warnings/failures |
+| 3d. JNR2.3.3 | P14; published tag/Central candidate beyond GitHub Release2.3.2; native/ASM changes need attribution independent of async | Verify selected jffi1.4.3 Java/native and ASM9.10.1 graph, Java/JUnit/native real fixtures, BPF success/failure, struct layouts, failed-open cleanup, writer precision/errors, same-JAR17/21 and supported OS/CPU CI. Record native library version/path; preserve evidence of warnings/failures |
 | 3e. Lint/analysis/coverage | P14; use need-specific kondo/LSP/SpotBugs/JaCoCo slices; keep Eastwood/cloverage initially | Pinned binary checksums on supported installer architecture, identical source coverage, no unexplained formatting diff; runner failure tests, zero analyzer exceptions, no weaker rules or budgets, unchanged25% Java gate; test17 local-tool contract before raising tool JDK minimum |
 | 4. JDK25 experiment | P13 after P12; may run before a JNR change to identify actual failure | Same JDK21 bundle on17/21/25 plus separate25 source/JUnit/native tests, default and justified native options recorded, exact OS/CPU/JDK/libpcap, explicit coverage-tool limits. All existing jobs pass; no automatic formal support claim |
 | 5a. Practical REPL examples | P15 after P11; no need to wait for P12 | PCAP read/write, Flow and DNS with existing APIs, fixtures/expected output, with-open/reduced/close behavior, localhost nREPL only if needed; register and execute doc-example markers. No framework or API addition |

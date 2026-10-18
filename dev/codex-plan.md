@@ -636,6 +636,8 @@ Completed on 2026-10-18 against main `97873f7`; see the
 Clojure 1.12.6 and CLI 1.12.5.1664 are upstream stable candidates; no candidate
 was installed/tested and JDK25 remains unverified. A separate development-SNAPSHOT
 identity maintenance proposal precedes candidate artifact comparisons.
+Review follow-up: the inventory distinguishes GitHub Release2.3.2 from published
+JNR2.3.3/jffi1.4.3 tag/Central evidence; P14 remains a separate evaluation.
 This completion changes no production/dependency/build/CI/version setting.
 
 Inventory the repository-selected Clojure library, JDK support, Clojure CLI,

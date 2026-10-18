@@ -4671,3 +4671,40 @@ flags for Markdown-only work; Markdown lint remains enabled. No hook is edited.
 Final commit/PR URL and final-head normal CI results belong in the PR description
 and chat rather than a self-referential log commit. Leave P11's independent PR
 open and unmerged, awaiting review. No independent approval is claimed here.
+
+## P11 review: published JNR candidate correction (2026-10-18)
+
+Address [PR #68 review comment](https://github.com/nantes-rfli/paclo/pull/68#issuecomment-6244034488).
+Initial checkout was clean on `codex/p11-environment-inventory` at `3e62b0d`;
+fetched main/PR branch without changing the baseline. The initial inventory
+mistakenly treated latest GitHub Release 2.3.2 as the latest published JNR candidate.
+Its 2.3.2/jffi1.4.0 POM observation was correct but incomplete.
+
+Rechecked official sources at 2026-10-18 10:07 Asia/Tokyo using GitHub tag/release/
+compare APIs, tagged source POM and Maven Central metadata/POMs. The 2.3.3
+annotated tag is dated 2026-09-15 17:54:57 UTC and points to `d6883b44`;
+Central metadata lists 2.3.3 (lastUpdated 20260915181839). Both 2.3.3 POMs select
+jffi 1.4.3 for compile and runtime/native dependencies and retain ASM 9.10.1.
+The 2.3.2-to-2.3.3 official diff changes only project version and those jffi pins.
+GitHub latest Release still reports 2.3.2. Downloaded/read POMs only; no candidate
+JAR/native binary was installed, resolved into Paclo or executed.
+
+Corrected the dependency table, transitive comparison, P14 PR slice and P11 plan
+completion note. Keep 2.3.2 as explicitly labeled GitHub Release/historical POM
+evidence, with 2.3.3/jffi 1.4.3 as the published evaluation candidate. Update PR
+body to match and keep previous-head CI evidence distinct from corrected-head CI.
+The previous work-log entry is preserved as historical evidence; this correction
+supersedes its incomplete candidate selection. No implementation/dependency/CI/
+build/version changes and no new task/adoption/support decision.
+
+Verification: `bash dev/script/codex.sh doctor` passes with existing macOS x86_64,
+JDK21.0.12.1/Clojure1.12.1/CLI1.12.5.1654 and four offline packets/438 bytes.
+`dev/script/mdlint.sh` passes all 50 files/zero errors after fixing one new-log
+blank-line warning; `python3 dev/script/verify_doc_links.py`, `git diff --check`
+and read-only POM/candidate/scope/plan/log-preservation assertions pass.
+Final-head normal CI results are retained in the PR body.
+No runnable example changes; local runtime/performance/package suites and
+candidate compatibility tests are not run for this documentation correction.
+Use the existing Markdown-only hook flags, retaining Markdown lint. Leave the
+PR open and unmerged for independent review; no merge authority is inferred
+from the reviewer's recommendation.
