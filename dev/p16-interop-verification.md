@@ -7,6 +7,8 @@ Started from fetched main `4a113c60184128df442f3fa152ebf0390cedc6a5` on
 [local execution evidence](p16-interop-evidence.json).
 PR #76 is unmerged, Issue #77 remains open, and core.async stays **1.6.681**.
 No P14-B/C, P17, P09/P10, release, tag, publication or merge is included.
+P16 is **implemented and verified**, with independent review pending in
+[PR #78](https://github.com/nantes-rfli/paclo/pull/78).
 
 This adds an executable integration gate, not just an investigation. No Paclo
 implementation defect was reproduced in the selected matrix, so no production
@@ -134,8 +136,12 @@ P08 tests rather than duplicated in this small external-tool matrix.
    tshark shows the original **1700000007.125976562** becoming
    **1700000014.125000000** after editcap alone. This is observed outside Paclo;
    no claim of an acceptable semantic round trip or root-cause fix is made for
-   that rewrite. Paclo's direct preserve output retains the original exact
-   ticks/options/opaque bytes and external interpretation. The gate saves both
+   that rewrite. macOS CI Wireshark 4.6.9 reproduces the same change. Ubuntu's
+   Wireshark 4.2.2 instead removes the offset option and yields
+   `1700000007.125000000`: it also loses one binary tick of fractional precision,
+   but does not retain the extra offset. These are version-specific external
+   behaviors, not a portable normalization contract. Paclo's direct preserve
+   output retains the original exact ticks/options/opaque bytes and external interpretation. The gate saves both
    metadata inventories in `normalization.json`; differing external versions
    may behave differently, so their normalization is recorded, not required.
 4. **Opaque records are tool-dependent:** a copyable custom block in an initial
@@ -159,9 +165,19 @@ synthetic reproducer; no message to upstream was sent as part of this task.
 | Executed environment | External tools / source | Actual native identity | Result |
 | --- | --- | --- | --- |
 | Local macOS 15.4.1, Darwin 24.4.0, x86_64, Intel i7-8700B @ 3.20GHz, Temurin 21.0.12.1+1 | Wireshark official app bundle 4.6.8 (v4.6.8-0-ge677bf052328): text2pcap/editcap/mergecap/tshark/capinfos; Homebrew tcpdump 4.99.7 | Paclo `/usr/lib/libpcap.A.dylib` 1.10.1; tshark 1.10.1; tcpdump 1.11.0 | Passed; JSON evidence linked above |
-| CI Linux x64 / JDK21 | Ubuntu packages; exact versions pending CI | Pending actual loaded library report | Pending |
-| CI macOS ARM64 / JDK17 | Official Wireshark app via cask fetch + OS tcpdump; exact versions pending CI | Pending actual loaded library report | Pending |
-| CI Linux ARM64 / JDK21 | Ubuntu packages; exact versions pending CI | Pending actual loaded library report | Pending |
+| CI Ubuntu 24.04, Linux6.17.0-1022-azure x64, AMD EPYC9V45, Temurin21.0.12.1+1 | Ubuntu Wireshark 4.2.2 (`4.2.2-1.1build3`), tcpdump4.99.4 | Paclo `/lib/x86_64-linux-gnu/libpcap.so.1.10.4`,1.10.4 TPACKET_V3; tshark/tcpdump also1.10.4 | Passed |
+| CI macOS26.6.2 ARM64, Apple M1(Virtual), Temurin17.0.20.1+1 | Official Wireshark 4.6.9 (`v4.6.9-0-g2d548b197c75`) app via cask fetch; Apple tcpdump4.99.1/158 | Paclo `/usr/lib/libpcap.A.dylib`,1.10.1; tshark/tcpdump also1.10.1 | Passed |
+| CI Ubuntu24.04, Linux6.17.0-1022-azure ARM64, Neoverse-N2, Temurin21.0.12.1+1 | Ubuntu Wireshark 4.2.2 (`4.2.2-1.1build3`), tcpdump4.99.4 | Paclo `/lib/aarch64-linux-gnu/libpcap.so.1.10.4`,1.10.4 TPACKET_V3; tshark/tcpdump also1.10.4 | Passed |
+
+Implementation `255320d` passes **all 16 CI jobs** in
+[CI39136856171](https://github.com/nantes-rfli/paclo/actions/runs/39136856171).
+[CI evidence JSON](p16-ci-evidence.json) retains per-platform versions, CPU/OS,
+actual native/JVM identity, source/harness hashes, tests, normalization inventories
+and same-JAR consumer hashes. Each of the three platform gates independently
+passes 32 valid inputs, 4 malformed inputs, 45 outputs and 377 assertions. Their
+existing suites pass 13 JUnit tests and 493 Clojure tests (19,136 assertions on
+Linux, 19,130 on macOS). Full generated files/commands remain in the run's
+`p16-interop-*` artifacts.
 
 Upstream references: [text2pcap manual](https://www.wireshark.org/docs/man-pages/text2pcap.html),
 [editcap manual](https://www.wireshark.org/docs/man-pages/editcap.html),
@@ -182,25 +198,37 @@ Install steps print actual package identity; full runtime versions are artifacts
 - `bash dev/script/codex.sh check`: JUnit 13/13; existing Clojure suite 493 tests /
   19,130 assertions; offline smoke four packets / 438 bytes, all pass.
 - Kondo: zero errors/warnings; Eastwood completes without exceptions; LSP
-  clean-ns/format dry runs unchanged. Markdown55 files/zero errors. All40
-  maintained documentation examples pass; parser tests16/16 and link tests9/9
+  clean-ns/format dry runs unchanged. Markdown 55 files/zero errors. All 40
+  maintained documentation examples pass; parser tests 16/16 and link tests 9/9
   (`TMPDIR=/private/tmp` avoids the existing macOS symlink-temp test issue).
-- Performance: first contended run fails at1653.6ms; isolated rerun passes
-  at581.3ms against unchanged1000/1200ms warning/failure budgets. No speedup claim.
+- Performance: first contended run fails at 1653.6ms; isolated rerun passes
+  at 581.3ms against unchanged 1000/1200ms warning/failure budgets. No speedup claim.
 - Package and clean independent JDK21 consumer pass for implementation a13028b;
   JAR SHA-256 `7b90891d674235863f7ce664a7e767dabd84a943731070b1132a92eca222da3a`.
 - Initial CI39136407960 exposes a test-harness portability issue: Ubuntu's
-  editcap4.2 lacks `--preserve-packet-comments`. The final script uses the
+  editcap 4.2 lacks `--preserve-packet-comments`. The final script uses the
   declared TLV mutation instead of that flag; the revised local gate passes
-  the same377 assertions. Platform CI is being rerun before handoff.
+  the same 377 assertions. Corrected implementation CI39136856171 passes all 16
+  jobs, including the app-only macOS setup and all three external gates.
+- CI's unchanged mid-50k performance gate passes at 707.5ms. Documentation 40
+  examples, SpotBugs/CheckStyle/JaCoCo, static checks, performance shards/merger,
+  JDK25 source experiment and same-JAR17/21/25 consumers (including 25 debug/deny)
+  all pass. The five consumer reports identify the same JAR SHA-256
+  `4eeec15c5ae424870c7e584de2c46ad1e1e7ed23b5deaacdaa479b6a1e563908`,
+  built at CI merge-ref `99268acc19695ce54ce4dd2d4f42f7d362e1da54`.
+  The final evidence-only PR head is checked separately in PR78 before handoff.
 
 CI retains all existing JDK17/21, JDK25 experiment, same-JAR consumers, static/
 coverage checks, documentation examples and performance jobs. External gates
 are added to the three existing platform jobs; the aggregate now also requires
 Linux ARM64. No performance budget or coverage threshold is weakened.
 
-Local JDK17/25 and ARM64 execution are unavailable in this checkout; CI evidence
-must supply those platforms and the unchanged JDK25 experiment separately.
+Local JDK17/25 and ARM64 execution are unavailable in this checkout; the CI
+evidence above supplies the three named platform configurations and the unchanged
+Linux x64 JDK25 experiment separately. P16 does not test the full OS/CPU/JDK
+Cartesian product: other external-tool configurations, including Linux ARM64
+JDK17/25, macOS ARM64 JDK21/25 and Linux x64 JDK17, remain unverified by this gate
+(the existing separate JAR consumers still run 17/21/25).
 No Windows/BSD, live capture, NIC throughput, real production traffic diversity,
 compressed file support, arbitrary private blocks/options, independent JDK25
 external-tool matrix or long-running capture performance is established here.

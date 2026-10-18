@@ -43,11 +43,13 @@ acceptance by every external interpreter. An intentional conversion can use
 all unknown options, not just that code. Do not silently discard them or reuse
 private codes as a portable extension mechanism.
 
-The P16 probe observes editcap 4.6.8 removing an unknown block and unknown options
+The P16 probe observes editcap 4.6.8/4.6.9 removing an unknown block and unknown options
 and retaining comments. Its rewrite of the binary-resolution/offset case changes
 ticks and even absolute time: `1700000007.125976562` becomes
 `1700000014.125000000` in tshark. Treat this as a measured external rewrite
-limitation, not an acceptable precision conversion or a Paclo reader defect. Paclo's direct preserving round trip keeps
+limitation, not an acceptable precision conversion or a Paclo reader defect.
+Ubuntu editcap 4.2.2 instead removes the offset option and produces
+`1700000007.125000000`, also losing fractional precision. Paclo's direct preserving round trip keeps
 the original octets and exact ticks. NRB contents remain opaque in Paclo. Custom
 blocks can even appear as additional records in Wireshark, so opaque preservation
 still makes no complete packet-coverage claim. Unsupported PB/DSB input retains

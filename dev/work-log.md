@@ -5452,3 +5452,47 @@ copy only Wireshark.app to RUNNER_TEMP and verify its signature. No helper or
 capture permission is needed. Initial disposable runner used normal cask;
 final CI must validate this app-only path. Added capinfos inventories of the
 rich input and editcap rewrite, plus Closeable hints in the test runner.
+
+P16 corrected implementation `255320d` completes
+[CI39136856171](https://github.com/nantes-rfli/paclo/actions/runs/39136856171):
+**all 16 jobs pass**. Each external gate passes 32 valid inputs, 4 corrupt
+inputs, 45 Writer outputs and 5 tests / 377 assertions on Linux x64/JDK21,
+Linux ARM64/JDK21 and macOS ARM64/JDK17. Each also passes 13 JUnit and 493
+Clojure tests (19,136 assertions on Linux, 19,130 on macOS). Source/harness
+hashes match across the three gates. Exact CPU/OS/JVM, tools, loaded native
+images and normalization inventories are in `dev/p16-ci-evidence.json`;
+complete commands/files are `p16-interop-*` artifacts in that CI run.
+
+Executed identities: Linux kernel6.17.0-1022-azure on AMD EPYC9V45 / Neoverse-N2,
+Temurin21.0.12.1+1; Ubuntu Wireshark4.2.2 (4.2.2-1.1build3), tcpdump4.99.4;
+Paclo/tshark/tcpdump actual libpcap1.10.4 TPACKET_V3. Paclo dladdr resolves
+`/lib/x86_64-linux-gnu/libpcap.so.1.10.4` and
+`/lib/aarch64-linux-gnu/libpcap.so.1.10.4`. macOS26.6.2 ARM64 Apple M1(Virtual),
+Temurin17.0.20.1+1; official Wireshark4.6.9 (v4.6.9-0-g2d548b197c75), OS tcpdump
+4.99.1/Apple158; all actual libpcap1.10.1, Paclo system dylib. The official
+app-only extraction/signature verification passes without helper-package install.
+
+Version-specific external normalization is now explicit: Linux editcap4.2.2
+removes the +7 offset option, producing1700000007.125000000, while macOS4.6.9
+retains it and produces1700000014.125000000; both change the original exact
+binary ticks and discard unknown metadata. Direct Paclo preserve keeps exact
+ticks, metadata and external interpretation on every tested platform. None of
+these external rewrites is classified as a Paclo defect or acceptable full
+fidelity conversion.
+
+All existing checks pass in the same run: docs40 examples, static analysis,
+SpotBugs/CheckStyle/JaCoCo, performance shards/merger, JDK25 source experiment,
+and the single JDK21-built JAR on17/21/25 plus25 native-access debug/Unsafe deny.
+Five consumer reports all pass and identify JAR
+`4eeec15c5ae424870c7e584de2c46ad1e1e7ed23b5deaacdaa479b6a1e563908`, clean CI
+merge-ref99268acc19695ce54ce4dd2d4f42f7d362e1da54. Unchanged mid-50k CI gate is
+707.5ms. No threshold, default dependency or public implementation changed.
+
+Decision: P16 is done for its selected offline matrix; independent review is
+pending in PR78. A final evidence-only commit records this result; its CI is
+checked in PR78 before handoff. Final-head results are reported in the PR rather
+than producing an endless evidence-commit/CI cycle. Next unfinished queue item
+remains P14: PR76 is held for the open Issue77 regression; P14-C is unselected.
+Do not start P14-B/C/P17/P09/P10, merge, release, tag or publish in this task.
+The report explicitly lists untested OS/CPU/JDK combinations and live/production/
+performance limits. Offline generated captures are no live-NIC evidence.
