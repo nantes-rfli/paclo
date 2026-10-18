@@ -682,6 +682,9 @@ Adopt Clojure 1.12.6 in both projects and exact distribution checks, holding oth
 dependencies/CLI/Java17/quality gates fixed. All493 tests,36 executable examples,
 static checks and coverage pass; the instrumentation-sensitive DNS assertion is
 corrected against its ownership invariant and passes on Clojure1.12.1/1.12.6.
+A macOS CI queue-test deadline assumption is reproduced with slow synthetic reads
+on both versions and corrected with explicit EOF/capacity/drop checks; production
+time limits and all CI/performance budgets remain unchanged.
 The [P12 report](p12-clojure-1.12.6/README.md) retains ABBA raw measurements,
 including raw-reduce -4.9%, unchanged gate635.9ms and local SNAPSHOT provenance.
 Final-head CI/same-JAR17/21 results are recorded in the P12 PR before handoff.

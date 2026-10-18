@@ -66,6 +66,27 @@ No instrumentation exclusion, coverage threshold, production code or dependency
 is changed. Normal and baseline instrumented DNS tests both pass after the correction
 (22 tests, 390 assertions). The full candidate cloverage suite is rerun too.
 
+## CI queue-test correction
+
+The first final-head run for `df90816`
+([macOS job](https://github.com/nantes-rfli/paclo/actions/runs/39089499187/job/117563237437))
+failed `capture->seq-respects-queue-cap`: one of three synthetic packets arrived
+and EOF/break was never reached. Its capture deadline was 50 ms. The native loop
+correctly stops when that wall-clock deadline expires; cold native/JIT work or
+scheduler delay can exhaust it before the remaining fake packets are read.
+
+Injecting a 60 ms synthetic packet-read delay reproduces the exact three failures
+on both Clojure 1.12.1 and 1.12.6. Keep that delay as a regression and give this
+queue/EOF test a finite 10000 ms capture budget. Retain all original packet,
+byte/order and EOF assertions, and additionally assert capacity 2, all three
+enqueued, zero drops and observed maximum depth <=2. Both runtime probes then
+pass all five assertions. This changes test input configuration, not the public
+capture defaults, time-limit implementation, CI job timeout, performance budgets,
+coverage gate or any deadline-specific test. Production source is unchanged.
+The repeated local check/coverage/static suites pass; all final-head CI jobs
+are rerun for the corrected commit.
+Earlier successful consumer jobs are not relabeled as final-revision evidence.
+
 ## Local verification
 
 Environment: macOS 15.4.1 x86_64, Temurin 21.0.12.1+1, CLI 1.12.5.1654,
@@ -74,8 +95,8 @@ system libpcap 1.10.1. Local clj-kondo 2026.05.25 and clojure-lsp
 JDK 17 is unavailable locally. Tests on other platforms require their CI jobs.
 
 Local results: `check` passes JUnit 10/10, all 493 Clojure tests and native
-smoke; the corrected full cloverage run passes 493 tests / 19,128 assertions
-with 91.32% form / 95.40% line coverage. JaCoCo passes at 43.8% lines (25% gate).
+smoke; the corrected full cloverage run passes 493 tests / 19,130 assertions
+with 91.39% form / 95.46% line coverage. JaCoCo passes at 43.8% lines (25% gate).
 SpotBugs, CheckStyle, kondo (zero warnings/errors), Eastwood (632 informational
 warnings, zero exceptions), LSP clean-ns/format (no changes), all 36 maintained
 examples and distribution/build-identity/release-guard tests pass. Markdown

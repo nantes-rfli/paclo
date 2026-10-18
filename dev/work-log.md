@@ -4941,10 +4941,48 @@ on that review/merge and is not started.
 
 Final local Markdown lint passes all51 files/zero errors, local links/diff checks
 pass, and a scope audit confirms production source/Java, benchmark workers,
-workflows/build settings and all non-Clojure dependencies are unchanged. The only
+workflows/build settings and all non-Clojure dependencies are unchanged. The initial
 existing test edit removes the reproduced instrumentation-metadata assumption
 and adds explicit cleanup assertions. Commit hooks use supported SKIP_TESTS=1,
 SKIP_FMT=1 and SKIP_KONDO=1 to avoid repeating completed checks/autoformatting;
 Markdown lint stays enabled. No hook/configuration is changed. The CLI GitHub
 auth check was invalid; use connected GitHub tools for PR/CI and existing SSH
 Git for push, without an interactive login or credential changes.
+
+P12 first CI finding: final head df90816, run39089499187, macOS ARM64/JDK17
+job117563237437 fails only `capture->seq-respects-queue-cap` (three assertions:
+expected3 packets/[42 42 42]/one break, observed1 packet/[42]/zero breaks).
+The synthetic capture's50ms wall-clock deadline expires before EOF; production
+`loop-n-or-ms!` correctly checks it between reads and does not fabricate EOF.
+All other initial jobs, including Linux/ARM64, docs/analysis/performance and both
+same-JAR17/21 consumers, are kept distinct from the next final-head run.
+Initial actual cloverage tests493/19,134 pass with95.48% lines; the initial
+required aggregate fails because of macOS, so this run is not a full CI pass.
+
+Reproduce the same three failures on both1.12.1 and1.12.6 by delaying each fake
+packet read60ms while retaining the original50ms capture deadline. Correct this
+queue/EOF test's input to a finite10000ms capture budget and retain the slow read
+as a deterministic regression. Keep the original packet/order/EOF checks and add
+capacity2/enqueued3/dropped0/max-depth<=2 statistics checks. Both runtime probes
+then pass1 test/five assertions. No production time limit, public default,
+deadline-specific test, CI timeout/quality gate or performance threshold changes.
+The optional latency is confined to the existing test fake and this test alone.
+Repeat full check, cloverage and lint, then push this correction to PR #70 and
+require every job on the new final commit; do not accept or rerun away the old
+failure. Production/benchmark source and dependency graphs remain unchanged, so
+the retained performance and local package evidence still applies to those bytes.
+
+P12 queue-correction verification completes: full `bash dev/script/codex.sh check`
+exits0 with JUnit10/10,493 Clojure tests/19,130 assertions/zero failures/errors,
+and native1.12.6 offline smoke4 packets/438 bytes. Repeated `clojure -M:coverage`
+exits0 with the same493/19,130 and zero failures/errors,17 namespaces,
+91.39% forms/95.46% lines. Repeated full `bash dev/script/codex.sh lint` now exits0:
+kondo0 errors/warnings, Eastwood632 warnings/zero exceptions, LSP no clean-ns or
+format changes, Markdown51 files/zero errors. Both corrected single-var queue
+probes pass five assertions on1.12.1/1.12.6. Keep the prior failing probes and first
+macOS CI failure explicit, rather than counting them as successful verification.
+Remove only the four regenerated fixture Python cache files. This correction
+and its report/plan/log updates are committed on the same PR; no second PR,
+production/benchmark source change, dependency/tool update or weakened gate.
+The new final-head normal CI and same-JAR identities supersede earlier-head CI
+results in the PR description after all required jobs actually complete.
