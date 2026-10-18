@@ -73,7 +73,9 @@ port/protocol filtering, bounded bidirectional Flow aggregation, DNS correlation
 and Classic PCAP write/reload. Four exact fixture checks join the existing
 documentation gate (40 examples total), and a fresh wrapper REPL executes every
 block successfully. No new public API, dependency or framework is needed.
-P13, P14, P16 and P17 are outside this task. Do not merge P15 before review.
+P13, P14, P16 and P17 are outside this task.
+[PR #71](https://github.com/nantes-rfli/paclo/pull/71) contains P15; final-head
+CI evidence is maintained there. Do not merge P15 before independent review.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
