@@ -4773,10 +4773,31 @@ CLI1.12.5.1654:
 `bash dev/script/codex.sh check` passes: JUnit10/10, Clojure493 tests with
 19,125 assertions and zero failures/errors, then native offline smoke. Removed
 only the four generated untracked fixture `__pycache__` files after the suite.
-Full static/PR/CI delivery results are recorded below when complete.
+Full static/PR/CI delivery details follow.
 Local JDK17 is unavailable; same-JAR17/21 and Linux/macOS ARM64
 verification require the unchanged normal CI. No live/NIC, JDK25, other-platform
 or dependency-audit claim follows from offline tests. Local lint tools differ
 from pinned CI as recorded by P11. No Clojure/dependency/API update, P12–P17,
 P09/P10 work, release dispatch/tag/publish or merge is performed. P12 is the next
 main plan item only after this PR passes full CI and independent review/merge.
+
+Delivery: implementation commit `c74c011` and
+[PR #69](https://github.com/nantes-rfli/paclo/pull/69). The following documentation
+commit records this URL and completed local checks. `bash dev/script/codex.sh lint`
+passes: kondo zero errors/warnings; Eastwood completes with632 informational
+warnings and zero exceptions; clean-ns/format dry-runs report no changes;
+Markdown lint passes all50 files with zero errors. No lint configuration changes.
+The initial new-log Markdown blank-line/line-length failures were corrected and
+rechecked; neither is counted as a passing attempt. Commit hooks use supported
+`SKIP_TESTS=1`, `SKIP_FMT=1`, `SKIP_KONDO=1` only to avoid repeating already-passed
+checks or autoformatting; Markdown lint remains enabled and no hook is changed.
+
+Final-head normal-CI job URLs/results, both consumer artifact hashes/version/SCM
+agreement and any remaining limitations are recorded in the PR description and
+chat after completion, avoiding a self-referential CI-results commit. Local
+performance/Java analyzers/coverage and maintained runnable examples are not
+rerun separately; the unchanged full CI retains those gates. A source/diff audit
+confirms dependency versions, production/test code, Publish workflow, historical
+v1.4.0 release documents/evidence and P11 inventory are untouched. Leave PR #69
+open and unmerged for independent review. Plan status denotes implemented/local
+verification complete, with review/merge still pending; P12 remains unstarted.

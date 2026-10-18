@@ -59,7 +59,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 | P11 | Unassigned | Inventory current environment and update candidates | — | done |
-| M-SNAPSHOT | Development only | Align development artifact identity before P12 | P11 | in-progress |
+| M-SNAPSHOT | Development only | Align development artifact identity before P12 | P11 | done |
 | P12 | Unassigned | Evaluate adoption of the latest stable Clojure | P11 | ready |
 | P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | blocked |
 | P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | ready |
@@ -67,7 +67,9 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **M-SNAPSHOT development artifact identity — implementation and verification in progress**.
+Current task: **M-SNAPSHOT development artifact identity — implemented; independent review pending**.
+[PR #69](https://github.com/nantes-rfli/paclo/pull/69) records final-head CI and
+same-JAR identity results before handoff; local verification is complete.
 The independent maintenance slice uses `1.5.0-SNAPSHOT` for ordinary development
 builds, CI and distribution verification. SNAPSHOT POM SCM tags identify Git HEAD;
 release versions retain `v<version>`. Version/dependency/content/hash checks,
@@ -656,8 +658,10 @@ P12–P16 without changing dependencies, tooling, CI, API or support claims.
 
 ## Independent maintenance: development artifact identity before P12
 
-Status: **in-progress**; implementation and local/normal-CI verification before
-independent review. Depends on: P11 (merged). Authorized on 2026-10-18.
+Status: **done** for implementation and local verification; independent review
+and merge pending in [PR #69](https://github.com/nantes-rfli/paclo/pull/69).
+Final-head normal-CI and same-JAR17/21 evidence is recorded in that PR before
+handoff. Depends on: P11 (merged). Authorized on 2026-10-18.
 
 Use `1.5.0-SNAPSHOT` consistently for unpublished development JAR/POM/properties,
 CI paths and verifier expectations. Record the actual source commit for SNAPSHOT
