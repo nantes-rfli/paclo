@@ -136,8 +136,19 @@ def generate(gate):
     base = gate.path('link-1-pcapng.pcapng')
     gate.run('editcap', '-s', 42, '--capture-comment', 'P16 section comment',
              '-a', '1:first comment', base, gate.path('editcap-snap.pcapng'))
-    gate.run('editcap', '--preserve-packet-comments', '-a', '1:second comment',
-             gate.path('editcap-snap.pcapng'), gate.path('comments.pcapng'))
+    # Ubuntu's Wireshark 4.2 lacks --preserve-packet-comments. Append one
+    # declared lab TLV to actual editcap output rather than upgrade the tools.
+    commented = b''
+    packet_index = 0
+    for kind, order, body in wire_blocks(gate.path('editcap-snap.pcapng').read_bytes()):
+        if kind == 6:
+            packet_index += 1
+            if packet_index == 1:
+                start = 20 + (struct.unpack_from(order+'I', body, 12)[0]+3)//4*4
+                body = body[:start] + options(wire_options(body[start:], order)
+                                              + [(1, b'second comment')], order)
+        commented += block(kind, body, order)
+    gate.path('comments.pcapng').write_bytes(commented)
     rows = add('comments.pcapng')
     assert [(r['caplen'], r['len']) for r in rows] == [(42, 64)] * 2
     for name, inputs, native in [
@@ -304,6 +315,8 @@ def main():
             assert semantics(gate.path(case['source'])) == semantics(path), case
     # Tool normalization is measured separately, never asserted as preservation.
     gate.run('editcap', gate.path('rich.pcapng'), gate.path('editcap-normalized.pcapng'))
+    gate.run('capinfos', '-c', '-I', gate.path('rich.pcapng'))
+    gate.run('capinfos', '-c', '-I', gate.path('editcap-normalized.pcapng'))
     before = semantics(gate.path('rich.pcapng'))
     after = semantics(gate.path('editcap-normalized.pcapng'))
     gate.path('normalization.json').write_text(json.dumps(dict(

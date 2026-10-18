@@ -604,15 +604,24 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libpcap-dev tshark tcpdump
           dpkg-query -W libpcap0.8t64 libpcap-dev tshark wireshark-common tcpdump
 
-      # Homebrew's cask downloads the signed upstream Wireshark distribution.
-      # No ChmodBPF/capture permissions are installed for this offline gate.
+      # Fetch/checksum the upstream signed app through its Homebrew definition.
+      # Extract only the app: installing the cask also installs capture helpers.
       - name: Install official Wireshark CLI (macOS)
         if: runner.os == 'macOS'
+        shell: bash
         run: |
-          brew install --cask wireshark
-          echo "/Applications/Wireshark.app/Contents/MacOS" >> "$GITHUB_PATH"
+          set -euo pipefail
+          brew fetch --cask wireshark-app
+          brew info --json=v2 --cask wireshark-app
+          image="$(brew --cache --cask wireshark-app)"
+          mount="$RUNNER_TEMP/wireshark-image"
+          mkdir -p "$mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "$image"
+          trap 'hdiutil detach "$mount"' EXIT
+          ditto "$mount/Wireshark.app" "$RUNNER_TEMP/Wireshark.app"
+          codesign --verify --deep --strict "$RUNNER_TEMP/Wireshark.app"
+          echo "$RUNNER_TEMP/Wireshark.app/Contents/MacOS" >> "$GITHUB_PATH"
           echo "/usr/sbin" >> "$GITHUB_PATH"
-          brew info --cask wireshark
 
       - name: Cache Clojure deps
         uses: actions/cache@v4

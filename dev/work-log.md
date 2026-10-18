@@ -5423,3 +5423,32 @@ Local checks so far:
 P16 is in progress until remote platform evidence is checked. Independent
 review remains required; no merge/release/tag/publication. Local17/25/ARM64,
 live NIC and operational performance remain unverified by this local run.
+
+P16 implementation checkpoint `a13028b` creates
+[PR #78](https://github.com/nantes-rfli/paclo/pull/78), attached to this chat.
+The hook's supported SKIP_TESTS/SKIP_FMT switches avoid redoing the explicitly
+completed suites; hook Markdown/kondo checks still pass. Local Markdown55
+files/0 errors and all40 executable documentation examples pass. Isolated
+performance rerun passes at581.3ms against unchanged1000/1200ms budgets; initial
+contended1653.6ms remains recorded above. Local package succeeds with release17
+classes, core.async1.6.681 and clean source identity a13028b; independent JDK21
+consumer passes JAR7b90891d674235863f7ce664a7e767dabd84a943731070b1132a92eca222da3a.
+The same JDK21-built candidate is validated on17/21/25 by CI separately.
+
+Initial [CI39136407960](https://github.com/nantes-rfli/paclo/actions/runs/39136407960)
+passes build quality, all performance shards/merger, Eastwood, JDK25 source,
+17/21/25 distribution consumers and optional coverage. Linux x64/ARM64 external
+gates fail because packaged Wireshark4.2 lacks the newer editcap
+`--preserve-packet-comments` option (actual argv/help/error retained in artifacts).
+This is a harness portability failure, not a Paclo or format defect. Remove
+that flag: use actual editcap truncation/comment output, then append a declared
+second-comment TLV in the lab mutator. Both versions now exercise the identical
+ordered-option contract without upgrading Ubuntu packages or weakening checks.
+
+Also inspected Homebrew's current upstream cask definition: normal installation
+includes ChmodBPF/path helper packages. Refined CI to `brew fetch --cask
+wireshark-app` (checksum verification), mount the official image read-only,
+copy only Wireshark.app to RUNNER_TEMP and verify its signature. No helper or
+capture permission is needed. Initial disposable runner used normal cask;
+final CI must validate this app-only path. Added capinfos inventories of the
+rich input and editcap rewrite, plus Closeable hints in the test runner.

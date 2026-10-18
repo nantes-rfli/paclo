@@ -61,7 +61,6 @@ text2pcap -q -t ISO -l 113 -N p16-113 -F pcapng link-113.txt link-113-pcapng.pca
 text2pcap -q -t ISO -m 64 -F pcap link-1.txt snap64.pcap
 tcpdump -n -r link-1-nsecpcap.pcap -w tcpdump-1.pcap 'udp dst port 53'
 editcap -s 42 --capture-comment 'P16 section comment' -a '1:first comment' link-1-pcapng.pcapng editcap-snap.pcapng
-editcap --preserve-packet-comments -a '1:second comment' editcap-snap.pcapng comments.pcapng
 mergecap -a -I none -w links.pcapng link-1-pcapng.pcapng link-101-pcapng.pcapng
 tshark -n -r comments.pcapng -T fields -e frame.time_epoch -e frame.cap_len -e frame.len -e frame.comment
 ```
@@ -71,7 +70,10 @@ tcpdump independently filters and serializes each framing type. editcap creates
 truncated packets with original lengths/comments; mergecap creates multiple IDBs.
 Declared lab mutations concatenate external sections, swap Classic headers to
 big endian, add binary timestamp resolution/offset/options/NRB/unknown blocks,
-and damage final records. They are explicitly mutations of external output,
+append a repeated comment TLV to editcap output, and damage final records.
+This avoids requiring the newer `--preserve-packet-comments` flag absent from
+Ubuntu Wireshark 4.2; the external-tool version is not upgraded for that flag.
+These are explicitly mutations of external output,
 not claims that tcpdump or editcap authored arbitrary options or malformed data.
 For mixed-endian PCAPNG, the second section has the P08 provenance above.
 
@@ -94,7 +96,7 @@ Clojure integration tests / 377 assertions, zero failures/errors**.
 | --- | --- | --- |
 | Ethernet, SLL, SLL2, Raw IP, NULL, LOOP; micro/nano PCAP and nano PCAPNG (18) | Correct bytes, DLT, lengths, floored usec, BPF accept/reject, EOF | All six PCAPNG framing types retain ticks and metadata; both Writers read externally |
 | tcpdump filtered Classic files, all six framings (6) | Same packet oracle and EOF | Classic Writer keeps the six-key subset with selected native DLT |
-| editcap truncation and repeated packet/capture comments (1) | caplen 42, wire length 64, no metadata | Ordered raw comments, nano ticks and original interface snaplen retained; explicit comment drop counted |
+| editcap truncation/capture comment plus repeated-comment TLV mutation (1) | caplen 42, wire length 64, no metadata | Ordered raw comments, nano ticks and original interface snaplen retained; explicit comment drop counted |
 | mergecap two identical interfaces (1) | All four packets, interface identity lost | IDs 0/1 and both descriptors retained |
 | mergecap mixed LINKTYPE / snaplen (2) | Explicit error before first packet; both IDBs precede packets | All four packets and descriptors preserved; external re-read succeeds |
 | Concatenated external sections (1) | Four packets, sections lost | Qualified section IDs and restarted interface IDs retained |
@@ -158,7 +160,7 @@ synthetic reproducer; no message to upstream was sent as part of this task.
 | --- | --- | --- | --- |
 | Local macOS 15.4.1, Darwin 24.4.0, x86_64, Intel i7-8700B @ 3.20GHz, Temurin 21.0.12.1+1 | Wireshark official app bundle 4.6.8 (v4.6.8-0-ge677bf052328): text2pcap/editcap/mergecap/tshark/capinfos; Homebrew tcpdump 4.99.7 | Paclo `/usr/lib/libpcap.A.dylib` 1.10.1; tshark 1.10.1; tcpdump 1.11.0 | Passed; JSON evidence linked above |
 | CI Linux x64 / JDK21 | Ubuntu packages; exact versions pending CI | Pending actual loaded library report | Pending |
-| CI macOS ARM64 / JDK17 | Official Wireshark cask + OS tcpdump; exact versions pending CI | Pending actual loaded library report | Pending |
+| CI macOS ARM64 / JDK17 | Official Wireshark app via cask fetch + OS tcpdump; exact versions pending CI | Pending actual loaded library report | Pending |
 | CI Linux ARM64 / JDK21 | Ubuntu packages; exact versions pending CI | Pending actual loaded library report | Pending |
 
 Upstream references: [text2pcap manual](https://www.wireshark.org/docs/man-pages/text2pcap.html),
@@ -167,18 +169,30 @@ Upstream references: [text2pcap manual](https://www.wireshark.org/docs/man-pages
 The generator uses flags present in the actually executed tools, rather than
 assuming that current online documentation describes every packaged version.
 CI installs only Ubuntu distribution tshark/wireshark-common/tcpdump alongside
-existing libpcap-dev, or the signed upstream macOS bundle through its cask.
+existing libpcap-dev, or fetches/checksums the signed upstream macOS bundle through its cask definition.
+macOS mounts the image read-only and copies only the app to a temporary directory,
+verifying its code signature; it does not install the cask's capture-helper packages.
 Install steps print actual package identity; full runtime versions are artifacts.
 
 ## Verification and remaining limits
 
 - `bash dev/script/codex.sh doctor` and `prepare`: pass on local JDK21.
-- `python3 dev/script/verify_interop.py /tmp/paclo-p16-local-final`: pass as above.
+- `python3 dev/script/verify_interop.py /tmp/paclo-p16-portable`: pass as above.
   CPU identity via sysctl required sandbox escalation; no interface was opened.
 - `bash dev/script/codex.sh check`: JUnit 13/13; existing Clojure suite 493 tests /
   19,130 assertions; offline smoke four packets / 438 bytes, all pass.
-- Static checks, documentation execution, performance gate and PR CI: in progress;
-  actual results will be appended to the work log before handoff.
+- Kondo: zero errors/warnings; Eastwood completes without exceptions; LSP
+  clean-ns/format dry runs unchanged. Markdown55 files/zero errors. All40
+  maintained documentation examples pass; parser tests16/16 and link tests9/9
+  (`TMPDIR=/private/tmp` avoids the existing macOS symlink-temp test issue).
+- Performance: first contended run fails at1653.6ms; isolated rerun passes
+  at581.3ms against unchanged1000/1200ms warning/failure budgets. No speedup claim.
+- Package and clean independent JDK21 consumer pass for implementation a13028b;
+  JAR SHA-256 `7b90891d674235863f7ce664a7e767dabd84a943731070b1132a92eca222da3a`.
+- Initial CI39136407960 exposes a test-harness portability issue: Ubuntu's
+  editcap4.2 lacks `--preserve-packet-comments`. The final script uses the
+  declared TLV mutation instead of that flag; the revised local gate passes
+  the same377 assertions. Platform CI is being rerun before handoff.
 
 CI retains all existing JDK17/21, JDK25 experiment, same-JAR consumers, static/
 coverage checks, documentation examples and performance jobs. External gates

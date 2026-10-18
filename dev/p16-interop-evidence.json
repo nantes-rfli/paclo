@@ -30,11 +30,11 @@
       }
     },
     "cpu": "Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz\n",
-    "source": "4a113c60184128df442f3fa152ebf0390cedc6a5",
-    "working_tree": " M .github/workflows/ci.yml\n M CHANGELOG.md\n M CONTRIBUTING.md\n M docs/pcapng.md\n?? dev/paclo/dev/interop.clj\n?? dev/script/verify_interop.py\n?? test/resources/__pycache__/make_capture_format_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_cooked_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_null_loop_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_raw_ip_fixtures.cpython-315.pyc\n",
+    "source": "a13028b15b2cf81bfa3c42002b78c76e06f0ac12",
+    "working_tree": " M .github/workflows/ci.yml\n M CONTRIBUTING.md\n M dev/p16-interop-verification.md\n M dev/paclo/dev/interop.clj\n M dev/script/verify_interop.py\n",
     "harness_sha256": {
-      "dev/script/verify_interop.py": "474d10ea423f2f8ff432d1170dd58841b080b4024ec87c0e14855da250b62856",
-      "dev/paclo/dev/interop.clj": "9bf3c265fa0ac7232f789fb089c34156b9886afa263486f94472927ac8b3b0c1"
+      "dev/script/verify_interop.py": "bdb048aa435e9f3cf0ada72909b8672a333dbfcf47b3195bef998e8dcb59556a",
+      "dev/paclo/dev/interop.clj": "4b9aa7b4f1710368145431440da9291998690ba177649e9e3c6646cbf246ca04"
     }
   },
   "runtime": {
@@ -58,42 +58,42 @@
       },
       {
         "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
           "c"
         ],
         "paths": [
           "libc.dylib"
-        ]
-      },
-      {
-        "names": [
-          "pcap"
-        ],
-        "paths": [
-          "libpcap.dylib"
-        ]
-      },
-      {
-        "names": [
-          "pcap"
-        ],
-        "paths": [
-          "libpcap.dylib"
-        ]
-      },
-      {
-        "names": [
-          "pcap"
-        ],
-        "paths": [
-          "libpcap.dylib"
-        ]
-      },
-      {
-        "names": [
-          "pcap"
-        ],
-        "paths": [
-          "libpcap.dylib"
         ]
       },
       {
@@ -307,5 +307,123 @@
       "stdout": "",
       "stderr": "tshark: The file \"test/resources/pcapng-contracts/rich.pcapng\" appears to be damaged or corrupt.\n(pcapng: Darwin option 0x8001 length expected 4, actual 8)\n"
     }
-  ]
+  ],
+  "distribution_consumer21": {
+    "version": "1.5.0-SNAPSHOT",
+    "scm_tag": "a13028b15b2cf81bfa3c42002b78c76e06f0ac12",
+    "source_commit": "a13028b15b2cf81bfa3c42002b78c76e06f0ac12",
+    "jar_sha256": "7b90891d674235863f7ce664a7e767dabd84a943731070b1132a92eca222da3a",
+    "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode)",
+    "runtime": {
+      "native-long-bytes": 8,
+      "native-libraries": [
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        },
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        },
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        },
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        },
+        {
+          "names": [
+            "c"
+          ],
+          "paths": [
+            "libc.dylib"
+          ]
+        },
+        {
+          "names": [
+            "c"
+          ],
+          "paths": [
+            "libc.dylib"
+          ]
+        },
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        },
+        {
+          "names": [
+            "c"
+          ],
+          "paths": [
+            "libc.dylib"
+          ]
+        },
+        {
+          "names": [
+            "pcap"
+          ],
+          "paths": [
+            "libpcap.dylib"
+          ]
+        }
+      ],
+      "libpcap-image": "/usr/lib/libpcap.A.dylib",
+      "clojure": "1.12.6",
+      "jvm-arguments": [
+        "-XX:-OmitStackTraceInFastThrow",
+        "-Dclojure.basis=.cpcache/2071145129.basis"
+      ],
+      "jffi-version": "1.4.3",
+      "libpcap-version": "libpcap version 1.10.1",
+      "jnr-ffi-version": "2.3.3",
+      "java": {
+        "java.version": "21.0.12.1",
+        "java.runtime.version": "21.0.12.1+1-LTS",
+        "java.vendor": "Eclipse Adoptium",
+        "java.vm.name": "OpenJDK 64-Bit Server VM",
+        "java.specification.version": "21",
+        "os.name": "Mac OS X",
+        "os.version": "15.4.1",
+        "os.arch": "x86_64"
+      },
+      "native-address-bytes": 8
+    },
+    "native_dependency_sha256": {
+      "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+      "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+      "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+      "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+      "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+      "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+      "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+      "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+      "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+      "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+    },
+    "java_options": [],
+    "status": "passed"
+  }
 }

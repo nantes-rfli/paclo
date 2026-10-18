@@ -136,8 +136,10 @@ Writer outputs, wire-oracle assertions and normalization evidence.
 
 CI installs Ubuntu's `tshark`/`wireshark-common` and `tcpdump` packages from the
 runner's configured Ubuntu repositories alongside existing libpcap-dev. macOS
-uses Homebrew's `wireshark` cask (the signed upstream Wireshark distribution),
-its bundled CLI directory on PATH and the OS tcpdump. Versions are intentionally
+fetches/checksums the signed upstream app through Homebrew's `wireshark-app`
+cask definition and extracts only `Wireshark.app` from the read-only disk image
+to the runner's temporary folder (no package/capture-helper install). It verifies
+the app signature, uses its CLI directory on PATH, and uses the OS tcpdump. Versions are intentionally
 those of these distributions, not claimed identical across OSes: package identity
 is printed during installation and each execution saves full `--version` output.
 The [P16 report](dev/p16-interop-verification.md) identifies actual tested versions.

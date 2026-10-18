@@ -9,7 +9,7 @@
    [paclo.core :as core]
    [paclo.pcapng :as pcapng])
   (:import
-   [java.io File]
+   [java.io Closeable File]
    [java.nio.file Files]
    [java.nio.file.attribute FileAttribute]))
 
@@ -25,7 +25,7 @@
 (defn- packet-records [records]
   (mapv #(dissoc % :section-id :interface-id :ticks) records))
 (defn- source-events [file]
-  (with-open [source (pcapng/open-source {:path (path file)})]
+  (with-open [^Closeable source (pcapng/open-source {:path (path file)})]
     (let [result (into [] source)]
       (is (= {:state :closed :terminal :eof}
              (select-keys (pcapng/source-info source) [:state :terminal])))
@@ -86,7 +86,7 @@
                (mapv #(select-keys (:pcapng %) [:section-id :interface-id]) packets)))
         (is (= (mapv #(bigint (:ticks %)) records)
                (mapv #(get-in % [:pcapng :timestamp :ticks]) packets)))
-        (with-open [source (pcapng/open-source {:path (path file)})]
+        (with-open [^Closeable source (pcapng/open-source {:path (path file)})]
           (let [report (pcapng/write-pcapng! source (path output))]
             (is (= {:status :complete :fidelity :known-semantics :loss-counts {}}
                    (select-keys report [:status :fidelity :loss-counts])))))
@@ -105,7 +105,7 @@
                                       (get-in (first (filter :packet original)) [:packet :pcapng :options])))
         output "lossy-comments.pcapng"]
     (is (= ["first comment" "second comment"] packet-comments))
-    (with-open [source (pcapng/open-source {:path (path file)})]
+    (with-open [^Closeable source (pcapng/open-source {:path (path file)})]
       (let [report (pcapng/write-pcapng! source (path output) {:mode :lossy :drop #{:comments}})]
         (is (= :explicit-loss (:fidelity report)))
         (is (= {:comments (count comments)} (:loss-counts report)))))
@@ -120,7 +120,7 @@
         records (:records (first (filter #(= file (:file %)) (:cases *manifest*))))
         opaque (count (filter #(= :opaque-block (:type %)) events))]
     (is (= 2 opaque))
-    (with-open [source (pcapng/open-source {:path (path file)})]
+    (with-open [^Closeable source (pcapng/open-source {:path (path file)})]
       (let [report (pcapng/write-pcapng! source (path output)
                                          {:mode :lossy :drop #{:opaque-blocks :unknown-options}})]
         (is (= {:opaque-blocks 2 :unknown-options 3} (:loss-counts report)))))
@@ -147,7 +147,7 @@
         (let [dir (Files/createTempDirectory "paclo-interop-failure-" (make-array FileAttribute 0))
               output (.resolve dir "output.pcapng")]
           (try
-            (with-open [source (pcapng/open-source {:path (path file)})]
+            (with-open [^Closeable source (pcapng/open-source {:path (path file)})]
               (let [error (failure #(pcapng/write-pcapng! source output))]
                 (is (= (keyword reason) (:reason (ex-data error))))
                 (is (= :error (:terminal (pcapng/source-info source))))))
@@ -158,14 +158,14 @@
   (let [dir (Files/createTempDirectory "paclo-interop-atomic-" (make-array FileAttribute 0))
         output (.resolve dir "output.pcapng")]
     (try
-      (with-open [source (pcapng/open-source {:path (path "comments.pcapng")})]
+      (with-open [^Closeable source (pcapng/open-source {:path (path "comments.pcapng")})]
         (pcapng/write-pcapng!
          (eduction (map (fn [event]
                           (is (not (.exists (.toFile output))))
                           event)) source) output))
       (is (= ["output.pcapng"] (mapv #(.getName ^File %) (.listFiles (.toFile dir)))))
       (let [before (vec (Files/readAllBytes output))]
-        (with-open [source (pcapng/open-source {:path (path "comments.pcapng")})]
+        (with-open [^Closeable source (pcapng/open-source {:path (path "comments.pcapng")})]
           (is (= :destination-exists
                  (:reason (ex-data (failure #(pcapng/write-pcapng! source output)))))))
         (is (= before (vec (Files/readAllBytes output)))))
