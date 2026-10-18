@@ -1,0 +1,64 @@
+[
+  {
+    "step": "identity",
+    "command": [
+      "java",
+      "-XshowSettings:properties",
+      "-version"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "javac",
+    "command": [
+      "clojure",
+      "-T:build",
+      "javac"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "javac-test",
+    "command": [
+      "clojure",
+      "-T:build",
+      "javac-test"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "junit",
+    "command": [
+      "clojure",
+      "-T:build",
+      "junit"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "clojure-tests",
+    "command": [
+      "clojure",
+      "-M:test"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "native-smoke",
+    "command": [
+      "clojure",
+      "-M:dev:dns-ext",
+      "-e",
+      "(require 'distribution-consumer.consumer) (try (distribution-consumer.consumer/native-check! \"test/resources/dns-sample.pcap\") (distribution-consumer.consumer/write-runtime! \"/private/tmp/paclo-p13/source25-final/runtime.json\") (finally (shutdown-agents)))"
+    ],
+    "exit": 0
+  },
+  {
+    "step": "dependencies",
+    "command": [
+      "clojure",
+      "-Stree"
+    ],
+    "exit": 0
+  }
+]

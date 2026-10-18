@@ -1,0 +1,93 @@
+{
+  "17": {
+    "binary": {
+      "architecture": "x64",
+      "download_count": 82074,
+      "heap_size": "normal",
+      "image_type": "jdk",
+      "installer": {
+        "checksum": "86faf4db1ea453576db7eb553c22edfce9d1cd559306a9fe1b180b548ccfb500",
+        "checksum_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.pkg.sha256.txt",
+        "download_count": 27294,
+        "link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.pkg",
+        "metadata_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.pkg.json",
+        "name": "OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.pkg",
+        "signature_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.pkg.sig",
+        "size": 180919050
+      },
+      "jvm_impl": "hotspot",
+      "os": "mac",
+      "package": {
+        "checksum": "c01975da12ed4235250ff891fe8bba73a9e73037d444b269c9d0922b5dbc8e0a",
+        "checksum_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz.sha256.txt",
+        "download_count": 54780,
+        "link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz",
+        "metadata_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz.json",
+        "name": "OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz",
+        "signature_link": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz.sig",
+        "size": 180578248
+      },
+      "project": "jdk",
+      "scm_ref": "jdk-17.0.20.1+1_adopt",
+      "updated_at": "2026-08-19T19:49:40Z"
+    },
+    "release_link": "https://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.20.1%2B1",
+    "release_name": "jdk-17.0.20.1+1",
+    "vendor": "eclipse",
+    "version": {
+      "build": 1,
+      "major": 17,
+      "minor": 0,
+      "openjdk_version": "17.0.20.1+1",
+      "patch": 1,
+      "security": 20,
+      "semver": "17.0.20+101"
+    }
+  },
+  "25": {
+    "binary": {
+      "architecture": "x64",
+      "download_count": 46196,
+      "heap_size": "normal",
+      "image_type": "jdk",
+      "installer": {
+        "checksum": "2a04409351992e365b62eb765ae79de607fbd65c7c2db564bc32e460b51b1edf",
+        "checksum_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.pkg.sha256.txt",
+        "download_count": 24910,
+        "link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.pkg",
+        "metadata_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.pkg.json",
+        "name": "OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.pkg",
+        "signature_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.pkg.sig",
+        "size": 120559785
+      },
+      "jvm_impl": "hotspot",
+      "os": "mac",
+      "package": {
+        "checksum": "e6229d9504f7922053ab31821b9e6bee8761daf7b026a3476d1a027563009880",
+        "checksum_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz.sha256.txt",
+        "download_count": 21286,
+        "link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz",
+        "metadata_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz.json",
+        "name": "OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz",
+        "signature_link": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz.sig",
+        "size": 120256199
+      },
+      "project": "jdk",
+      "scm_ref": "jdk-25.0.4.1+1_adopt",
+      "updated_at": "2026-08-19T18:49:07Z"
+    },
+    "release_link": "https://github.com/adoptium/temurin25-binaries/releases/tag/jdk-25.0.4.1%2B1",
+    "release_name": "jdk-25.0.4.1+1",
+    "vendor": "eclipse",
+    "version": {
+      "build": 1,
+      "major": 25,
+      "minor": 0,
+      "openjdk_version": "25.0.4.1+1-LTS",
+      "optional": "LTS",
+      "patch": 1,
+      "security": 4,
+      "semver": "25.0.4+101.0.LTS"
+    }
+  }
+}

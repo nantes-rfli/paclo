@@ -1,5 +1,6 @@
 (ns distribution-consumer.consumer
   (:require
+   [clojure.data.json :as json]
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.walk :as walk]
@@ -7,6 +8,7 @@
    [paclo.decode-ext :as decode-ext]
    [paclo.dns :as dns]
    [paclo.flow :as flow]
+   [paclo.pcap :as pcap]
    [paclo.pcapng :as pcapng]
    [paclo.proto.dns-ext :as dns-ext]
    [paclo.proto.tls-ext :as tls-ext]
@@ -14,6 +16,8 @@
    [paclo.window :as window])
   (:import
    [java.io Closeable]
+   [java.lang.management ManagementFactory]
+   [java.util Properties]
    [paclo.jnr PcapHandle PcapLibrary]))
 
 (defn check! [value context]
@@ -40,6 +44,64 @@
       (check! (= :closed (:state (pcapng/source-info source))) :pcapng-closed)
       events)))
 
+;; Diagnostic-only dladdr binding; never part of the published Paclo JAR.
+(definterface NativeImageLocator
+  (^int dladdr [^jnr.ffi.Pointer address ^jnr.ffi.Pointer info]))
+
+(defn libpcap-image []
+  (let [runtime (jnr.ffi.Runtime/getSystemRuntime)
+        loaded (first (filter #(some #{"pcap"} (.getLibraryNames %))
+                              (jnr.ffi.Runtime/getLoadedLibraries)))
+        library (com.kenai.jffi.Library/getCachedInstance
+                 (first (.getSuccessfulPaths loaded)) com.kenai.jffi.Library/LAZY)
+        address (.getSymbolAddress library "pcap_lib_version")
+        locator (-> (jnr.ffi.LibraryLoader/create NativeImageLocator) (.load "c"))
+        info (jnr.ffi.Memory/allocateDirect runtime (* 4 (.addressSize runtime)))
+        rc (.dladdr ^NativeImageLocator locator (jnr.ffi.Pointer/wrap runtime address) info)]
+    (check! (not= 0 rc) :libpcap-image)
+    (.getString (.getPointer info 0) 0)))
+
+(defn dependency-version [artifact]
+  (with-open [input (io/input-stream (io/resource (str "META-INF/maven/com.github.jnr/"
+                                                       artifact "/pom.properties")))]
+    (let [properties (doto (Properties.) (.load input))]
+      (.getProperty properties "version"))))
+
+(defn runtime-info []
+  {:java (into {} (map (fn [key] [key (System/getProperty key)])
+                       ["java.version" "java.runtime.version" "java.vendor" "java.vm.name"
+                        "java.specification.version" "os.name" "os.version" "os.arch"]))
+   :jvm-arguments (vec (.getInputArguments (ManagementFactory/getRuntimeMXBean)))
+   :clojure (clojure-version)
+   :libpcap-image (libpcap-image)
+   :jnr-ffi-version (dependency-version "jnr-ffi")
+   :jffi-version (dependency-version "jffi")
+   :libpcap-version (.pcap_lib_version PcapLibrary/INSTANCE)
+   :native-libraries (mapv (fn [library]
+                             {:names (vec (.getLibraryNames library))
+                              :paths (vec (.getSuccessfulPaths library))})
+                           (jnr.ffi.Runtime/getLoadedLibraries))
+   :native-address-bytes (.addressSize (jnr.ffi.Runtime/getSystemRuntime))
+   :native-long-bytes (.longSize (jnr.ffi.Runtime/getSystemRuntime))})
+
+(defn write-runtime! [path]
+  (spit path (str (json/write-str (runtime-info)) "\n")))
+
+(defn native-check! [path]
+  (check! (= 4 (count (read-packets path {:filter "udp port 53"}))) :bpf-match)
+  (check! (empty? (read-packets path {:filter "tcp"})) :bpf-no-match)
+  (let [failure (try (read-packets path {:filter "udp and ("}) nil
+                     (catch IllegalStateException e e))]
+    (check! (and failure (str/includes? (ex-message failure) "pcap_compile failed"))
+            :bpf-invalid))
+  (let [failure (try (PcapHandle/openOffline (str path ".missing")) nil
+                     (catch IllegalStateException e e))]
+    (check! (and failure (str/includes? (ex-message failure) "pcap_open_offline failed"))
+            :failed-open))
+  ;; No capture privileges needed; list-devices owns/frees the native linked list.
+  (check! (vector? (pcap/list-devices)) :interface-enumeration)
+  (prn :native-compatibility-ok (runtime-info)))
+
 (defn verify! []
   ;; Every library resource and binding must come from this exact local JAR.
   (let [expected (.getCanonicalFile (io/file "paclo.jar"))
@@ -61,6 +123,7 @@
                 [:isolated-classpath entry]))))
   (check! (sequential? (decode-ext/installed)) :decode-registry)
   (check! (some? PcapLibrary/INSTANCE) :jnr-library)
+  (native-check! "fixtures/dns-sample.pcap")
   (with-open [handle (PcapHandle/openOffline "fixtures/dns-sample.pcap")]
     (check! (some? (.pointer handle)) :java-native-handle)
     (.close handle)) ; close is idempotent
@@ -130,5 +193,8 @@
   (println :distribution-consumer-ok :jdk (System/getProperty "java.version")
            :public-namespaces :native :all-dlts :classic :pcapng :flow :dns :window :annotations :closed))
 
-(defn -main [& _]
-  (try (verify!) (finally (shutdown-agents))))
+(defn -main [& [report]]
+  (try
+    (verify!)
+    (when report (write-runtime! report))
+    (finally (shutdown-agents))))

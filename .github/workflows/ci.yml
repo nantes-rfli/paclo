@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          # Build one development SNAPSHOT for both runtime consumers.
+          # Build one development SNAPSHOT for all runtime consumers.
           # Keep compiled classes for subsequent checks.
           clojure -T:build jar
 
@@ -379,7 +379,7 @@ jobs:
   # (including the isolated documentation, compatibility, performance and lint jobs)
   # must succeed, even if another dependency failed or was skipped.
   build:
-    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix, eastwood-lint, distribution-consumer]
+    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix, eastwood-lint, distribution-consumer, jdk25-source]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -392,6 +392,7 @@ jobs:
           PERFORMANCE_RESULTS_RESULT: ${{ needs.performance-results.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
           EASTWOOD_RESULT: ${{ needs.eastwood-lint.result }}
+          JDK25_SOURCE_RESULT: ${{ needs.jdk25-source.result }}
           DISTRIBUTION_RESULT: ${{ needs.distribution-consumer.result }}
         run: |
           set -euo pipefail
@@ -409,15 +410,17 @@ jobs:
           test "$EASTWOOD_RESULT" = success
           echo "distribution-consumer=$DISTRIBUTION_RESULT"
           test "$DISTRIBUTION_RESULT" = success
+          echo "jdk25-source=$JDK25_SOURCE_RESULT"
+          test "$JDK25_SOURCE_RESULT" = success
 
-  # No checkout and no Java compilation: both runtimes download the same JAR.
+  # No checkout and no Java compilation: all runtimes download the same JAR.
   distribution-consumer:
     needs: [build-checks]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        java-version: ['17', '21']
+        java-version: ['17', '21', '25']
     steps:
       - name: Set up Temurin JDK
         uses: actions/setup-java@v4
@@ -450,13 +453,74 @@ jobs:
 
       - name: Verify SHA-256 and run isolated consumer
         working-directory: ${{ runner.temp }}/distribution
-        run: python3 verify_distribution.py consume . --report consumer-jdk${{ matrix.java-version }}.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 verify_distribution.py consume . --report consumer-jdk${{ matrix.java-version }}.json 2>&1 | tee consumer.log
+
+      - name: Diagnose native access and Unsafe on JDK 25
+        if: matrix.java-version == '25'
+        working-directory: ${{ runner.temp }}/distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 verify_distribution.py consume . --report consumer-jdk25-native-access.json \
+            --java-option=--enable-native-access=ALL-UNNAMED \
+            --java-option=--sun-misc-unsafe-memory-access=debug 2>&1 | tee native-access-debug.log
 
       - name: Upload consumer identity and runtime evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: distribution-consumer-jdk${{ matrix.java-version }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/distribution/consumer-jdk${{ matrix.java-version }}.json
+          path: |
+            ${{ runner.temp }}/distribution/consumer-*.json
+            ${{ runner.temp }}/distribution/*.log
+          if-no-files-found: error
+
+  # Compatibility experiment, not a declaration of all-platform JDK25 support.
+  # Direct commands preserve doctor/smoke's supported JDK17/21 guard.
+  jdk25-source:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Clojure CLI
+        uses: DeLaGuardo/setup-clojure@13.0
+        with:
+          cli: '1.11.1.1435'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install libpcap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
+
+      - name: Verify Linux x64 and record native package identity
+        run: |
+          test "${{ runner.os }}" = Linux
+          test "${{ runner.arch }}" = X64
+          uname -a
+          dpkg-query -W libpcap0.8t64 libpcap-dev
+
+      - name: Compile release 17 bindings and run JUnit, Clojure and native checks
+        run: |
+          python3 -B -m unittest discover -s dev/script -p 'test_verify_jdk25.py'
+          python3 dev/script/verify_jdk25.py target/jdk25-source
+
+      - name: Upload source experiment logs and runtime identity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jdk25-source-${{ github.run_id }}
+          path: target/jdk25-source/
           if-no-files-found: error
 
   compatibility-matrix:

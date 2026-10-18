@@ -198,12 +198,39 @@ do not rebuild. Each consumer verifies hashes before execution and writes a
 runtime/commit/JAR identity report after success. `-Srepro` and a temporary project
 keep repository roots, user deps and recompiled bindings out of the classpath.
 
-CI uploads the JDK 21 JAR once from `build-checks`; two jobs without checkout
-download it on JDK 17/21. Both must succeed in the required `build` aggregate.
-The bundle's `provenance.json` and both consumer reports are Actions artifacts.
+CI uploads the JDK 21 JAR once from `build-checks`; three jobs without checkout
+download it on JDK 17/21/25. All must succeed in the required `build` aggregate.
+The bundle's `provenance.json` and consumer reports and unfiltered warning logs are Actions artifacts.
 Publish performs the same package inspection and saves provenance; CI remains
 the full cross-runtime gate. No workflow dispatch or publication is needed to
 validate a pull request.
+
+## JDK 25 compatibility experiment
+
+JDK 17/21 remain the supported baseline. P13 adds a required Linux x64 JDK 25
+experiment, retaining the JDK 21 producer, Java `--release 17`, Clojure 1.12.6,
+production dependencies and all existing quality/performance gates. It does not
+establish support for every JDK 25 OS/CPU or live capture configuration.
+
+Select an actual JDK 25 through `JAVA_HOME` and `PATH`, then run:
+
+```bash
+python3 dev/script/verify_jdk25.py /tmp/paclo-jdk25-source
+python3 dev/script/verify_distribution.py consume /tmp/paclo-distribution --report /tmp/consumer-jdk25.json
+python3 dev/script/verify_distribution.py consume /tmp/paclo-distribution --report /tmp/consumer-jdk25-debug.json --java-option=--enable-native-access=ALL-UNNAMED --java-option=--sun-misc-unsafe-memory-access=debug
+```
+
+Use a fresh source-report directory and the **same JDK 21-built bundle** used by
+17/21. The source script runs compilation, JUnit (including native ABI fixtures),
+the full Clojure suite, BPF/interface smoke and dependency inventory directly;
+`doctor`/`smoke` retain their deliberate supported-JDK guard. Full PCAP/PCAPNG,
+DNS and lifecycle smoke also runs in each independent distribution consumer.
+Reports include exact JVM/OS/architecture, libpcap version and JNR-loaded paths.
+No warning suppression is applied in the default run. The separate native-access/
+Unsafe debug run attributes call sites; it is not a replacement acceptance run.
+The existing JDK 21 SpotBugs, CheckStyle, JaCoCo and performance checks remain
+mandatory; P13 does not claim JDK 25 analyzer/coverage compatibility.
+See the [P13 evidence and support decision](dev/p13-jdk25-verification.md).
 
 ## Handoff
 

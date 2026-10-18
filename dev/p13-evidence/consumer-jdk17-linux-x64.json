@@ -1,0 +1,106 @@
+{
+  "version": "1.5.0-SNAPSHOT",
+  "scm_tag": "67becc16d0fffc776f07cda4792cc3f6babcc9d3",
+  "source_commit": "67becc16d0fffc776f07cda4792cc3f6babcc9d3",
+  "jar_sha256": "69d61cd21cb536150e836cadb1e7c320b586cf3c76d97117850474179a7146db",
+  "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+  "runtime": {
+    "native-long-bytes": 8,
+    "native-libraries": [
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      },
+      {
+        "names": [
+          "c"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libc.so.6"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      },
+      {
+        "names": [
+          "c"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libc.so.6"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      },
+      {
+        "names": [
+          "c"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libc.so.6"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+        ]
+      }
+    ],
+    "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+    "clojure": "1.12.6",
+    "jvm-arguments": [
+      "-XX:-OmitStackTraceInFastThrow",
+      "-Dclojure.basis=.cpcache/173132502.basis"
+    ],
+    "jffi-version": "1.3.11",
+    "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+    "jnr-ffi-version": "2.2.14",
+    "java": {
+      "java.version": "17.0.20.1",
+      "java.runtime.version": "17.0.20.1+1",
+      "java.vendor": "Eclipse Adoptium",
+      "java.vm.name": "OpenJDK 64-Bit Server VM",
+      "java.specification.version": "17",
+      "os.name": "Linux",
+      "os.version": "6.17.0-1022-azure",
+      "os.arch": "amd64"
+    },
+    "native-address-bytes": 8
+  },
+  "java_options": [],
+  "status": "passed"
+}
