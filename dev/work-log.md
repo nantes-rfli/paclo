@@ -4511,3 +4511,87 @@ cleanup/format, Markdown lint and kondo without skipping a stage. The task-local
 noninteractive launcher changes no repository hook. The following evidence
 commit adds this immutable implementation reference only; final-head remote CI
 and the independent review URL are retained in the PR description.
+
+## Next-development planning after v1.4.0 (2026-10-18)
+
+Scope: Markdown planning documents only: `docs/ROADMAP.md`, `dev/codex-plan.md`
+and this appended record. Initial checkout was clean on
+`codex/issue-37-retired-expiry` at `3161432`. Fetched latest GitHub main
+`443bc66377ba1f5b0c6c5333bf286cccaac0cfb9` and created
+`codex/next-development-plan` from it in the supplied checkout; no worktree.
+Read AGENTS, CONTRIBUTING, the public API contract, roadmap, accepted plan,
+relevant work-log/release/performance records, and current GitHub issues/PRs.
+
+Current-state evidence checked on GitHub:
+
+- [v1.4.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0) was published
+  at 2026-10-17 08:38:16 UTC (17:38:16 Asia/Tokyo). Its tag resolves to `74a17b0`.
+  P01–P08 remain complete and published; release evidence and measurements are unchanged.
+- [PR #57](https://github.com/nantes-rfli/paclo/pull/57) merged as `e444b10` before
+  the release and is an ancestor of its tag. [PR #66](https://github.com/nantes-rfli/paclo/pull/66)
+  merged as `443bc66` at 2026-10-17 13:10:29 UTC, after publication. It is unreleased.
+  The PR records all 14 final-head CI jobs passing; this is prior implementation
+  evidence, not a CI result for this planning PR.
+- [Issue #37](https://github.com/nantes-rfli/paclo/issues/37#issuecomment-6234378455)
+  closed as completed on 2026-10-17 after both PRs. Acceptance explicitly retains
+  additional heap/rebuild/update costs and missing representative long production
+  PCAP/live-NIC evidence; concrete future problems require a separate issue.
+- [Issue #44](https://github.com/nantes-rfli/paclo/issues/44#issuecomment-6232073683)
+  closed as completed on 2026-10-17 after merged
+  [PR #58](https://github.com/nantes-rfli/paclo/pull/58). Acceptance does not
+  establish historical-speed recovery, Flow-wide or live-NIC improvements.
+- [PR #65](https://github.com/nantes-rfli/paclo/pull/65) merged as `17e2088`;
+  its completed article-only `cljdoc-1.4.0` refresh/build 117560 is recorded in
+  its description. The local docs tag resolves to that same merge commit.
+
+Updated current-state wording in the roadmap/plan, including the obsolete
+release-candidate, publication-docs-pending and issue-review-pending statements.
+Earlier work-log entries and historical reports remain verbatim. Added P11–P17
+scope, dependencies and acceptance only in the plan; the roadmap summarizes the
+direction. P11 is the only ready item. P12 follows P11; P13 follows P12;
+P14–P16 follow P11 and can be selected separately; P17 follows P12 plus an
+explicit need/maturity decision. P09/P10 retain their original blocked conditions.
+Clojure 1.12.6 is a candidate to recheck in P11, not an audit result from this
+task. JDK 25 support and Clojure 1.13 adoption remain evidence-based decisions.
+`v1.5.0` is a possible release without committed scope, date or version change.
+
+Read the actual CI/build files: `build-checks` overrides `PACLO_VERSION=1.4.0`
+and verifies the corresponding 1.4.0 artifact, while the fallback is
+`1.4.0-SNAPSHOT`. Record the development-artifact identity mismatch for P11
+and a separate small SNAPSHOT maintenance PR. No source, tests, dependencies,
+CI/build settings, API, version, tag, release or performance budget is changed.
+
+Verification and delivery:
+
+- `git status --short --untracked-files=all`: clean before work.
+- `bash dev/script/codex.sh doctor`: exit 0; macOS x86_64, Temurin 21.0.12.1,
+  Clojure library 1.12.1 / CLI 1.12.5.1654, four offline native packets / 438 bytes;
+  optional lint tools available. This is a local environment check, not P11's
+  upstream-version inventory or new platform validation.
+- `python3 dev/script/verify_doc_links.py`: exit 0, local paths/heading anchors pass.
+  New external evidence links were checked through GitHub issue/comment/PR and
+  Release reads; the local-link checker deliberately does not check external URLs.
+- `dev/script/mdlint.sh`: initial sandbox run failed with npm DNS `ENOTFOUND`
+  for `registry.npmjs.org` and an unwritable npm log directory. The same pinned
+  command rerun with network access passed all 49 Markdown files, zero errors,
+  exit 0. The failed attempt is not counted as a pass.
+- One-off read-only consistency assertions pass: exactly the three intended
+  Markdown files changed; all previous work-log bytes are preserved; P01–P10
+  table rows and P08–P10 expansion conditions are unchanged; P11 alone is ready;
+  P12–P17 table/section dependencies, blocked status and acceptance agree.
+- `git diff --check` passes; author's full diff review confirms status/release
+  boundaries and unchanged historical measurements. GitHub main was rechecked
+  at `443bc66`; the branch has no protected required-check configuration, but
+  the normal CI workflow and its `build` aggregate remain the delivery gates.
+- No runnable examples changed. Runtime/Java/performance/package tests are not
+  required locally for this Markdown-only change; normal PR CI remains enabled.
+  The documentation commit uses the repository hook's `SKIP_TESTS=1`,
+  `SKIP_FMT=1`, `SKIP_KONDO=1` flags to avoid unrelated runtime stages and code
+  auto-formatting; its Markdown stage remains enabled. No hook file is edited.
+  Exact final-head PR CI results are recorded in the PR description.
+
+Next execution target: P11 inventory, after independent review of this planning
+PR. Do not start P12–P17, P09/P10 or maintenance implementation in this task.
+Leave the independent PR open for review without merging. Its URL, exact head
+and final CI results belong in the PR description/chat to avoid a self-referential
+evidence-only commit. No independent approval is claimed by the author's diff review.

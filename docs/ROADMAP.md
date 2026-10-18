@@ -59,14 +59,27 @@ validation and DNS bounded-report/failure policies. See the
 [migration guide](migration-from-1.3.md), [release notes](release-notes-1.4.0.md)
 and [publication record](../dev/release-1.4.0-publication.md) for actual release
 artifacts and acceptance evidence.
-Issue #37 remains a non-blocking DNS performance follow-up. PR #58 is reviewed
-and merged; Issue #44 remains open pending issue-level acceptance. P09/P10
-remain blocked on a concrete integration need or measured workload shortfall.
+Issues [#37](https://github.com/nantes-rfli/paclo/issues/37) and
+[#44](https://github.com/nantes-rfli/paclo/issues/44) are closed after acceptance
+of the measured DNS and Ethernet work. DNS PR #57 is included in v1.4.0;
+[PR #66](https://github.com/nantes-rfli/paclo/pull/66) merged after publication
+and remains unreleased. Its accepted memory/rebuild costs and missing long
+production-PCAP/live-NIC evidence remain documented; closure does not establish
+general production throughput. P09/P10 remain blocked on a concrete integration
+need or measured workload shortfall.
 
-- [ ] Stabilize arm64 success rate against long observation windows
-- [ ] Keep publish/release automation healthy (token rotation, workflow maintenance)
-- [ ] Continue documentation polish for user-facing pages and examples
-- [ ] Add optional integrations only as opt-in aliases (no heavy default dependencies)
+Next development starts with **P11, an environment and tooling inventory**.
+The P11–P17 candidates prioritize stable Clojure adoption, JDK/dependency health,
+practical REPL workflows and interoperability with real PCAP/PCAPNG files while
+preserving the v1 API and lightweight dependencies. JDK 25 compatibility and
+Clojure 1.13 preparation require separate evidence and adoption decisions.
+Detailed prerequisites, priority and acceptance criteria belong in the plan.
+`v1.5.0` is a possible next release, with no committed feature set, release date
+or version change from this planning update.
+
+Continue long-window ARM64 observation, release automation maintenance and
+documentation polish. Optional integrations and new abstractions require a
+demonstrated workflow; performance changes require measurements.
 
 ## Performance direction
 

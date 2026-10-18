@@ -4,6 +4,9 @@ The user accepted this direction on 2026-10-11. Baseline: main at
 `aaa3ec7bd3ac686c2e7ef85f1cf13c2245eb1978`, after v1.3.0.
 This file is the persistent work queue for future Codex tasks.
 Environment preparation does not implement the feature items below.
+The next-development candidates P11–P17 were added on 2026-10-18 after v1.4.0
+publication and Issue #37 acceptance; they do not authorize implementation as
+part of the planning update.
 
 ## Goal and decision rules
 
@@ -15,13 +18,22 @@ and replayed. Preserve the small public API and the current v1 contract.
 - Keep state, ownership, time, overload, and termination explicit.
 - Preserve existing keys and behavior; introduce compatible opt-in paths.
 - Keep optional dependencies optional and optimize only against measured needs.
+- Track stable Clojure, JDK compatibility and dependency/tool health continuously.
+- Verify practical REPL workflows and real PCAP/PCAPNG interoperability.
+
+Document ownership: [the roadmap](../docs/ROADMAP.md) summarizes user-visible
+direction; this file owns priorities, dependencies, status and acceptance;
+[the work log](work-log.md) retains completed work, PRs, verification and decisions.
+Keep planning, implementation and independent review separate, with one
+reviewable item or documented slice per PR. Do not merge before review.
 
 ## Work queue
 
 Statuses: `ready`, `blocked` (by the listed prerequisites), `in-progress`, `done`.
-Release scope below reflects the approved v1.4.0 preparation decision, not
-publication authorization. All completed P01–P08 items are assigned to that
-unreleased candidate; phase numbers do not require separate minor releases.
+P01–P08 are complete and published in v1.4.0 on 2026-10-17; phase numbers did not
+require separate minor releases. P11–P17 are next-development candidates with
+no assigned release. `v1.5.0` is a possible next release, not a commitment to
+features, a date or a version change. Publication remains separately authorized.
 Task descriptions below retain original scope; completion summaries and the current task take precedence.
 
 | ID | Release scope | Task | Depends on | Status |
@@ -45,23 +57,23 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P08-E3 | v1.4.0 | Explicit PCAPNG writer preservation and loss policies | P08-E2 | done |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
+| P11 | Unassigned | Inventory current environment and update candidates | — | ready |
+| P12 | Unassigned | Evaluate adoption of the latest stable Clojure | P11 | blocked |
+| P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | blocked |
+| P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | blocked |
+| P15 | Unassigned | Improve REPL workflows and practical examples | P11 | blocked |
+| P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | blocked |
+| P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **Issue #37 final evaluation and measured optimization — implementation complete**.
-Scope is the post-PR #57 actual-expiry scan at 10000/100000 retired keys,
-including update/allocation/GC/retention and old EDN snapshot costs. The
-[final evaluation](issue-37-retired-expiry-evaluation.md) adopts an immutable
-metadata index above a private small-state cutoff. Standard EDN data remains
-unchanged; large restored states rebuild the cache. Two independent JVMs verify
-all 55 final timed conditions; controls, costs and limitations are recorded.
-Local verification is recorded in the work log; final-head CI and the independent
-PR are maintained in its description. All 14 CI jobs, public contracts, bounds
-and thresholds remain unchanged. Issue #37 stays open through review; do not
-merge before review. P09/P10 remain blocked.
-Next unfinished item: independent review of this Issue #37 optimization and its
-closure decision, including missing representative long production PCAP evidence.
-Do not start Issue #44 acceptance, P09/P10 or publication automatically.
+Current task: **Next-development planning — documentation prepared for review**.
+This update changes Markdown planning documents only. P11 is the next unfinished
+item and the only immediately ready item; no inventory, upgrade or feature
+implementation is performed here. P12 then P13 form the primary compatibility
+sequence. After P11, P14–P16 can be selected separately using its risk/priority
+recommendations; they need not wait for P12. P17 additionally requires an explicit
+need/maturity decision. Do not start all candidates together or unblock P09/P10.
 
-Previous task: **v1.4.0 formal publication — done; post-publication docs prepared**.
+Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.
 Published on 2026-10-17 (Asia/Tokyo) from fixed release main
 `74a17b00c0f20f3ab51ef4aa10578088ccafe923`, after reviewed/green dated PR #64.
 All 14 final-main jobs, ARM64, same-JAR JDK17/21 consumers, 36 runnable examples,
@@ -73,22 +85,25 @@ The [publication record](release-1.4.0-publication.md) retains exact hashes/URLs
 original provenance/runtime reports, audit limitations and carry-over decisions.
 D1/D2 and P01–P08 scope are unchanged; P09/P10 remain blocked.
 
-The post-publication documentation PR updates stable README coordinates to 1.4.0,
-API/PCAPNG/roadmap/release-note availability and measured release records. Its
-normal CI/review/merge evidence lives in its PR description. cljdoc's initial
-1.4.0 build succeeded (18 namespaces); after the docs PR merges, use the official
-docs-only cljdoc-1.4.0 tag/rebuild for accurate articles without changing the
-release tag, public API JAR or deployed artifact. No further release deployment.
+The post-publication documentation [PR #65](https://github.com/nantes-rfli/paclo/pull/65)
+merged as `17e2088`; its description records completed CI/review/merge and the
+article-only `cljdoc-1.4.0` refresh (build 117560). Release tag/JAR bytes are unchanged.
+[PR #57](https://github.com/nantes-rfli/paclo/pull/57) is included in v1.4.0;
+[PR #66](https://github.com/nantes-rfli/paclo/pull/66) merged later as `443bc66`
+on 2026-10-17 and is unreleased. GitHub confirms
+[Issue #37](https://github.com/nantes-rfli/paclo/issues/37) and
+[Issue #44](https://github.com/nantes-rfli/paclo/issues/44) closed as completed.
+Their performance limits remain in the reports below; no general live/NIC,
+production-trace or Flow speedup claim follows from closure.
 
-Post-publication acceptance is recorded in the docs PR: complete its normal
-CI/review/merge and cljdoc article refresh before marking the overall task done.
-The separately requested Issue #37 follow-up is the current task above.
-Issue #44 issue-level acceptance remains a separate requested task.
-The development fallback remains 1.4.0-SNAPSHOT; no new version, dependency,
-workflow or quality-budget change. Historical dry-run evidence remains unchanged.
-Issue #37 stays open/non-blocking. Issue #44's merged improvements and remaining
-JIT/thermal/retention limits remain recorded; no issue closure, Flow or live/NIC
-speedup claim is made.
+Separate CI maintenance follow-up: the current `build-checks` job still sets
+`PACLO_VERSION=1.4.0`, its distribution path/check expects `1.4.0`, and the build
+fallback is `1.4.0-SNAPSHOT`. After #66, that CI validation JAR includes unreleased
+code under a published version identity; it does not redeploy to Clojars.
+A separate small PR should select the next development SNAPSHOT and align the
+override, artifact path, verifier version and fallback. This planning PR does not
+assign a new development version or change CI/build/release settings. P11 should
+record this mismatch when inventorying CI; historical release evidence stays intact.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -121,9 +136,9 @@ candidates remain documented. No old-speed, live/NIC or equivalence claim.
 Local 490 tests / 19036 assertions, ten JUnit, all 112 Eastwood namespaces,
 34 executable docs, fixtures, Java quality, unchanged 457.4 ms performance gate
 and two independent JAR consumers pass. Final-head CI is recorded on the PR.
-Issue #44 remains open for issue-level acceptance. The release audit recommends
-closure with the measurement limits retained; this is not a historical-speed or
-Flow speedup claim. Issue #37 remaining work and P09/P10 stay separate.
+[Issue #44 acceptance](https://github.com/nantes-rfli/paclo/issues/44#issuecomment-6232073683)
+closed the issue on 2026-10-17 with these measurement limits retained; this is
+not a historical-speed or Flow speedup claim. P09/P10 stay blocked.
 
 ## Performance follow-up: Issue #37
 
@@ -140,12 +155,17 @@ No per-key expiry index, new public option, dependency or flow/P06 change.
 The [investigation](issue-37-dns-performance.md) records results and limitations,
 including slower repeated actual retired expiry and missing long production
 trace evidence. Implementation head `f507d42` passes all twelve CI jobs;
-final-head CI is maintained on PR #57. Issue #37 remains open: repeated actual retired expiry and long realistic
-production-trace evidence were outstanding after that merge. The separately
-requested post-publication [final evaluation](issue-37-retired-expiry-evaluation.md)
-now proposes the bounded immutable index, with old/EDN compatibility and measured
-update/retention costs. It remains an unreleased independent optimization; the
-published v1.4.0 artifact is unchanged and Issue #37 stays open for review.
+final-head CI is maintained on PR #57. Repeated actual retired expiry and long
+production-trace evidence were outstanding after that merge. The post-publication
+[final evaluation](issue-37-retired-expiry-evaluation.md) led to
+[PR #66](https://github.com/nantes-rfli/paclo/pull/66), merged as `443bc66` after
+all 14 final-head CI jobs passed. It adds a bounded immutable metadata index,
+preserving old/EDN state data while accepting measured update, retention and
+rebuild costs. The [closure decision](https://github.com/nantes-rfli/paclo/issues/37#issuecomment-6234378455)
+accepts those tradeoffs and closes Issue #37 on 2026-10-17. Representative long
+production PCAP/live-NIC performance remains unverified; concrete future problems
+belong in a separate issue. PR #66 remains unreleased and does not change the
+published v1.4.0 artifact.
 
 ## Performance follow-up: Issue #34
 
@@ -194,8 +214,8 @@ Implementation `3d37a88` passes all 12 unchanged CI jobs on
 [run 38908188042](https://github.com/nantes-rfli/paclo/actions/runs/38908188042),
 including Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64. Final evidence-head
 checks are maintained on the PR. Review and merge are complete; Issue #34
-remains closed. The later Issue #37 and #44 implementations are merged;
-remaining issue acceptance and release readiness are tracked above.
+remains closed. The later Issue #37 and #44 implementations and issue acceptance
+are complete; current priorities are tracked above.
 
 ## CI maintenance: Issue #48
 
@@ -599,6 +619,109 @@ Do not start P09/P10 or unrelated performance issues automatically.
 
 Use the existing measurement runners. Current historical offline targets were met;
 the wired-to-wired real-NIC ceiling remains separate from loopback evidence.
+
+## P11: Current environment inventory
+
+Status: **ready**. Depends on: none. Next execution target; investigation only.
+
+Inventory the repository-selected Clojure library, JDK support, Clojure CLI,
+production/optional/build dependencies, development tools and actual CI matrix.
+Distinguish pinned versions from floating installs and locally available tools.
+Check current upstream stable releases at execution time, including the Clojure
+1.12.6 candidate, rather than treating this plan as an environment audit.
+
+Acceptance: record current versions/support evidence, update candidates,
+compatibility risks, verification methods and a recommended update order.
+Include native libpcap/JNR constraints, same-JAR consumers, CI version identity
+and unsupported/unverified platforms. Produce an evidence-backed handoff for
+P12–P16 without changing dependencies, tooling, CI, API or support claims.
+
+## P12: Latest stable Clojure evaluation and adoption
+
+Status: **blocked** by P11. Start after its stable-version and risk assessment.
+
+Evaluate the latest stable Clojure confirmed by P11; 1.12.6 is the planning
+candidate and must be rechecked before adoption. Preserve the public API and
+existing behavior, explicit resource ownership and lightweight dependencies.
+
+Acceptance: Clojure and Java tests, maintained executable documentation, static
+analysis, unchanged performance gates and distribution-JAR compatibility checks
+all pass. Compare against the existing baseline and verify the same packaged JAR
+on supported JDK 17/21. Record exact versions, platforms and unresolved failures;
+missing/blocked checks are not passes. Implement as a separately reviewed PR.
+
+## P13: JDK 25 compatibility verification
+
+Status: **blocked** by P12. Retain JDK 17/21 support and the Java 17 distribution
+baseline while evaluating JDK 25.
+
+Exercise tests, native libpcap/JNR integration and execution of the distribution
+JAR on JDK 25. Distinguish runtime verification from compilation checks; preserve
+the same-JAR JDK 17/21 consumers and existing platform gates.
+
+Acceptance: retain reproducible commands/results and exact tested JDK, OS,
+architecture and native-library versions. Explicitly list unverified conditions,
+including live capture where unavailable. Decide any formal support addition
+separately from the compatibility experiment, using the resulting evidence.
+
+## P14: Dependency and development-tool update evaluation
+
+Status: **blocked** by P11. May be selected after the inventory independently
+of P12; use P11's recommended risk/order assessment.
+
+Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant
+update candidates. Keep CLI and Clojure library versions distinct and optional
+integrations outside the default dependency graph.
+
+Acceptance: explain each update's need, compatibility risks and CI impact,
+including native/platform and static-analysis changes, with an appropriate
+validation plan. An evaluation can recommend keeping a version. Split necessary
+updates into independent implementation PRs; this item does not approve a bulk
+upgrade or weakening quality/performance gates.
+
+## P15: REPL workflows and practical examples
+
+Status: **blocked** by P11. Select a scoped documentation/workflow slice after
+the inventory; no new API is approved by this item.
+
+Use existing public APIs to assess concise REPL workflows for PCAP read/write,
+Flow analysis and DNS analysis. Preserve ordinary maps, functions, reducers and
+transducers, with explicit source ownership and deterministic close.
+
+Acceptance: provide reproducible offline inputs, commands and expected results;
+run maintained examples through the existing documentation checks. Distinguish
+what existing APIs already support from concrete usability gaps needing a later
+proposal. New APIs, frameworks or pipeline abstractions require separate review.
+
+## P16: Real PCAP/PCAPNG interoperability verification
+
+Status: **blocked** by P11. Select a bounded input/tool matrix after the inventory.
+
+Verify captures generated by external tools, multiple interfaces/link types,
+timestamps/precision, metadata, malformed inputs and long-running processing.
+Keep native capture-reader behavior distinct from the metadata-aware PCAPNG APIs
+and their documented preservation/loss limits.
+
+Acceptance: save redistributable reproducible inputs (or their generation steps),
+tool/runtime versions, commands and results. Classify contract differences,
+implementation defects and specification/scope limits separately. Record source
+provenance and any unavailable real traffic as unverified; generated fixtures or
+offline replay do not validate representative production/live-NIC behavior.
+Any fixes require separate scoped implementation and regression-test PRs.
+
+## P17: Clojure 1.13 preparation
+
+Status: **blocked** by P12 and a separate need/prerelease-maturity decision.
+Do not start automatically when P12 completes.
+
+Investigate changes in the prerelease 1.13 series and their effect on Paclo,
+public APIs and JDK requirements. Keep experiments isolated from production
+dependencies and record the exact prerelease revision tested.
+
+Acceptance: document API/JDK impacts, compatibility-test outcomes, unverified
+conditions and explicit adoption criteria. Do not adopt a development release
+as a production dependency. Any eventual adoption requires a separate decision
+based on stable-release availability and compatibility evidence.
 
 ## Verification and handoff
 
