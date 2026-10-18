@@ -22,17 +22,28 @@
   "Return version from tag like v1.2.3 when running on a tag ref."
   []
   (let [ref-name (System/getenv "GITHUB_REF_NAME")]
-    (when (and ref-name
+    (when (and (= "tag" (System/getenv "GITHUB_REF_TYPE"))
+               ref-name
                (re-matches #"v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?" ref-name))
       (subs ref-name 1))))
 
 (defn- resolve-version []
   (or (System/getenv "PACLO_VERSION")
       (tagged-version)
-      "1.4.0-SNAPSHOT"))
+      "1.5.0-SNAPSHOT"))
 
 (def lib 'org.clojars.nanto/paclo)
 (def version (resolve-version))
+
+(defn- scm-tag []
+  (if (str/ends-with? version "-SNAPSHOT")
+    (let [{:keys [exit out]} (sh/sh "git" "rev-parse" "HEAD")
+          commit (str/trim out)]
+      (when-not (and (zero? exit) (re-matches #"[0-9a-f]{40}" commit))
+        (throw (ex-info "SNAPSHOT builds require a source Git commit" {})))
+      commit)
+    (str "v" version)))
+
 (def class-dir "target/classes")
 (def test-class-dir "target/test-classes")
 ;; --release also rejects references to JDK APIs introduced after Java 17.
@@ -50,7 +61,7 @@
    :scm {:url "https://github.com/nantes-rfli/paclo"
          :connection "scm:git:https://github.com/nantes-rfli/paclo.git"
          :developerConnection "scm:git:git@github.com:nantes-rfli/paclo.git"
-         :tag (str "v" version)}
+         :tag (scm-tag)}
    :pom-data [[:licenses
                [:license
                 [:name "MIT License"]

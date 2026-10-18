@@ -78,19 +78,20 @@ jobs:
         shell: bash
         run: |
           set -e
-          # Build one unpublished v1.4.0 candidate for both runtime consumers.
+          # Build one development SNAPSHOT for both runtime consumers.
           # Keep compiled classes for subsequent checks.
-          PACLO_VERSION=1.4.0 clojure -T:build jar
+          clojure -T:build jar
 
       - name: Verify JDK 21 distribution and prepare independent consumer
         run: |
+          python3 -B -m unittest discover -s dev/script -p 'test_build_identity.py'
           python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'
-          python3 dev/script/verify_distribution.py prepare target/paclo-1.4.0.jar target/distribution --version 1.4.0
+          python3 dev/script/verify_distribution.py prepare target/paclo-1.5.0-SNAPSHOT.jar target/distribution
 
       - name: Upload the single JDK 21 distribution
         uses: actions/upload-artifact@v4
         with:
-          name: distribution-jdk21-${{ github.run_id }}
+          name: distribution-1.5.0-SNAPSHOT-jdk21-${{ github.run_id }}
           path: target/distribution/
           if-no-files-found: error
 
@@ -444,7 +445,7 @@ jobs:
       - name: Download the single JDK 21 distribution
         uses: actions/download-artifact@v4
         with:
-          name: distribution-jdk21-${{ github.run_id }}
+          name: distribution-1.5.0-SNAPSHOT-jdk21-${{ github.run_id }}
           path: ${{ runner.temp }}/distribution
 
       - name: Verify SHA-256 and run isolated consumer
