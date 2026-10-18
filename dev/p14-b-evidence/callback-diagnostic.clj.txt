@@ -1,0 +1,24 @@
+;; Diagnostic only: compare upstream callback adapters/scheduling under 1.9.865.
+;; No changes to Paclo or the shipped core.async defaults are proposed here.
+(require '[clojure.core.async.impl.channels :as channels]
+         '[clojure.core.async.impl.dispatch :as dispatch]
+         '[paclo.dev.stream-combined-bench :as bench])
+(import '[java.util.concurrent Executors ExecutorService ThreadFactory])
+(let [mode (first *command-line-args*)
+      output (second *command-line-args*)
+      opts {:count 200000 :runs 5 :warmups 3 :queue-cap 4096
+            :branch-cap 4096 :slow-cap 64 :scenario :managed-offline-dual}
+      pool (Executors/newFixedThreadPool
+            8 (reify ThreadFactory
+                (newThread [_ runnable] (doto (Thread. runnable) (.setDaemon true)))))
+      overrides (case mode
+                  "legacy-adapter" {#'channels/appm (fn [f arg] (fn [] (f arg)))}
+                  "legacy-dispatch" {#'channels/appm (fn [f arg] (fn [] (f arg)))
+                                     #'dispatch/run (fn [r] (.execute pool r))}
+                  "default" {})]
+  (try
+    (let [result (with-redefs-fn overrides #(bench/run-benchmark! opts))]
+      (spit output (str (pr-str (assoc result :diagnostic mode)) "\n")))
+    (finally
+      (.shutdownNow ^ExecutorService pool)
+      (shutdown-agents))))

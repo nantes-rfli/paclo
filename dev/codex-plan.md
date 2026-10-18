@@ -67,7 +67,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-B core.async update and asynchronous compatibility — in progress**.
+Current task: **P14-B core.async update and asynchronous compatibility — implemented and verified; independent review pending**.
 Started from latest main `4a113c60184128df442f3fa152ebf0390cedc6a5` after
 [PR #75](https://github.com/nantes-rfli/paclo/pull/75) merged on 2026-10-18 at
 12:00:29 UTC (21:00:29 Asia/Tokyo). P14-A is reviewed and merged.
@@ -75,7 +75,10 @@ P14-B selects official stable core.async1.9.865, retaining Clojure1.12.6,
 JNR-FFI2.3.3, `1.5.0-SNAPSHOT`, JDK17/21 support and the JDK25 experiment.
 See the [P14-B report](p14-b-core-async-verification.md) for dependency,
 internal-handler, lifecycle, memory, performance and distribution evidence.
-Independent review is required before merge. P14 as a whole remains unfinished:
+All16 implementation CI jobs and local checks/consumers pass. The report
+retains a measured29–35% dual fan-out throughput regression; reviewer acceptance
+must include that cost. [PR #76](https://github.com/nantes-rfli/paclo/pull/76)
+requires independent review before merge. P14 as a whole remains unfinished:
 remaining dependency/development-tool candidates require separate selection.
 P16 remains independently ready; P09/P10/P17 remain blocked.
 
@@ -739,8 +742,11 @@ P14-B is the selected next slice: update core.async1.6.681 to confirmed stable
 1.9.865 and verify asynchronous compatibility without changing public contracts
 or existing quality/performance thresholds. The
 [P14-B report](p14-b-core-async-verification.md) and [work log](work-log.md)
-record results. P14-B implementation/verification is in progress and requires
-its own PR and independent review before merge. Remaining development-tool and
+record results. P14-B implementation/verification is **done** in
+[PR #76](https://github.com/nantes-rfli/paclo/pull/76), with all16 implementation
+CI jobs and local same-JAR17/21/25/default/debug/deny consumers passing. Retain
+the measured dual fan-out slowdown for explicit independent review; do not merge
+before that review. Remaining development-tool and
 other dependency candidates remain unfinished; P16 is independently ready.
 
 Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant

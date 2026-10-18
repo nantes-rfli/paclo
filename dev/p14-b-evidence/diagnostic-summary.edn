@@ -1,0 +1,6 @@
+{:file "recheck-old", :scenario :managed-offline-control, :pps 439990.2132976856, :allocation 644.92828, :cpu-ms 561.249, :elapsed-ms 454.555565}
+{:file "recheck-old", :scenario :managed-offline-dual, :pps 473098.7186166151, :allocation 995.9118, :cpu-ms 1099.566, :elapsed-ms 422.744751}
+{:file "recheck-old", :scenario :managed-offline-slow-dropping, :pps 514770.99728827126, :allocation 837.7738, :cpu-ms 748.167, :elapsed-ms 388.522277}
+{:file "callback-default", :scenario :managed-offline-dual, :pps 303834.44692962454, :allocation 1255.93152, :cpu-ms 1492.927, :elapsed-ms 658.25321}
+{:file "callback-adapter", :scenario :managed-offline-dual, :pps 372755.8684904026, :allocation 1051.0648, :cpu-ms 1394.333, :elapsed-ms 536.544202}
+{:file "callback-dispatch", :scenario :managed-offline-dual, :pps 422678.45312577847, :allocation 1012.13816, :cpu-ms 1234.982, :elapsed-ms 473.172925}
