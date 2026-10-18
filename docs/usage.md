@@ -2,6 +2,8 @@
 
 This guide covers the minimal concepts and common workflows for Paclo.
 For installation and CLI entry examples, start from `README.md`.
+For a copyable offline session covering inspection, filtering, Flow, DNS and
+PCAP round trips, use the [REPL walkthrough](repl.md).
 
 ## Mental model
 

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Changes after v1.4.0 belong here.
 
+### Documentation
+
+- Add a fixture-backed offline REPL walkthrough for packet inspection, address/
+  port/protocol filtering, bounded Flow aggregation, DNS transactions and Classic
+  PCAP round trips. All examples run in the maintained documentation gate using
+  existing public APIs and explicit source ownership.
+
 ### Build
 
 - Update the Clojure library from 1.12.1 to 1.12.6, including the standalone
