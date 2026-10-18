@@ -72,7 +72,7 @@ CPU and actual loaded native library identities.
 | Graph | Default options | Native access + Unsafe debug | Native access + Unsafe deny |
 | --- | --- | --- | --- |
 | P13 JNR2.2.14/jffi1.3.11 | Pass; native-access and Unsafe.putLong warnings | Pass; Unsafe stacks in jffi registration/read/write | Fail; UnsupportedOperationException putLong in registration |
-| P14-A JNR2.3.3/jffi1.4.3, local macOS x64 | Pass; native-access warning only | Pass; no Unsafe warning/stack observed | Pass; full same-JAR consumer |
+| P14-A JNR2.3.3/jffi1.4.3, macOS x64 and Linux x64 CI | Pass; native-access warning only | Pass; no Unsafe warning/stack observed | Pass; full same-JAR consumer |
 
 Default startup applies no suppression or native-access option. It still reports
 `System.load` from `com.kenai.jffi.internal.StubLoader` in the unnamed module.
@@ -84,6 +84,8 @@ Native permission removes its corresponding warning only in diagnostic runs.
 The [official jffi1.4.3 source artifact](https://repo.maven.apache.org/maven2/com/github/jnr/jffi/1.4.3/jffi-1.4.3-sources.jar),
 `com/kenai/jffi/MemoryIO.java:isUnsafeAvailable`, returns false when the Java
 major version is at least23; `newMemoryIO` then chooses the JNI native implementation.
+The actual local JDK25 `MemoryIO/getInstance` class is
+`com.kenai.jffi.MemoryIO$NativeImpl64` (see the retained diagnostic log).
 This explains the measured change; warning removal was not assumed beforehand.
 It is not an FFM migration or proof of compatibility with future native restrictions.
 [Issue #74](https://github.com/nantes-rfli/paclo/issues/74) remains the review context.
@@ -94,10 +96,72 @@ JSON are retained separately in `/tmp/paclo-p14-a`; CI uploads them separately.
 ## Verification checkpoint and limits
 
 Commands, completed checks and CI results are maintained in [the work log](work-log.md).
-At this checkpoint prepare, package, graph resolution, all five local independent
-consumers and15 Python distribution regression tests pass. Source25, full21,
-quality/lint/docs/performance and CI completion are still being collected.
-No pending check counts as passed. Final PR-head CI evidence belongs in the PR.
+Local checks are complete: JDK21 full check and JDK25 source experiment each
+pass JUnit13/13 and493 Clojure tests/19,130 assertions with zero failures/errors,
+including native/BPF/interface checks. All40 maintained documentation examples,
+clj-kondo (zero warnings/errors), Eastwood (636 informational warnings, zero
+exceptions), LSP namespace/format dry-runs, Markdown54 files and local links pass.
+SpotBugs, CheckStyle and JaCoCo80.8% pass with the unchanged25% threshold.
+The unchanged JDK21 mid-50k gate passes before/after at849.1/777.1ms
+(warn1000/fail1200). These are single cold gates with no separate warm-up,
+allocation/drop instrumentation or statistical throughput-improvement claim.
+Source, test fixtures, CPU and runtime stay fixed for this coarse comparison.
+
+Machine-readable local [producer](p14-a-evidence/provenance-jdk21-macos-x64.json),
+consumers [17](p14-a-evidence/consumer-jdk17-macos-x64.json),
+[21](p14-a-evidence/consumer-jdk21-macos-x64.json),
+[25](p14-a-evidence/consumer-jdk25-macos-x64.json),
+[debug](p14-a-evidence/consumer-jdk25-debug-macos-x64.json),
+[deny](p14-a-evidence/consumer-jdk25-deny-macos-x64.json),
+[source25](p14-a-evidence/source-jdk25-macos-x64.json)/
+[steps](p14-a-evidence/source-jdk25-macos-steps.json) and
+[actual memory implementation](p14-a-evidence/jffi-memory-jdk25-macos-x64.log)
+retain exact identities and conditions.
+
+Implementation [PR #75](https://github.com/nantes-rfli/paclo/pull/75),
+head `c0fd760`, runs in
+[CI39124535933](https://github.com/nantes-rfli/paclo/actions/runs/39124535933).
+Its required Linux x64 JDK25 source job passes JUnit13/13 and493 Clojure tests /
+19,136 assertions (six existing Linux-specific assertions), compilation/native
+checks and dependency inventory. Exact Temurin25.0.4.1+1-LTS, Linux kernel
+6.17.0-1022-azure, loaded `/lib/x86_64-linux-gnu/libpcap.so.1.10.4`, libpcap1.10.4
+with TPACKET_V3 and8-byte pointer/C-long are in the separate
+[Linux source report](p14-a-evidence/source-jdk25-linux-x64.json)/
+[steps](p14-a-evidence/source-jdk25-linux-steps.json).
+All16 implementation CI jobs pass, including the required build aggregate,
+40 documented examples, existing supported-platform/ARM64 jobs, every analyzer/
+coverage/lint gate and all three performance shards/merger. The CI JDK21
+mid-50k gate passes at827.1ms against the same1000/1200ms budgets.
+
+The CI producer uses clean PR merge ref `59020db917798efd04bcfc50d35b684ea20be308`;
+its JAR SHA256 is
+`3097d9c215ae832635d4d80c9d356b55fa64f2e093a31a24266ea0335293ba7d`.
+This single artifact passes independent17/21/25 consumers plus25 debug/deny.
+Default25 has only the native-access warning; debug/deny have no Unsafe warning
+and denial exits0. Separate CI [producer](p14-a-evidence/provenance-ci-jdk21.json),
+[17](p14-a-evidence/consumer-jdk17-linux-x64.json),
+[21](p14-a-evidence/consumer-jdk21-linux-x64.json),
+[25](p14-a-evidence/consumer-jdk25-linux-x64.json),
+[debug](p14-a-evidence/consumer-jdk25-debug-linux-x64.json),
+[deny](p14-a-evidence/consumer-jdk25-deny-linux-x64.json) and
+[job conclusions](p14-a-evidence/ci-implementation-result.json) retain identity.
+Local and CI producer hashes are intentionally distinct.
+
+Native source CI records these additional CPU/platform conditions; all use
+JNR2.3.3/jffi1.4.3 and8-byte pointers/C-long. Full log
+[identity excerpts](p14-a-evidence/ci-platform-identity-excerpts.log) retain exact
+JVM/OS/CPU/library details; original unfiltered logs remain in Actions.
+
+| Source job | CPU | Actual OS/JDK | Loaded libpcap |
+| --- | --- | --- | --- |
+| Linux x64 supported | AMD EPYC7763 | Linux6.17.0-1022-azure, Temurin21.0.12.1+1-LTS | 1.10.4 TPACKET_V3, /lib/x86_64-linux-gnu/libpcap.so.1.10.4 |
+| Linux x64 experiment | AMD EPYC9V74 | Ubuntu24.04/Linux6.17.0-1022-azure, Temurin25.0.4.1+1-LTS | Same1.10.4 image; native/dev packages1.10.4-4.1ubuntu3.1 |
+| macOS ARM64 supported | Apple M1 (Virtual) | macOS26.6.2, Temurin17.0.20.1+1 | 1.10.1, /usr/lib/libpcap.A.dylib |
+| Linux ARM64 supported | Neoverse-N2 | Linux6.17.0-1022-azure, Temurin21.0.12.1+1-LTS | 1.10.4 TPACKET_V3, /lib/aarch64-linux-gnu/libpcap.so.1.10.4 |
+
+P14-A implementation/compatibility verification is complete; independent review
+is pending on PR75. The final evidence commit changes records only; final-head
+CI is checked and recorded in the PR separately before handoff.
 
 Unverified: live NIC capture/traffic/drop statistics, long production workloads,
 JDK25 ARM64, other OS/JVM vendors, JDK25 analyzers/coverage/performance, Windows,

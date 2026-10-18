@@ -67,7 +67,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-A JNR-FFI update and native compatibility — in progress**.
+Current task: **P14-A JNR-FFI update and native compatibility — implemented and verified; independent review pending**.
 Started from main `4a86d666be839e89480bd02d5772dbc5cf87cdb8` after P13
 [PR #73](https://github.com/nantes-rfli/paclo/pull/73) received independent review
 and merged on 2026-10-18 at 09:58:37 UTC (18:58:37 Asia/Tokyo). Its final head
@@ -78,7 +78,11 @@ tracks its Unsafe-denial failure for P14 evaluation.
 
 P14-A updates only JNR-FFI2.2.14 to2.3.3 and verifies the selected jffi1.4.3
 Java/native and ASM9.10.1 graph. See the [P14-A report](p14-a-jnr-verification.md)
-for current evidence, warning attribution and acceptance limits. Other P14
+for evidence, warning attribution and acceptance limits. Local21/25 suites and
+same-JAR17/21/25 consumers pass; implementation CI39124535933 passes all16 jobs,
+including supported Linux/macOS/ARM64, same-JAR17/21/25 and25 debug/deny.
+Final PR-head CI evidence is recorded in [PR #75](https://github.com/nantes-rfli/paclo/pull/75).
+Other P14
 updates remain unselected; P16 remains independently ready. No formal JDK25
 support addition, release, tag, publication or merge is included.
 
@@ -739,6 +743,9 @@ separately from the compatibility experiment, using the resulting evidence.
 Status: **in-progress**. P14-A is the selected first implementation slice:
 JNR-FFI2.3.3 with native/ABI, same-JAR17/21/25 and warning diagnostics.
 The [report](p14-a-jnr-verification.md) and [work log](work-log.md) record results.
+P14-A is **done** for implementation and compatibility verification in
+[PR #75](https://github.com/nantes-rfli/paclo/pull/75); all16 implementation CI
+jobs pass, with default/debug/deny evidence on macOS x64 and Linux x64.
 Independent review is required before merge. Remaining P14 candidates (including
 core.async and development tools) require separate selection and scoped PRs;
 P14 as a whole is unfinished. P16 remains independently ready.
