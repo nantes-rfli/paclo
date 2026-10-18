@@ -4986,3 +4986,121 @@ and its report/plan/log updates are committed on the same PR; no second PR,
 production/benchmark source change, dependency/tool update or weakened gate.
 The new final-head normal CI and same-JAR identities supersede earlier-head CI
 results in the PR description after all required jobs actually complete.
+
+## P15: Offline REPL workflows (2026-10-18)
+
+Started from fetched latest main `0ce949048baa0aeecff942b30fea89055dd58ba4`
+on the supplied clean checkout; branch `codex/p15-repl-workflows`.
+Read AGENTS, contributing/API contracts, accepted plan, usage guide, executable
+example checker, and existing PCAP/filter/Flow/DNS examples before editing.
+`bash dev/script/codex.sh doctor` passed on macOS x86_64, Temurin21.0.12.1,
+Clojure1.12.6/CLI1.12.5.1654, with native offline PCAP4 packets/438 bytes.
+
+P12 merge confirmation: GitHub PR #70 is MERGED as `0ce9490`, at
+2026-10-18T06:02:57Z (15:02:57 Asia/Tokyo). Its independent review reports no
+blocking findings and final head `a5e5afe` passing all14 CI jobs on
+[run39090074823](https://github.com/nantes-rfli/paclo/actions/runs/39090074823),
+including identical-JAR JDK17/21 consumers. Update the plan's P12 completion and
+P13 dependency readiness only; no P13 implementation is included.
+
+Implementation and usability decisions:
+
+- Add [the REPL walkthrough](../docs/repl.md), linked from README, docs index
+  and usage guide, with four self-contained copyable blocks. Start with the
+  existing `bash dev/script/codex.sh repl`; no new alias, dependency, public API,
+  framework or runtime behavior is necessary.
+- Use `with-open` and materialized data for prefix inspection; synchronous
+  reducers for complete analysis; explicit empty/DNS extension vectors; numeric
+  Flow addresses/protocols and bounded bidirectional aggregation. Explain the
+  existing lazy-sequence lifetime, read-ahead, default capture limits and
+  `reduced` behavior through existing contracts rather than suggesting automatic
+  cleanup. Synchronous examples use an explicit60-second wall-clock budget.
+- Real `dns-sample.pcap` expectations: the two selected `1.1.1.1` packets total
+  260 captured/wire bytes; canonical bidirectional Flow has2 packets; two DNS
+  matches have RTT15817us/10241us and rcode0. The full source has4 packets.
+- The DNS example intentionally collects this small fixture's projected events
+  and calls `finish`. It explains unadvanced watermarks/unfinished diagnostics,
+  retained-key bounds and the need for incremental consumption/`advance` for
+  longer inputs, linking the existing bounded reporting/contract guidance.
+- Write raw selected maps to a temporary Classic Ethernet PCAP and read back;
+  compare byte contents, timestamps, caplen, wire length and DLT, then delete in
+  `finally`. The BPF selection matches the Flow predicate's selected traffic.
+  No PCAPNG/production interoperability validation (P16) is claimed.
+- Register all four exact expectations and required IDs in the existing docs
+  execution gate. First focused execution exposed a checker problem: a trailing
+  REPL `;; =>` comment swallowed appended runner forms and produced EOF while
+  reading. Add a newline at the wrapper boundary and a focused Python regression;
+  the documented forms themselves needed no API change. Initial failure is not
+  counted as a pass.
+- No concrete need for a new public API was found. Existing resource ownership,
+  Flow representation and DNS policy requirements are covered by the guide.
+  P13/P14/P16/P17, dependency updates, release/tag/publication and merge are out
+  of scope. Independent P15 review remains required before any merge.
+
+Verification in progress; final commands/results and PR/CI evidence follow below.
+
+Verification checkpoint:
+
+- Focused execution of all4 new registered snippets passed exact expectations.
+- A fresh `bash dev/script/codex.sh repl` process received all four guide blocks
+  as stdin, followed by assertions against each REPL `*1`; exit0, no stderr,
+  and all4 success markers. This checks the actual REPL entrypoint and imports
+  without the documentation checker's namespace prelude.
+- `python3 -B -m unittest discover -s dev/script -p 'test_verify_doc_examples.py'`:
+  16 tests pass, including the trailing-comment runner regression.
+- `python3 dev/script/verify_doc_links.py`: all local paths/anchors pass.
+- Additional unchanged link-parser tests initially failed1/9 on this macOS host:
+  the default `/var/folders/...` temporary root resolves to `/private/var/...`,
+  causing same-page fragment checks to report outside-repository paths. Running
+  `TMPDIR=/private/tmp python3 -m unittest discover -s dev/script -p
+  'test_verify_doc_links.py'` passes9/9 with a canonical root. No link-checker
+  production/parsing change is included. This environment-specific first failure
+  is retained explicitly; ordinary repository link validation already passes.
+- `bash dev/script/mdlint.sh` with npm network/cache access: all52 Markdown
+  files pass, zero errors. The first sandboxed npm attempt could not complete;
+  the same fixed markdownlint-cli2@0.18.1 command succeeds with normal access.
+- `bash dev/script/codex.sh check`: exit0; Java compilation/JUnit10 successful,
+  493 Clojure tests/19,130 assertions with zero failures/errors, then native
+  offline smoke4 packets/438 bytes. Waited for the process to exit successfully.
+- `python3 dev/script/verify_doc_examples.py`: exit0; all40 registered examples
+  pass, including the four new exact fixture expectations and every prior ID.
+- Static analysis checkpoint: clj-kondo reports zero errors/warnings; Eastwood
+  completes all configured roots with632 informational warnings and zero
+  exceptions. LSP namespace cleaning reports no changes; formatting completion
+  and the wrapper's final npm step are checked below.
+- LSP format dry-run completes with `Nothing to format!`; namespace cleaning
+  also needs no changes. Thus every Clojure static stage passes. The sandboxed
+  lint wrapper's npm step is subject to the same network/cache restriction as
+  the first standalone Markdown command; the separately allowed identical
+  Markdown stage passes52 files/zero errors. Do not count a blocked wrapper as
+  an exit0 result; all constituent stages have actual successful evidence.
+- `git diff --check`: clean. Remove only the four Python fixture caches
+  regenerated by the suite and the four parser/checker caches from manual tests.
+
+P15 implementation/local verification is complete. Keep independent review
+pending and P13 as the next unfinished item; no other plan implementation was
+started. The single P15 PR will carry final-head CI URLs and results before
+handoff, including platform/Java-quality/performance/distribution gates that
+are outside this documentation change's local checks. No live capture, JDK25,
+production interoperability or new performance measurement is claimed here.
+
+Commit environment note: the first commit attempt stopped in the existing
+`.githooks/pre-commit` before creating a commit, because its `clj -M:test`
+requires unavailable `rlwrap`. The supported `clojure`-based development wrapper
+has already passed the entire test suite, and kondo/LSP/Markdown checks have
+completed separately. Use the hook's documented per-command
+`SKIP_TESTS=1 SKIP_FMT=1 SKIP_MD_LINT=1 SKIP_KONDO=1` flags for the commit to avoid
+rerunning those verified stages or introducing tooling changes. Hook files and
+repository quality gates are unchanged.
+
+P15 delivery: implementation commit `cc771ea` opens
+[PR #71](https://github.com/nantes-rfli/paclo/pull/71) against main `0ce9490`.
+This final handoff update adds only the PR reference and execution record.
+Final-head normal CI results/URLs are maintained in the PR description after
+all jobs complete; an earlier-head run is not evidence for this updated head.
+The PR remains open for independent review, with no merge or publication.
+
+The sandboxed `lint` wrapper exits1 at npm network/cache access after all Clojure
+static stages pass; the identical Markdown command with normal access exits0.
+The PR-reference append initially introduced one extra blank line (MD012);
+remove it and rerun Markdown before committing the correction.

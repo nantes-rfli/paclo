@@ -23,6 +23,9 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 Repository development builds use `1.5.0-SNAPSHOT`; this does not assign the
 scope or date of a future v1.5.0 release. See [distribution verification](CONTRIBUTING.md#distribution-compatibility).
 
+Try the [offline REPL walkthrough](docs/repl.md) for packet inspection, filtered
+Flow aggregation, DNS transactions and a verified PCAP round trip.
+
 The install coordinates below select the verified v1.4.0 Clojars release.
 Features identified as v1.4.0 are included in that published artifact.
 

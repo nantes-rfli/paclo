@@ -7,6 +7,7 @@ documented separately from historical release and design records.
 
 - [Getting started and install](../README.md)
 - [Usage guide](usage.md)
+- [Offline REPL walkthrough](repl.md)
 - [Public API contract (v1.x)](cljdoc-api-contract.md)
 - [Metadata-aware PCAPNG reading and writing](pcapng.md)
 - [Decode extensions](extensions.md)

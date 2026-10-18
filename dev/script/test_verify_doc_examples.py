@@ -121,6 +121,12 @@ class SnippetTests(unittest.TestCase):
 
 
 class RunnerStartupTests(unittest.TestCase):
+    def test_trailing_repl_comment_does_not_swallow_runner_forms(self):
+        with patch.object(verifier, "execute", return_value=":doc-example-ok") as execute:
+            verifier.run_doc_expression("REPL", "42\n;; => 42", "(= 42 result)")
+        expression = execute.call_args.args[1][-1]
+        self.assertIn("(do\n42\n;; => 42\n)]", expression)
+
     def test_classpath_prepared_before_parallel_workers(self):
         calls = Mock()
         with patch.object(verifier, "discover", return_value={}), \

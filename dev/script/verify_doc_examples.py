@@ -37,6 +37,29 @@ class Check(NamedTuple):
 
 # The predicates check real PCAP I/O results, rather than merely loading forms.
 CHECKS = {
+    "repl-inspect": Check(
+        "REPL closed packet inspection", "clojure",
+        '(= [{:caplen 82 :src "10.0.0.1" :dst "1.1.1.1" :protocol :udp} '
+        '{:caplen 178 :src "1.1.1.1" :dst "10.0.0.1" :protocol :udp}] result)',
+    ),
+    "repl-flow": Check(
+        "REPL filtered bidirectional flow", "clojure",
+        '(= {:stop-reason :eof :captured 4 '
+        ':summary {:seen 2 :aggregated 2 :skipped 0} '
+        ':top [{:flow {:ip-version 4 :protocol 17 :src-ip 16843009 :src-port 53 '
+        ':dst-ip 167772161 :dst-port 58555} '
+        ':packets 2 :captured-bytes 260 :wire-bytes 260}]} result)',
+    ),
+    "repl-dns": Check(
+        "REPL explicit DNS transactions", "clojure",
+        '(= {:questions ["example.com" "google.com"] '
+        ':transactions [{:kind :match :qname "example.com" :rtt-us 15817 :rcode 0} '
+        '{:kind :match :qname "google.com" :rtt-us 10241 :rcode 0}] :pending 0} result)',
+    ),
+    "repl-roundtrip": Check(
+        "REPL filtered Classic PCAP round trip", "clojure",
+        '(= {:packets 2 :captured-bytes 260 :preserved? true} result)',
+    ),
     "migration-classic-time": Check(
         "Migration Classic timestamp selection", "clojure",
         '(= [{:ts-sec 1700000000 :ts-usec 123 :caplen 60 :len 60} '
@@ -212,6 +235,10 @@ CHECKS = {
 
 # These cannot be removed when adding future documented examples.
 REQUIRED_IDS = frozenset({
+    "repl-inspect",
+    "repl-flow",
+    "repl-dns",
+    "repl-roundtrip",
     "migration-classic-time",
     "migration-invalid-time",
     "readme-raw-ip-full",
@@ -345,7 +372,7 @@ def execute(label, argv):
 def run_doc_expression(label, code, predicate):
     expr = (
         "(try "
-        f"(let [result (do {code})] "
+        f"(let [result (do\n{code}\n)] "
         f"(when-not {predicate} "
         f'(throw (ex-info "documentation result check failed" '
         f'{{:example "{label}" :result result}}))) '
