@@ -82,7 +82,7 @@ examples and distribution/build-identity/release-guard tests pass. Markdown
 network/cache and one new-log blank-line failure were corrected and rechecked;
 failed attempts are recorded separately in [the work log](../work-log.md).
 Final-head CI results, exact job URLs and same-JAR consumer identities are
-recorded in the P12 PR description after completion, without a self-referential
+recorded in [PR #70](https://github.com/nantes-rfli/paclo/pull/70) after completion, without a self-referential
 commit claiming CI success for a different revision.
 
 ## Performance comparison

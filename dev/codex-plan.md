@@ -68,6 +68,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
 Current task: **P12 Clojure 1.12.6 adoption — implemented; independent review pending**.
+[PR #70](https://github.com/nantes-rfli/paclo/pull/70) contains this P12 slice.
 Local tests, analysis, examples, coverage, existing performance gate, ABBA runtime
 comparison and packaged JDK21 consumer are complete. The P12 report and work log
 retain the measured raw-reduction slowdown and environment limits. Final-head

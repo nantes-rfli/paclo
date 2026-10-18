@@ -4929,3 +4929,22 @@ Next main item is P13 after P12 review/merge, not an automatic support extension
 All other production/tool/CLI versions, workflows, gates and release identity
 remain unchanged. Full required/ARM64/actual coverage-step results and same-JAR
 identities are verified against the final PR head and recorded in its description.
+
+P12 delivery: implementation commit `c5f8b86` and
+[PR #70](https://github.com/nantes-rfli/paclo/pull/70), based on main `e05e0c6`.
+This documentation follow-up records the PR link before checking its final-head
+normal CI. The PR description owns exact final revision/job URLs, actual coverage
+step success and both consumers' source/version/JAR-hash agreement, avoiding a
+self-referential CI-results commit. Keep the PR open and unmerged for independent
+review. P12 implementation/local verification is complete; P13 remains blocked
+on that review/merge and is not started.
+
+Final local Markdown lint passes all51 files/zero errors, local links/diff checks
+pass, and a scope audit confirms production source/Java, benchmark workers,
+workflows/build settings and all non-Clojure dependencies are unchanged. The only
+existing test edit removes the reproduced instrumentation-metadata assumption
+and adds explicit cleanup assertions. Commit hooks use supported SKIP_TESTS=1,
+SKIP_FMT=1 and SKIP_KONDO=1 to avoid repeating completed checks/autoformatting;
+Markdown lint stays enabled. No hook/configuration is changed. The CLI GitHub
+auth check was invalid; use connected GitHub tools for PR/CI and existing SSH
+Git for push, without an interactive login or credential changes.
