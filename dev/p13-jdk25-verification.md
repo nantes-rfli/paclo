@@ -7,7 +7,7 @@ Started from main `e2a5eb11617aa5e364da340672424fac284d0251` after
 2026-10-18 08:10:36 UTC. No production source, public API, dependency, release
 version, Java compilation option or support guard changes are included.
 
-The current graph works under default JDK 25 on the measured macOS x64 host,
+The current graph works under default JDK 25 on measured macOS x64 and Linux x64,
 including the JDK 21-built distribution and a separate source build/test run.
 Keep JDK 17/21 formally supported. JDK 25 remains an explicitly tested experiment:
 Linux x64 CI results are recorded below; other OS/CPU/vendor combinations and
@@ -148,9 +148,42 @@ compilation/JUnit/Clojure/native commands and unfiltered logs. Reports include
 exact JVM, OS/architecture, dependency versions and loaded libpcap image/version;
 the job records the installed native package builds. Failures remain fatal.
 
-Final-head CI results and the P13 PR link will be recorded after execution.
-The JDK 17/21 local full check and unchanged quality gates are recorded in the
-work log as they complete. No skipped/blocked check counts as success.
+[P13 PR #73](https://github.com/nantes-rfli/paclo/pull/73) remains open for
+independent review. Implementation head `84b6d0e` runs in
+[CI 39113249185](https://github.com/nantes-rfli/paclo/actions/runs/39113249185).
+All16 implementation-run jobs pass, including the required `build` aggregate,
+existing supported-platform/quality/performance/docs gates and three consumers.
+The Linux JDK25 source job passes JUnit13/13 and493 Clojure tests/19,136
+assertions (the Linux suite has six additional platform assertions), plus native
+smoke and all compilation commands. It runs Temurin25.0.4.1+1-LTS on Ubuntu24.04
+x64, kernel6.17.0-1022-azure, Clojure1.12.6/CLI1.11.1.1435, JNR2.2.14/jffi1.3.11.
+The loaded image is `/lib/x86_64-linux-gnu/libpcap.so.1.10.4`, version1.10.4
+with TPACKET_V3, installed package build `1.10.4-4.1ubuntu3.1`
+(`libpcap0.8t64:amd64` and `libpcap-dev:amd64`), 8-byte pointers/C-long. Its
+[runtime](p13-evidence/source-jdk25-linux-x64.json) and
+[commands](p13-evidence/source-jdk25-linux-steps.json) are retained separately
+from macOS. CI artifacts retain all unfiltered logs. Final PR-head CI evidence
+is maintained in the PR description, separately from this implementation run.
+The same-JAR Linux consumers17/21/25 also pass, including the25 native-access/
+Unsafe debug rerun. CI's producer uses the PR merge ref commit
+`67becc16d0fffc776f07cda4792cc3f6babcc9d3`, rather than the local main provenance.
+All three consume JAR SHA256
+`69d61cd21cb536150e836cadb1e7c320b586cf3c76d97117850474179a7146db`.
+Separate [CI producer provenance](p13-evidence/provenance-ci-jdk21.json),
+[17](p13-evidence/consumer-jdk17-linux-x64.json),
+[21](p13-evidence/consumer-jdk21-linux-x64.json),
+[25](p13-evidence/consumer-jdk25-linux-x64.json) and
+[25 diagnostic](p13-evidence/consumer-jdk25-native-access-debug-linux-x64.json)
+reports retain exact runtimes and fixed library identities. This CI JAR is
+separate from the local candidate and is never rebuilt between consumers.
+
+Local JDK21 `check` passes JUnit13/13,493 Clojure tests/19,130 assertions
+and the native smoke. SpotBugs, CheckStyle, JaCoCo80.8% against the unchanged25%
+gate, clj-kondo (zero warnings/errors), Eastwood (636 informational warnings,
+zero exceptions), LSP clean/format dry-runs, Markdown53 files/zero errors and
+local-link validation pass. The unchanged performance gate passes at628.5ms
+(warn1000/fail1200). These are JDK21 checks, not JDK25 tool/performance claims.
+No skipped/blocked check counts as success.
 
 Unverified: JDK 25 Linux ARM64, macOS ARM64, Windows/other OSes, other JDK vendors,
 live capture privileges/traffic, NIC/drop statistics, long-running production
