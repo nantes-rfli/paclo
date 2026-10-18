@@ -18,6 +18,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update JNR-FFI from 2.2.14 to 2.3.3 (resolved jffi Java/native 1.4.3 and
+  ASM 9.10.1). Verify the selected native dependency graph in independent
+  distribution consumers and retain separate JDK 25 default/debug/Unsafe-denial
+  evidence. JDK 17/21 support, the public API and Java 17 compilation remain.
+
 - Add a required Linux x64 JDK 25 compatibility experiment: independent use of
   the same JDK 21-built JAR on 17/21/25, direct JDK 25 source/JUnit/Clojure/native
   checks and retained native-access/Unsafe diagnostics. JDK 17/21 support,

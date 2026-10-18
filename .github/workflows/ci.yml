@@ -468,6 +468,26 @@ jobs:
             --java-option=--enable-native-access=ALL-UNNAMED \
             --java-option=--sun-misc-unsafe-memory-access=debug 2>&1 | tee native-access-debug.log
 
+      # Diagnostic denial is not an acceptance requirement. Unexpected failures
+      # still fail this step; retain both the original exit status and full log.
+      - name: Measure Unsafe denial separately on JDK 25
+        if: matrix.java-version == '25'
+        working-directory: ${{ runner.temp }}/distribution
+        shell: bash
+        run: |
+          set -uo pipefail
+          python3 verify_distribution.py consume . --report consumer-jdk25-unsafe-deny.json \
+            --java-option=--enable-native-access=ALL-UNNAMED \
+            --java-option=--sun-misc-unsafe-memory-access=deny > unsafe-deny.log 2>&1
+          status=$?
+          cat unsafe-deny.log
+          echo "unsafe-deny exit=$status" | tee unsafe-deny-status.log
+          if [ "$status" -ne 0 ]; then
+            test "$status" -eq 1 || exit "$status"
+            grep -q 'UnsupportedOperationException: putLong' unsafe-deny.log || exit 1
+            grep -q 'com.kenai.jffi.UnsafeMemoryIO' unsafe-deny.log || exit 1
+          fi
+
       - name: Upload consumer identity and runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -508,6 +528,7 @@ jobs:
           test "${{ runner.os }}" = Linux
           test "${{ runner.arch }}" = X64
           uname -a
+          lscpu
           dpkg-query -W libpcap0.8t64 libpcap-dev
 
       - name: Compile release 17 bindings and run JUnit, Clojure and native checks
@@ -597,6 +618,15 @@ jobs:
           set -e
           clojure -T:build jar
 
+      - name: Verify native ABI and record loaded library identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(uname -s)" = Darwin ]; then sysctl -n machdep.cpu.brand_string; else lscpu; fi
+          bash dev/script/codex.sh java-test
+          clojure -M:dev:dns-ext -e "(require 'distribution-consumer.consumer)" \
+            -e '(try (distribution-consumer.consumer/native-check! "test/resources/dns-sample.pcap") (finally (shutdown-agents)))'
+
       - name: Run unit tests
         shell: bash
         run: |
@@ -661,6 +691,15 @@ jobs:
         run: |
           set -e
           clojure -T:build jar
+
+      - name: Verify native ABI and record loaded library identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(uname -s)" = Darwin ]; then sysctl -n machdep.cpu.brand_string; else lscpu; fi
+          bash dev/script/codex.sh java-test
+          clojure -M:dev:dns-ext -e "(require 'distribution-consumer.consumer)" \
+            -e '(try (distribution-consumer.consumer/native-check! "test/resources/dns-sample.pcap") (finally (shutdown-agents)))'
 
       - name: Run unit tests
         shell: bash

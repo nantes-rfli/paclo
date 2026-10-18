@@ -1,0 +1,43 @@
+{
+  "class_major_versions": {
+    "paclo/jnr/BpfProgram.class": 61,
+    "paclo/jnr/PcapConfigLibrary.class": 61,
+    "paclo/jnr/PcapErrors.class": 61,
+    "paclo/jnr/PcapHandle.class": 61,
+    "paclo/jnr/PcapHeader.class": 61,
+    "paclo/jnr/PcapLibrary$PcapIf.class": 61,
+    "paclo/jnr/PcapLibrary.class": 61,
+    "paclo/jnr/PcapStat.class": 61,
+    "paclo/jnr/PcapStatsLibrary.class": 61,
+    "paclo/jnr/PcapStdioLibrary.class": 61
+  },
+  "dependencies": {
+    "org.clojure/data.json": "2.5.0",
+    "org.clojure/clojure": "1.12.6",
+    "com.github.jnr/jnr-ffi": "2.3.3",
+    "com.github.spotbugs/spotbugs-annotations": "4.8.6",
+    "org.clojure/core.async": "1.6.681"
+  },
+  "coordinates": "org.clojars.nanto/paclo:1.5.0-SNAPSHOT",
+  "scm_tag": "59020db917798efd04bcfc50d35b684ea20be308",
+  "version": "1.5.0-SNAPSHOT",
+  "source_commit": "59020db917798efd04bcfc50d35b684ea20be308",
+  "source_dirty": false,
+  "build_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+  "jar_sha256": "3097d9c215ae832635d4d80c9d356b55fa64f2e093a31a24266ea0335293ba7d",
+  "files": {
+    "deps.edn": "3dc8600f388955337199b42223867393b93b60a0c52218eae8bdb27bc0bda56d",
+    "distribution_consumer/consumer.clj": "0244d07c4214e8fe768e258e1bf9374181a961c023370d3e7aa04b1f3d01bd95",
+    "fixtures/cooked/sll.pcap": "586a6864a812e90d90d4e3b04eeefd7f191695ff0d28e96ef86481759d7c1701",
+    "fixtures/cooked/sll2.pcap": "75d395935bb0844f223884f6f652fe07d4a2d1ca0450b140a1cf97f7f411f8fb",
+    "fixtures/dns-sample.pcap": "f1c22ca607df4124c939f363f8fc8d6348715d3cecb9174e52413b08931449e2",
+    "fixtures/null-loop/loop-header-be-file-le.pcap": "cb3322208fc42812b29ef490b23c5ae0f149868aa243909d17a071e9e1d052a6",
+    "fixtures/null-loop/null-header-le-file-le.pcap": "3e77fe6b932b56b08e809ba721cf1c616d3b7dde4f7081f7ae4d300eeb140a40",
+    "fixtures/pcapng-contracts/rich.pcapng": "81d107b98581b4aacab8f338b79a7b929ea3e638b00c867e3c4de04d048459b1",
+    "fixtures/raw-ip/raw.pcap": "47ed0e09bc1585e6181930bdfc1301623bcd346839656d532f3a9efc1124ec07",
+    "fixtures/tls-sni-alpn-sample.pcap": "cb8db093751bfa239e78c5207b8d803ec98d9d205ee0988fd8df324857d2df2e",
+    "paclo.jar": "3097d9c215ae832635d4d80c9d356b55fa64f2e093a31a24266ea0335293ba7d",
+    "pom.xml": "9467188ae9ee27b9764aec9e4d3bcb6d78678e8da1ea26a10235a922d42b1bd1",
+    "verify_distribution.py": "a706190a09f7b747ab4a8f3c378685f1103ec2d6c42f2d8c1c50ac4c7fae87eb"
+  }
+}

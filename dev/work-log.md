@@ -5227,3 +5227,128 @@ old supported platforms, Linux ARM64, performance and quality gates. The Linux
 source job records native packages `libpcap0.8t64:amd64` and `libpcap-dev:amd64`
 build1.10.4-4.1ubuntu3.1. Final evidence commit adds only completion/PR records
 and copied machine-readable reports; it does not alter the verified implementation.
+
+## 2026-10-18 — P14-A: JNR-FFI update and native compatibility
+
+Requested implementation, verification and a separate PR, without merge/release/
+publication. Initial `git status --short --untracked-files=all` was clean.
+`bash dev/script/codex.sh doctor` exits0 on Temurin21.0.12.1+1-LTS/macOS15.4.1
+x64: Clojure1.12.6, real libpcap read4 packets/438 bytes. Fetched latest main;
+PR73 is merged as `4a86d666be839e89480bd02d5772dbc5cf87cdb8` at09:58:37UTC
+(18:58:37 Asia/Tokyo), after independent review of final head `ee74766` and all16
+passing jobs in CI39113609011. Review tracks the old Unsafe-denial problem in
+Issue74. Created `codex/p14-a-jnr-ffi` from that main in the supplied checkout.
+
+Official Central metadata/tag/POM recheck confirms latest stable JNR2.3.3,
+although GitHub Releases still labels2.3.2 latest. `deps.edn` changes only JNR;
+Clojure1.12.6, core.async1.6.681, other production/tools, release17 flags and
+1.5.0-SNAPSHOT remain. Details/sources: [P14-A report](p14-a-jnr-verification.md).
+
+Completed local checkpoint (unfiltered logs `/tmp/paclo-p14-a`):
+
+- Before update, `bash dev/script/codex.sh perf`: exit0,849.1ms against unchanged
+  warn1000/fail1200ms, JDK21/macOS x64,50k synthetic74-byte packets. This cold
+  gate has no separate warm-up/allocation/drop instrumentation; it is not a
+  statistically controlled benchmark or NIC throughput result.
+- `bash dev/script/codex.sh prepare`: exit0 with actual Central downloads and
+  bindings/tests compilation. `clojure -Stree`: JNR2.3.3, jffi1.4.3 Java/native,
+  all five ASM9.10.1 modules, assembler1.0.0/1.0.2; analyzer's ASM9.2 is excluded.
+- `bash dev/script/codex.sh package`; `verify_distribution.py prepare`: exit0.
+  JDK21-built JAR918f9da3e2275a367c5bfff69a4cec59369e68eda7a64d37314857b47fda5f79,
+  ten major61 classes, exact inventory/POM and dirty-main provenance recorded.
+- Bundle `verify_distribution.py consume` under actual Temurin17.0.20.1+1,
+  21.0.12.1+1-LTS,25.0.4.1+1-LTS: all exit0, same hashes before/after, external
+  temporary projects/-Srepro and exact native dependency graph/JAR hashes.
+  Actual loaded `/usr/lib/libpcap.A.dylib`, libpcap1.10.1,8-byte C-long/pointer.
+- Separate25 debug and deny consumers both exit0. Default retains StubLoader/
+  System.load native-access warning, no Unsafe warning observed. Debug has no
+  Unsafe trace; deny now passes the entire consumer. Official jffi1.4.3 sources
+  deliberately choose non-Unsafe memory access at JDK>=23. This resolves the
+  measured P13 restriction on this host; no future/all-platform guarantee.
+- Python distribution gate15/15; real build identity5/5; JDK25 runner2/2 and
+  executable-example parser regressions pass. New graph negative controls reject
+  stale/missing/duplicate native and mixed ASM; direct-POM guard now rejects
+  rollback to2.2.14 while retaining other dependency/version/semantics guards.
+- SpotBugs, CheckStyle, JaCoCo and `JACOCO_MIN_LINE=0.25` gate all exit0;
+  coverage80.8%. Same existing JDK21 tool versions and rules.
+- Extra link-parser regression initially fails on this Mac's symlinked default
+  temp path (`/var` versus `/private/var`), unrelated to JNR. Repeating with
+  `TMPDIR=/private/tmp` passes9/9 without source edits; real local-link check
+  passes. No initial failure is counted as success.
+
+Added separate CI Unsafe-deny diagnostic with full logs/original exit status;
+success or specifically attributed old putLong failure is recorded, unexpected
+failures fail the step. Default/debug remain required successes. Supported macOS
+ARM64/Linux ARM64 source jobs additionally run the existing13 JUnit ABI tests
+and native identity/CPU diagnostics. No platform, quality or performance gate
+is removed or weakened. Machine-readable local reports are in `p14-a-evidence`.
+Full21/source25, lint/docs, after-update perf and CI results follow below.
+P14-A is in progress; P14's other candidates remain separately selectable,
+P16 independently ready, P09/P10/P17 conditions unchanged. Independent review
+must precede merge; no release/tag/publication performed.
+
+P14-A completed local verification and CI checkpoint:
+
+- JDK21 `bash dev/script/codex.sh check`: exit0, JUnit13/13,493 Clojure tests /
+  19,130 assertions,0 failures/errors; offline smoke4 packets/438 bytes.
+- Actual JDK25 `python3 dev/script/verify_jdk25.py /tmp/paclo-p14-a/source25`:
+  exit0; all seven steps, release17 Java compilation/JUnit13/13,493 Clojure
+  tests/19,130 assertions, native BPF/interface/error smoke and dependency tree.
+  Native library/versions match the independent consumers. Actual25 memory
+  class probe returns `com.kenai.jffi.MemoryIO$NativeImpl64`; its unfiltered
+  native-access warning is retained in `p14-a-evidence/jffi-memory-jdk25-macos-x64.log`.
+- `bash dev/script/codex.sh lint`: exit0, clj-kondo zero errors/warnings;
+  Eastwood636 informational warnings/zero exceptions; LSP clean-ns/format dry
+  runs unchanged; Markdown54 files/zero errors. `verify_doc_examples.py`:
+  exit0, all40 maintained examples. Link validation passes. All51 multiline CI
+  shell blocks pass `bash -n`; no workflow gate changed to hide failures.
+- After all other local suites ended, `bash dev/script/codex.sh perf`: exit0,
+  777.1ms against unchanged1000/1200ms budgets. Before/after849.1/777.1ms is a
+  coarse single-run/cold gate comparison, not a speedup claim, allocation/drop
+  measurement, JDK25 performance result or real-NIC throughput evidence.
+- Implementation commit `c0fd760` creates [PR #75](https://github.com/nantes-rfli/paclo/pull/75),
+  attached to this chat. Commit uses the hook's supported `SKIP_TESTS=1` and
+  `SKIP_FMT=1` because those suites/dry-runs are executed explicitly above;
+  hook Markdown/kondo checks still pass, with no hook or CI rule edit.
+- Implementation [CI39124535933](https://github.com/nantes-rfli/paclo/actions/runs/39124535933)
+  already passes JDK25 source:13/13 JUnit,493 Clojure tests/19,136 assertions,
+  zero failures/errors; exact Linux native/JVM report/steps copied separately.
+  Linux has six extra existing platform assertions. Producer21, Eastwood,
+  quality gates, all three performance shards/merger and optional coverage pass.
+  Full platform, three same-JAR consumers and documentation CI still pending.
+- CI builds merge-ref `59020db917798efd04bcfc50d35b684ea20be308`, clean tracked
+  source, JAR3097d9c215ae832635d4d80c9d356b55fa64f2e093a31a24266ea0335293ba7d.
+  Its copied producer provenance is distinct from the local dirty-main candidate;
+  same-JAR consumers must match this CI hash. Generated Python fixture bytecode
+  was removed; no tracked fixtures, version, production source or API changed.
+
+P14-A implementation CI completed: **all16 jobs pass** in CI39124535933,
+including the required build aggregate, documentation40 examples, source25,
+single-JAR17/21/25 consumers and separate25 debug/deny, supported macOS ARM64/
+JDK17 and Linux x64/JDK21, Linux ARM64 monitor, quality/performance/lint gates,
+and optional coverage. All three platform source jobs also pass13 JUnit tests.
+CI's mid-50k gate is827.1ms; JaCoCo80.8% against25%. Same CI JAR hash above is
+confirmed in all five consumer reports; native/ASM dependency hashes match.
+Default Linux25 reports native-access only, no Unsafe warning; debug/deny pass
+with no Unsafe warnings, denial's original exit status0 retained in artifact.
+
+Additional actual CI identities: Linux x64 source25 AMD EPYC9V74 with installed
+`libpcap0.8t64:amd64`/`libpcap-dev:amd64`1.10.4-4.1ubuntu3.1; supported x64
+source21 AMD EPYC7763; Linux ARM64 Neoverse-N2/Temurin21.0.12.1+1-LTS loads
+`/lib/aarch64-linux-gnu/libpcap.so.1.10.4`, version1.10.4 TPACKET_V3; macOS26.6.2
+ARM64 Apple M1(Virtual)/Temurin17.0.20.1+1 loads `/usr/lib/libpcap.A.dylib`,
+version1.10.1. Linux kernels6.17.0-1022-azure; every measured C-long/pointer8bytes.
+Exact platform identity log excerpts and separate Linux producer/consumer JSON
+are copied into `p14-a-evidence`; full logs remain Actions artifacts. Source25
+and Linux suites have19,136 assertions; macOS has19,130, all493 tests/zero failures.
+
+Decision: accept JNR2.3.3 as the P14-A implementation candidate. No native/API
+fix is necessary; existing regression fixtures pass. The former P13 Unsafe
+restriction no longer reproduces under measured25 default/debug/deny, explained
+by jffi's JDK>=23 JNI selection. Native-access restrictions still need deliberate
+permission in future JDKs. Keep formal support17/21, all public/binary contracts
+and existing gates. P14-A is implemented/verified; independent review pending.
+P14 remains in-progress for separate unselected dependency/tool slices; P16 is
+independently ready. No live NIC, operational throughput, JDK25 ARM64/tools/
+coverage/performance or future-JDK validation is claimed. Final evidence commit
+adds records/reports only; final-head CI is checked in PR75 before handoff.
