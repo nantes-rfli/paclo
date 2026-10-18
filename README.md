@@ -449,9 +449,9 @@ Internal namespaces (`paclo.pcap`, `paclo.parse`, `paclo.proto.*`,
 
 ## Compatibility matrix
 
-| Layer | Supported | CI gate status (2026-10-17) | Notes |
+| Layer | Supported | CI gate status (2026-10-18) | Notes |
 | --- | --- | --- | --- |
-| Clojure | `1.12.x` | Required | Baseline in `deps.edn` is `1.12.1` |
+| Clojure | `1.12.x` | Required | Baseline in `deps.edn` is `1.12.6` |
 | JDK | `17`, `21` | Required | Representative compatibility jobs cover both |
 | OS | macOS, Linux | Required | `macos-latest` and Linux runners |
 | CPU | x86_64, arm64 | Required | Runner architecture is asserted before tests |

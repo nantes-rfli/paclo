@@ -494,7 +494,13 @@
       (is (valid-retired-index? pending)))
     (is (= frozen (binding [*print-meta* true] (pr-str state))))
     (is (= state plain))
-    (is (empty? (-> (dns/finish state) :state :retired meta)))))
+    (let [finished (:state (dns/finish annotated))]
+      (is (empty? (:pending finished)))
+      (is (empty? (:retired finished)))
+      ;; Instrumentation may attach source locations to the fresh empty map.
+      ;; Neither the expiry cache nor caller-owned metadata may survive finish.
+      (is (nil? (:paclo.dns/retired-expiries (meta (:retired finished)))))
+      (is (nil? (:caller (meta (:retired finished))))))))
 
 (declare indexed-expiry-agrees-with-scan)
 

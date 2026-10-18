@@ -4801,3 +4801,131 @@ confirms dependency versions, production/test code, Publish workflow, historical
 v1.4.0 release documents/evidence and P11 inventory are untouched. Leave PR #69
 open and unmerged for independent review. Plan status denotes implemented/local
 verification complete, with review/merge still pending; P12 remains unstarted.
+
+## P12: Clojure 1.12.6 adoption (2026-10-18)
+
+User-selected P12 implementation, based on latest fetched main `e05e0c6`
+(merged development-identity PR #69). Initial `git status --short
+--untracked-files=all` was clean; use the supplied checkout and branch
+`codex/p12-clojure-1.12.6`. Read AGENTS, CONTRIBUTING, the v1 API contract,
+the accepted plan and P11 inventory. Rechecked official Clojure downloads,
+versioned 1.12.6 changes and GHSA-q527-rxcp-97g8; references and the detailed
+compatibility assessment are in [the P12 report](p12-clojure-1.12.6/README.md).
+
+Update only Clojure 1.12.1 to 1.12.6 in root and standalone performance-merger
+deps. Preserve all other production/optional/tool versions, CLI, Java17 target,
+JDK17/21 support, `1.5.0-SNAPSHOT`, public behavior/errors/ownership/bounds and
+all gates. Exact before/after production dependency trees differ only in Clojure;
+spec.alpha0.5.238/core.specs.alpha0.4.74 and core.async1.6.681/JNR2.2.14 remain.
+Align the distribution allowlist and mutation tests: reject old Clojure,
+unintended async/JNR upgrades and changed semantics, checking that each mutation
+actually changes the fixture. Update current README/CONTRIBUTING baseline,
+Unreleased changelog and clarify EDN versus Java object serialization in the
+API contract. Retain historical versioned evidence unchanged.
+
+Compatibility uses the existing real-fixture, lifecycle, transducer, protocol,
+lazy-stream, EDN-restoration and bounded-state regressions, rather than introducing
+a production workaround without a failure. Java serialization of LazySeq/Iterate/
+FnLoaderThunk is outside Paclo's EDN restoration contract. Production-source
+search finds no ObjectInputStream/readObject path; that is not a downstream
+security audit. No new Java deserialization path or compatibility shim is added.
+
+Local environment: macOS15.4.1/x86_64, Temurin21.0.12.1+1,
+CLI1.12.5.1654, system libpcap1.10.1. Local kondo2026.05.25 and
+LSP2026.05.05-12.58.26 differ from pinned CI. JDK17 is not installed locally.
+Initial doctor passes on baseline1.12.1 with four native packets/438 bytes.
+The first sandboxed prepare failed to write the uncached1.12.6 Maven directory;
+authorized normal-cache retry succeeds, downloads1.12.6 and compiles bindings/tests.
+`clojure -Stree` before/after is retained in the report directory. A standalone
+merger invocation prints1.12.6/JDK21 and passes an exact-version assertion;
+its existing external-path deprecation warning is retained, without CLI changes.
+
+Completed local checks so far:
+
+- `python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'`:
+  all13 pass, including actual mutations for Clojure/core.async/JNR.
+- `python3 dev/script/test_eastwood_runner.py`: all4 pass; deliberate failed
+  traversal returns exit1 with an unanalyzed namespace, not success.
+- `clojure -T:build spotbugs`, `checkstyle`, `jacoco` and
+  `JACOCO_MIN_LINE=0.25 clojure -T:build jacoco-gate`: all exit0;
+  Java line coverage43.8% exceeds unchanged25% threshold.
+- Documentation parser unit tests: all15 pass. Local-link checker and
+  `git diff --check` pass. Markdown lint passes51 files with zero errors using
+  normal network access after the sandboxed npm lookup stalled.
+
+Full check/lint, executable examples, cloverage, same-condition ABBA performance
+comparison, package/consumer results and final delivery follow below. Incomplete
+commands and unavailable environments are not counted as passes. No live/NIC,
+JDK25/1.13, P14–P17, release/tag/publication or merge work is authorized here.
+
+P12 verification finding: initial `clojure -M:coverage` completes all493 tests/
+19,125 assertions but exits1 for one DNS assertion requiring an empty metadata
+map after finish. Coverage is91.38% forms/95.43% lines. The fresh empty map has
+only cloverage source positions at `dns.clj:270`, not a retained expiry cache.
+The exact failure also occurs on1.12.1 with cloverage1.2.4 (DNS-only instrumentation,
+22 tests/387 assertions/one failure), isolating it from the runtime update.
+The first baseline probe unintentionally retained the alias's broad test regex;
+it was stopped and replaced with a main-opts override that runs only DNS tests.
+Neither interrupted nor failing probes count as passes.
+
+Correct `retired-expiry-cache-edn-boundaries-and-independent-snapshots` to finish
+an annotated indexed state and explicitly require empty pending/retired data,
+no expiry-cache metadata and no caller metadata. This removes an incidental
+source-location assumption while strengthening the actual cleanup assertions;
+no test is excluded and no budget or production behavior changes. Recheck normal
+DNS tests, baseline instrumented DNS tests, full candidate cloverage and static
+analysis. The initial full `check` already passes JUnit10/10, Clojure493 tests/
+19,125 assertions and native offline smoke on1.12.6. All36 documentation examples
+pass. Build-identity5 tests and release-metadata4 tests pass.
+
+The first full lint run completes kondo (zero warnings/errors), Eastwood632
+warnings/zero exceptions, clean-ns/format (no changes), then fails on sandboxed
+npm registry/cache access. The separate normal-network Markdown run succeeds;
+offline npm retry reports ENOTCACHED. Rerun the complete lint wrapper with normal
+network access after the DNS-test correction; do not label failed wrappers passes.
+
+After the test correction, normal DNS22 tests/390 assertions and baseline
+instrumented DNS22 tests/390 assertions both exit0. Full candidate cloverage
+now exits0:493 tests/19,128 assertions, zero failures/errors,17 instrumented
+namespaces,91.32% form/95.40% line coverage. Unlike the original failure,
+these are actual passing tests, not merely a generated coverage report.
+The candidate's report percentages differ slightly between randomized property
+runs; the code/instrumented namespace set and CI budgets are unchanged.
+
+Repeated lint completes all analysis: kondo0 warnings/errors, Eastwood632
+informational warnings/zero exceptions/full traversal, LSP clean-ns/format no
+changes. Its Markdown stage catches one double blank line in this new log;
+fix it and rerun Markdown successfully,51 files/zero errors. No broad formatting
+or lint configuration change. Remove only four fixture-generated untracked
+Python cache files after the tests. Performance follows serially after all
+CPU-heavy analysis/tests; production and benchmark worker source remain identical
+to main for both runtimes.
+
+P12 performance/package completion: `bash dev/script/codex.sh perf` exits0 at
+635.9ms (unchanged1000ms warning/1200ms fail). Run the retained comparison driver
+serially after other heavy checks, using identical classpaths except Clojure,
+unchanged worker/source/bindings, JDK21,512MiB heap and one deterministic50k
+mixed TCP/UDP PCAP. ABBA runtime batches, reverse scenario order, five warm-ups
+and seven measured samples per worker produce20 workers/140 samples. All samples
+report50,000 packets/14,400,000 bytes. Retain driver, source/input hashes, raw EDN
+and median/range/batch JSON in the P12 directory. Pooled throughput changes:
+raw-reduce -4.9%, full-decode +1.7%, full-reduce +0.5%, flow-reduce +3.0%,
+write-pipeline +3.3%. Allocation changes range -0.9% to +1.4%. Raw's two candidate
+batch medians are both lower; overlapping ranges do not prove equivalence.
+Record that slowdown explicitly, without inventing/weakening any gate or claiming
+live/NIC/general speedup. Existing CI retains all27 offline measurement scenarios.
+
+`bash dev/script/codex.sh package`, `python3 dev/script/verify_distribution.py
+prepare target/paclo-1.5.0-SNAPSHOT.jar /tmp/paclo-p12-distribution` and `consume
+/tmp/paclo-p12-distribution --report /tmp/paclo-p12-consumer-jdk21.json` all exit0.
+Exact source inventory, POM/dependency/properties/SCM identity, ten major61 classes,
+no previews and isolated -Srepro public-API/fixture execution pass. JAR SHA-256:
+`e37dae1b723242d8c0052cbfba8bbe1c9297816648bca4587cf8b24cf60efa11`.
+Retain local provenance/consumer JSON: source HEAD e05e0c6 with source_dirty=true,
+accurately distinguishing the edited candidate from main. Final CI builds its
+own clean-head artifact once for both17/21 consumers. No local JDK17 claim.
+
+Next main item is P13 after P12 review/merge, not an automatic support extension.
+All other production/tool/CLI versions, workflows, gates and release identity
+remain unchanged. Full required/ARM64/actual coverage-step results and same-JAR
+identities are verified against the final PR head and recorded in its description.
