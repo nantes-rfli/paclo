@@ -169,13 +169,27 @@ Build the candidate once with JDK 21, then prepare a separate consumer bundle:
 
 ```bash
 bash dev/script/codex.sh package
-python3 dev/script/verify_distribution.py prepare target/paclo-1.4.0-SNAPSHOT.jar /tmp/paclo-distribution
+python3 dev/script/verify_distribution.py prepare target/paclo-1.5.0-SNAPSHOT.jar /tmp/paclo-distribution
 python3 dev/script/verify_distribution.py consume /tmp/paclo-distribution --report /tmp/consumer-jdk21.json
 ```
 
+Ordinary main/PR builds and the verifier default to `1.5.0-SNAPSHOT`. This is a
+development identifier, not a v1.5.0 release scope or date. `PACLO_VERSION` takes
+precedence over a GitHub tag ref (`GITHUB_REF_TYPE=tag`, `GITHUB_REF_NAME=v...`);
+other refs use the development default. Non-SNAPSHOT versions retain `v<version>`
+in the POM SCM tag. SNAPSHOT builds require Git HEAD and record its full commit
+SHA instead of inventing a release tag. Uncommitted edits are reported separately
+by `source_dirty` in distribution provenance; a commit SHA alone does not identify
+those edits. Neither ordinary CI nor local packaging publishes artifacts.
+
+Run the build identity regression with
+`python3 -B -m unittest discover -s dev/script -p 'test_build_identity.py'`.
+It generates POMs in `target/maven` without installing or publishing artifacts.
+
 Use a fresh output directory for `prepare`; it checks all class-file versions,
 the exact production source/binding inventory and existing Maven coordinates/
-dependencies, and records the source commit, tracked-file dirty state, build JVM and hashes.
+dependencies plus SCM identity, and records the source commit, tracked-file dirty
+state, build JVM and hashes.
 Test fixtures and the consumer harness are outside the JAR. Set `--version` to
 the existing candidate version when using `PACLO_VERSION`, as Publish does.
 Switch only the runtime to JDK 17 and invoke `consume` on the **same bundle**;

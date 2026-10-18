@@ -20,6 +20,9 @@ It provides a small public API plus optional decode hooks for DNS/TLS workflows.
 - [GitHub Release v1.4.0](https://github.com/nantes-rfli/paclo/releases/tag/v1.4.0)
   and [publication evidence](dev/release-1.4.0-publication.md).
 
+Repository development builds use `1.5.0-SNAPSHOT`; this does not assign the
+scope or date of a future v1.5.0 release. See [distribution verification](CONTRIBUTING.md#distribution-compatibility).
+
 The install coordinates below select the verified v1.4.0 Clojars release.
 Features identified as v1.4.0 are included in that published artifact.
 

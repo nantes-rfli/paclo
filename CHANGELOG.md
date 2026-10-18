@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Changes after v1.4.0 belong here.
 
+### Build
+
+- Identify ordinary development/CI artifacts as `1.5.0-SNAPSHOT`, separately from
+  published v1.4.0. SNAPSHOT POMs name the source commit as their SCM tag;
+  distribution verification checks that identity alongside versions and hashes.
+  This identifier does not assign a v1.5.0 release scope or date.
+
 ### Performance
 
 - Index repeated DNS retired-key expiry in large states with immutable deadline

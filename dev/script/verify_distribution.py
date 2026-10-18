@@ -8,6 +8,7 @@ consume runs only the supplied JAR, harness and fixtures, with -Srepro.
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -78,6 +79,12 @@ def inspect_jar(path, version):
 
         require((field(root, "groupId"), field(root, "artifactId"), field(root, "version")) ==
                 ("org.clojars.nanto", "paclo", version), "POM coordinates changed")
+        scm_tag = root.findtext("m:scm/m:tag", namespaces=ns)
+        if version.endswith("-SNAPSHOT"):
+            require(scm_tag is not None and re.fullmatch(r"[0-9a-f]{40}", scm_tag),
+                    "SNAPSHOT SCM tag must identify a source commit")
+        else:
+            require(scm_tag == f"v{version}", "Release SCM tag mismatch")
         deps = {}
         for dep in root.findall("m:dependencies/m:dependency", ns):
             require(field(dep, "scope") in (None, "compile") and
@@ -95,7 +102,7 @@ def inspect_jar(path, version):
         require(properties == {"groupId": "org.clojars.nanto", "artifactId": "paclo",
                                "version": version}, "pom.properties mismatch")
         return {"class_major_versions": versions, "dependencies": deps,
-                "coordinates": f"org.clojars.nanto/paclo:{version}"}, pom
+                "coordinates": f"org.clojars.nanto/paclo:{version}", "scm_tag": scm_tag}, pom
 
 
 def java_version():
@@ -105,6 +112,9 @@ def java_version():
 def prepare(jar, output, version):
     root = Path(__file__).resolve().parents[2]
     inspection, pom = inspect_jar(jar, version)
+    source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    if version.endswith("-SNAPSHOT"):
+        require(inspection["scm_tag"] == source_commit, "SNAPSHOT SCM/source commit mismatch")
     # Compare packaged Clojure bytes with production roots, never dev/test roots.
     with zipfile.ZipFile(jar) as archive:
         for name in SOURCES:
@@ -127,7 +137,7 @@ def prepare(jar, output, version):
         '{:paths ["."]\n :deps {org.clojars.nanto/paclo {:local/root "paclo.jar"}\n        ' + deps + '}}\n')
     inspection.update({
         "version": version,
-        "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
+        "source_commit": source_commit,
         "source_dirty": bool(subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, text=True)),
         "build_java": java_version(),
         "jar_sha256": sha256(output / "paclo.jar"),
@@ -145,6 +155,8 @@ def verify(bundle):
         require(sha256(path) == digest, f"SHA-256 mismatch: {name}")
     require(sha256(bundle / "paclo.jar") == manifest["jar_sha256"], "JAR SHA-256 mismatch")
     inspection, pom = inspect_jar(bundle / "paclo.jar", manifest["version"])
+    if manifest["version"].endswith("-SNAPSHOT"):
+        require(inspection["scm_tag"] == manifest["source_commit"], "SNAPSHOT SCM/source commit mismatch")
     require(pom == (bundle / "pom.xml").read_bytes(), "External and embedded POM differ")
     for key, value in inspection.items():
         require(manifest[key] == value, f"Provenance mismatch: {key}")
@@ -164,7 +176,8 @@ def consume(bundle, report):
         before = sha256(project / "paclo.jar")
         subprocess.run(["clojure", "-Srepro", "-M", "-m", "distribution-consumer.consumer"], cwd=project, check=True, timeout=180)
         require(before == sha256(project / "paclo.jar") == manifest["jar_sha256"], "Consumer changed JAR")
-    result = {"source_commit": manifest["source_commit"], "jar_sha256": before,
+    result = {"version": manifest["version"], "scm_tag": manifest["scm_tag"],
+              "source_commit": manifest["source_commit"], "jar_sha256": before,
               "runtime_java": java_version(), "status": "passed"}
     report.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
@@ -176,7 +189,7 @@ def main():
     prep = commands.add_parser("prepare")
     prep.add_argument("jar", type=Path)
     prep.add_argument("output", type=Path)
-    prep.add_argument("--version", default="1.4.0-SNAPSHOT")
+    prep.add_argument("--version", default="1.5.0-SNAPSHOT")
     for command in ("verify", "consume"):
         sub = commands.add_parser(command)
         sub.add_argument("bundle", type=Path)

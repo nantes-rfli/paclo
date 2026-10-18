@@ -4708,3 +4708,75 @@ candidate compatibility tests are not run for this documentation correction.
 Use the existing Markdown-only hook flags, retaining Markdown lint. Leave the
 PR open and unmerged for independent review; no merge authority is inferred
 from the reviewer's recommendation.
+
+## Development artifact identity before P12 (2026-10-18)
+
+Independent maintenance selected by the user from the P11 finding. Initial
+`git status --short --untracked-files=all` was clean on P11 branch `3f71e5b`.
+Confirmed [PR #68](https://github.com/nantes-rfli/paclo/pull/68) was reviewed/merged
+on 2026-10-18 as `58aeb544d1b5f7a5c2884931eb1dcbb843dfebd5`; fetched main and
+created `codex/development-snapshot-identity` from that merge in the supplied
+checkout. Read CONTRIBUTING, the v1 API contract, accepted plan and P11 inventory.
+No unrelated work was present. Historical work-log entries and published release
+evidence remain unchanged.
+
+The user selected `1.5.0-SNAPSHOT` only as a development identifier. The default
+build and verifier, ordinary main/PR CI JAR path and upload/download bundle name,
+current README/CONTRIBUTING examples now agree. Removed CI's published-version
+override rather than building unreleased changes as `1.4.0`. Published install
+coordinates remain `1.4.0`; no future release scope/date is assigned.
+
+Version precedence remains explicit `PACLO_VERSION`, then matching GitHub tag
+context, then the development default. Tag inference now requires
+`GITHUB_REF_TYPE=tag`, preventing a similarly named branch from becoming a release.
+Non-SNAPSHOT POMs retain `v<version>`. SNAPSHOT POMs require the actual full Git
+HEAD commit; missing Git identity fails rather than inventing `v...-SNAPSHOT`.
+Distribution preparation/consumption verify SCM syntax and SNAPSHOT/source-commit
+agreement, and record SCM/version in provenance and consumer reports. Dirty edits
+remain separately visible as `source_dirty`; SCM alone does not identify edits.
+
+Added actual `build/pom` regressions for default/tag/branch/explicit override and
+missing-Git behavior. Added execution of the existing Publish workflow shell
+version/source/metadata guards with controlled git responses; no tag or publication
+is created. Distribution tests cover release and SNAPSHOT identities, wrong
+versions/properties/SCM/provenance, a different source commit and external POM
+mismatch even with a refreshed file hash. Existing dependency semantics,
+source/class inventory, Java17/preview checks and hash failures remain enforced.
+The Publish workflow itself, complete CI aggregate, compatibility/coverage/
+performance gates and all dependency versions are unchanged.
+
+Local verification on macOS x86_64, Temurin21.0.12.1+1, Clojure1.12.1 and
+CLI1.12.5.1654:
+
+- `bash dev/script/codex.sh doctor`: exit0; real native offline four packets/438 bytes.
+- `python3 -B -m unittest discover -s dev/script -p 'test_build_identity.py'`:
+  all5 tests pass, including six actual POM-resolution contexts and unchanged
+  Publish source/version guards (valid and rejected cases).
+- `python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'`:
+  all13 tests pass; existing rejection cases retained and identity cases added.
+- `python3 -B -m unittest discover -s dev/script -p 'test_verify_release_metadata.py'`:
+  all4 tests pass; real dated release metadata is accepted, missing/unreleased
+  publication metadata is rejected.
+- `bash dev/script/codex.sh package`, default `verify_distribution.py prepare`
+  and isolated `consume --report` pass. JAR/POM/properties/provenance all name
+  `1.5.0-SNAPSHOT`, all10 classes have major61, exact production dependencies
+  remain unchanged. Initial dirty-tree JAR SHA-256:
+  `0889192f9a277601b4b24bb61c7651310a6709af1528597b1559abf2b32810d3`;
+  SCM/source commit is `58aeb54`, `source_dirty=true` is accurately recorded.
+  Final CI builds its own clean-head JAR once for both JDK consumers.
+- `bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh`
+  and verifier help paths pass. `python3 dev/script/verify_doc_links.py` and
+  `git diff --check` pass. Markdown lint passes all50 files, zero errors.
+
+`clj-kondo --lint build.clj` passes with zero errors/warnings;
+`clojure-lsp format --filenames build.clj --dry` reports nothing to format.
+`bash dev/script/codex.sh check` passes: JUnit10/10, Clojure493 tests with
+19,125 assertions and zero failures/errors, then native offline smoke. Removed
+only the four generated untracked fixture `__pycache__` files after the suite.
+Full static/PR/CI delivery results are recorded below when complete.
+Local JDK17 is unavailable; same-JAR17/21 and Linux/macOS ARM64
+verification require the unchanged normal CI. No live/NIC, JDK25, other-platform
+or dependency-audit claim follows from offline tests. Local lint tools differ
+from pinned CI as recorded by P11. No Clojure/dependency/API update, P12–P17,
+P09/P10 work, release dispatch/tag/publish or merge is performed. P12 is the next
+main plan item only after this PR passes full CI and independent review/merge.
