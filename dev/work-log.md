@@ -5227,3 +5227,62 @@ old supported platforms, Linux ARM64, performance and quality gates. The Linux
 source job records native packages `libpcap0.8t64:amd64` and `libpcap-dev:amd64`
 build1.10.4-4.1ubuntu3.1. Final evidence commit adds only completion/PR records
 and copied machine-readable reports; it does not alter the verified implementation.
+
+## 2026-10-18 — P14-A: JNR-FFI update and native compatibility
+
+Requested implementation, verification and a separate PR, without merge/release/
+publication. Initial `git status --short --untracked-files=all` was clean.
+`bash dev/script/codex.sh doctor` exits0 on Temurin21.0.12.1+1-LTS/macOS15.4.1
+x64: Clojure1.12.6, real libpcap read4 packets/438 bytes. Fetched latest main;
+PR73 is merged as `4a86d666be839e89480bd02d5772dbc5cf87cdb8` at09:58:37UTC
+(18:58:37 Asia/Tokyo), after independent review of final head `ee74766` and all16
+passing jobs in CI39113609011. Review tracks the old Unsafe-denial problem in
+Issue74. Created `codex/p14-a-jnr-ffi` from that main in the supplied checkout.
+
+Official Central metadata/tag/POM recheck confirms latest stable JNR2.3.3,
+although GitHub Releases still labels2.3.2 latest. `deps.edn` changes only JNR;
+Clojure1.12.6, core.async1.6.681, other production/tools, release17 flags and
+1.5.0-SNAPSHOT remain. Details/sources: [P14-A report](p14-a-jnr-verification.md).
+
+Completed local checkpoint (unfiltered logs `/tmp/paclo-p14-a`):
+
+- Before update, `bash dev/script/codex.sh perf`: exit0,849.1ms against unchanged
+  warn1000/fail1200ms, JDK21/macOS x64,50k synthetic74-byte packets. This cold
+  gate has no separate warm-up/allocation/drop instrumentation; it is not a
+  statistically controlled benchmark or NIC throughput result.
+- `bash dev/script/codex.sh prepare`: exit0 with actual Central downloads and
+  bindings/tests compilation. `clojure -Stree`: JNR2.3.3, jffi1.4.3 Java/native,
+  all five ASM9.10.1 modules, assembler1.0.0/1.0.2; analyzer's ASM9.2 is excluded.
+- `bash dev/script/codex.sh package`; `verify_distribution.py prepare`: exit0.
+  JDK21-built JAR918f9da3e2275a367c5bfff69a4cec59369e68eda7a64d37314857b47fda5f79,
+  ten major61 classes, exact inventory/POM and dirty-main provenance recorded.
+- Bundle `verify_distribution.py consume` under actual Temurin17.0.20.1+1,
+  21.0.12.1+1-LTS,25.0.4.1+1-LTS: all exit0, same hashes before/after, external
+  temporary projects/-Srepro and exact native dependency graph/JAR hashes.
+  Actual loaded `/usr/lib/libpcap.A.dylib`, libpcap1.10.1,8-byte C-long/pointer.
+- Separate25 debug and deny consumers both exit0. Default retains StubLoader/
+  System.load native-access warning, no Unsafe warning observed. Debug has no
+  Unsafe trace; deny now passes the entire consumer. Official jffi1.4.3 sources
+  deliberately choose non-Unsafe memory access at JDK>=23. This resolves the
+  measured P13 restriction on this host; no future/all-platform guarantee.
+- Python distribution gate15/15; real build identity5/5; JDK25 runner2/2 and
+  executable-example parser regressions pass. New graph negative controls reject
+  stale/missing/duplicate native and mixed ASM; direct-POM guard now rejects
+  rollback to2.2.14 while retaining other dependency/version/semantics guards.
+- SpotBugs, CheckStyle, JaCoCo and `JACOCO_MIN_LINE=0.25` gate all exit0;
+  coverage80.8%. Same existing JDK21 tool versions and rules.
+- Extra link-parser regression initially fails on this Mac's symlinked default
+  temp path (`/var` versus `/private/var`), unrelated to JNR. Repeating with
+  `TMPDIR=/private/tmp` passes9/9 without source edits; real local-link check
+  passes. No initial failure is counted as success.
+
+Added separate CI Unsafe-deny diagnostic with full logs/original exit status;
+success or specifically attributed old putLong failure is recorded, unexpected
+failures fail the step. Default/debug remain required successes. Supported macOS
+ARM64/Linux ARM64 source jobs additionally run the existing13 JUnit ABI tests
+and native identity/CPU diagnostics. No platform, quality or performance gate
+is removed or weakened. Machine-readable local reports are in `p14-a-evidence`.
+Full21/source25, lint/docs, after-update perf and CI results follow below.
+P14-A is in progress; P14's other candidates remain separately selectable,
+P16 independently ready, P09/P10/P17 conditions unchanged. Independent review
+must precede merge; no release/tag/publication performed.

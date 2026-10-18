@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import struct
 import tempfile
 import unittest
@@ -55,9 +56,12 @@ class DistributionGateTest(unittest.TestCase):
         for options in ((), ("--enable-native-access=ALL-UNNAMED",)):
             with self.subTest(options=options), \
                     patch.object(gate.subprocess, "run", side_effect=execute) as run, \
+                    patch.object(gate.subprocess, "check_output", return_value="classpath"), \
+                    patch.object(gate, "native_dependencies", return_value={"native.jar": "hash"}), \
                     patch.object(gate, "java_version", return_value="JDK25"):
                 report = self.root / "report.json"
                 gate.consume(self.root, report, options)
+                self.assertEqual({"native.jar": "hash"}, json.loads(report.read_text())["native_dependency_sha256"])
                 result = json.loads(report.read_text())
                 self.assertEqual(runtime, result["runtime"])
                 self.assertEqual(manifest["jar_sha256"], result["jar_sha256"])
@@ -168,7 +172,7 @@ class DistributionGateTest(unittest.TestCase):
         for old, new, message in ((b"org.clojars.nanto", b"other", "coordinates"),
                                   (b"1.12.6", b"1.12.1", "dependencies"),
                                   (b"1.6.681", b"1.9.865", "dependencies"),
-                                  (b"2.2.14", b"2.3.3", "dependencies"),
+                                  (b"2.3.3", b"2.2.14", "dependencies"),
                                   (b"</dependency>", b"<scope>test</scope></dependency>", "semantics")):
             with self.subTest(old=old):
                 self.assertIn(old, self.pom)
@@ -185,6 +189,23 @@ class DistributionGateTest(unittest.TestCase):
             jar.write(b"changed after upload")
         with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
             gate.verify(self.root)
+
+    def test_resolved_graph_requires_matching_java_native_and_asm(self):
+        jars = []
+        for name in gate.NATIVE_JARS:
+            path = self.root / name
+            path.write_bytes(name.encode())
+            jars.append(str(path))
+        result = gate.native_dependencies(os.pathsep.join(jars))
+        self.assertEqual(gate.NATIVE_JARS, set(result))
+        self.assertEqual(gate.sha256(self.root / "jffi-1.4.3-native.jar"), result["jffi-1.4.3-native.jar"])
+        for old, new in (("jffi-1.4.3-native.jar", "jffi-1.3.11-native.jar"),
+                         ("asm-tree-9.10.1.jar", "asm-tree-9.2.jar")):
+            with self.subTest(old=old), self.assertRaisesRegex(ValueError, "dependencies changed"):
+                gate.native_dependencies(os.pathsep.join(jars).replace(old, new))
+        for changed in (jars[:-1], jars + [jars[0]]):
+            with self.assertRaisesRegex(ValueError, "dependencies changed"):
+                gate.native_dependencies(os.pathsep.join(changed))
 
 
 if __name__ == "__main__":

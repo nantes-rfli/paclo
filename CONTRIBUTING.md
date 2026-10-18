@@ -232,6 +232,17 @@ The existing JDK 21 SpotBugs, CheckStyle, JaCoCo and performance checks remain
 mandatory; P13 does not claim JDK 25 analyzer/coverage compatibility.
 See the [P13 evidence and support decision](dev/p13-jdk25-verification.md).
 
+P14-A updates JNR-FFI to 2.3.3. Independent consumers additionally require
+jffi Java/native 1.4.3, ASM 9.10.1 and the existing assembler versions, recording
+JAR hashes after actual resolution. A mismatched/missing native classifier or
+mixed ASM graph fails verification. The CI JDK 25 consumer separately records
+`--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=deny`.
+Success under denial is diagnostic evidence, not a formal support requirement;
+only the previously attributed jffi `UnsupportedOperationException: putLong`
+is accepted as a known diagnostic failure, with its original status/log retained.
+Default startup and the debug consumer must still succeed. See the
+[P14-A native compatibility report](dev/p14-a-jnr-verification.md).
+
 ## Handoff
 
 Update the relevant task status and dependencies in `dev/codex-plan.md`.

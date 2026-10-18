@@ -8,6 +8,7 @@ consume runs only the supplied JAR, harness and fixtures, with -Srepro.
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import struct
@@ -37,9 +38,16 @@ CLASSES = {
 DEPENDENCIES = {
     "org.clojure/clojure": "1.12.6",
     "org.clojure/core.async": "1.6.681",
-    "com.github.jnr/jnr-ffi": "2.2.14",
+    "com.github.jnr/jnr-ffi": "2.3.3",
     "org.clojure/data.json": "2.5.0",
     "com.github.spotbugs/spotbugs-annotations": "4.8.6",
+}
+# Verify the selected native/bytecode graph, not just the direct POM declaration.
+NATIVE_JARS = {
+    "jnr-ffi-2.3.3.jar", "jffi-1.4.3.jar", "jffi-1.4.3-native.jar",
+    "jnr-a64asm-1.0.0.jar", "jnr-x86asm-1.0.2.jar",
+    *(f"{name}-9.10.1.jar" for name in
+      ("asm", "asm-commons", "asm-analysis", "asm-tree", "asm-util")),
 }
 FIXTURES = (
     "dns-sample.pcap", "tls-sni-alpn-sample.pcap", "cooked/sll.pcap", "cooked/sll2.pcap",
@@ -109,6 +117,14 @@ def java_version():
     return subprocess.check_output(["java", "-version"], stderr=subprocess.STDOUT, text=True).strip()
 
 
+def native_dependencies(classpath):
+    jars = [Path(entry) for entry in classpath.strip().split(os.pathsep)
+            if Path(entry).name.startswith(("jnr-", "jffi-", "asm-"))]
+    require(len(jars) == len(NATIVE_JARS) and {p.name for p in jars} == NATIVE_JARS,
+            f"Resolved native/ASM dependencies changed: {[p.name for p in jars]}")
+    return {p.name: sha256(p) for p in sorted(jars)}
+
+
 def prepare(jar, output, version):
     root = Path(__file__).resolve().parents[2]
     inspection, pom = inspect_jar(jar, version)
@@ -174,6 +190,8 @@ def consume(bundle, report, java_options=()):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(bundle / name, dest)
         before = sha256(project / "paclo.jar")
+        classpath = subprocess.check_output(["clojure", "-Srepro", "-Spath"], cwd=project, text=True)
+        resolved = native_dependencies(classpath)
         subprocess.run(["clojure", "-Srepro", *["-J" + option for option in java_options],
                         "-M", "-m", "distribution-consumer.consumer", "runtime.json"], cwd=project, check=True, timeout=180)
         runtime = json.loads((project / "runtime.json").read_text())
@@ -181,6 +199,7 @@ def consume(bundle, report, java_options=()):
     result = {"version": manifest["version"], "scm_tag": manifest["scm_tag"],
               "source_commit": manifest["source_commit"], "jar_sha256": before,
               "runtime_java": java_version(), "runtime": runtime,
+              "native_dependency_sha256": resolved,
               "java_options": list(java_options), "status": "passed"}
     report.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
