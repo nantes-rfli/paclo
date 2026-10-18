@@ -5352,3 +5352,74 @@ P14 remains in-progress for separate unselected dependency/tool slices; P16 is
 independently ready. No live NIC, operational throughput, JDK25 ARM64/tools/
 coverage/performance or future-JDK validation is claimed. Final evidence commit
 adds records/reports only; final-head CI is checked in PR75 before handoff.
+
+## 2026-10-18 — P16 external PCAP/PCAPNG interoperability
+
+Started with a clean checkout on `codex/p14-b-core-async`; fetched origin/main
+and switched to `codex/p16-capture-interop` at main `4a113c6`, excluding both
+PR76 commits. Confirmed PR #76 is open/unmerged and Issue #77 open via GitHub
+API. core.async remains1.6.681; no P14-B/C, P17, P09/P10 or release work.
+Read AGENTS, CONTRIBUTING, API contract, accepted plan, P11 inventory, PCAPNG
+guide and P08-A inventory. `doctor`/`prepare` pass with local Temurin21.0.12.1,
+Clojure1.12.6 and native macOS libpcap1.10.1.
+
+Implemented `dev/script/verify_interop.py` and `dev/paclo/dev/interop.clj`:
+actual text2pcap/editcap/mergecap/tcpdump-generated captures, independent Python
+wire oracle, native vs metadata-path assertions, PCAP/PCAPNG output validation
+by tshark/tcpdump, explicit loss/author checks, deterministic corruptions of
+external files and real-input atomic publication/cleanup checks. Captures are
+synthetic RFC5737 UDP traffic, plus one declared P08 synthetic big-endian
+section; no third-party communication or secrets. No production defect was
+reproduced, so no production/API/error-contract/dependency change is made.
+The new report/user guide explain preservation and external normalization.
+
+Local `python3 dev/script/verify_interop.py /tmp/paclo-p16-local-final` passes:
+32 valid inputs,4 corrupt inputs,45 Writer outputs,5 Clojure tests/377 assertions.
+Exact environment/runtime and rewrite inventories are in
+`dev/p16-interop-evidence.json`. Wireshark official app4.6.8 uses system
+libpcap1.10.1; Homebrew tcpdump4.99.7 uses1.11.0. Paclo loads
+`/usr/lib/libpcap.A.dylib`1.10.1. CPU Intel i7-8700B/macOS15.4.1 x86_64.
+Initial sandbox sysctl denial was resolved with approved offline-run escalation.
+The script's commands.json retains full command/exit/output evidence in each
+execution folder; CI uploads all generated files and report JSONs.
+
+Findings: mergecap's leading IDBs cause mixed-link/snaplen native errors before
+any packet; metadata Reader/Writer preserves all four packets. Mixed-endian
+sections retain a two-packet native prefix then fail explicitly. Historical
+P08 EPB private option0x8001 collides with Wireshark's Darwin field: tshark exits14;
+editcap prints corruption but exits0. The probe and exact diagnostics are saved.
+P16 uses0xf123; no silent private-data repair/drop. editcap4.6.8 removes unknown
+blocks/options and changes binary-resolution+offset ticks1740800000129 to
+1740800007296: tshark time1700000007.125976562 →1700000014.125000000. This occurs
+without Paclo; direct preserve retains original ticks and semantics. An initial
+custom-block probe appeared as an extra tshark record, consistent with existing
+opaque-data packet-coverage limits. No upstream message was sent.
+
+Added offline gates to existing Linux x64/JDK21, macOS ARM64/JDK17 and Linux
+ARM64/JDK21 CI jobs. Ubuntu package versions and official macOS Wireshark cask
+identity are logged; per-execution tool versions are artifacts. The aggregate
+also requires ARM64 now. Existing quality, JDK17/21, JDK25 experiment, same-JAR,
+documentation and performance checks remain; no gate/threshold weakened.
+
+Local checks so far:
+
+- `bash dev/script/codex.sh check`: exit0; JUnit13/13,493 Clojure tests /
+  19,130 assertions,0 failures/errors; offline smoke4 packets/438 bytes.
+- `bash dev/script/codex.sh lint`: kondo0 errors/warnings, Eastwood645
+  informational warnings/0 exceptions, LSP clean-ns/format dry-runs unchanged;
+  final npm Markdown step blocked by sandbox DNS (registry.npmjs.org), exit1.
+  Markdown is rerun with escalation; no false passing lint claim.
+- Documentation parser unit tests16/16. Link-checker unit tests initially fail
+  the existing macOS symlink-temp fragment case (`/var` vs `/private/var`);
+  `TMPDIR=/private/tmp python3 -B -m unittest discover -s dev/script -p
+  'test_verify_doc_links.py'` passes9/9. No unrelated parser change. Actual
+  repository link check passes after adding report. Doc examples still running.
+- A first local performance gate overlapped documentation JVMs and failed:
+  1653.6ms against existing1000/1200ms warning/failure budgets. It is retained
+  as a failure; an isolated rerun is pending. No throughput/performance claim.
+- Workflow YAML parses; git diff whitespace check passes. Platform CI, final
+  Markdown/examples/perf and PR status will be recorded below.
+
+P16 is in progress until remote platform evidence is checked. Independent
+review remains required; no merge/release/tag/publication. Local17/25/ARM64,
+live NIC and operational performance remain unverified by this local run.

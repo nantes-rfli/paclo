@@ -1,0 +1,311 @@
+{
+  "date": "2026-10-18 Asia/Tokyo",
+  "environment": {
+    "os": "macOS-15.4.1-x86_64-i386-64bit-Mach-O",
+    "machine": "x86_64",
+    "tools": {
+      "text2pcap": {
+        "path": "/usr/local/bin/text2pcap",
+        "version": "Text2pcap (Wireshark) 4.6.8 (v4.6.8-0-ge677bf052328).\n\nCopyright 1998-2026 Gerald Combs <gerald@wireshark.org> and contributors.\nLicensed under the terms of the GNU General Public License (version 2 or later).\nThis is free software; see the file named COPYING in the distribution. There is\nNO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nCompile-time info:\n Bit width: 64-bit\n  Compiler: Clang 17.0.0 (clang-1700.0.13.5)\n      GLib: 2.86.3\n With:\n\nRuntime info:\n      OS: macOS 15.4.1, build 24E263 (Darwin 24.4.0)\n     CPU: Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz (with SSE4.2)\n  Memory: 32768 MB of physical memory\n    GLib: 2.86.3\n  Locale: LC_TYPE=C\n Plugins: supported, 1 loaded\n With:\n"
+      },
+      "editcap": {
+        "path": "/usr/local/bin/editcap",
+        "version": "Editcap (Wireshark) 4.6.8 (v4.6.8-0-ge677bf052328).\n\nCopyright 1998-2026 Gerald Combs <gerald@wireshark.org> and contributors.\nLicensed under the terms of the GNU General Public License (version 2 or later).\nThis is free software; see the file named COPYING in the distribution. There is\nNO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nCompile-time info:\n Bit width: 64-bit\n  Compiler: Clang 17.0.0 (clang-1700.0.13.5)\n      GLib: 2.86.3\n With:\n\nRuntime info:\n      OS: macOS 15.4.1, build 24E263 (Darwin 24.4.0)\n     CPU: Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz (with SSE4.2)\n  Memory: 32768 MB of physical memory\n    GLib: 2.86.3\n  Locale: LC_TYPE=C\n Plugins: supported, 0 loaded\n With:\n"
+      },
+      "mergecap": {
+        "path": "/usr/local/bin/mergecap",
+        "version": "Mergecap (Wireshark) 4.6.8 (v4.6.8-0-ge677bf052328).\n\nCopyright 1998-2026 Gerald Combs <gerald@wireshark.org> and contributors.\nLicensed under the terms of the GNU General Public License (version 2 or later).\nThis is free software; see the file named COPYING in the distribution. There is\nNO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nCompile-time info:\n Bit width: 64-bit\n  Compiler: Clang 17.0.0 (clang-1700.0.13.5)\n      GLib: 2.86.3\n With:\n\nRuntime info:\n      OS: macOS 15.4.1, build 24E263 (Darwin 24.4.0)\n     CPU: Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz (with SSE4.2)\n  Memory: 32768 MB of physical memory\n    GLib: 2.86.3\n  Locale: LC_TYPE=C\n Plugins: supported, 0 loaded\n With:\n"
+      },
+      "tshark": {
+        "path": "/usr/local/bin/tshark",
+        "version": "TShark (Wireshark) 4.6.8 (v4.6.8-0-ge677bf052328).\n\nCopyright 1998-2026 Gerald Combs <gerald@wireshark.org> and contributors.\nLicensed under the terms of the GNU General Public License (version 2 or later).\nThis is free software; see the file named COPYING in the distribution. There is\nNO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nCompile-time info:\n Bit width: 64-bit\n  Compiler: Clang 17.0.0 (clang-1700.0.13.5)\n      GLib: 2.86.3\n With:\n  +brotli                     +MaxMind\n  +Gcrypt 1.12.2              +nghttp2 1.65.0\n  +GnuTLS 3.8.13 and PKCS#11  +nghttp3 1.9.0\n  +Kerberos (MIT)             +PCRE2 10.45 2025-02-05\n  +libpcap                    +Snappy 1.2.2\n  +libsmi 0.4.8               +xxhash 0.8.3\n  +libxml2 2.15.1             +zlib 1.2.12\n  +Lua 5.4.7                  +zlib-ng 2.2.4\n  +LZ4 1.10.0                 +Zstandard 1.5.7\n Without:\n  -POSIX capabilities\n\nRuntime info:\n      OS: macOS 15.4.1, build 24E263 (Darwin 24.4.0)\n     CPU: Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz (with SSE4.2)\n  Memory: 32768 MB of physical memory\n    GLib: 2.86.3\n  Locale: LC_TYPE=C\n Plugins: supported, 0 loaded\n With:\n  +brotli 1.2.0            +libsmi 0.4.8            +xxhash 803\n  +c-ares 1.34.6           +LZ4 1.10.0              +zlib 1.2.12\n  +Gcrypt 1.12.2           +nghttp2 1.65.0          +Zstandard 1.5.7\n  +GnuTLS 3.8.13           +nghttp3 1.9.0\n  +libpcap 1.10.1          +PCRE2 10.45 2025-02-05\n"
+      },
+      "capinfos": {
+        "path": "/usr/local/bin/capinfos",
+        "version": "Capinfos (Wireshark) 4.6.8 (v4.6.8-0-ge677bf052328).\n\nCopyright 1998-2026 Gerald Combs <gerald@wireshark.org> and contributors.\nLicensed under the terms of the GNU General Public License (version 2 or later).\nThis is free software; see the file named COPYING in the distribution. There is\nNO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nCompile-time info:\n Bit width: 64-bit\n  Compiler: Clang 17.0.0 (clang-1700.0.13.5)\n      GLib: 2.86.3\n With:\n\nRuntime info:\n      OS: macOS 15.4.1, build 24E263 (Darwin 24.4.0)\n     CPU: Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz (with SSE4.2)\n  Memory: 32768 MB of physical memory\n    GLib: 2.86.3\n  Locale: LC_TYPE=C\n Plugins: supported, 0 loaded\n With:\n"
+      },
+      "tcpdump": {
+        "path": "/usr/local/bin/tcpdump",
+        "version": "tcpdump version 4.99.7\nlibpcap version 1.11.0 (64-bit time_t)\nOpenSSL 4.0.3 29 Sep 2026\n64-bit build, 64-bit time_t\n"
+      }
+    },
+    "cpu": "Intel(R) Core(TM) i7-8700B CPU @ 3.20GHz\n",
+    "source": "4a113c60184128df442f3fa152ebf0390cedc6a5",
+    "working_tree": " M .github/workflows/ci.yml\n M CHANGELOG.md\n M CONTRIBUTING.md\n M docs/pcapng.md\n?? dev/paclo/dev/interop.clj\n?? dev/script/verify_interop.py\n?? test/resources/__pycache__/make_capture_format_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_cooked_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_null_loop_fixtures.cpython-315.pyc\n?? test/resources/__pycache__/make_raw_ip_fixtures.cpython-315.pyc\n",
+    "harness_sha256": {
+      "dev/script/verify_interop.py": "474d10ea423f2f8ff432d1170dd58841b080b4024ec87c0e14855da250b62856",
+      "dev/paclo/dev/interop.clj": "9bf3c265fa0ac7232f789fb089c34156b9886afa263486f94472927ac8b3b0c1"
+    }
+  },
+  "runtime": {
+    "native-long-bytes": 8,
+    "native-libraries": [
+      {
+        "names": [
+          "c"
+        ],
+        "paths": [
+          "libc.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "c"
+        ],
+        "paths": [
+          "libc.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      },
+      {
+        "names": [
+          "pcap"
+        ],
+        "paths": [
+          "libpcap.dylib"
+        ]
+      }
+    ],
+    "libpcap-image": "/usr/lib/libpcap.A.dylib",
+    "clojure": "1.12.6",
+    "jvm-arguments": [
+      "-XX:-OmitStackTraceInFastThrow",
+      "-Dclojure.basis=.cpcache/3249439034.basis"
+    ],
+    "jffi-version": "1.4.3",
+    "libpcap-version": "libpcap version 1.10.1",
+    "jnr-ffi-version": "2.3.3",
+    "java": {
+      "java.version": "21.0.12.1",
+      "java.runtime.version": "21.0.12.1+1-LTS",
+      "java.vendor": "Eclipse Adoptium",
+      "java.vm.name": "OpenJDK 64-Bit Server VM",
+      "java.specification.version": "21",
+      "os.name": "Mac OS X",
+      "os.version": "15.4.1",
+      "os.arch": "x86_64"
+    },
+    "native-address-bytes": 8
+  },
+  "tests": {
+    "test": 5,
+    "pass": 377,
+    "fail": 0,
+    "error": 0,
+    "type": "summary"
+  },
+  "result": {
+    "status": "passed",
+    "input_cases": 32,
+    "malformed": 4,
+    "outputs": 45
+  },
+  "normalization": {
+    "original": {
+      "blocks": [
+        168627466,
+        1,
+        6,
+        6,
+        4,
+        2147487510
+      ],
+      "interfaces": [
+        [
+          [
+            2,
+            "7031362d31"
+          ],
+          [
+            9,
+            "8a"
+          ],
+          [
+            14,
+            "0700000000000000"
+          ],
+          [
+            61731,
+            "50313620756e6b6e6f776e"
+          ]
+        ]
+      ],
+      "packets": [
+        [
+          [
+            1,
+            "7269636820636f6d6d656e74"
+          ],
+          [
+            61731,
+            "503136207061636b6574"
+          ]
+        ],
+        [
+          [
+            1,
+            "7269636820636f6d6d656e74"
+          ],
+          [
+            61731,
+            "503136207061636b6574"
+          ]
+        ]
+      ],
+      "records": [
+        {
+          "hex": "000102030405060708090a0b0800450000320001000040110000c0000201c00002022ee00035001e000000000000000000000000000000000000000000000000",
+          "caplen": 64,
+          "len": 64,
+          "ts-sec": 1700000007,
+          "ts-usec": 125976,
+          "linktype": 1,
+          "section-id": 0,
+          "interface-id": 0,
+          "ticks": "1740800000129"
+        },
+        {
+          "hex": "000102030405060708090a0b0800450000320001000040110000c0000201c00002022ee00035001e000000000000000000000000000000000000000000000000",
+          "caplen": 64,
+          "len": 64,
+          "ts-sec": 1700000007,
+          "ts-usec": 125976,
+          "linktype": 1,
+          "section-id": 0,
+          "interface-id": 0,
+          "ticks": "1740800000129"
+        }
+      ]
+    },
+    "editcap": {
+      "blocks": [
+        168627466,
+        1,
+        6,
+        6,
+        4
+      ],
+      "interfaces": [
+        [
+          [
+            2,
+            "7031362d31"
+          ],
+          [
+            9,
+            "8a"
+          ],
+          [
+            14,
+            "0700000000000000"
+          ]
+        ]
+      ],
+      "packets": [
+        [
+          [
+            1,
+            "7269636820636f6d6d656e74"
+          ]
+        ],
+        [
+          [
+            1,
+            "7269636820636f6d6d656e74"
+          ]
+        ]
+      ],
+      "records": [
+        {
+          "hex": "000102030405060708090a0b0800450000320001000040110000c0000201c00002022ee00035001e000000000000000000000000000000000000000000000000",
+          "caplen": 64,
+          "len": 64,
+          "ts-sec": 1700000014,
+          "ts-usec": 125000,
+          "linktype": 1,
+          "section-id": 0,
+          "interface-id": 0,
+          "ticks": "1740800007296"
+        },
+        {
+          "hex": "000102030405060708090a0b0800450000320001000040110000c0000201c00002022ee00035001e000000000000000000000000000000000000000000000000",
+          "caplen": 64,
+          "len": 64,
+          "ts-sec": 1700000014,
+          "ts-usec": 125000,
+          "linktype": 1,
+          "section-id": 0,
+          "interface-id": 0,
+          "ticks": "1740800007296"
+        }
+      ]
+    },
+    "equal": false
+  },
+  "private_option_probe": [
+    {
+      "command": [
+        "editcap",
+        "test/resources/pcapng-contracts/rich.pcapng",
+        "/tmp/paclo-p16-probe/old-collision.pcapng"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "editcap: The file \"test/resources/pcapng-contracts/rich.pcapng\" appears to be damaged or corrupt.\n(pcapng: Darwin option 0x8001 length expected 4, actual 8)\n"
+    },
+    {
+      "command": [
+        "tshark",
+        "-n",
+        "-r",
+        "test/resources/pcapng-contracts/rich.pcapng",
+        "-T",
+        "fields",
+        "-e",
+        "frame.time_epoch"
+      ],
+      "exit": 14,
+      "stdout": "",
+      "stderr": "tshark: The file \"test/resources/pcapng-contracts/rich.pcapng\" appears to be damaged or corrupt.\n(pcapng: Darwin option 0x8001 length expected 4, actual 8)\n"
+    }
+  ]
+}

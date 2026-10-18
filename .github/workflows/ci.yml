@@ -379,7 +379,7 @@ jobs:
   # (including the isolated documentation, compatibility, performance and lint jobs)
   # must succeed, even if another dependency failed or was skipped.
   build:
-    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix, eastwood-lint, distribution-consumer, jdk25-source]
+    needs: [build-checks, documentation-checks, performance-measurement, performance-results, compatibility-matrix, eastwood-lint, distribution-consumer, jdk25-source, arm64-monitor]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -390,6 +390,7 @@ jobs:
           DOCUMENTATION_RESULT: ${{ needs.documentation-checks.result }}
           PERFORMANCE_RESULT: ${{ needs.performance-measurement.result }}
           PERFORMANCE_RESULTS_RESULT: ${{ needs.performance-results.result }}
+          ARM64_RESULT: ${{ needs.arm64-monitor.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility-matrix.result }}
           EASTWOOD_RESULT: ${{ needs.eastwood-lint.result }}
           JDK25_SOURCE_RESULT: ${{ needs.jdk25-source.result }}
@@ -407,6 +408,8 @@ jobs:
           test "$PERFORMANCE_RESULT" = success
           test "$PERFORMANCE_RESULTS_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
+          echo "arm64-monitor=$ARM64_RESULT"
+          test "$ARM64_RESULT" = success
           test "$EASTWOOD_RESULT" = success
           echo "distribution-consumer=$DISTRIBUTION_RESULT"
           test "$DISTRIBUTION_RESULT" = success
@@ -598,7 +601,18 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y libpcap-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libpcap-dev tshark tcpdump
+          dpkg-query -W libpcap0.8t64 libpcap-dev tshark wireshark-common tcpdump
+
+      # Homebrew's cask downloads the signed upstream Wireshark distribution.
+      # No ChmodBPF/capture permissions are installed for this offline gate.
+      - name: Install official Wireshark CLI (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask wireshark
+          echo "/Applications/Wireshark.app/Contents/MacOS" >> "$GITHUB_PATH"
+          echo "/usr/sbin" >> "$GITHUB_PATH"
+          brew info --cask wireshark
 
       - name: Cache Clojure deps
         uses: actions/cache@v4
@@ -632,6 +646,17 @@ jobs:
         run: |
           set -e
           clojure -M:test
+
+      - name: External PCAP and PCAPNG interoperability (offline)
+        run: python3 dev/script/verify_interop.py target/interop
+
+      - name: Upload external interoperability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p16-interop-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+          path: target/interop/
+          if-no-files-found: error
 
       - name: dns-ext smoke (dns-topn)
         shell: bash
@@ -673,7 +698,8 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y libpcap-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libpcap-dev tshark tcpdump
+          dpkg-query -W libpcap0.8t64 libpcap-dev tshark wireshark-common tcpdump
 
       - name: Cache Clojure deps
         uses: actions/cache@v4
@@ -706,6 +732,17 @@ jobs:
         run: |
           set -e
           clojure -M:test
+
+      - name: External PCAP and PCAPNG interoperability (offline)
+        run: python3 dev/script/verify_interop.py target/interop
+
+      - name: Upload external interoperability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p16-interop-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+          path: target/interop/
+          if-no-files-found: error
 
       - name: dns-ext smoke (dns-topn)
         shell: bash
