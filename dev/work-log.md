@@ -5093,10 +5093,14 @@ completed separately. Use the hook's documented per-command
 rerunning those verified stages or introducing tooling changes. Hook files and
 repository quality gates are unchanged.
 
-
 P15 delivery: implementation commit `cc771ea` opens
 [PR #71](https://github.com/nantes-rfli/paclo/pull/71) against main `0ce9490`.
 This final handoff update adds only the PR reference and execution record.
 Final-head normal CI results/URLs are maintained in the PR description after
 all jobs complete; an earlier-head run is not evidence for this updated head.
 The PR remains open for independent review, with no merge or publication.
+
+The sandboxed `lint` wrapper exits1 at npm network/cache access after all Clojure
+static stages pass; the identical Markdown command with normal access exits0.
+The PR-reference append initially introduced one extra blank line (MD012);
+remove it and rerun Markdown before committing the correction.
