@@ -86,7 +86,7 @@
 (defn- fake-lib
   "Fake PcapLibrary returning `rcs` in sequence.
    For rc=1, header/data refs are populated."
-  [{:keys [rcs hdr dat break-calls native-error]}]
+  [{:keys [rcs hdr dat break-calls native-error packet-delay-ms]}]
   (let [rcs* (atom rcs)
         breaks (or break-calls (atom 0))
         hdr' (or hdr (alloc-direct 24))
@@ -99,6 +99,7 @@
                     (do (swap! rcs* rest) v)
                     -2)]
            (when (= 1 rc)
+             (when packet-delay-ms (Thread/sleep (long packet-delay-ms)))
              (set-ref! hdr-ref hdr')
              (set-ref! dat-ref dat'))
            rc))
@@ -224,16 +225,24 @@
 
 (deftest capture->seq-respects-queue-cap
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))
-        {:keys [lib breaks]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat})]
+        {:keys [lib breaks]} (fake-lib {:rcs [1 1 1 -2] :hdr hdr :dat dat :packet-delay-ms 60})
+        stats (promise)]
     (with-redefs [pcap/datalink (constantly 1)
                   pcap/lib lib
                   pcap/open-offline (fn [& _] fake-pcap)]
+      ;; This tests queue capacity/EOF, not a 50ms capture deadline. A slow
+      ;; synthetic read reproduces cold native/JIT work on a busy runner.
       (let [pkts (doall (pcap/capture->seq {:path "dummy"
                                             :queue-cap 2
-                                            :max 10 :max-time-ms 50 :idle-max-ms 20}))]
+                                            :on-queue-stats #(deliver stats %)
+                                            :max 10 :max-time-ms 10000 :idle-max-ms 20}))]
         (is (= 3 (count pkts)))
         (is (= [42 42 42] (map #(aget ^bytes % 0) (map :bytes pkts))))
-        (is (= 1 @breaks))))))
+        (is (= 1 @breaks))
+        (let [snapshot (deref stats 1000 {})]
+          (is (= {:capacity 2 :enqueued 3 :dropped 0}
+                 (select-keys snapshot [:capacity :enqueued :dropped])))
+          (is (<= 1 (get snapshot :max-depth 0) 2)))))))
 
 (deftest capture->seq-reports-blocking-queue-stats
   (let [{:keys [hdr dat]} (make-hdr+dat (byte-array [42]))

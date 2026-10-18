@@ -11,6 +11,14 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update the Clojure library from 1.12.1 to 1.12.6, including the standalone
+  performance-results merger and exact distribution dependency checks. Other
+  production dependencies and the Clojure CLI are unchanged. JDK 17/21 and the
+  v1 API/EDN contracts remain supported. Clojure's Java object serialization
+  restrictions are separate from Paclo's EDN state restoration; applications
+  persisting Clojure runtime objects through Java serialization should review
+  [upstream changes](https://github.com/clojure/clojure/blob/clojure-1.12.6/changes.md).
+
 - Identify ordinary development/CI artifacts as `1.5.0-SNAPSHOT`, separately from
   published v1.4.0. SNAPSHOT POMs name the source commit as their SCM tag;
   distribution verification checks that identity alongside versions and hashes.

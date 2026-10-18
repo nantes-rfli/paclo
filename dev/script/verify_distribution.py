@@ -33,9 +33,9 @@ CLASSES = {
         "PcapLibrary", "PcapLibrary$PcapIf", "PcapStat", "PcapStatsLibrary", "PcapStdioLibrary",
     )
 }
-# The existing published coordinates/dependency graph; changes require review.
+# The reviewed candidate coordinates/dependency graph; changes require review.
 DEPENDENCIES = {
-    "org.clojure/clojure": "1.12.1",
+    "org.clojure/clojure": "1.12.6",
     "org.clojure/core.async": "1.6.681",
     "com.github.jnr/jnr-ffi": "2.2.14",
     "org.clojure/data.json": "2.5.0",

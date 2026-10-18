@@ -1,0 +1,8 @@
+{
+  "version": "1.5.0-SNAPSHOT",
+  "scm_tag": "e05e0c67735be7b4b39a3730dfbe12ed2bd30945",
+  "source_commit": "e05e0c67735be7b4b39a3730dfbe12ed2bd30945",
+  "jar_sha256": "e37dae1b723242d8c0052cbfba8bbe1c9297816648bca4587cf8b24cf60efa11",
+  "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode)",
+  "status": "passed"
+}

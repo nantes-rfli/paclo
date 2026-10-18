@@ -143,9 +143,12 @@ class DistributionGateTest(unittest.TestCase):
 
     def test_rejects_changed_coordinates_or_dependencies(self):
         for old, new, message in ((b"org.clojars.nanto", b"other", "coordinates"),
-                                  (b"1.12.1", b"1.12.2", "dependencies"),
+                                  (b"1.12.6", b"1.12.1", "dependencies"),
+                                  (b"1.6.681", b"1.9.865", "dependencies"),
+                                  (b"2.2.14", b"2.3.3", "dependencies"),
                                   (b"</dependency>", b"<scope>test</scope></dependency>", "semantics")):
             with self.subTest(old=old):
+                self.assertIn(old, self.pom)
                 self.entries[gate.POM_PATH] = self.pom.replace(old, new)
                 self.write_jar()
                 with self.assertRaisesRegex(ValueError, message):

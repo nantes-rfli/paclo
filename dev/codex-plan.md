@@ -60,30 +60,30 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
 | P11 | Unassigned | Inventory current environment and update candidates | — | done |
 | M-SNAPSHOT | Development only | Align development artifact identity before P12 | P11 | done |
-| P12 | Unassigned | Evaluate adoption of the latest stable Clojure | P11 | ready |
+| P12 | Unassigned | Adopt Clojure 1.12.6 with compatibility verification | P11 | done |
 | P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | blocked |
 | P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | ready |
 | P15 | Unassigned | Improve REPL workflows and practical examples | P11 | ready |
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **M-SNAPSHOT development artifact identity — implemented; independent review pending**.
-[PR #69](https://github.com/nantes-rfli/paclo/pull/69) records final-head CI and
-same-JAR identity results before handoff; local verification is complete.
-The independent maintenance slice uses `1.5.0-SNAPSHOT` for ordinary development
-builds, CI and distribution verification. SNAPSHOT POM SCM tags identify Git HEAD;
-release versions retain `v<version>`. Version/dependency/content/hash checks,
-same-JAR JDK17/21 consumers and Publish guards remain required. This assigns no
-formal v1.5.0 release scope/date and changes no published v1.4.0 artifact or tag.
-
-P11 was independently reviewed and merged through
-[PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54` on 2026-10-18.
-The [inventory](p11-environment-inventory.md) remains investigation evidence;
-its proposed identity maintenance is implemented separately in this task.
-P12 is the next unfinished main item after this maintenance PR's full CI and
-independent review/merge; it remains **not started**. P14–P16 are selectable
-independently but are not started by this handoff. P13 still depends on P12;
-P17 additionally needs an explicit need/maturity decision. P09/P10 stay blocked.
+Current task: **P12 Clojure 1.12.6 adoption — implemented; independent review pending**.
+[PR #70](https://github.com/nantes-rfli/paclo/pull/70) contains this P12 slice.
+Local tests, analysis, examples, coverage, existing performance gate, ABBA runtime
+comparison and packaged JDK21 consumer are complete. The P12 report and work log
+retain the measured raw-reduction slowdown and environment limits. Final-head
+normal CI and clean same-JAR JDK17/21 evidence are recorded in the P12 PR before
+handoff; no merge is performed.
+The development identity maintenance was reviewed and merged in
+[PR #69](https://github.com/nantes-rfli/paclo/pull/69) as `e05e0c6` on 2026-10-18.
+P12 starts from that main commit and retains `1.5.0-SNAPSHOT`, the existing CLI,
+all other production dependencies, Java 17 bytecode and supported JDK 17/21.
+P11 was reviewed and merged through
+[PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54`.
+Its [inventory](p11-environment-inventory.md) remains historical investigation
+evidence. P13 is next after P12 verification and independent review/merge;
+P14–P16 are independently selectable and remain unstarted. P17 still requires
+an explicit need/maturity decision. P09/P10 stay blocked.
 
 Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.
 Published on 2026-10-17 (Asia/Tokyo) from fixed release main
@@ -658,10 +658,10 @@ P12–P16 without changing dependencies, tooling, CI, API or support claims.
 
 ## Independent maintenance: development artifact identity before P12
 
-Status: **done** for implementation and local verification; independent review
-and merge pending in [PR #69](https://github.com/nantes-rfli/paclo/pull/69).
-Final-head normal-CI and same-JAR17/21 evidence is recorded in that PR before
-handoff. Depends on: P11 (merged). Authorized on 2026-10-18.
+Status: **done**, independently reviewed and merged in
+[PR #69](https://github.com/nantes-rfli/paclo/pull/69) as `e05e0c6`.
+Final-head normal-CI and same-JAR17/21 evidence is recorded in that PR.
+Depends on: P11 (merged). Authorized on 2026-10-18.
 
 Use `1.5.0-SNAPSHOT` consistently for unpublished development JAR/POM/properties,
 CI paths and verifier expectations. Record the actual source commit for SNAPSHOT
@@ -672,13 +672,23 @@ No dependency/API upgrade, release publication or existing tag/artifact change.
 Acceptance: real SNAPSHOT and release POM resolution; negative version, metadata,
 SCM, dependency, content and hash cases; isolated same-JAR JDK17/21 consumers;
 release-source/metadata/publication guards; complete unchanged normal CI.
-P12 remains next and unstarted until this independent PR is reviewed and merged.
+P12 follows this completed independent maintenance item.
 
 ## P12: Latest stable Clojure evaluation and adoption
 
-Status: **ready** after P11; not started. P11 review/merge is complete. Select
-after the independent development-identity maintenance is verified, reviewed
-and merged, using the inventory's stable-version and risk assessment.
+Status: **done** for implementation and local verification; independent review
+pending. P11 and development-identity maintenance are reviewed and merged.
+Adopt Clojure 1.12.6 in both projects and exact distribution checks, holding other
+dependencies/CLI/Java17/quality gates fixed. All493 tests,36 executable examples,
+static checks and coverage pass; the instrumentation-sensitive DNS assertion is
+corrected against its ownership invariant and passes on Clojure1.12.1/1.12.6.
+A macOS CI queue-test deadline assumption is reproduced with slow synthetic reads
+on both versions and corrected with explicit EOF/capacity/drop checks; production
+time limits and all CI/performance budgets remain unchanged.
+The [P12 report](p12-clojure-1.12.6/README.md) retains ABBA raw measurements,
+including raw-reduce -4.9%, unchanged gate635.9ms and local SNAPSHOT provenance.
+Final-head CI/same-JAR17/21 results are recorded in the P12 PR before handoff.
+P13 is next only after independent review/merge; it is not started here.
 
 Evaluate the latest stable Clojure confirmed by P11; 1.12.6 is the planning
 candidate and must be rechecked before adoption. Preserve the public API and
@@ -692,7 +702,7 @@ missing/blocked checks are not passes. Implement as a separately reviewed PR.
 
 ## P13: JDK 25 compatibility verification
 
-Status: **blocked** by P12. Retain JDK 17/21 support and the Java 17 distribution
+Status: **blocked** pending P12 independent review/merge. Retain JDK 17/21 support and the Java 17 distribution
 baseline while evaluating JDK 25.
 
 Exercise tests, native libpcap/JNR integration and execution of the distribution

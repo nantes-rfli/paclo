@@ -1,0 +1,61 @@
+{
+  "source_commit": "e05e0c67735be7b4b39a3730dfbe12ed2bd30945",
+  "source_dirty": true,
+  "source_sha256": {
+    "src/paclo/capture.clj": "219acd94161116f4737595735702f6333b5c6423593113b09d8f997fa0d061f7",
+    "src/paclo/core.clj": "37b823b3b1c27ee1bb36c84b7c1dbd64fe96a637bdfcc815cd6ac380f14d1afb",
+    "src/paclo/decode_ext.clj": "7b99c8dd3dcebf852c0152b82ea2580afaea4ebe4361cb46c02c8b9920a60045",
+    "src/paclo/dev.clj": "111376be8dbf892c7187cc407d0a4165d2fa772558cc406460e8dfccbf78e0f1",
+    "src/paclo/dns.clj": "d56b83c5a25291f61d7d1d29484d1469321a985805fd745d04d2d1f356cb95d7",
+    "src/paclo/flow/project.clj": "fc16ac881319c5f4a5c5baaf1c43ba007df6498e457d8df4afdac85354adead5",
+    "src/paclo/flow.clj": "65bb2f125d7497c6e821b5f8d58ad3206e763ea9bab9a166de35ffd209cabd92",
+    "src/paclo/linktype.clj": "5a63c9a7169f234e02d7044cbe8e132db5f50d001a906270777adfd7b3bbdc41",
+    "src/paclo/parse.clj": "4db0a4187058fae37d3798a97630010536f05a7daaa448cd7ef54f33941b220e",
+    "src/paclo/pcap.clj": "b86bf90774852cec82e42a1b286f37fa701395003bb920e3af4d91050ebf7df9",
+    "src/paclo/pcapng/cursor.clj": "1b099ba0852dc73d4942a7677d9f48af28c840b33813484a980298ba837ff860",
+    "src/paclo/pcapng/writer.clj": "c2ec539cc68f3256369bfc0cb99da3308b643a01211dee7e4c86f3d8bd3a17ca",
+    "src/paclo/pcapng.clj": "41236ea3d8fc53cacfe805a92079557038c90a27a82caf37a10562c27c016132",
+    "src/paclo/proto/tls_ext.clj": "6eff758b768cd65a89e3650df742802b76f615ed217b17ab48d251ad7a318779",
+    "src/paclo/stream/impl.clj": "61f3ce88162150d7c5843b81200c7d70bd3a3d6e78b4371d1341f03f69ea5df9",
+    "src/paclo/stream.clj": "c29e1a1a73f64c1a43aa46f05e152b4bff35ca15fd5293307d35e7f1e7bca6cc",
+    "src/paclo/window.clj": "9116c77f4be787d4ec3c641376a4609cf00d3389cd3255ff161fb4d6a001c1fb",
+    "src-java/paclo/jnr/BpfProgram.java": "26324fd1a38eb3447e20686303f8fe278327b006bba39ae19936a7bd760f2823",
+    "src-java/paclo/jnr/PcapConfigLibrary.java": "ef8dffb2f6dd93124815c7229e4e3a0e28064046b0304b3ae1bd6ad8b5d4b327",
+    "src-java/paclo/jnr/PcapErrors.java": "ab9432c289b0d32d6d884a3ff777ebdf4183c7d65c8fef7ec4323119d4748d97",
+    "src-java/paclo/jnr/PcapHandle.java": "5ee76bef96d2a89d8cab0e9e71bd1a3f5fce2184f09e559224d24dc1cc9a8701",
+    "src-java/paclo/jnr/PcapHeader.java": "cbea89ef030c57c051bf14bc703169f38b7ea4a52650252ccb9f326789953659",
+    "src-java/paclo/jnr/PcapLibrary.java": "520a9165323d15537f4b13db6513c39280ae56eb7e89b7a3ddf74c31304c4b5b",
+    "src-java/paclo/jnr/PcapStat.java": "c3a7c9fe257f21f87db9c53bb09e3b3481279fd93191cc79eed0a89bf2f69107",
+    "src-java/paclo/jnr/PcapStatsLibrary.java": "c5e41d42fce6bc31b206fa45a92f08778e676121e154218be80628026345862e",
+    "src-java/paclo/jnr/PcapStdioLibrary.java": "9b92e9ec80ab45caacd12052497bc6e6c2b3a7782b91a071818c986862cab186",
+    "dev/paclo/dev/perf.clj": "fbb204003c71b7ae6be594e9e943d656dd46a028d965b89ee18426ec08222e75",
+    "dev/paclo/dev/perf_data.clj": "7b5c1753d085d7aae2352c33a24e16f2e30d6e4b7ced58b6a6857732c215caf5",
+    "dev/paclo/dev/perf_gate.clj": "0a2210c9c77a3a4cae9fb444f19968952c38aaffdc3a7af6f4527ad4bad08449",
+    "dev/paclo/dev/perf_generator.clj": "6169612874d56bca1b13a616c855407ae05c65bd31cc7dfedf46fa7dd126df96",
+    "dev/paclo/dev/perf_merge.clj": "aedd537bf7720a95be9a38837c0bc52481dab29db11e06c4ab30fa3379924c0d",
+    "dev/paclo/dev/perf_metrics.clj": "a68c4edabe79df1c777c8d9ca1531f8ce281b66daf801f59078f8adac4418805",
+    "dev/paclo/dev/perf_spec.clj": "03d1b449c032e7a7d3b884db50185f2274b277018a6d5203d46bca745ad2e50a",
+    "dev/paclo/dev/perf_worker.clj": "f94032b63c44e088a65fbb51c53cb87c0668630c5151ebe052b023d9a7829c20"
+  },
+  "packets": 50000,
+  "warmups": 5,
+  "runs": 7,
+  "runtime_order": [
+    "1.12.1",
+    "1.12.6",
+    "1.12.6",
+    "1.12.1"
+  ],
+  "scenarios": [
+    "raw-reduce",
+    "full-decode",
+    "full-reduce",
+    "flow-reduce",
+    "write-pipeline"
+  ],
+  "jvm_flags": [
+    "-XX:-OmitStackTraceInFastThrow",
+    "-Xms512m",
+    "-Xmx512m"
+  ]
+}

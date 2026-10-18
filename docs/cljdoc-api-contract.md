@@ -857,6 +857,14 @@ Explicit selection and the public annotations are additions in `v1.4.0`
 
 ## Stability notes
 
+Unreleased development selects Clojure 1.12.6. EDN state restoration and the
+v1 contracts remain unchanged. Java object serialization of Clojure runtime
+objects (including lazy sequences, `Iterate` and compiler thunks) is not a Paclo
+persistence contract; Clojure 1.12.2–1.12.6 changes that behavior. Use the documented
+EDN state representation for flow/window/DNS restoration; packet byte arrays and
+resource handles are not EDN state. See the
+[upstream versioned changes](https://github.com/clojure/clojure/blob/clojure-1.12.6/changes.md).
+
 - Items above are the v1.x compatibility baseline.
 - Backward-compatible additive changes are allowed in v1.x.
 - Internal namespace details are intentionally excluded from this contract.

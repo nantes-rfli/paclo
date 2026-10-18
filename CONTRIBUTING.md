@@ -8,6 +8,7 @@ Future API sketches in the plan are not available in the current release.
 
 Use Linux or macOS, JDK 21 (JDK 17 is also supported), the Clojure CLI, and
 libpcap. `deps.edn` selects the Clojure library version; the CLI version is separate.
+The current development library baseline is Clojure 1.12.6.
 The managed cloud environment currently supplies JDK 21, CLI 1.11.1.1435,
 and libpcap. No application server, database, capture privileges, or publication
 credentials are needed for ordinary offline development.
