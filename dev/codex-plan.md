@@ -57,21 +57,27 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P08-E3 | v1.4.0 | Explicit PCAPNG writer preservation and loss policies | P08-E2 | done |
 | P09 | Later | Optional integrations and reducible-source investigation | Demonstrated use case | blocked |
 | P10 | Conditional | Borrowed buffers, batching, parallel decode, or mmap | Measured target shortfall | blocked |
-| P11 | Unassigned | Inventory current environment and update candidates | — | ready |
-| P12 | Unassigned | Evaluate adoption of the latest stable Clojure | P11 | blocked |
+| P11 | Unassigned | Inventory current environment and update candidates | — | done |
+| P12 | Unassigned | Evaluate adoption of the latest stable Clojure | P11 | ready |
 | P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | blocked |
-| P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | blocked |
-| P15 | Unassigned | Improve REPL workflows and practical examples | P11 | blocked |
-| P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | blocked |
+| P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | ready |
+| P15 | Unassigned | Improve REPL workflows and practical examples | P11 | ready |
+| P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **Next-development planning — documentation prepared for review**.
-This update changes Markdown planning documents only. P11 is the next unfinished
-item and the only immediately ready item; no inventory, upgrade or feature
-implementation is performed here. P12 then P13 form the primary compatibility
-sequence. After P11, P14–P16 can be selected separately using its risk/priority
-recommendations; they need not wait for P12. P17 additionally requires an explicit
-need/maturity decision. Do not start all candidates together or unblock P09/P10.
+Current task: **P11 environment inventory — investigation complete, independent review pending**.
+The [inventory](p11-environment-inventory.md) records repository/local/remote-CI
+versions, official candidates, risks, independent PR slices and acceptance.
+Only Markdown documents change. No upgrade, CI/build/version/API change or
+candidate-runtime verification is performed. P12 is the next unfinished main
+item after P11 review; P14–P16 are also selectable independently. None is started
+by this handoff. P13 still depends on P12; P17 additionally needs an explicit
+need/maturity decision. P09/P10 retain their blocked conditions.
+
+The inventory recommends a separate development-SNAPSHOT identity maintenance
+PR before comparing candidate builds. `1.5.0-SNAPSHOT` is a proposal, not an
+assigned version, release scope or release date. This follow-up and other new
+findings require independent selection/review; P11 does not implement them.
 
 Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.
 Published on 2026-10-17 (Asia/Tokyo) from fixed release main
@@ -102,8 +108,10 @@ fallback is `1.4.0-SNAPSHOT`. After #66, that CI validation JAR includes unrelea
 code under a published version identity; it does not redeploy to Clojars.
 A separate small PR should select the next development SNAPSHOT and align the
 override, artifact path, verifier version and fallback. This planning PR does not
-assign a new development version or change CI/build/release settings. P11 should
-record this mismatch when inventorying CI; historical release evidence stays intact.
+assign a new development version or change CI/build/release settings. The
+[P11 inventory](p11-environment-inventory.md#development-artifact-identity-independent-maintenance-proposal)
+now records the proposed independent maintenance scope and acceptance; historical
+release evidence stays intact.
 E1 merged as `2e7e357` through PR #47; Issue #48's full Eastwood gate fix merged
 as `008c93b` through PR #49. E2 merged as `8de22e0` through PR #50;
 E3 merged as `b83bd31` through [PR #53](https://github.com/nantes-rfli/paclo/pull/53).
@@ -622,7 +630,15 @@ the wired-to-wired real-NIC ceiling remains separate from loopback evidence.
 
 ## P11: Current environment inventory
 
-Status: **ready**. Depends on: none. Next execution target; investigation only.
+Status: **done** (investigation prepared; independent review pending). Depends on: none.
+Completed on 2026-10-18 against main `97873f7`; see the
+[environment inventory](p11-environment-inventory.md) and [work log](work-log.md).
+Clojure 1.12.6 and CLI 1.12.5.1664 are upstream stable candidates; no candidate
+was installed/tested and JDK25 remains unverified. A separate development-SNAPSHOT
+identity maintenance proposal precedes candidate artifact comparisons.
+Review follow-up: the inventory distinguishes GitHub Release2.3.2 from published
+JNR2.3.3/jffi1.4.3 tag/Central evidence; P14 remains a separate evaluation.
+This completion changes no production/dependency/build/CI/version setting.
 
 Inventory the repository-selected Clojure library, JDK support, Clojure CLI,
 production/optional/build dependencies, development tools and actual CI matrix.
@@ -638,7 +654,8 @@ P12–P16 without changing dependencies, tooling, CI, API or support claims.
 
 ## P12: Latest stable Clojure evaluation and adoption
 
-Status: **blocked** by P11. Start after its stable-version and risk assessment.
+Status: **ready** after P11; not started. Select after independent P11 review,
+using its stable-version and risk assessment.
 
 Evaluate the latest stable Clojure confirmed by P11; 1.12.6 is the planning
 candidate and must be rechecked before adoption. Preserve the public API and
@@ -666,8 +683,8 @@ separately from the compatibility experiment, using the resulting evidence.
 
 ## P14: Dependency and development-tool update evaluation
 
-Status: **blocked** by P11. May be selected after the inventory independently
-of P12; use P11's recommended risk/order assessment.
+Status: **ready** after P11; not started. May be selected after independent P11
+review, independently of P12; use the inventory's recommended risk/order assessment.
 
 Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant
 update candidates. Keep CLI and Clojure library versions distinct and optional
@@ -681,8 +698,8 @@ upgrade or weakening quality/performance gates.
 
 ## P15: REPL workflows and practical examples
 
-Status: **blocked** by P11. Select a scoped documentation/workflow slice after
-the inventory; no new API is approved by this item.
+Status: **ready** after P11; not started. Select a scoped documentation/workflow
+slice after independent P11 review; no new API is approved by this item.
 
 Use existing public APIs to assess concise REPL workflows for PCAP read/write,
 Flow analysis and DNS analysis. Preserve ordinary maps, functions, reducers and
@@ -695,7 +712,8 @@ proposal. New APIs, frameworks or pipeline abstractions require separate review.
 
 ## P16: Real PCAP/PCAPNG interoperability verification
 
-Status: **blocked** by P11. Select a bounded input/tool matrix after the inventory.
+Status: **ready** after P11; not started. Select a bounded input/tool matrix
+after independent P11 review.
 
 Verify captures generated by external tools, multiple interfaces/link types,
 timestamps/precision, metadata, malformed inputs and long-running processing.

@@ -4595,3 +4595,116 @@ PR. Do not start P12–P17, P09/P10 or maintenance implementation in this task.
 Leave the independent PR open for review without merging. Its URL, exact head
 and final CI results belong in the PR description/chat to avoid a self-referential
 evidence-only commit. No independent approval is claimed by the author's diff review.
+
+## P11 environment inventory (2026-10-18)
+
+Investigation only, using the supplied checkout. Initial status was clean on
+`codex/next-development-plan` at `90e82a4`. Fetched origin main/tags, verified
+[PR #67](https://github.com/nantes-rfli/paclo/pull/67) merged at
+2026-10-18 00:41:22 UTC as `97873f79eb5360d47b59692127e760e4ea1ec188`, and created
+`codex/p11-environment-inventory` from that latest main. No extra worktree.
+Read AGENTS, CONTRIBUTING, the accepted plan/public API contract, roadmap,
+deps/build, all four workflows, native/distribution/stream code and release evidence.
+
+Created [dev/p11-environment-inventory.md](p11-environment-inventory.md), with
+2026-10-18 check date, source URLs, current/candidate comparisons for every
+deps.edn dependency, local/floating/pinned tool distinctions, CI coverage and
+an independent-PR/acceptance matrix. Official release notes, source histories,
+GitHub release/tag APIs, Maven Central POMs and Clojars artifact APIs were read;
+no candidate was installed, resolved into Paclo or executed.
+
+Key decisions and findings:
+
+- Clojure1.12.6 and CLI1.12.5.1664 are separately confirmed stable candidates.
+  Recommend P12 early for correctness and the upstream Java-deserialization
+  security advisory; found no ObjectInputStream/readObject usage in Paclo source,
+  Java, examples or tests, without claiming downstream applications are safe.
+- Record Clojure1.13-alpha9/Java17/map/tooling risks for conditional P17.
+  JDK25 remains unverified. `environment-check` explicitly rejects JDK25 and
+  Clojure1.13; propose direct experimental commands instead of broadening support.
+- Native Paclo `.pcap_lib_version` reports1.10.1, while local tcpdump4.99.7 links
+  libpcap1.11.0. Loaded library provenance matters; neither updates the other.
+  JNR2.3.2's published POM still selects jffi1.4.0 despite separate1.4.1 availability.
+- Recommend independent development-SNAPSHOT identity maintenance before upgrade
+  comparisons. `1.5.0-SNAPSHOT` is a proposed identifier only. Inventory covers
+  CI override/JAR path/verifier defaults/tests/docs/POM SCM identity and release
+  guards; no version or configuration is changed. Public1.4.0 remains `74a17b0`;
+  DNS PR #66 is unreleased. No release scope/date/tag/publication is assigned.
+- P11 investigation is complete, pending independent review. P12 is the next
+  unfinished main item after review; P14–P16 become selectable but are not started.
+  P13/P17 dependencies and P09/P10 blocked conditions remain unchanged.
+  New findings are proposals, with no implementation added to later items.
+
+Actual verification:
+
+- `git status --short --untracked-files=all`: initially clean.
+- `bash dev/script/codex.sh doctor`: exit0 before/after selecting main baseline;
+  macOS15.4.1 x86_64, Temurin21.0.12.1+1, Clojure1.12.1/CLI1.12.5.1654,
+  four native offline packets/438 bytes. Existing Java compilation only.
+- `clojure -Stree`, native version call, JDK/CLI/kondo/LSP/Node/npm/tcpdump
+  version reads: exit0; observations and transitive graph recorded in inventory.
+  Local kondo2026.05.25/LSP2026.05.05 differ from pinned CI. No local JDK17/25.
+  `uname -sm` reports Darwin x86_64; sandbox blocks the optional sysctl CPU-model
+  query, so no physical CPU-model claim is made.
+- `dev/script/mdlint.sh`: network-enabled run passes all50 Markdown files,
+  zero errors, exit0. Initial sandbox npx attempt failed with npm ENOTFOUND for
+  registry.npmjs.org and an unwritable npm log directory; it is not counted as
+  a passing run. Same pinned tool/rules.
+- `python3 dev/script/verify_doc_links.py`: exit0, local paths and heading anchors.
+  External sources were read separately; this checker does not validate URLs.
+- Read-only consistency assertions: P01–P10 rows/expansion conditions unchanged;
+  P11–P17 task scopes/dependencies preserved, readiness agrees between table and
+  sections; only the intended Markdown files differ. Previous log bytes preserved.
+- `git diff --check` and author's complete diff review pass. No runnable examples
+  change; no local check/static-analysis/coverage/performance/package suite is
+  claimed. Such runtime checks are unnecessary locally for this documentation-only
+  task; unchanged normal PR CI is still required and checked before delivery.
+- GitHub baseline [CI39083684502](https://github.com/nantes-rfli/paclo/actions/runs/39083684502)
+  at main97873f7: all14 jobs success, including actual Run cloverage step and
+  Linux ARM64. Inspected job conclusions and failure steps. Main branch API
+  reports no branch protection/required contexts; retain workflow build aggregate
+  and independent review. Latest successful audit39017436182 covers release74a17b0,
+  not a new main audit. Its saved NVD/OSS Index scope limits remain explicit.
+
+Delivery uses the hook's supported `SKIP_TESTS=1`, `SKIP_FMT=1`, `SKIP_KONDO=1`
+flags for Markdown-only work; Markdown lint remains enabled. No hook is edited.
+Final commit/PR URL and final-head normal CI results belong in the PR description
+and chat rather than a self-referential log commit. Leave P11's independent PR
+open and unmerged, awaiting review. No independent approval is claimed here.
+
+## P11 review: published JNR candidate correction (2026-10-18)
+
+Address [PR #68 review comment](https://github.com/nantes-rfli/paclo/pull/68#issuecomment-6244034488).
+Initial checkout was clean on `codex/p11-environment-inventory` at `3e62b0d`;
+fetched main/PR branch without changing the baseline. The initial inventory
+mistakenly treated latest GitHub Release 2.3.2 as the latest published JNR candidate.
+Its 2.3.2/jffi1.4.0 POM observation was correct but incomplete.
+
+Rechecked official sources at 2026-10-18 10:07 Asia/Tokyo using GitHub tag/release/
+compare APIs, tagged source POM and Maven Central metadata/POMs. The 2.3.3
+annotated tag is dated 2026-09-15 17:54:57 UTC and points to `d6883b44`;
+Central metadata lists 2.3.3 (lastUpdated 20260915181839). Both 2.3.3 POMs select
+jffi 1.4.3 for compile and runtime/native dependencies and retain ASM 9.10.1.
+The 2.3.2-to-2.3.3 official diff changes only project version and those jffi pins.
+GitHub latest Release still reports 2.3.2. Downloaded/read POMs only; no candidate
+JAR/native binary was installed, resolved into Paclo or executed.
+
+Corrected the dependency table, transitive comparison, P14 PR slice and P11 plan
+completion note. Keep 2.3.2 as explicitly labeled GitHub Release/historical POM
+evidence, with 2.3.3/jffi 1.4.3 as the published evaluation candidate. Update PR
+body to match and keep previous-head CI evidence distinct from corrected-head CI.
+The previous work-log entry is preserved as historical evidence; this correction
+supersedes its incomplete candidate selection. No implementation/dependency/CI/
+build/version changes and no new task/adoption/support decision.
+
+Verification: `bash dev/script/codex.sh doctor` passes with existing macOS x86_64,
+JDK21.0.12.1/Clojure1.12.1/CLI1.12.5.1654 and four offline packets/438 bytes.
+`dev/script/mdlint.sh` passes all 50 files/zero errors after fixing one new-log
+blank-line warning; `python3 dev/script/verify_doc_links.py`, `git diff --check`
+and read-only POM/candidate/scope/plan/log-preservation assertions pass.
+Final-head normal CI results are retained in the PR body.
+No runnable example changes; local runtime/performance/package suites and
+candidate compatibility tests are not run for this documentation correction.
+Use the existing Markdown-only hook flags, retaining Markdown lint. Leave the
+PR open and unmerged for independent review; no merge authority is inferred
+from the reviewer's recommendation.
