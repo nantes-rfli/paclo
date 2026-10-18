@@ -44,6 +44,29 @@ class DistributionGateTest(unittest.TestCase):
             for name, value in self.entries.items():
                 jar.writestr(name, value)
 
+    def test_consumer_preserves_runtime_evidence_and_scopes_diagnostic_options(self):
+        manifest = self.write_bundle()
+        runtime = {"java": {"java.specification.version": "25"},
+                   "libpcap-version": "fixture version", "libpcap-image": "/lib/libpcap.so"}
+
+        def execute(command, cwd, **kwargs):
+            (cwd / "runtime.json").write_text(json.dumps(runtime))
+
+        for options in ((), ("--enable-native-access=ALL-UNNAMED",)):
+            with self.subTest(options=options), \
+                    patch.object(gate.subprocess, "run", side_effect=execute) as run, \
+                    patch.object(gate, "java_version", return_value="JDK25"):
+                report = self.root / "report.json"
+                gate.consume(self.root, report, options)
+                result = json.loads(report.read_text())
+                self.assertEqual(runtime, result["runtime"])
+                self.assertEqual(manifest["jar_sha256"], result["jar_sha256"])
+                self.assertEqual(list(options), result["java_options"])
+                command = run.call_args.args[0]
+                self.assertIn("-Srepro", command)
+                self.assertEqual(["-J" + option for option in options],
+                                 [arg for arg in command if arg.startswith("-J")])
+
     def test_java17_artifact(self):
         self.write_jar()
         inspection, pom = gate.inspect_jar(self.jar, self.version)

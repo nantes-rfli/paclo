@@ -164,7 +164,7 @@ def verify(bundle):
     return manifest
 
 
-def consume(bundle, report):
+def consume(bundle, report, java_options=()):
     manifest = verify(bundle)
     # A fresh project outside the checkout, with only the artifact and test inputs.
     with tempfile.TemporaryDirectory(prefix="paclo-distribution-") as tmp:
@@ -174,11 +174,14 @@ def consume(bundle, report):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(bundle / name, dest)
         before = sha256(project / "paclo.jar")
-        subprocess.run(["clojure", "-Srepro", "-M", "-m", "distribution-consumer.consumer"], cwd=project, check=True, timeout=180)
+        subprocess.run(["clojure", "-Srepro", *["-J" + option for option in java_options],
+                        "-M", "-m", "distribution-consumer.consumer", "runtime.json"], cwd=project, check=True, timeout=180)
+        runtime = json.loads((project / "runtime.json").read_text())
         require(before == sha256(project / "paclo.jar") == manifest["jar_sha256"], "Consumer changed JAR")
     result = {"version": manifest["version"], "scm_tag": manifest["scm_tag"],
               "source_commit": manifest["source_commit"], "jar_sha256": before,
-              "runtime_java": java_version(), "status": "passed"}
+              "runtime_java": java_version(), "runtime": runtime,
+              "java_options": list(java_options), "status": "passed"}
     report.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
 
@@ -195,13 +198,15 @@ def main():
         sub.add_argument("bundle", type=Path)
         if command == "consume":
             sub.add_argument("--report", type=Path, required=True)
+            sub.add_argument("--java-option", action="append", default=[],
+                             help="Diagnostic JVM option; use --java-option=--option=value")
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.jar.resolve(), args.output.resolve(), args.version)
     elif args.command == "verify":
         verify(args.bundle.resolve())
     else:
-        consume(args.bundle.resolve(), args.report.resolve())
+        consume(args.bundle.resolve(), args.report.resolve(), args.java_option)
 
 
 if __name__ == "__main__":

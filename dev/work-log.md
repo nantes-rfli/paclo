@@ -5104,3 +5104,69 @@ The sandboxed `lint` wrapper exits1 at npm network/cache access after all Clojur
 static stages pass; the identical Markdown command with normal access exits0.
 The PR-reference append initially introduced one extra blank line (MD012);
 remove it and rerun Markdown before committing the correction.
+
+## 2026-10-18 — P13 JDK 25 compatibility experiment
+
+User-authorized scope: implement P13, provision/run real JDK25 source and
+independent distribution checks, retain17/21 and existing quality/performance
+checks, record evidence and create one PR without merging/releasing/tagging.
+The checkout was clean. Fetched latest main and confirmed P15 PR #71 merged
+at2026-10-18T08:10:36Z as `e2a5eb11617aa5e364da340672424fac284d0251`; created
+`codex/p13-jdk25` there in the supplied checkout. Read CONTRIBUTING, API contract,
+accepted plan and P11's JDK25 experiment policy before implementation.
+
+Implementation: retain all production sources/dependencies and release17 flags.
+Add three real native JUnit ABI/error/close checks; extend the existing consumer
+with real BPF and failed-open/interface checks, JSON runtime/loader identity,
+and diagnostic-only dladdr of the loaded libpcap symbol. `verify_distribution`
+retains hash/source/classpath checks and default launch, supports separately
+scoped JVM diagnostic options and preserves runtime evidence. New
+`verify_jdk25.py` uses actual-major guard and direct source/JUnit/Clojure/native
+commands with unfiltered logs. Two negative controls cover incorrect JDK aliases
+and fatal JUnit failure/warning preservation; the distribution regression covers
+runtime report preservation and diagnostic-option scoping. Add required Linux
+x64 source job and third same-JAR consumer, preserving all previous aggregate,
+17/21, quality, performance and platform checks. No support-guard widening.
+
+Local results and environment details are in
+[the P13 report](p13-jdk25-verification.md) and `dev/p13-evidence/`:
+
+- `bash dev/script/codex.sh doctor` on Temurin21.0.12.1+1: exit0, actual native
+  read4 packets/438 bytes. CLI1.12.5.1654; Clojure1.12.6; macOS15.4.1 x64.
+- Provisioned official checksum-verified Temurin17.0.20.1+1 and25.0.4.1+1-LTS
+  under `/tmp/paclo-p13/jdks`. Excluded Homebrew `openjdk@25` alias because it
+  actually resolves to26.0.2.1. CPU Intel i7-8700B; exact archive URLs/checksums
+  and JVM identities retained in JSON. No system JDK/library was replaced.
+- JDK21 `bash dev/script/codex.sh package` and `verify_distribution.py prepare`:
+  exit0, ten major61 binding classes, fixed POM dependency graph. Single candidate
+  JAR SHA256 `1acc1ee887dfcf9f9ac2ad18ceabad0267c14f20fa4826d7e066493e774aa015`.
+  Source main SHA retained with dirty harness edits explicitly recorded.
+- Bundle verifier `consume` on17/21/25: each exits0, isolated temporary project,
+  `-Srepro`, verified unchanged same JAR, real native/BPF, DNS/Flow/TLS/window,
+  six DLT Classic round trips, rich PCAPNG round trip, early close and managed
+  fan-out shutdown. Final harness reports dladdr `/usr/lib/libpcap.A.dylib`,
+  libpcap1.10.1, JNR2.2.14/jffi1.3.11, 8-byte pointers/C-long on all three.
+- JDK25 `python3 dev/script/verify_jdk25.py /tmp/paclo-p13/source25-final`:
+  exit0; direct javac/javac-test with unchanged release17/Werror flags,
+  JUnit13/13 (zero skipped), Clojure493 tests/19,130 assertions, zero failures/
+  errors, native smoke/interface enumeration and dependency inventory. No
+  doctor/smoke guard bypass or skipped tests. Initial new double-close test
+  placement failed `-Xlint:try`/Werror; explicit try/finally fixed the test while
+  retaining double-close coverage, flags and production behavior.
+- Default JDK25 reports jffi StubLoader/System.load native-access and
+  UnsafeMemoryIO64/putLong warnings. Separate native-access-enabled + Unsafe
+  debug consumer exits0 and retains full call-site stacks. Unsafe deny (native
+  access enabled) intentionally exits1 with UnsupportedOperationException
+  putLong in jffi registration. This future restriction belongs to P14; no
+  native-access option or warning suppression is added to default execution.
+- Distribution Python gate14/14 and actual build identity5/5 pass. New JDK25
+  runner negative controls2/2 pass. clj-kondo changed harness: zero warnings/
+  errors; applied only its namespace/format corrections using existing LSP.
+- Local raw logs are retained at `/tmp/paclo-p13`; CI will upload logs and JSON.
+  JDK21 full check, quality/lint/docs and final-head CI results follow below.
+
+Decision: default JDK25 runtime/source compatibility is demonstrated on this
+macOS x64 host. Keep17/21 formal support; require separate platform/live/workload/
+JDK25-tool evidence before a broader declaration. Current JDK21 quality gates
+remain mandatory. P14 is the next unfinished independent queue item; P16 remains
+ready. P17/P09/P10 conditions are unchanged. No merge/publication is authorized.

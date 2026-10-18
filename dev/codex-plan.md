@@ -61,21 +61,22 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P11 | Unassigned | Inventory current environment and update candidates | — | done |
 | M-SNAPSHOT | Development only | Align development artifact identity before P12 | P11 | done |
 | P12 | Unassigned | Adopt Clojure 1.12.6 with compatibility verification | P11 | done |
-| P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | ready |
+| P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | in-progress |
 | P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | ready |
 | P15 | Unassigned | Improve REPL workflows and practical examples | P11 | done |
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P15 REPL workflows — implemented and locally verified; independent review pending**.
-The [offline REPL walkthrough](../docs/repl.md) covers packet inspection, address/
-port/protocol filtering, bounded bidirectional Flow aggregation, DNS correlation
-and Classic PCAP write/reload. Four exact fixture checks join the existing
-documentation gate (40 examples total), and a fresh wrapper REPL executes every
-block successfully. No new public API, dependency or framework is needed.
-P13, P14, P16 and P17 are outside this task.
-[PR #71](https://github.com/nantes-rfli/paclo/pull/71) contains P15; final-head
-CI evidence is maintained there. Do not merge P15 before independent review.
+Current task: **P13 JDK 25 compatibility — implemented; CI/verification in progress**.
+Started from main `e2a5eb1` after P15 [PR #71](https://github.com/nantes-rfli/paclo/pull/71)
+merged on 2026-10-18. The [P13 report](p13-jdk25-verification.md) records a single
+JDK21-built JAR passing independent 17/21/25 consumers on macOS x64, plus JDK25
+source compilation, JUnit13 and the full493-test/19,130-assertion Clojure suite.
+Default native-access/Unsafe warnings are retained; debug succeeds and Unsafe
+deny fails in jffi registration. New required Linux x64 CI reproduces the
+experiment. Formal support remains17/21; other JDK25 platforms/live capture,
+quality tools and performance remain unverified. Independent review is required
+before merge. No release, tag, publication or dependency update is included.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
@@ -92,7 +93,8 @@ P11 was reviewed and merged through
 [PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54`.
 Its [inventory](p11-environment-inventory.md) remains historical investigation
 evidence. P13 is the next unfinished queue item now that P12 is reviewed and merged;
-it remains unstarted. P14–P16 are independently selectable; P15 is selected here. P17 still requires
+P13 is selected here. P14 is the next unfinished independent queue item; P16
+is also ready. P15 is merged. P17 still requires
 an explicit need/maturity decision. P09/P10 stay blocked.
 
 Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.
@@ -713,8 +715,10 @@ missing/blocked checks are not passes. Implement as a separately reviewed PR.
 
 ## P13: JDK 25 compatibility verification
 
-Status: **ready** after P12 independent review/merge; not started. Retain JDK
-17/21 support and the Java 17 distribution baseline while evaluating JDK 25.
+Status: **in-progress**; implementation and local JDK25 experiment pass, final
+CI and supported-runtime checks pending. See the [P13 report](p13-jdk25-verification.md)
+and [work log](work-log.md). Retain JDK17/21 formal support and Java17 compilation;
+JDK25 all-platform support is a separate decision. P14 remains separately scoped.
 
 Exercise tests, native libpcap/JNR integration and execution of the distribution
 JAR on JDK 25. Distinguish runtime verification from compilation checks; preserve
