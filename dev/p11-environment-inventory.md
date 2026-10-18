@@ -257,7 +257,7 @@ Repository workflow inventory (no changes proposed as part of P11):
 | `build-checks` | Ubuntu latest x64 / JDK21 | One JAR, distribution verifier + tests, JUnit, native smoke, SpotBugs, CheckStyle, JaCoCo >=25%, performance 1000ms warn/1200ms fail, DNS CLI exit status, LSP dry-runs, kondo, Markdown |
 | `documentation-checks` | Ubuntu latest x64 / 21 | Link/example checker unit tests, actual maintained examples, namespace load via cljdoc 0.0.1315-c9e9a7e (workflow-only dependency) |
 | `compatibility-matrix` | Ubuntu latest x64 / 21; macOS latest ARM64 / 17 | Explicit OS/arch assertions, separate source builds, Clojure suite, DNS smoke; these are not same-JAR comparisons |
-| `distribution-consumer` | Ubuntu latest x64 / 17 and 21 | No checkout or compilation; both download identical JDK21 bundle, verify hashes, use temporary project/-Srepro and save runtime identity |
+| `distribution-consumer` | Ubuntu latest x64 / 17 and 21 | No checkout or Java recompilation; both download identical JDK21 bundle, verify hashes, use temporary project/-Srepro and save runtime identity |
 | `performance-measurement` + `performance-results` | Three Ubuntu x64 / 21 shards, then merger | Serial workers per dataset, exactly 27 scenarios, validated merged artifacts; does not establish live throughput |
 | `eastwood-lint` | Ubuntu x64 / 21 | Runner exit-status tests and complete traversal; warnings informational, linter/analysis exceptions fatal |
 | `build` aggregate | Ubuntu x64 | Requires success of all seven listed dependencies, including both consumer entries; `if: always()` prevents skipped failures becoming success |
