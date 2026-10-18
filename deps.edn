@@ -3,7 +3,7 @@
                  :fn javac
                  :ensure "target/classes"}
  :deps  {org.clojure/clojure                  {:mvn/version "1.12.6"}
-         org.clojure/core.async               {:mvn/version "1.6.681"}
+         org.clojure/core.async               {:mvn/version "1.9.865"}
          com.github.jnr/jnr-ffi               {:mvn/version "2.3.3"}
          org.clojure/data.json                {:mvn/version "2.5.0"}
          com.github.spotbugs/spotbugs-annotations {:mvn/version "4.8.6"}}

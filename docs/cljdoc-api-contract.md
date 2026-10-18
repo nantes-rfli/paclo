@@ -744,6 +744,12 @@ requires, or use the supported `core/packet-xf {:decode-mode :flow}` instead.
 
 ## `paclo.stream`
 
+Unreleased development uses core.async 1.9.865. The bounded buffers, value
+delivery (including `nil` and `false`), single-consumer ownership, branch
+isolation, shutdown and statistics contracts remain unchanged. The
+[P14-B verification](../dev/p14-b-core-async-verification.md) records compatibility
+and measurement evidence; no new scheduling or flow API is introduced.
+
 ### `fan-out`
 
 ```clojure

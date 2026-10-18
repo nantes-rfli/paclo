@@ -190,6 +190,16 @@
             b (future (count-packets right))]
         (check! (= 4 (deref a 10000 :timeout) (deref b 10000 :timeout)) :managed-stream)))
     (check! (= :closed (:state (core/capture-stats capture))) :managed-close))
+  (with-open [^Closeable fanout
+              (stream/fan-out [nil false :packet nil false]
+                              {:left {:buffer-mode :blocking :buffer-cap 1}
+                               :right {:buffer-mode :blocking :buffer-cap 1}})
+              ^Closeable left (stream/branch fanout :left)
+              ^Closeable right (stream/branch fanout :right)]
+    (let [a (future (vec left))
+          b (future (into [] right))]
+      (check! (= [nil false :packet nil false]
+                 (deref a 10000 :timeout) (deref b 10000 :timeout)) :stream-values)))
   (println :distribution-consumer-ok :jdk (System/getProperty "java.version")
            :public-namespaces :native :all-dlts :classic :pcapng :flow :dns :window :annotations :closed))
 

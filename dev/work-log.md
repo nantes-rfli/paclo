@@ -5352,3 +5352,128 @@ P14 remains in-progress for separate unselected dependency/tool slices; P16 is
 independently ready. No live NIC, operational throughput, JDK25 ARM64/tools/
 coverage/performance or future-JDK validation is claimed. Final evidence commit
 adds records/reports only; final-head CI is checked in PR75 before handoff.
+
+## 2026-10-18 — P14-B core.async update and async compatibility
+
+Authorized scope: implement the next P14 slice, update stable core.async, verify
+async contracts/load/memory/performance and distribution, run JDK17/21/25 CI,
+and create a separate PR without merge/publication. Initial status was clean
+on `codex/p14-a-jnr-ffi`. `git fetch origin main` and `gh pr view75` confirmed
+PR75 merged at12:00:29 UTC (21:00:29 Asia/Tokyo) as `4a113c6`; created
+`codex/p14-b-core-async` directly from that latest main in the supplied checkout.
+
+Official upstream README and Maven Central metadata confirmed stable1.9.865;
+1.10 versions remain prereleases. Updated only core.async1.6.681→1.9.865 as a
+direct dependency. `clojure -Stree` before/after records six selected transitive
+updates (analyzer.jvm/analyzer/memoize/cache/priority-map/reader) and unchanged
+JNR2.3.3/jffi1.4.3/ASM9.10.1. Full graph files are in `dev/p14-b-evidence/`.
+Production stream implementation is unchanged: released source inspection shows
+identical fn-handler behavior and unchanged used protocol signatures.
+
+Added immediate-handler compatibility, nil/false dropping/abandon accounting,
+concurrent capacity-one runtimes, blocked branch close/sibling independence,
+and sampled large-payload retention regressions. Added a reproducible bounded
+heap stress probe with ordered dual delivery, dropping and50 saturated-close
+cycles, keeping terminal handles alive while payload weak references clear.
+Distribution verification now validates/hashes the exact async graph and rejects
+old/missing/duplicate JARs. Installed-JAR consumers check public nil/false
+capacity-one delivery too. Changelog and API notes record the dependency change.
+
+Initial commands/results:
+
+- `bash dev/script/codex.sh doctor`: pass, macOS x64 Temurin21.0.12.1+1,
+  Clojure1.12.6, real offline libpcap read. JDK17/25 are available in the existing
+  `/tmp/paclo-p13/jdks/` cache; no tool/runtime versions were changed.
+- `bash dev/script/codex.sh prepare`: pass after permitting dependency download
+  and Maven-cache writes. The first sandbox attempt failed on cache permissions;
+  it is not counted as passing verification.
+- Focused `test -n paclo.stream-impl-test -n paclo.stream-test`:23 tests/707
+  assertions, no failures/errors. The same regressions also pass with a CLI-only
+  core.async1.6.681 override, preserving the previous behavior baseline.
+- Python distribution negative controls:16 tests pass, including actual async
+  graph hashes, old analyzer/core.async, missing and duplicate entries.
+- SpotBugs/CheckStyle/JaCoCo/JaCoCo gate:pass;80.8% against existing25%.
+- Two independent baseline JVMs ran the existing real-PCAP combined benchmark:
+  200000 packets, three warmups and five measured runs per scenario; raw
+  before results are retained. Candidate comparisons and remaining gates follow.
+
+Full results and final PR/CI identity will be recorded after completion in this
+log and [the P14-B report](p14-b-core-async-verification.md). P14 remains
+in-progress; other tools/dependencies are unselected, and independent review
+must precede merge. No release/tag/publication or support expansion.
+
+Local full check completed:498 Clojure tests/19,669 assertions and13 JUnit
+checks pass; offline smoke passes. All40 documentation examples pass. Static
+analysis completed all namespaces with648 informational Eastwood warnings and
+zero exceptions; clj-kondo has zero warnings/errors and namespace cleanup is
+clean. The first format check found one indentation difference in a new test;
+it was corrected. Markdown lint initially failed due to sandboxed npm network/
+cache access, then passed with the same pinned command outside that sandbox.
+Local Markdown links/anchors and four Eastwood-runner exit-status probes pass.
+Remaining: final format recheck, candidate performance/load evidence, package/
+consumers, JDK25 source and PR CI. The implementation PR will be a draft while
+these finish; no merge is authorized.
+
+Commit environment: the first attempt stopped before creating a commit because
+the installed pre-commit hook calls `clj`, requiring unavailable `rlwrap`.
+Use its documented per-command SKIP_TESTS/SKIP_FMT flags after the successful
+wrapper test and LSP dry-run evidence; retain hook Markdown/kondo checks.
+No hook or tool version is changed. The final full-project LSP format dry-run
+exits0 after correcting the one indentation difference.
+
+Performance follow-up: the unchanged mid50k gate passes at514.1ms (1000ms warn,
+1200ms fail). Initial two independent before/after combined measurements show a
+material dual-stream regression, with higher allocation; investigate rather than
+claim improvement or alter gates. A later `recheck-new` overlapped the start of
+JDK25 compilation and is retained as contaminated diagnostic data, excluded from
+acceptance comparisons. Callback adapter/dispatch controls will run after source
+checks finish to avoid concurrent benchmark load. No upstream overrides ship.
+
+P14-B final implementation evidence (PR76, head `da7a8c7`):
+
+- Same-condition combined benchmark: initial old/new dual medians409631→266400
+  and386138→273354pps (−35.0%/−29.2%); dropping481943→401492 and469472→400904
+  (−16.7%/−14.6%). Allocation rises; managed control remains about645B/packet.
+  All counts/order/drops/capacities remain correct. Raw files and full CPU/GC/
+  allocation/stats are in `dev/p14-b-evidence/`. Before/after initial reports
+  share baseHEAD4a113c6; candidate dependency edits were later committed as
+  da7a8c7. Do not identify those edits solely by the base SHA.
+- Clean later old dual control473099pps/996B; new default303834pps/1256B.
+  Diagnostic-only old-style callback adapter372756pps/1051B; adapter plus fixed
+  eight-thread dispatch422678pps/1012B. These support partial attribution to
+  upstream callback metadata/dispatch changes, without claiming exact per-class
+  causality. No override or workaround ships. Existing perf gate passes514.1ms;
+  no thresholds change. Independent review must explicitly assess this cost.
+- `clojure -J-Xmx256m -M:dev -m paclo.dev.stream-retention 8000000 65536 ...`:
+  JDK21 passes in87.8s,524288000000 generated payload bytes,8050/8050 sampled
+  payloads released while handles stay alive,50 saturated-close cycles. Both
+  blocking consumers receive8000000 in order; idle branch drops7999996. Every
+  terminal accounting/capacity assertion passes. Heap-pool peak sum126923064B,
+  GC5848/4026ms; these are not RSS or a retained-heap census.
+- Same256MiB probe at2000000 values passes on actual JDK17.0.20.1 (22.3s),
+  21.0.12.1 (22.6s) and25.0.4.1 (22.1s),2050/2050 references released each.
+- `verify_jdk25.py /tmp/paclo-p14-b/source-jdk25`: all source steps exit0,
+  including13 JUnit tests and498 Clojure tests/19,669 assertions. Native/BPF/
+  interface smoke and dependencies pass; default native-access warnings remain.
+- `package` and `verify_distribution.py prepare`: strict source/classfile17/
+  POM/SCM/dependency inventory passes. Local JDK21 JAR hash94f54fc37690fb7640ff84b2795bb0cb87917368a170ed5d6537116a329be792,
+  source da7a8c7 with source_dirty:true (evidence/docs edits). Fresh consumers
+  on17/21/25 plus25 native-access/Unsafe debug and denial all exit0 on this same
+  JAR, with exact native and seven async JAR hashes. No rebuild between consumers.
+- [CI39127114926](https://github.com/nantes-rfli/paclo/actions/runs/39127114926)
+  passes all16 jobs: required build, supported Linux21/macOS ARM64-17,
+  LinuxARM64, JDK25 source, three same-JAR consumers,25 debug/deny, analyzers,
+  coverage, docs, all three perf shards/27-scenario merge. CI producer uses clean
+  merge ref7b7a91e; its distinct JAR hash9dfdf2294d2fb4310bb76eda901e33738495c12e12e6a6aacc88f539b85fd745
+  matches all consumers. Retained CI/local provenance, runtime/graph hashes,
+  job conclusions and source steps are linked in the report.
+
+P14-B implementation and requested verification are complete in
+[PR #76](https://github.com/nantes-rfli/paclo/pull/76); independent review,
+including the performance trade-off, is pending. The final evidence-only head
+will be checked separately and recorded in the PR description. P14 as a whole
+remains in-progress; the next unfinished P14 candidates are remaining tools/
+dependencies, unselected. P16 stays independently ready. P09/P10/P17 stay
+blocked. Live NIC/representative long production workloads, all-platform JDK25,
+Windows/32-bit remain unverified. No API/contract/gate/version identity change,
+release/tag/publication or merge. Remove only regenerated Python fixture caches.

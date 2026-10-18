@@ -18,6 +18,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update core.async from 1.6.681 to stable 1.9.865 and its selected analyzer,
+  reader and cache dependencies. Verify bounded fan-out delivery, shutdown,
+  backpressure and payload release, including independent JDK 17/21/25 JAR
+  consumers. Public stream contracts and existing gates remain unchanged.
+
 - Update JNR-FFI from 2.2.14 to 2.3.3 (resolved jffi Java/native 1.4.3 and
   ASM 9.10.1). Verify the selected native dependency graph in independent
   distribution consumers and retain separate JDK 25 default/debug/Unsafe-denial

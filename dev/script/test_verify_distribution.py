@@ -14,6 +14,21 @@ import verify_distribution as gate
 
 
 class DistributionGateTest(unittest.TestCase):
+    def test_async_graph_requires_exact_versions_and_records_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            jars = [Path(tmp) / name for name in sorted(gate.ASYNC_JARS)]
+            for jar in jars:
+                jar.write_bytes(jar.name.encode())
+            classpath = os.pathsep.join(map(str, jars))
+            self.assertEqual({p.name: gate.sha256(p) for p in jars},
+                             gate.async_dependencies(classpath))
+            for changed in (classpath.replace("1.9.865", "1.6.681"),
+                            classpath.replace("1.3.3", "1.2.3"),
+                            os.pathsep.join(map(str, jars[:-1])),
+                            classpath + os.pathsep + str(jars[0])):
+                with self.subTest(classpath=changed), self.assertRaisesRegex(ValueError, "async dependencies"):
+                    gate.async_dependencies(changed)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -58,11 +73,13 @@ class DistributionGateTest(unittest.TestCase):
                     patch.object(gate.subprocess, "run", side_effect=execute) as run, \
                     patch.object(gate.subprocess, "check_output", return_value="classpath"), \
                     patch.object(gate, "native_dependencies", return_value={"native.jar": "hash"}), \
+                    patch.object(gate, "async_dependencies", return_value={"core.async.jar": "hash"}), \
                     patch.object(gate, "java_version", return_value="JDK25"):
                 report = self.root / "report.json"
                 gate.consume(self.root, report, options)
                 self.assertEqual({"native.jar": "hash"}, json.loads(report.read_text())["native_dependency_sha256"])
                 result = json.loads(report.read_text())
+                self.assertEqual({"core.async.jar": "hash"}, result["async_dependency_sha256"])
                 self.assertEqual(runtime, result["runtime"])
                 self.assertEqual(manifest["jar_sha256"], result["jar_sha256"])
                 self.assertEqual(list(options), result["java_options"])
@@ -171,7 +188,7 @@ class DistributionGateTest(unittest.TestCase):
     def test_rejects_changed_coordinates_or_dependencies(self):
         for old, new, message in ((b"org.clojars.nanto", b"other", "coordinates"),
                                   (b"1.12.6", b"1.12.1", "dependencies"),
-                                  (b"1.6.681", b"1.9.865", "dependencies"),
+                                  (b"1.9.865", b"1.6.681", "dependencies"),
                                   (b"2.3.3", b"2.2.14", "dependencies"),
                                   (b"</dependency>", b"<scope>test</scope></dependency>", "semantics")):
             with self.subTest(old=old):

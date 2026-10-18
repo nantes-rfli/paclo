@@ -37,7 +37,7 @@ CLASSES = {
 # The reviewed candidate coordinates/dependency graph; changes require review.
 DEPENDENCIES = {
     "org.clojure/clojure": "1.12.6",
-    "org.clojure/core.async": "1.6.681",
+    "org.clojure/core.async": "1.9.865",
     "com.github.jnr/jnr-ffi": "2.3.3",
     "org.clojure/data.json": "2.5.0",
     "com.github.spotbugs/spotbugs-annotations": "4.8.6",
@@ -48,6 +48,11 @@ NATIVE_JARS = {
     "jnr-a64asm-1.0.0.jar", "jnr-x86asm-1.0.2.jar",
     *(f"{name}-9.10.1.jar" for name in
       ("asm", "asm-commons", "asm-analysis", "asm-tree", "asm-util")),
+}
+ASYNC_JARS = {
+    "core.async-1.9.865.jar", "tools.analyzer.jvm-1.3.3.jar", "tools.analyzer-1.2.0.jar",
+    "core.memoize-1.1.266.jar", "core.cache-1.1.234.jar", "data.priority-map-1.2.0.jar",
+    "tools.reader-1.5.0.jar",
 }
 FIXTURES = (
     "dns-sample.pcap", "tls-sni-alpn-sample.pcap", "cooked/sll.pcap", "cooked/sll2.pcap",
@@ -125,6 +130,15 @@ def native_dependencies(classpath):
     return {p.name: sha256(p) for p in sorted(jars)}
 
 
+def async_dependencies(classpath):
+    jars = [Path(entry) for entry in classpath.strip().split(os.pathsep)
+            if Path(entry).name.startswith(("core.async-", "tools.analyzer", "core.memoize-",
+                                            "core.cache-", "data.priority-map-", "tools.reader-"))]
+    require(len(jars) == len(ASYNC_JARS) and {p.name for p in jars} == ASYNC_JARS,
+            f"Resolved async dependencies changed: {[p.name for p in jars]}")
+    return {p.name: sha256(p) for p in sorted(jars)}
+
+
 def prepare(jar, output, version):
     root = Path(__file__).resolve().parents[2]
     inspection, pom = inspect_jar(jar, version)
@@ -192,6 +206,7 @@ def consume(bundle, report, java_options=()):
         before = sha256(project / "paclo.jar")
         classpath = subprocess.check_output(["clojure", "-Srepro", "-Spath"], cwd=project, text=True)
         resolved = native_dependencies(classpath)
+        resolved_async = async_dependencies(classpath)
         subprocess.run(["clojure", "-Srepro", *["-J" + option for option in java_options],
                         "-M", "-m", "distribution-consumer.consumer", "runtime.json"], cwd=project, check=True, timeout=180)
         runtime = json.loads((project / "runtime.json").read_text())
@@ -200,6 +215,7 @@ def consume(bundle, report, java_options=()):
               "source_commit": manifest["source_commit"], "jar_sha256": before,
               "runtime_java": java_version(), "runtime": runtime,
               "native_dependency_sha256": resolved,
+              "async_dependency_sha256": resolved_async,
               "java_options": list(java_options), "status": "passed"}
     report.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

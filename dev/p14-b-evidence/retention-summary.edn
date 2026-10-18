@@ -1,0 +1,4 @@
+{:file "retention-jdk17", :jdk "17.0.20.1", :seconds 22.337994323, :packets 2000000, :samples 2050, :retained 0, :heap-peak-bytes 115361720}
+{:file "retention-jdk21", :jdk "21.0.12.1", :seconds 22.629682046, :packets 2000000, :samples 2050, :retained 0, :heap-peak-bytes 115662936}
+{:file "retention-long-jdk21", :jdk "21.0.12.1", :seconds 87.786590935, :packets 8000000, :samples 8050, :retained 0, :heap-peak-bytes 126923064}
+{:file "retention-jdk25", :jdk "25.0.4.1", :seconds 22.081277366, :packets 2000000, :samples 2050, :retained 0, :heap-peak-bytes 115709088}
