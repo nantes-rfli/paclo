@@ -1,8 +1,10 @@
 (ns paclo.stream-impl-test
   (:require
    [clojure.core.async :as async]
+   [clojure.core.async.impl.protocols :as async.impl]
    [clojure.edn :as edn]
    [clojure.test :refer [deftest is]]
+   [paclo.dev.stream-retention :as retention]
    [paclo.stream.impl :as stream])
   (:import
    [java.io Closeable]
@@ -72,6 +74,93 @@
 (defn- non-decreasing? [values]
   (or (empty? values)
       (apply <= values)))
+
+(deftest immediate-handler-remains-reusable-and-never-registers-pending-operations
+  ;; Paclo shares this stateless nonblocking handler across all channels.
+  ;; An empty take/full put must return nil without installing a waiter.
+  (let [handler @#'stream/immediate-handler
+        channel (async/chan 1)]
+    (is (true? (async.impl/active? handler)))
+    (is (false? (async.impl/blockable? handler)))
+    (dotimes [_ 100]
+      (is (nil? (async.impl/take! channel handler)))
+      (is (true? @(async.impl/put! channel :value handler)))
+      (is (nil? (async.impl/put! channel :unwanted handler)))
+      (is (= :value @(async.impl/take! channel handler)))
+      (is (nil? (async/poll! channel))))
+    (async/close! channel)
+    (is (false? @(async.impl/put! channel :closed handler)))
+    (is (nil? @(async.impl/take! channel handler)))))
+
+(deftest dropping-preserves-false-and-nil-and-counts-abandoned-values
+  (with-open [^Closeable fanout
+              (stream/start [nil false :third :dropped]
+                            {:values (config :dropping 3)})
+              ^Closeable values (stream/branch fanout :values)]
+    (is (true? (stream/await! fanout)))
+    (is (= [nil false :third] (vec values)))
+    (let [snapshot (get-in (stream/stats fanout) [:branches :values])]
+      (is (= 1 (:dropped snapshot)))
+      (assert-branch-invariants snapshot)))
+  (with-open [^Closeable fanout
+              (stream/start [nil false :third :dropped]
+                            {:values (config :dropping 3)})
+              ^Closeable values (stream/branch fanout :values)]
+    (is (true? (stream/await! fanout)))
+    (.close values)
+    (.close values)
+    (let [snapshot (get-in (stream/stats fanout) [:branches :values])]
+      (is (= 3 (:abandoned snapshot)))
+      (is (= 1 (:dropped snapshot)))
+      (assert-branch-invariants snapshot))))
+
+(deftest shared-handler-is-independent-across-concurrent-runtimes
+  (let [tasks
+        (mapv
+         (fn [_]
+           (future
+             (let [expected (vec (take 2000 (cycle [nil false :value])))]
+               (with-open [^Closeable fanout
+                           (stream/start expected {:a (config :blocking 1)
+                                                   :b (config :blocking 1)})
+                           ^Closeable a (stream/branch fanout :a)
+                           ^Closeable b (stream/branch fanout :b)]
+                 (let [a-task (future (vec a))
+                       b-task (future (into [] b))]
+                   (and (= expected (deref a-task 10000 ::timeout)
+                           (deref b-task 10000 ::timeout))
+                        (true? (stream/await! fanout))))))))
+         (range 4))]
+    (doseq [task tasks]
+      (is (true? (deref task 15000 ::timeout))))))
+
+(deftest large-payloads-are-released-after-delivery-and-abandonment
+  (let [result (retention/run-probe! 2000 16384)]
+    (is (= 2000 (:packets result)))
+    (is (= 50 (:abandon-cycles result)))
+    (is (zero? (:retained-payloads result)))))
+
+(deftest closing-blocked-branch-releases-producer-and-preserves-sibling
+  (let [entered (promise)
+        blocking-put! async/>!!]
+    (with-redefs [async/>!! (fn [channel value]
+                              (deliver entered true)
+                              (blocking-put! channel value))]
+      (with-open [^Closeable fanout
+                  (stream/start (range 1000)
+                                (array-map :blocked (config :blocking 1)
+                                           :healthy (config :blocking 8)))
+                  ^Closeable blocked (stream/branch fanout :blocked)
+                  ^Closeable healthy (stream/branch fanout :healthy)]
+        (is (true? (deref entered 2000 false)))
+        (.close blocked)
+        (let [consumer (future (vec healthy))]
+          (is (= (vec (range 1000)) (deref consumer 5000 ::timeout))))
+        (is (true? (stream/await! fanout)))
+        (doseq [id [:blocked :healthy]]
+          (assert-branch-invariants (get-in (stream/stats fanout) [:branches id])))
+        (is (pos? (get-in (stream/stats fanout)
+                          [:branches :blocked :buffer :blocked-events])))))))
 
 (deftest start-validates-the-internal-contract
   (is (thrown-with-msg?

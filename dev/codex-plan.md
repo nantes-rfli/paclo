@@ -67,24 +67,17 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | ready |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-A JNR-FFI update and native compatibility — implemented and verified; independent review pending**.
-Started from main `4a86d666be839e89480bd02d5772dbc5cf87cdb8` after P13
-[PR #73](https://github.com/nantes-rfli/paclo/pull/73) received independent review
-and merged on 2026-10-18 at 09:58:37 UTC (18:58:37 Asia/Tokyo). Its final head
-`ee74766` passed all16 jobs in
-[CI39113609011](https://github.com/nantes-rfli/paclo/actions/runs/39113609011).
-P13 retains JDK17/21 formal support; [Issue #74](https://github.com/nantes-rfli/paclo/issues/74)
-tracks its Unsafe-denial failure for P14 evaluation.
-
-P14-A updates only JNR-FFI2.2.14 to2.3.3 and verifies the selected jffi1.4.3
-Java/native and ASM9.10.1 graph. See the [P14-A report](p14-a-jnr-verification.md)
-for evidence, warning attribution and acceptance limits. Local21/25 suites and
-same-JAR17/21/25 consumers pass; implementation CI39124535933 passes all16 jobs,
-including supported Linux/macOS/ARM64, same-JAR17/21/25 and25 debug/deny.
-Final PR-head CI evidence is recorded in [PR #75](https://github.com/nantes-rfli/paclo/pull/75).
-Other P14
-updates remain unselected; P16 remains independently ready. No formal JDK25
-support addition, release, tag, publication or merge is included.
+Current task: **P14-B core.async update and asynchronous compatibility — in progress**.
+Started from latest main `4a113c60184128df442f3fa152ebf0390cedc6a5` after
+[PR #75](https://github.com/nantes-rfli/paclo/pull/75) merged on 2026-10-18 at
+12:00:29 UTC (21:00:29 Asia/Tokyo). P14-A is reviewed and merged.
+P14-B selects official stable core.async1.9.865, retaining Clojure1.12.6,
+JNR-FFI2.3.3, `1.5.0-SNAPSHOT`, JDK17/21 support and the JDK25 experiment.
+See the [P14-B report](p14-b-core-async-verification.md) for dependency,
+internal-handler, lifecycle, memory, performance and distribution evidence.
+Independent review is required before merge. P14 as a whole remains unfinished:
+remaining dependency/development-tool candidates require separate selection.
+P16 remains independently ready; P09/P10/P17 remain blocked.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
@@ -740,15 +733,15 @@ separately from the compatibility experiment, using the resulting evidence.
 
 ## P14: Dependency and development-tool update evaluation
 
-Status: **in-progress**. P14-A is the selected first implementation slice:
-JNR-FFI2.3.3 with native/ABI, same-JAR17/21/25 and warning diagnostics.
-The [report](p14-a-jnr-verification.md) and [work log](work-log.md) record results.
-P14-A is **done** for implementation and compatibility verification in
-[PR #75](https://github.com/nantes-rfli/paclo/pull/75); all16 implementation CI
-jobs pass, with default/debug/deny evidence on macOS x64 and Linux x64.
-Independent review is required before merge. Remaining P14 candidates (including
-core.async and development tools) require separate selection and scoped PRs;
-P14 as a whole is unfinished. P16 remains independently ready.
+Status: **in-progress**. P14-A JNR-FFI2.3.3 is reviewed and merged through
+[PR #75](https://github.com/nantes-rfli/paclo/pull/75) as `4a113c6`.
+P14-B is the selected next slice: update core.async1.6.681 to confirmed stable
+1.9.865 and verify asynchronous compatibility without changing public contracts
+or existing quality/performance thresholds. The
+[P14-B report](p14-b-core-async-verification.md) and [work log](work-log.md)
+record results. P14-B implementation/verification is in progress and requires
+its own PR and independent review before merge. Remaining development-tool and
+other dependency candidates remain unfinished; P16 is independently ready.
 
 Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant
 update candidates. Keep CLI and Clojure library versions distinct and optional

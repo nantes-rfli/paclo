@@ -5352,3 +5352,71 @@ P14 remains in-progress for separate unselected dependency/tool slices; P16 is
 independently ready. No live NIC, operational throughput, JDK25 ARM64/tools/
 coverage/performance or future-JDK validation is claimed. Final evidence commit
 adds records/reports only; final-head CI is checked in PR75 before handoff.
+
+## 2026-10-18 — P14-B core.async update and async compatibility
+
+Authorized scope: implement the next P14 slice, update stable core.async, verify
+async contracts/load/memory/performance and distribution, run JDK17/21/25 CI,
+and create a separate PR without merge/publication. Initial status was clean
+on `codex/p14-a-jnr-ffi`. `git fetch origin main` and `gh pr view75` confirmed
+PR75 merged at12:00:29 UTC (21:00:29 Asia/Tokyo) as `4a113c6`; created
+`codex/p14-b-core-async` directly from that latest main in the supplied checkout.
+
+Official upstream README and Maven Central metadata confirmed stable1.9.865;
+1.10 versions remain prereleases. Updated only core.async1.6.681→1.9.865 as a
+direct dependency. `clojure -Stree` before/after records six selected transitive
+updates (analyzer.jvm/analyzer/memoize/cache/priority-map/reader) and unchanged
+JNR2.3.3/jffi1.4.3/ASM9.10.1. Full graph files are in `dev/p14-b-evidence/`.
+Production stream implementation is unchanged: released source inspection shows
+identical fn-handler behavior and unchanged used protocol signatures.
+
+Added immediate-handler compatibility, nil/false dropping/abandon accounting,
+concurrent capacity-one runtimes, blocked branch close/sibling independence,
+and sampled large-payload retention regressions. Added a reproducible bounded
+heap stress probe with ordered dual delivery, dropping and50 saturated-close
+cycles, keeping terminal handles alive while payload weak references clear.
+Distribution verification now validates/hashes the exact async graph and rejects
+old/missing/duplicate JARs. Installed-JAR consumers check public nil/false
+capacity-one delivery too. Changelog and API notes record the dependency change.
+
+Initial commands/results:
+
+- `bash dev/script/codex.sh doctor`: pass, macOS x64 Temurin21.0.12.1+1,
+  Clojure1.12.6, real offline libpcap read. JDK17/25 are available in the existing
+  `/tmp/paclo-p13/jdks/` cache; no tool/runtime versions were changed.
+- `bash dev/script/codex.sh prepare`: pass after permitting dependency download
+  and Maven-cache writes. The first sandbox attempt failed on cache permissions;
+  it is not counted as passing verification.
+- Focused `test -n paclo.stream-impl-test -n paclo.stream-test`:23 tests/707
+  assertions, no failures/errors. The same regressions also pass with a CLI-only
+  core.async1.6.681 override, preserving the previous behavior baseline.
+- Python distribution negative controls:16 tests pass, including actual async
+  graph hashes, old analyzer/core.async, missing and duplicate entries.
+- SpotBugs/CheckStyle/JaCoCo/JaCoCo gate:pass;80.8% against existing25%.
+- Two independent baseline JVMs ran the existing real-PCAP combined benchmark:
+  200000 packets, three warmups and five measured runs per scenario; raw
+  before results are retained. Candidate comparisons and remaining gates follow.
+
+Full results and final PR/CI identity will be recorded after completion in this
+log and [the P14-B report](p14-b-core-async-verification.md). P14 remains
+in-progress; other tools/dependencies are unselected, and independent review
+must precede merge. No release/tag/publication or support expansion.
+
+Local full check completed:498 Clojure tests/19,669 assertions and13 JUnit
+checks pass; offline smoke passes. All40 documentation examples pass. Static
+analysis completed all namespaces with648 informational Eastwood warnings and
+zero exceptions; clj-kondo has zero warnings/errors and namespace cleanup is
+clean. The first format check found one indentation difference in a new test;
+it was corrected. Markdown lint initially failed due to sandboxed npm network/
+cache access, then passed with the same pinned command outside that sandbox.
+Local Markdown links/anchors and four Eastwood-runner exit-status probes pass.
+Remaining: final format recheck, candidate performance/load evidence, package/
+consumers, JDK25 source and PR CI. The implementation PR will be a draft while
+these finish; no merge is authorized.
+
+Commit environment: the first attempt stopped before creating a commit because
+the installed pre-commit hook calls `clj`, requiring unavailable `rlwrap`.
+Use its documented per-command SKIP_TESTS/SKIP_FMT flags after the successful
+wrapper test and LSP dry-run evidence; retain hook Markdown/kondo checks.
+No hook or tool version is changed. The final full-project LSP format dry-run
+exits0 after correcting the one indentation difference.
