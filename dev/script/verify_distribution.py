@@ -117,6 +117,13 @@ def java_version():
     return subprocess.check_output(["java", "-version"], stderr=subprocess.STDOUT, text=True).strip()
 
 
+def clojure_cli_version():
+    description = subprocess.check_output(["clojure", "-Sdescribe"], text=True)
+    version = re.search(r':version "([\d.]+)"', description)
+    require(version is not None, "Cannot identify Clojure CLI version")
+    return version.group(1)
+
+
 def native_dependencies(classpath):
     jars = [Path(entry) for entry in classpath.strip().split(os.pathsep)
             if Path(entry).name.startswith(("jnr-", "jffi-", "asm-"))]
@@ -156,6 +163,7 @@ def prepare(jar, output, version):
         "source_commit": source_commit,
         "source_dirty": bool(subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, text=True)),
         "build_java": java_version(),
+        "build_clojure_cli": clojure_cli_version(),
         "jar_sha256": sha256(output / "paclo.jar"),
         "files": {str(p.relative_to(output)): sha256(p) for p in sorted(output.rglob("*")) if p.is_file()},
     })
@@ -199,6 +207,7 @@ def consume(bundle, report, java_options=()):
     result = {"version": manifest["version"], "scm_tag": manifest["scm_tag"],
               "source_commit": manifest["source_commit"], "jar_sha256": before,
               "runtime_java": java_version(), "runtime": runtime,
+              "consumer_clojure_cli": clojure_cli_version(),
               "native_dependency_sha256": resolved,
               "java_options": list(java_options), "status": "passed"}
     report.write_text(json.dumps(result, indent=2) + "\n")

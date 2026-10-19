@@ -6,11 +6,24 @@
 
 (def ^:private path-sep (System/getProperty "path.separator"))
 
+(defn- process!
+  "Run a build subprocess and propagate failure to the CLI."
+  [params]
+  (let [{:keys [exit] :as result} (b/process params)]
+    (when-not (zero? exit)
+      (throw (ex-info "Build subprocess failed"
+                      (assoc result :command-args (:command-args params)))))
+    result))
+
 (defn- classpath
-  "Return classpath string. When alias-arg is provided (e.g. \"-A:junit\"),
-   it is appended to the clojure -Spath invocation."
-  ([] (-> (sh/sh "clojure" "-Spath") :out str/trim))
-  ([alias-arg] (-> (sh/sh "clojure" alias-arg "-Spath") :out str/trim)))
+  "Return the resolved classpath, failing if dependency resolution fails."
+  ([] (classpath nil))
+  ([alias-arg]
+   (-> (process! {:command-args (cond-> ["clojure"]
+                               alias-arg (conj alias-arg)
+                               true (conj "-Spath"))
+                  :out :capture})
+       :out str/trim)))
 
 (defn- find-in-cp
   "Find first classpath entry containing the given substring."
@@ -118,35 +131,35 @@
   "Run SpotBugs on compiled classes (target/classes)."
   [_]
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:spotbugs]})]
-    (b/process {:command-args ["clojure" "-M:spotbugs" "-m" "paclo.dev.spotbugs"]
+    (process! {:command-args ["clojure" "-M:spotbugs" "-m" "paclo.dev.spotbugs"]
                 :basis basis})))
 
 (defn checkstyle
   "Run CheckStyle on Java sources (src-java, test-java)."
   [_]
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:checkstyle]})]
-    (b/process {:command-args ["clojure" "-M:checkstyle" "-m" "paclo.dev.checkstyle"]
+    (process! {:command-args ["clojure" "-M:checkstyle" "-m" "paclo.dev.checkstyle"]
                 :basis basis})))
 
 (defn jacoco
   "Run JUnit with JaCoCo agent and generate reports."
   [_]
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:jacoco]})]
-    (b/process {:command-args ["clojure" "-M:jacoco" "-m" "paclo.dev.jacoco"]
+    (process! {:command-args ["clojure" "-M:jacoco" "-m" "paclo.dev.jacoco"]
                 :basis basis})))
 
 (defn jacoco-gate
   "Fail if line coverage is below threshold (default 60%)."
   [_]
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:jacoco-gate]})]
-    (b/process {:command-args ["clojure" "-M:jacoco-gate" "-m" "paclo.dev.jacoco-gate"]
+    (process! {:command-args ["clojure" "-M:jacoco-gate" "-m" "paclo.dev.jacoco-gate"]
                 :basis basis})))
 
 (defn javadoc
   "Generate Javadoc for src-java into target/javadoc."
   [_]
-  (let [cp (-> (sh/sh "clojure" "-Spath") :out str/trim)]
-    (b/process {:command-args ["javadoc"
+  (let [cp (classpath)]
+    (process! {:command-args ["javadoc"
                                "-d" "target/javadoc"
                                "-cp" cp
                                "-sourcepath" "src-java"
@@ -169,7 +182,7 @@
         console (or (find-in-cp cp-junit "junit-platform-console-standalone")
                     (throw (ex-info "ConsoleLauncher jar not found on classpath" {})))
         test-cp (str "target/test-classes" path-sep "target/classes" path-sep cp-base)]
-    (b/process {:command-args ["java"
+    (process! {:command-args ["java"
                                "-jar" console
                                "--class-path" test-cp
                                "--scan-class-path"

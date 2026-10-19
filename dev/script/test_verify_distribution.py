@@ -58,12 +58,14 @@ class DistributionGateTest(unittest.TestCase):
                     patch.object(gate.subprocess, "run", side_effect=execute) as run, \
                     patch.object(gate.subprocess, "check_output", return_value="classpath"), \
                     patch.object(gate, "native_dependencies", return_value={"native.jar": "hash"}), \
-                    patch.object(gate, "java_version", return_value="JDK25"):
+                    patch.object(gate, "java_version", return_value="JDK25"), \
+                    patch.object(gate, "clojure_cli_version", return_value="1.12.5.1664"):
                 report = self.root / "report.json"
                 gate.consume(self.root, report, options)
                 self.assertEqual({"native.jar": "hash"}, json.loads(report.read_text())["native_dependency_sha256"])
                 result = json.loads(report.read_text())
                 self.assertEqual(runtime, result["runtime"])
+                self.assertEqual("1.12.5.1664", result["consumer_clojure_cli"])
                 self.assertEqual(manifest["jar_sha256"], result["jar_sha256"])
                 self.assertEqual(list(options), result["java_options"])
                 command = run.call_args.args[0]

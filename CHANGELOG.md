@@ -26,6 +26,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Pin Clojure CLI 1.12.5.1664 across CI, independent consumers, Publish and audit;
+  add an optional local installer and update tools.build from 0.10.5 to 0.10.14.
+  Propagate build subprocess failures and verify isolated cold/warm dependency
+  resolution, Java 17 prep compilation and reproducible POM properties dates.
+
 - Update JNR-FFI from 2.2.14 to 2.3.3 (resolved jffi Java/native 1.4.3 and
   ASM 9.10.1). Verify the selected native dependency graph in independent
   distribution consumers and retain separate JDK 25 default/debug/Unsafe-denial

@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
           clojure -Sdescribe
@@ -57,10 +57,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       # --- Install lint/format tooling ---
       - name: Set up Clojure tooling (clj-kondo)
@@ -84,9 +83,23 @@ jobs:
 
       - name: Verify JDK 21 distribution and prepare independent consumer
         run: |
+          python3 -B -m unittest discover -s dev/script -p 'test_build_toolchain.py'
           python3 -B -m unittest discover -s dev/script -p 'test_build_identity.py'
           python3 -B -m unittest discover -s dev/script -p 'test_verify_distribution.py'
           python3 dev/script/verify_distribution.py prepare target/paclo-1.5.0-SNAPSHOT.jar target/distribution
+
+      - name: Verify cold and warm toolchain resolution and prep-lib
+        run: python3 dev/script/verify_toolchain_resolution.py "${{ runner.temp }}/toolchain-resolution"
+
+      - name: Upload toolchain resolution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolchain-resolution-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/toolchain-resolution/*.log
+            ${{ runner.temp }}/toolchain-resolution/commands.json
+          if-no-files-found: error
 
       - name: Upload the single JDK 21 distribution
         uses: actions/upload-artifact@v4
@@ -106,7 +119,7 @@ jobs:
       - name: Development entrypoint smoke
         shell: bash
         run: |
-          bash -n dev/script/codex.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
+          bash -n dev/script/codex.sh dev/script/setup-clojure-cli.sh dev/script/setup-lint-tools.sh dev/script/mdlint.sh
           bash dev/script/codex.sh smoke
 
       - name: Verify release metadata guard
@@ -202,7 +215,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
           clojure -Sdescribe
@@ -213,10 +226,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         run: clojure -T:build javac
@@ -271,7 +283,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
           clojure -Sdescribe
@@ -282,10 +294,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         run: clojure -T:build javac
@@ -325,7 +336,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
           clojure -Sdescribe
@@ -336,10 +347,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Download udp-64 benchmark shard
         uses: actions/download-artifact@v4
@@ -434,7 +444,7 @@ jobs:
       - name: Set up Clojure CLI
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: '1.11.1.1435'
+          cli: '1.12.5.1664'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install libpcap
@@ -518,7 +528,7 @@ jobs:
       - name: Set up Clojure CLI
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: '1.11.1.1435'
+          cli: '1.12.5.1664'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install libpcap
@@ -592,7 +602,7 @@ jobs:
       - name: Set up Clojure CLI
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: latest
+          cli: '1.12.5.1664'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install libpcap (Linux)
@@ -629,11 +639,10 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ matrix.java-version }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
@@ -699,7 +708,7 @@ jobs:
       - name: Set up Clojure CLI
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: latest
+          cli: '1.12.5.1664'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install libpcap
@@ -716,10 +725,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
@@ -781,7 +789,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
 
@@ -791,10 +799,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         run: clojure -T:build javac
@@ -826,7 +833,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.11.1.1435.sh
+          curl -sSL -o clj.sh https://download.clojure.org/install/linux-install-1.12.5.1664.sh
           chmod +x clj.sh
           sudo ./clj.sh
 
@@ -836,10 +843,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash

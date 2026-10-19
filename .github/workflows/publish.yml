@@ -44,7 +44,7 @@ jobs:
       - name: Set up Clojure CLI
         uses: DeLaGuardo/setup-clojure@13.0
         with:
-          cli: latest
+          cli: '1.12.5.1664'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Clojure deps
@@ -53,10 +53,9 @@ jobs:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.clojure
-          key: cljdeps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
+          key: cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            cljdeps-${{ runner.os }}-${{ runner.arch }}-
+            cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Resolve version
         id: vars
