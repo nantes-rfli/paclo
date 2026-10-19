@@ -5707,3 +5707,36 @@ Actual helper Clojure is1.12.5: CLI system deps win over its declared1.12.4;
 corrected the report against the resolved tree. Production stays1.12.6.
 Initial NVD run39273706099 is still fetching its new12.2.0 database; final scan
 and follow-up CI evidence remain pending. No success claim from cache or silence.
+
+### Actual cold NVD attempt and measured recovery (2026-10-20 JST)
+
+Run39273706099's artifact12198572692 was recovered at15:43 UTC. Both independent
+resolutions and real tool load succeeded (5.3.0/12.2.0;23/82 JARs). The scanner
+was killed by our initial2700-second limit while still retrieving NVD records:
+250,000/410,078 (61%) at15:43:10Z. No auth/communication error is logged; the
+Actions token is present. This is an insufficient time budget, not evidence of
+NVD unavailability. No vulnerability analysis/report completed; no accepted NVD
+Last Checked/Last Modified timestamp or zero-finding conclusion exists.
+[Audit evidence](p14-d-audit-evidence.json) preserves timestamps, failure status
+and all105 actual JAR identities/hashes; raw logs remain in the Actions artifact.
+
+Extend scanner timeout to7200s and job to135min based on measured progress;
+other commands are bounded at600s. Stages print immediately and incomplete
+summary evidence exists before process launch, including timeout state.
+Only absolute production JAR paths are passed to the helper, avoiding relative
+source-folder reinterpretation.18 regressions pass, including a real-life
+scanner timeout and forced-refresh metadata. No threshold/suppression/target change.
+
+Both published12.1.6/12.2.0 core JAR properties identify directory schema11.0,
+data.version5.5 and odc.mv.db. Actual Settings locates the legacy database under
+~/.m2/repository/org/owasp/dependency-check-utils/12.1.6/data/11.0, already included
+in the original Maven cache (the separately listed dependency-check-data path
+was redundant). Existing legacy cache metadata shows a successful snapshot from
+2026-10-19T08:47Z. Add the old Maven key as a fallback and copy only that database
+into a missing new cache; preserve the source. Force a new NVD check, not trust
+cache age/mtime: --refresh generates validity0 and requires Last Checked during
+this execution. Default local cached mode remains24h. An incompatible database
+or failed update still fails; no analyzer is disabled or exclusion added.
+
+Logged-error implementation0a949b1 also passes all16 jobs in CI39275334254.
+Final cache/refresh/timeout changes are being verified in the same PR82.

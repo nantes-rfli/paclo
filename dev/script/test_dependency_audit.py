@@ -89,6 +89,15 @@ class ReportTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.verify()
 
+    def test_refresh_requires_check_in_this_execution(self):
+        self.report['scanInfo']['dataSource'][0]['timestamp'] = audit.stamp(
+            self.time - timedelta(hours=1))
+        self.report['scanInfo']['dataSource'][1]['timestamp'] = audit.stamp(
+            self.time - timedelta(hours=1))
+        self.verify()  # Normal cached mode permits up to 24 hours.
+        with self.assertRaisesRegex(ValueError, 'Forced refresh'):
+            audit.validate(self.report, self.production, self.time, self.time, refresh=True)
+
     def test_tool_contamination_and_missing_jar(self):
         self.production['jars'][0]['file'] = 'nvd-clojure-5.3.0.jar'
         with self.assertRaises(ValueError):
@@ -110,7 +119,7 @@ class ReportTests(unittest.TestCase):
 
 class ProcessTests(unittest.TestCase):
     def exercise(self, scan_exit=0, report_kind='valid', resolution_exit=0, resolve_only=False,
-                 scanner_log=''):
+                 scanner_log='', scanner_timeout=False, refresh=False):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             jar = base / 'library-1.jar'
@@ -118,14 +127,21 @@ class ProcessTests(unittest.TestCase):
             output = base / 'evidence'
 
             def command(argv, **kwargs):
+                # Evidence must exist even if the process/job is interrupted.
+                partial = json.loads((output / 'summary.json').read_text())
+                self.assertEqual('incomplete', partial['status'])
                 if '-Sdescribe' in argv:
                     kwargs['stdout'].write('{:version "1.12.5.1664"}')
                 if '-Spath' in argv:
-                    kwargs['stdout'].write(str(jar))
+                    kwargs['stdout'].write(str(audit.ROOT / 'src') + audit.os.pathsep + str(jar))
                     kwargs['stderr'].write('Downloading dependencies...\n')
                     if resolution_exit:
                         return subprocess.CompletedProcess(argv, resolution_exit)
                 if 'run.clj' in argv:
+                    self.assertEqual(str(jar.resolve()), argv[-1])
+                    self.assertEqual(str(refresh).lower(), argv[-2])
+                    if scanner_timeout:
+                        raise subprocess.TimeoutExpired(argv, kwargs['timeout'])
                     kwargs['stderr'].write(scanner_log)
                     audit.write_json(output / 'tool-versions.json',
                                      {'nvd-clojure': audit.NVD, 'dependency-check': audit.ENGINE})
@@ -146,13 +162,15 @@ class ProcessTests(unittest.TestCase):
                 return subprocess.CompletedProcess(argv, 0)
 
             with patch.object(audit.subprocess, 'run', side_effect=command), redirect_stdout(io.StringIO()):
-                code = audit.execute(output, base / 'data', resolve_only)
+                code = audit.execute(output, base / 'data', resolve_only, refresh)
             summary = json.loads((output / 'summary.json').read_text())
             return code, summary
 
     def test_success_requires_scan_and_valid_report(self):
-        code, summary = self.exercise()
-        self.assertEqual((0, 'passed'), (code, summary['status']))
+        for refresh in [False, True]:
+            code, summary = self.exercise(refresh=refresh)
+            self.assertEqual((0, 'passed'), (code, summary['status']))
+            self.assertEqual(refresh, summary['refresh_requested'])
 
     def test_nonzero_cannot_be_overridden_by_clean_report(self):
         for scan_exit in [1, 37, 255]:
@@ -164,6 +182,12 @@ class ProcessTests(unittest.TestCase):
         for kind in ['missing', 'malformed']:
             code, summary = self.exercise(report_kind=kind)
             self.assertEqual((1, 'incomplete'), (code, summary['status']))
+
+    def test_scanner_timeout_is_incomplete_with_partial_evidence(self):
+        code, summary = self.exercise(scanner_timeout=True)
+        self.assertEqual((1, 'incomplete'), (code, summary['status']))
+        self.assertTrue(summary['commands'][-1]['timed_out'])
+        self.assertEqual(7200, summary['commands'][-1]['timeout_seconds'])
 
     def test_zero_scanner_exit_with_high_finding_fails(self):
         code, summary = self.exercise(report_kind='high')

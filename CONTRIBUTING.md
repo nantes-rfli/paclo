@@ -198,16 +198,16 @@ available; do not start an interactive login or copy tokens into the repository.
 
 ## Dependency security audit
 
-Use Python3.11+, the pinned CLI1.12.5.1664 and JDK21, then run from the repository root:
+Use Python 3.11+, the pinned CLI 1.12.5.1664 and JDK 21, then run from the repository root:
 
 ```bash
 python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
-python3 dev/script/dependency_audit.py /tmp/paclo-audit-production
+python3 dev/script/dependency_audit.py /tmp/paclo-audit-production --refresh
 ```
 
 The evidence folder must be new. Set `NVD_API_TOKEN` through the environment;
 never put credentials in EDN or commit reports containing credentials. The
-separate `dev/audit/deps.edn` project pins nvd-clojure5.3.0. Both classpaths use
+separate `dev/audit/deps.edn` project pins nvd-clojure 5.3.0. Both classpaths use
 `-Srepro`: the root default dependencies are the production target, while the
 helper's dependencies run the scanner. User aliases/deps are excluded. The
 removed `:nvd` alias must not be used. This follows the
@@ -216,24 +216,32 @@ removed `:nvd` alias must not be used. This follows the
 The runner records classpaths, resolved dependency trees, JAR paths/selected
 versions/SHA256 hashes, commands/statuses, JVM/CLI, source identity, effective
 configuration, actual scanner/engine versions and original reports. Source
-folders/classes are excluded by nvd-clojure's regular-file scan, as before.
+folders/classes remain excluded, as before; the scanner receives only the
+resolved absolute JAR paths recorded in `scanner-input-classpath.log`.
 The default `.dev-tools/nvd-data/12.2.0` cache is explicit and ignored; select
 another location with `--data-directory`. `--resolve-only` verifies inventories
 without an NVD scan and records `resolved-only`, never an audit pass.
 
 Success requires scanner exit0, a current JSON report covering every production
-JAR hash, no analysis exceptions/suppressions, engine12.2.0, NVD Last Checked
-within24 hours and Last Modified within7 days (with5 minutes of clock tolerance).
-Automatic updates and a24-hour validity window are enabled in flat EDN options;
+JAR hash, no analysis exceptions/suppressions, engine 12.2.0, NVD Last Checked
+within 24 hours and Last Modified within 7 days (with 5 minutes of clock tolerance).
+`--refresh` forces an NVD check in this execution (validity 0); CI always uses it.
+Normal local cached mode has a 24-hour validity window. Automatic updates remain enabled;
 cache mtimes do not establish freshness. CVSS v2/v3/v4 base scores >=7.0 fail,
-including exactly7.0; invalid/unscored findings require triage and cannot pass.
+including exactly 7.0; invalid/unscored findings require triage and cannot pass.
 The original tool's nonzero exit always fails too; logged errors and known
 remote/update/analysis failure warnings cannot pass with a cached report. No suppressions are added.
 NVD fetch/auth/analysis failure or missing/malformed output is incomplete.
 
-The weekly Monday03:00 UTC and manual workflow scans production only, restores
-a versioned database cache, verifies metadata and always uploads evidence even
-on failure. OSS Index is disabled by nvd-clojure without its separate credentials;
+The weekly Monday 03:00 UTC and manual workflow scans production only, restores
+a versioned database cache, forces a new NVD check, verifies metadata and always uploads evidence even
+on failure. A missing 12.2.0 database can be seeded from the old 12.1.6 Maven
+cache: both published engines use directory schema 11.0/data.version 5.5. Only
+the database is copied; the source is preserved, and refresh/report validation
+still determines success. Cold imports get 120 minutes (observed 250k/410k records
+in 45 minutes); other commands get 10 minutes, with a 135-minute job limit.
+Command stages and incomplete evidence are saved before process launch.
+OSS Index is disabled by nvd-clojure without its separate credentials;
 when configured, inspect scanner logs for that service's actual outcome. Neither
 state establishes broader advisory coverage. Optional `:csv`, test/dev/build and
 scanner graphs are outside this production audit. Any future audit of those

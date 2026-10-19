@@ -95,7 +95,7 @@ P11 was reviewed and merged through
 [PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54`.
 Its [inventory](p11-environment-inventory.md) remains historical investigation
 evidence. P13 is reviewed and merged. P14 is the next unfinished queue item; P16
-is implemented and verified, pending independent review. P15 is merged. P17 still requires
+was independently reviewed and merged through PR78. P15 is merged. P17 still requires
 an explicit need/maturity decision. P09/P10 stay blocked.
 
 Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.

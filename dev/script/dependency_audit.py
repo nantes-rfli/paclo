@@ -97,7 +97,7 @@ def scores(vulnerability):
     return values
 
 
-def validate(report, production, started, finished):
+def validate(report, production, started, finished, refresh=False):
     """Fail closed on stale/partial reports; retain findings even on scan exit != 0."""
     isolated(production)
     info = report['scanInfo']
@@ -113,6 +113,8 @@ def validate(report, production, started, finished):
     modified = timestamp(sources['NVD API Last Modified'])
     if not finished - MAX_AGE <= checked <= finished + timedelta(minutes=5):
         raise ValueError('NVD last checked is stale or in the future')
+    if refresh and checked < started - timedelta(minutes=2):
+        raise ValueError('Forced refresh did not check NVD during this execution')
     # Modification time is the upstream dataset watermark, not the cache mtime.
     if not finished - timedelta(days=7) <= modified <= checked + timedelta(minutes=5):
         raise ValueError('NVD dataset watermark is stale or inconsistent')
@@ -149,12 +151,13 @@ def validate(report, production, started, finished):
             'high_findings': sum(f['max_base_score'] >= 7.0 for f in findings)}
 
 
-def execute(output, data, resolve_only=False):
+def execute(output, data, resolve_only=False, refresh=False):
     # A new folder prevents stale report success, including interrupted executions.
     output.mkdir(parents=True, exist_ok=False)
     started = now()
     summary = {'status': 'incomplete', 'scope': 'production', 'started': stamp(started),
                'nvd_clojure': NVD, 'dependency_check': ENGINE, 'threshold': 7.0,
+               'refresh_requested': refresh,
                'data_directory': str(data), 'commands': [],
                'oss_index': ('credentials configured; see scanner log for actual service result'
                              if os.environ.get('ANALYZER_OSSINDEX_USER') and
@@ -162,12 +165,22 @@ def execute(output, data, resolve_only=False):
                              'disabled by nvd-clojure: credentials unavailable'),
                'nvd_token_present': bool(os.environ.get('NVD_API_TOKEN'))}
 
-    def run(name, command, cwd, required=True):
-        summary['commands'].append({'name': name, 'argv': command, 'cwd': str(cwd)})
+    def run(name, command, cwd, required=True, timeout=600):
+        summary['commands'].append({'name': name, 'argv': command, 'cwd': str(cwd),
+                                    'timeout_seconds': timeout})
+        write_json(output / 'summary.json', summary)
+        print(f'[audit] Starting {name}', flush=True)
         with (output / (name + '.log')).open('w') as log, (
                 output / (name + '.stderr.log')).open('w') as errors:
-            result = subprocess.run(command, cwd=cwd, stdout=log, stderr=errors, timeout=2700)
+            try:
+                result = subprocess.run(command, cwd=cwd, stdout=log, stderr=errors,
+                                        timeout=timeout)
+            except subprocess.TimeoutExpired as error:
+                summary['commands'][-1]['timed_out'] = True
+                raise ValueError(f'{name} timed out after {timeout}s; inspect its logs') from error
         summary['commands'][-1]['exit'] = result.returncode
+        write_json(output / 'summary.json', summary)
+        print(f'[audit] {name} exited {result.returncode}', flush=True)
         if required and result.returncode:
             raise ValueError(f'{name} failed with exit {result.returncode}; see {name}.log')
         return result.returncode
@@ -186,6 +199,8 @@ def execute(output, data, resolve_only=False):
             write_json(output / (label + '-jars.json'), inv)
         production = json.loads((output / 'production-jars.json').read_text())
         isolated(production)
+        scan_classpath = os.pathsep.join(jar['path'] for jar in production['jars'])
+        (output / 'scanner-input-classpath.log').write_text(scan_classpath + '\n')
         if resolve_only:
             summary['status'] = 'resolved-only'
             return 0
@@ -196,8 +211,9 @@ def execute(output, data, resolve_only=False):
         scan_exit = run('scanner', ['clojure', '-Srepro', '-J-Dclojure.main.report=stderr',
                                    '-M', 'run.clj', str(ROOT / 'dev/nvd-clojure.edn'),
                                    str(output), str(data),
-                                   (output / 'production-classpath.log').read_text().strip()],
-                        TOOL, required=False)
+                                   str(refresh).lower(),
+                                   scan_classpath],
+                        TOOL, required=False, timeout=7200)
         summary['scanner_exit'] = scan_exit
         versions = json.loads((output / 'tool-versions.json').read_text())
         if versions != {'nvd-clojure': NVD, 'dependency-check': ENGINE}:
@@ -205,7 +221,7 @@ def execute(output, data, resolve_only=False):
         report_path = output / 'dependency-check-report.json'
         report = json.loads(report_path.read_text())
         summary['report_sha256'] = sha256(report_path)
-        summary.update(validate(report, production, started, now()))
+        summary.update(validate(report, production, started, now(), refresh))
         verify_logs([(output / 'scanner.log').read_text(),
                      (output / 'scanner.stderr.log').read_text()])
         # nvd-clojure may fail before writing a report on update/analysis errors.
@@ -234,9 +250,11 @@ def main():
     parser.add_argument('--data-directory', type=Path,
                         default=ROOT / '.dev-tools/nvd-data' / ENGINE)
     parser.add_argument('--resolve-only', action='store_true', help='No NVD scan; never an audit pass')
+    parser.add_argument('--refresh', action='store_true', help='Require an NVD check in this execution')
     args = parser.parse_args()
     try:
-        return execute(args.output.resolve(), args.data_directory.resolve(), args.resolve_only)
+        return execute(args.output.resolve(), args.data_directory.resolve(), args.resolve_only,
+                       args.refresh)
     except OSError as error:
         parser.exit(1, str(error) + '\n')
 

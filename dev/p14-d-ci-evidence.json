@@ -132,7 +132,7 @@
     "clojure_tests": 493,
     "assertions": 19130,
     "junit_tests": 13,
-    "audit_regressions": 16,
+    "audit_regressions": 18,
     "interop_tests": 5,
     "interop_assertions": 377,
     "production_jars_unchanged": true,
@@ -142,5 +142,91 @@
     "package_consumer21": "passed",
     "jar_sha256": "482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010"
   },
-  "final_head_ci": "pending after logged-error regression follow-up"
+  "final_head_ci": "Pending final cache/refresh/timeout follow-up; final evidence-head results are recorded on PR82",
+  "followup_ci": {
+    "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39275334254",
+    "commit": "0a949b152500b3cc1d4e5d988567d8ad7548376e",
+    "jobs": [
+      {
+        "name": "documentation-checks",
+        "databaseId": 118138045235,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (tcp-512)",
+        "databaseId": 118138045568,
+        "conclusion": "success"
+      },
+      {
+        "name": "arm64-monitor",
+        "databaseId": 118138045611,
+        "conclusion": "success"
+      },
+      {
+        "name": "eastwood-lint",
+        "databaseId": 118138045641,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+        "databaseId": 118138045665,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+        "databaseId": 118138045682,
+        "conclusion": "success"
+      },
+      {
+        "name": "build-checks",
+        "databaseId": 118138045804,
+        "conclusion": "success"
+      },
+      {
+        "name": "jdk25-source",
+        "databaseId": 118138045948,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (mixed)",
+        "databaseId": 118138045974,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (udp-64)",
+        "databaseId": 118138046054,
+        "conclusion": "success"
+      },
+      {
+        "name": "coverage",
+        "databaseId": 118138046086,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-results",
+        "databaseId": 118138869805,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (21)",
+        "databaseId": 118140118940,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (17)",
+        "databaseId": 118140119053,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (25)",
+        "databaseId": 118140119475,
+        "conclusion": "success"
+      },
+      {
+        "name": "build",
+        "databaseId": 118140569783,
+        "conclusion": "success"
+      }
+    ]
+  }
 }

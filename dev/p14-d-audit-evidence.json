@@ -1,0 +1,665 @@
+{
+  "attempts": [
+    {
+      "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39273706099",
+      "commit": "fc5083a3ba8af0c57d5b1004ba4975d6b06f0c6c",
+      "status": "incomplete",
+      "started": "2026-10-19T14:58:05.708607Z",
+      "finished": "2026-10-19T15:43:19.052451Z",
+      "reason": "Scanner exceeded initial 2700-second limit during full cold NVD import",
+      "nvd_token_present": true,
+      "cache_before": [],
+      "last_logged_progress": {
+        "retrieved": 250000,
+        "total": 410078,
+        "percent": 61,
+        "timestamp": "2026-10-19T15:43:10.268Z"
+      },
+      "nvd_last_checked": null,
+      "nvd_last_modified": null,
+      "vulnerability_analysis": "not completed; no report generated",
+      "oss_index": "disabled by nvd-clojure: credentials unavailable",
+      "artifact_url": "https://github.com/nantes-rfli/paclo/actions/runs/39273706099/artifacts/12198572692"
+    }
+  ],
+  "actual_tool_versions": {
+    "nvd-clojure": "5.3.0",
+    "dependency-check": "12.2.0"
+  },
+  "inventories": {
+    "production": [
+      {
+        "file": "jnr-ffi-2.3.3.jar",
+        "version": "2.3.3",
+        "sha256": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "maven_path": "com/github/jnr/jnr-ffi/2.3.3/jnr-ffi-2.3.3.jar"
+      },
+      {
+        "file": "spotbugs-annotations-4.8.6.jar",
+        "version": "4.8.6",
+        "sha256": "4548b74a815ed44f5480ca4f06204a8b00809dc7e5f6a825a9edf18f40377b65",
+        "maven_path": "com/github/spotbugs/spotbugs-annotations/4.8.6/spotbugs-annotations-4.8.6.jar"
+      },
+      {
+        "file": "clojure-1.12.6.jar",
+        "version": "1.12.6",
+        "sha256": "21b578db389a8e74b286ce79c4a7f86ec641e26d88b12f18d69030916b0e18ca",
+        "maven_path": "org/clojure/clojure/1.12.6/clojure-1.12.6.jar"
+      },
+      {
+        "file": "core.async-1.6.681.jar",
+        "version": "1.6.681",
+        "sha256": "2e9160118c381d418ab1c4d330b6323ff76b7947e6e2d9b1cd1be950fd269d9f",
+        "maven_path": "org/clojure/core.async/1.6.681/core.async-1.6.681.jar"
+      },
+      {
+        "file": "data.json-2.5.0.jar",
+        "version": "2.5.0",
+        "sha256": "6779c36ee1f90d70f35feb872fb31756aa0e1b8bd6c65e105e780babb4b25704",
+        "maven_path": "org/clojure/data.json/2.5.0/data.json-2.5.0.jar"
+      },
+      {
+        "file": "jffi-1.4.3.jar",
+        "version": "1.4.3",
+        "sha256": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "maven_path": "com/github/jnr/jffi/1.4.3/jffi-1.4.3.jar"
+      },
+      {
+        "file": "jffi-1.4.3-native.jar",
+        "version": "1.4.3",
+        "sha256": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "maven_path": "com/github/jnr/jffi/1.4.3/jffi-1.4.3-native.jar"
+      },
+      {
+        "file": "jnr-a64asm-1.0.0.jar",
+        "version": "1.0.0",
+        "sha256": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "maven_path": "com/github/jnr/jnr-a64asm/1.0.0/jnr-a64asm-1.0.0.jar"
+      },
+      {
+        "file": "jnr-x86asm-1.0.2.jar",
+        "version": "1.0.2",
+        "sha256": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "maven_path": "com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar"
+      },
+      {
+        "file": "asm-9.10.1.jar",
+        "version": "9.10.1",
+        "sha256": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "maven_path": "org/ow2/asm/asm/9.10.1/asm-9.10.1.jar"
+      },
+      {
+        "file": "asm-analysis-9.10.1.jar",
+        "version": "9.10.1",
+        "sha256": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "maven_path": "org/ow2/asm/asm-analysis/9.10.1/asm-analysis-9.10.1.jar"
+      },
+      {
+        "file": "asm-commons-9.10.1.jar",
+        "version": "9.10.1",
+        "sha256": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "maven_path": "org/ow2/asm/asm-commons/9.10.1/asm-commons-9.10.1.jar"
+      },
+      {
+        "file": "asm-tree-9.10.1.jar",
+        "version": "9.10.1",
+        "sha256": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "maven_path": "org/ow2/asm/asm-tree/9.10.1/asm-tree-9.10.1.jar"
+      },
+      {
+        "file": "asm-util-9.10.1.jar",
+        "version": "9.10.1",
+        "sha256": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c",
+        "maven_path": "org/ow2/asm/asm-util/9.10.1/asm-util-9.10.1.jar"
+      },
+      {
+        "file": "jsr305-3.0.2.jar",
+        "version": "3.0.2",
+        "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7",
+        "maven_path": "com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar"
+      },
+      {
+        "file": "core.specs.alpha-0.4.74.jar",
+        "version": "0.4.74",
+        "sha256": "eb73ac08cf49ba840c88ba67beef11336ca554333d9408808d78946e0feb9ddb",
+        "maven_path": "org/clojure/core.specs.alpha/0.4.74/core.specs.alpha-0.4.74.jar"
+      },
+      {
+        "file": "spec.alpha-0.5.238.jar",
+        "version": "0.5.238",
+        "sha256": "94cd99b6ea639641f37af4860a643b6ed399ee5a8be5d717cff0b663c8d75077",
+        "maven_path": "org/clojure/spec.alpha/0.5.238/spec.alpha-0.5.238.jar"
+      },
+      {
+        "file": "tools.analyzer.jvm-1.2.3.jar",
+        "version": "1.2.3",
+        "sha256": "86332ef629ede50e1ad910dfb835e4cf3427073cfab2907e52b9ab2fb2f61416",
+        "maven_path": "org/clojure/tools.analyzer.jvm/1.2.3/tools.analyzer.jvm-1.2.3.jar"
+      },
+      {
+        "file": "core.memoize-1.0.253.jar",
+        "version": "1.0.253",
+        "sha256": "4a910585182ab326c1d0a20d34315be1563b5a58437d41c021dd7fe9911e1ed6",
+        "maven_path": "org/clojure/core.memoize/1.0.253/core.memoize-1.0.253.jar"
+      },
+      {
+        "file": "tools.analyzer-1.1.1.jar",
+        "version": "1.1.1",
+        "sha256": "eba167fca1179fb156a8e38bdc2e9d49dff491e5150965b54839b952fceed060",
+        "maven_path": "org/clojure/tools.analyzer/1.1.1/tools.analyzer-1.1.1.jar"
+      },
+      {
+        "file": "tools.reader-1.3.6.jar",
+        "version": "1.3.6",
+        "sha256": "11d1b31f2c65c3355b292bb9b44b8fcafda54b44da63e34ab97b79a8ab3bb8e0",
+        "maven_path": "org/clojure/tools.reader/1.3.6/tools.reader-1.3.6.jar"
+      },
+      {
+        "file": "core.cache-1.0.225.jar",
+        "version": "1.0.225",
+        "sha256": "c153aa947eda5cdbd8a93882c8fbabd5037d4ad7311802b4bcd8015469f6a5b1",
+        "maven_path": "org/clojure/core.cache/1.0.225/core.cache-1.0.225.jar"
+      },
+      {
+        "file": "data.priority-map-1.1.0.jar",
+        "version": "1.1.0",
+        "sha256": "fe51af4472fa0f1bfd66f3871de55076402ff6615a74bcb17b37c402a0ea6f4c",
+        "maven_path": "org/clojure/data.priority-map/1.1.0/data.priority-map-1.1.0.jar"
+      }
+    ],
+    "tool": [
+      {
+        "file": "nvd-clojure-5.3.0.jar",
+        "version": "5.3.0",
+        "sha256": "2d2dc58c2a6d5a01afd6befb75cb2101a998efb196c30c0391f3a0926b087c8c",
+        "maven_path": "nvd-clojure/nvd-clojure/5.3.0/nvd-clojure-5.3.0.jar"
+      },
+      {
+        "file": "clojure-1.12.5.jar",
+        "version": "1.12.5",
+        "sha256": "dfdee131460216a84fef22e537bb0d0579965f8f70338d748323dff26f8e5a8b",
+        "maven_path": "org/clojure/clojure/1.12.5/clojure-1.12.5.jar"
+      },
+      {
+        "file": "clansi-1.0.0.jar",
+        "version": "1.0.0",
+        "sha256": "10011895fcc196bca93a4b90e247c17530e82515982f580ca6a31bc195f138aa",
+        "maven_path": "clansi/clansi/1.0.0/clansi-1.0.0.jar"
+      },
+      {
+        "file": "error_prone_annotations-2.46.0.jar",
+        "version": "2.46.0",
+        "sha256": "b67be81ff4b956401146e14eaf1526bc435a9480f2546e91eb45b796631a8a99",
+        "maven_path": "com/google/errorprone/error_prone_annotations/2.46.0/error_prone_annotations-2.46.0.jar"
+      },
+      {
+        "file": "commons-logging-1.3.5.jar",
+        "version": "1.3.5",
+        "sha256": "6d7a744e4027649fbb50895df9497d109f98c766a637062fe8d2eabbb3140ba4",
+        "maven_path": "commons-logging/commons-logging/1.3.5/commons-logging-1.3.5.jar"
+      },
+      {
+        "file": "data.json-2.5.2.jar",
+        "version": "2.5.2",
+        "sha256": "0938c730961d32b331ea7e5cd7c6a822c0a889def79d1c3f2af4dd201fdddeb3",
+        "maven_path": "org/clojure/data.json/2.5.2/data.json-2.5.2.jar"
+      },
+      {
+        "file": "dependency-check-core-12.2.0.jar",
+        "version": "12.2.0",
+        "sha256": "e161f3e73c5ced6b8a814e63476cca93cf76341aa704d7180cbb0dbfaebdeb6e",
+        "maven_path": "org/owasp/dependency-check-core/12.2.0/dependency-check-core-12.2.0.jar"
+      },
+      {
+        "file": "slf4j-simple-2.0.17.jar",
+        "version": "2.0.17",
+        "sha256": "ddfea59ac074c6d3e24ac2c38622d2d963895e17f70b38ed4bdae4d780be6964",
+        "maven_path": "org/slf4j/slf4j-simple/2.0.17/slf4j-simple-2.0.17.jar"
+      },
+      {
+        "file": "table-0.7.1.jar",
+        "version": "0.7.1",
+        "sha256": "81a0f51976d924609d43694583a53b2fea11de16d0489cee15acb479ded7c325",
+        "maven_path": "rm-hull/table/0.7.1/table-0.7.1.jar"
+      },
+      {
+        "file": "versioneer-0.2.0.jar",
+        "version": "0.2.0",
+        "sha256": "d0bdc80617439d92afd76e6fbd9284ac6edbf74d78c38f9b18f183c57f378e09",
+        "maven_path": "trptcolin/versioneer/0.2.0/versioneer-0.2.0.jar"
+      },
+      {
+        "file": "core.specs.alpha-0.4.74.jar",
+        "version": "0.4.74",
+        "sha256": "eb73ac08cf49ba840c88ba67beef11336ca554333d9408808d78946e0feb9ddb",
+        "maven_path": "org/clojure/core.specs.alpha/0.4.74/core.specs.alpha-0.4.74.jar"
+      },
+      {
+        "file": "spec.alpha-0.5.238.jar",
+        "version": "0.5.238",
+        "sha256": "94cd99b6ea639641f37af4860a643b6ed399ee5a8be5d717cff0b663c8d75077",
+        "maven_path": "org/clojure/spec.alpha/0.5.238/spec.alpha-0.5.238.jar"
+      },
+      {
+        "file": "minlog-1.3.1.jar",
+        "version": "1.3.1",
+        "sha256": "5d4d632cfbebfe0a7644501cc303570b691406181bee65e9916b921c767d7c72",
+        "maven_path": "com/esotericsoftware/minlog/1.3.1/minlog-1.3.1.jar"
+      },
+      {
+        "file": "jackson-annotations-2.20.jar",
+        "version": "2.20",
+        "sha256": "959a2ffb2d591436f51f183c6a521fc89347912f711bf0cae008cdf045d95319",
+        "maven_path": "com/fasterxml/jackson/core/jackson-annotations/2.20/jackson-annotations-2.20.jar"
+      },
+      {
+        "file": "jackson-core-2.20.1.jar",
+        "version": "2.20.1",
+        "sha256": "ffab4d957daa2796cf24cb66d0b78a7090f1bcbe17c3a4578f09affaaf137089",
+        "maven_path": "com/fasterxml/jackson/core/jackson-core/2.20.1/jackson-core-2.20.1.jar"
+      },
+      {
+        "file": "jackson-databind-2.20.1.jar",
+        "version": "2.20.1",
+        "sha256": "34bbeb4526fff4f8565b12106bf85a6afcbae858966d489b54214ac46b2e26e8",
+        "maven_path": "com/fasterxml/jackson/core/jackson-databind/2.20.1/jackson-databind-2.20.1.jar"
+      },
+      {
+        "file": "jackson-dataformat-yaml-2.20.1.jar",
+        "version": "2.20.1",
+        "sha256": "030f1d91f7df278e86e1ba3e129fb520871ac16ce53017c735f708823be970db",
+        "maven_path": "com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.20.1/jackson-dataformat-yaml-2.20.1.jar"
+      },
+      {
+        "file": "jackson-datatype-jsr310-2.20.1.jar",
+        "version": "2.20.1",
+        "sha256": "692be83c7e2eebb53b995c11d813c603a7d716d60c9d2d4fb9486ecb105f9291",
+        "maven_path": "com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.20.1/jackson-datatype-jsr310-2.20.1.jar"
+      },
+      {
+        "file": "jackson-module-blackbird-2.20.1.jar",
+        "version": "2.20.1",
+        "sha256": "88fbdf758e6d6dd039273a92ced50eacfc7383aebe31330dfaeb3ecffcf8c886",
+        "maven_path": "com/fasterxml/jackson/module/jackson-module-blackbird/2.20.1/jackson-module-blackbird-2.20.1.jar"
+      },
+      {
+        "file": "packageurl-java-1.5.0.jar",
+        "version": "1.5.0",
+        "sha256": "e45551727707acc0c56ac62d56964332ea0f138d6cc3656d988b9369150f5247",
+        "maven_path": "com/github/package-url/packageurl-java/1.5.0/packageurl-java-1.5.0.jar"
+      },
+      {
+        "file": "guava-33.5.0-jre.jar",
+        "version": "33.5.0-jre",
+        "sha256": "1e301f0c52ac248b0b14fdc3d12283c77252d4d6f48521d572e7d8c4c2cc4ac7",
+        "maven_path": "com/google/guava/guava/33.5.0-jre/guava-33.5.0-jre.jar"
+      },
+      {
+        "file": "h2-2.4.240.jar",
+        "version": "2.4.240",
+        "sha256": "29b70e427cc1c40cdc376283adbb0cc62853073797bb5fe5761f81fe73d57ce0",
+        "maven_path": "com/h2database/h2/2.4.240/h2-2.4.240.jar"
+      },
+      {
+        "file": "retirejs-core-3.0.4.jar",
+        "version": "3.0.4",
+        "sha256": "ef429049b1e828bfce0a98869765a7f10d7daf41acb03201fcd3404f424d0c37",
+        "maven_path": "com/h3xstream/retirejs/retirejs-core/3.0.4/retirejs-core-3.0.4.jar"
+      },
+      {
+        "file": "aho-corasick-double-array-trie-1.2.3.jar",
+        "version": "1.2.3",
+        "sha256": "564f0fc690d50702a313510b9a72e9505ace6e81108e84f65de4feb0da244eb8",
+        "maven_path": "com/hankcs/aho-corasick-double-array-trie/1.2.3/aho-corasick-double-array-trie-1.2.3.jar"
+      },
+      {
+        "file": "toml4j-0.7.2.jar",
+        "version": "0.7.2",
+        "sha256": "f5475e63e7e89e5db62223489aec7a56bd303543772077a17c2cb54c19ca3a20",
+        "maven_path": "com/moandjiezana/toml/toml4j/0.7.2/toml4j-0.7.2.jar"
+      },
+      {
+        "file": "android-json-0.0.20131108.vaadin1.jar",
+        "version": "0.0.20131108.vaadin1",
+        "sha256": "dfb7bae2f404cfe0b72b4d23944698cb716b7665171812a0a4d0f5926c0fac79",
+        "maven_path": "com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar"
+      },
+      {
+        "file": "commons-io-2.21.0.jar",
+        "version": "2.21.0",
+        "sha256": "7d643a2afea8b058b762aa6fb90e5b256f6c729739f8b3784c3370ddc609e88d",
+        "maven_path": "commons-io/commons-io/2.21.0/commons-io-2.21.0.jar"
+      },
+      {
+        "file": "commons-validator-1.10.1.jar",
+        "version": "1.10.1",
+        "sha256": "ed74711a78d793ca37f6075e4a1e93d107233dfd20d0bb17e32bad88d38e56aa",
+        "maven_path": "commons-validator/commons-validator/1.10.1/commons-validator-1.10.1.jar"
+      },
+      {
+        "file": "jcs3-slf4j-1.0.5.jar",
+        "version": "1.0.5",
+        "sha256": "5b2129a9115d17c9fb65b143f375ab0c15f850248fd5aa0f3307d2cc618df09b",
+        "maven_path": "io/github/jeremylong/jcs3-slf4j/1.0.5/jcs3-slf4j-1.0.5.jar"
+      },
+      {
+        "file": "open-vulnerability-clients-9.0.2.jar",
+        "version": "9.0.2",
+        "sha256": "cf94270cfc06f89602c3fe63b83d7114b9c0922ebe261942c4aa67f821ea3e6b",
+        "maven_path": "io/github/jeremylong/open-vulnerability-clients/9.0.2/open-vulnerability-clients-9.0.2.jar"
+      },
+      {
+        "file": "joda-time-2.14.0.jar",
+        "version": "2.14.0",
+        "sha256": "1e2da6f9eb65f20a25d9a3186831ed2b3fb14f7a48e1ef8206135ee58cb143d3",
+        "maven_path": "joda-time/joda-time/2.14.0/joda-time-2.14.0.jar"
+      },
+      {
+        "file": "jdiagnostics-1.0.7.jar",
+        "version": "1.0.7",
+        "sha256": "7c7fe5347ce2d147ff7bc372f4b2e110d60261fb0f2809e719e3c56ca52ee3d7",
+        "maven_path": "org/anarres/jdiagnostics/jdiagnostics/1.0.7/jdiagnostics-1.0.7.jar"
+      },
+      {
+        "file": "commons-collections4-4.5.0.jar",
+        "version": "4.5.0",
+        "sha256": "00f93263c267be201b8ae521b44a7137271b16688435340bf629db1bac0a5845",
+        "maven_path": "org/apache/commons/commons-collections4/4.5.0/commons-collections4-4.5.0.jar"
+      },
+      {
+        "file": "commons-compress-1.27.1.jar",
+        "version": "1.27.1",
+        "sha256": "293d80f54b536b74095dcd7ea3cf0a29bbfc3402519281332495f4420d370d16",
+        "maven_path": "org/apache/commons/commons-compress/1.27.1/commons-compress-1.27.1.jar"
+      },
+      {
+        "file": "commons-dbcp2-2.14.0.jar",
+        "version": "2.14.0",
+        "sha256": "459bebb8191906bacfeb73c62fcebc3e8c1e405a54594212b5f148d0567e668a",
+        "maven_path": "org/apache/commons/commons-dbcp2/2.14.0/commons-dbcp2-2.14.0.jar"
+      },
+      {
+        "file": "commons-jcs3-core-3.2.1.jar",
+        "version": "3.2.1",
+        "sha256": "12c6fe08223820089f60969b6088e6ac5d358aa872de78357585cdacb6c61049",
+        "maven_path": "org/apache/commons/commons-jcs3-core/3.2.1/commons-jcs3-core-3.2.1.jar"
+      },
+      {
+        "file": "commons-lang3-3.20.0.jar",
+        "version": "3.20.0",
+        "sha256": "69e5c9fa35da7a51a5fd2099dfe56a2d8d32cf233e2f6d770e796146440263f4",
+        "maven_path": "org/apache/commons/commons-lang3/3.20.0/commons-lang3-3.20.0.jar"
+      },
+      {
+        "file": "commons-text-1.15.0.jar",
+        "version": "1.15.0",
+        "sha256": "58d2da30f058512a1e7f914e39241deca4dff5c27a085b4ed2faa9e7208067f6",
+        "maven_path": "org/apache/commons/commons-text/1.15.0/commons-text-1.15.0.jar"
+      },
+      {
+        "file": "httpclient5-5.5.1.jar",
+        "version": "5.5.1",
+        "sha256": "2e1e5d0ccf60d078bac6e3b029076afa8433a6a6d93eefdb46bce50720b58b7d",
+        "maven_path": "org/apache/httpcomponents/client5/httpclient5/5.5.1/httpclient5-5.5.1.jar"
+      },
+      {
+        "file": "httpcore5-5.3.6.jar",
+        "version": "5.3.6",
+        "sha256": "8fb4528d3e970aca440523a1bd698a389fa710ecfea4c5c6096698b86d1669ce",
+        "maven_path": "org/apache/httpcomponents/core5/httpcore5/5.3.6/httpcore5-5.3.6.jar"
+      },
+      {
+        "file": "lucene-analysis-common-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "fa571bd7caf0f0b4faf46a72ca004a7836f348c31d92bd522dddcc3d128d287e",
+        "maven_path": "org/apache/lucene/lucene-analysis-common/9.12.3/lucene-analysis-common-9.12.3.jar"
+      },
+      {
+        "file": "lucene-core-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "b64a3f8098a7572034fb30085cdee01b34ec81fb0e5a31b471536af58dc6c01b",
+        "maven_path": "org/apache/lucene/lucene-core/9.12.3/lucene-core-9.12.3.jar"
+      },
+      {
+        "file": "lucene-queryparser-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "5db83a184512fd7a46cf7b34efa997b5f1b28ad1cee26dd665180b19eab0a1b1",
+        "maven_path": "org/apache/lucene/lucene-queryparser/9.12.3/lucene-queryparser-9.12.3.jar"
+      },
+      {
+        "file": "velocity-engine-core-2.4.1.jar",
+        "version": "2.4.1",
+        "sha256": "1c19157d1171d560088e485be97c93a7a2f7e9f56e517f0a30273c5c39df6231",
+        "maven_path": "org/apache/velocity/velocity-engine-core/2.4.1/velocity-engine-core-2.4.1.jar"
+      },
+      {
+        "file": "packager-rpm-0.21.0.jar",
+        "version": "0.21.0",
+        "sha256": "07d2895d5360e3e29d298d74349577c97610713f17ed442e92db1bcf4a4a6ac2",
+        "maven_path": "org/eclipse/packager/packager-rpm/0.21.0/packager-rpm-0.21.0.jar"
+      },
+      {
+        "file": "jakarta.json-1.1.7.jar",
+        "version": "1.1.7",
+        "sha256": "5905f52283a7491e06ba58556103d45c3199a42602abcd36d510ceda65490ff0",
+        "maven_path": "org/eclipse/parsson/jakarta.json/1.1.7/jakarta.json-1.1.7.jar"
+      },
+      {
+        "file": "jsoup-1.22.1.jar",
+        "version": "1.22.1",
+        "sha256": "cfd3298d8720cddfb0545109ccc6ea0ef39eff7e9c40a10ad95c93a65f01c916",
+        "maven_path": "org/jsoup/jsoup/1.22.1/jsoup-1.22.1.jar"
+      },
+      {
+        "file": "dependency-check-utils-12.2.0.jar",
+        "version": "12.2.0",
+        "sha256": "79c5b3fa387ce049a2af709579aa160e53e102656f6b93f99a38026521863b6c",
+        "maven_path": "org/owasp/dependency-check-utils/12.2.0/dependency-check-utils-12.2.0.jar"
+      },
+      {
+        "file": "semver4j-5.8.0.jar",
+        "version": "5.8.0",
+        "sha256": "ca4055d354c9ad37bcb03b932a4bb8288166ec069c75d8ceaff14f8c76197fe6",
+        "maven_path": "org/semver4j/semver4j/5.8.0/semver4j-5.8.0.jar"
+      },
+      {
+        "file": "jul-to-slf4j-1.7.36.jar",
+        "version": "1.7.36",
+        "sha256": "9e641fb142c5f0b0623d6222c09ea87523a41bf6bed48ac79940724010b989de",
+        "maven_path": "org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar"
+      },
+      {
+        "file": "package-url-java-1.2.0.jar",
+        "version": "1.2.0",
+        "sha256": "a5fe3de2603a5812c0358950c53e550fa2c330ca787c5534fc79576c8146abb4",
+        "maven_path": "org/sonatype/goodies/package-url-java/1.2.0/package-url-java-1.2.0.jar"
+      },
+      {
+        "file": "ossindex-service-api-1.8.2.jar",
+        "version": "1.8.2",
+        "sha256": "61fb04e93cf2991718057956f92534cbf1494ed5e74250b9dfd6c012bc379aa8",
+        "maven_path": "org/sonatype/ossindex/ossindex-service-api/1.8.2/ossindex-service-api-1.8.2.jar"
+      },
+      {
+        "file": "ossindex-service-client-1.8.2.jar",
+        "version": "1.8.2",
+        "sha256": "ef692b99e11e558524036447daedf7cb98285407d4db7af579a5914c265f981b",
+        "maven_path": "org/sonatype/ossindex/ossindex-service-client/1.8.2/ossindex-service-client-1.8.2.jar"
+      },
+      {
+        "file": "pecoff4j-0.0.2.1.jar",
+        "version": "0.0.2.1",
+        "sha256": "847373828e0490babdfaed2b048ed3908dc1a8de82d4c8e6ebab9bfd0a294ed6",
+        "maven_path": "org/whitesource/pecoff4j/0.0.2.1/pecoff4j-0.0.2.1.jar"
+      },
+      {
+        "file": "cpe-parser-3.0.1.jar",
+        "version": "3.0.1",
+        "sha256": "f98a50dce0a381e08f0f0ac067801c7f4c51dc7f8f1fe7a3c9960c684a809705",
+        "maven_path": "us/springett/cpe-parser/3.0.1/cpe-parser-3.0.1.jar"
+      },
+      {
+        "file": "slf4j-api-2.0.17.jar",
+        "version": "2.0.17",
+        "sha256": "7b751d952061954d5abfed7181c1f645d336091b679891591d63329c622eb832",
+        "maven_path": "org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar"
+      },
+      {
+        "file": "snakeyaml-2.4.jar",
+        "version": "2.4",
+        "sha256": "ef779af5d29a9dde8cc70ce0341f5c6f7735e23edff9685ceaa9d35359b7bb7f",
+        "maven_path": "org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar"
+      },
+      {
+        "file": "failureaccess-1.0.3.jar",
+        "version": "1.0.3",
+        "sha256": "cbfc3906b19b8f55dd7cfd6dfe0aa4532e834250d7f080bd8d211a3e246b59cb",
+        "maven_path": "com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar"
+      },
+      {
+        "file": "listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+        "version": "9999.0-empty-to-avoid-conflict-with-guava",
+        "sha256": "b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99",
+        "maven_path": "com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
+      },
+      {
+        "file": "j2objc-annotations-3.1.jar",
+        "version": "3.1",
+        "sha256": "84d3a150518485f8140ea99b8a985656749629f6433c92b80c75b36aba3b099b",
+        "maven_path": "com/google/j2objc/j2objc-annotations/3.1/j2objc-annotations-3.1.jar"
+      },
+      {
+        "file": "jspecify-1.0.0.jar",
+        "version": "1.0.0",
+        "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab",
+        "maven_path": "org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar"
+      },
+      {
+        "file": "compiler-0.9.6.jar",
+        "version": "0.9.6",
+        "sha256": "c4d697fd3619cb616cc5e22e9530c8a4fd4a8e9a76953c0655ee627cb2d22318",
+        "maven_path": "com/github/spullara/mustache/java/compiler/0.9.6/compiler-0.9.6.jar"
+      },
+      {
+        "file": "commons-collections-3.2.2.jar",
+        "version": "3.2.2",
+        "sha256": "eeeae917917144a68a741d4c0dff66aa5c5c5fd85593ff217bced3fc8ca783b8",
+        "maven_path": "commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar"
+      },
+      {
+        "file": "commons-digester-2.1.jar",
+        "version": "2.1",
+        "sha256": "e0b2b980a84fc6533c5ce291f1917b32c507f62bcad64198fff44368c2196a3d",
+        "maven_path": "commons-digester/commons-digester/2.1/commons-digester-2.1.jar"
+      },
+      {
+        "file": "jmustache-1.16.jar",
+        "version": "1.16",
+        "sha256": "3d4b984abd66908f05b38c9c892325cd4785d01ff33922569ff9b90c9ebfc475",
+        "maven_path": "com/samskivert/jmustache/1.16/jmustache-1.16.jar"
+      },
+      {
+        "file": "httpclient5-cache-5.5.1.jar",
+        "version": "5.5.1",
+        "sha256": "714a23e0a9d311d56ff1bedb07be4806974fa831c0a9fc607cfb7532e285e440",
+        "maven_path": "org/apache/httpcomponents/client5/httpclient5-cache/5.5.1/httpclient5-cache-5.5.1.jar"
+      },
+      {
+        "file": "commons-codec-1.17.1.jar",
+        "version": "1.17.1",
+        "sha256": "f9f6cb103f2ddc3c99a9d80ada2ae7bf0685111fd6bffccb72033d1da4e6ff23",
+        "maven_path": "commons-codec/commons-codec/1.17.1/commons-codec-1.17.1.jar"
+      },
+      {
+        "file": "jakarta.transaction-api-1.3.3.jar",
+        "version": "1.3.3",
+        "sha256": "0b02a194dd04ee2e192dc9da9579e10955dd6e8ac707adfc91d92f119b0e67ab",
+        "maven_path": "jakarta/transaction/jakarta.transaction-api/1.3.3/jakarta.transaction-api-1.3.3.jar"
+      },
+      {
+        "file": "commons-pool2-2.13.0.jar",
+        "version": "2.13.0",
+        "sha256": "488ededfcc481666845265a64dccc322fc8f0205940b4943a53de2d8ed04c48c",
+        "maven_path": "org/apache/commons/commons-pool2/2.13.0/commons-pool2-2.13.0.jar"
+      },
+      {
+        "file": "httpcore5-h2-5.3.6.jar",
+        "version": "5.3.6",
+        "sha256": "479a8aa5e6f99030a2a446a68d1f62320698932746f811fc656a1ea06b94184d",
+        "maven_path": "org/apache/httpcomponents/core5/httpcore5-h2/5.3.6/httpcore5-h2-5.3.6.jar"
+      },
+      {
+        "file": "lucene-queries-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "81c8993da5dcca9da5e4041b623f00169868e37988691434b14fc910c700a30c",
+        "maven_path": "org/apache/lucene/lucene-queries/9.12.3/lucene-queries-9.12.3.jar"
+      },
+      {
+        "file": "lucene-sandbox-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "21cf9ad1bb97265983c698b9c5eb071b1a4a1d4f0f74b98c6e61ad8f04c5c9d7",
+        "maven_path": "org/apache/lucene/lucene-sandbox/9.12.3/lucene-sandbox-9.12.3.jar"
+      },
+      {
+        "file": "packager-core-0.21.0.jar",
+        "version": "0.21.0",
+        "sha256": "70be2643085e0edba106691211535c9023bdb6fcc2c8348ea43a8438333c43d5",
+        "maven_path": "org/eclipse/packager/packager-core/0.21.0/packager-core-0.21.0.jar"
+      },
+      {
+        "file": "xz-1.9.jar",
+        "version": "1.9",
+        "sha256": "211b306cfc44f8f96df3a0a3ddaf75ba8c5289eed77d60d72f889bb855f535e5",
+        "maven_path": "org/tukaani/xz/1.9/xz-1.9.jar"
+      },
+      {
+        "file": "javax.ws.rs-api-2.0.1.jar",
+        "version": "2.0.1",
+        "sha256": "38607d626f2288d8fbc1b1f8a62c369e63806d9a313ac7cbc5f9d6c94f4b466d",
+        "maven_path": "javax/ws/rs/javax.ws.rs-api/2.0.1/javax.ws.rs-api-2.0.1.jar"
+      },
+      {
+        "file": "jaxb-api-2.3.1.jar",
+        "version": "2.3.1",
+        "sha256": "88b955a0df57880a26a74708bc34f74dcaf8ebf4e78843a28b50eae945732b06",
+        "maven_path": "javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar"
+      },
+      {
+        "file": "gson-2.9.0.jar",
+        "version": "2.9.0",
+        "sha256": "c96d60551331a196dac54b745aa642cd078ef89b6f267146b705f2c2cbef052d",
+        "maven_path": "com/google/code/gson/gson/2.9.0/gson-2.9.0.jar"
+      },
+      {
+        "file": "javax.inject-1.jar",
+        "version": "1",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff",
+        "maven_path": "javax/inject/javax.inject/1/javax.inject-1.jar"
+      },
+      {
+        "file": "lucene-facet-9.12.3.jar",
+        "version": "9.12.3",
+        "sha256": "688e9b71fecba026e44f0a228cc0e09af3c9aec5e1f5b10e9f102a6730ef7dec",
+        "maven_path": "org/apache/lucene/lucene-facet/9.12.3/lucene-facet-9.12.3.jar"
+      },
+      {
+        "file": "bcpg-jdk18on-1.78.jar",
+        "version": "1.78",
+        "sha256": "21b79c26b374705c5b8295b458144c368e545cb5dad3ba9210e5bef1269e05be",
+        "maven_path": "org/bouncycastle/bcpg-jdk18on/1.78/bcpg-jdk18on-1.78.jar"
+      },
+      {
+        "file": "bcprov-jdk18on-1.78.jar",
+        "version": "1.78",
+        "sha256": "1bf721b09758b3f55f2a5c875b6178ec6c41dddad854b0dead4b27a236f1943a",
+        "maven_path": "org/bouncycastle/bcprov-jdk18on/1.78/bcprov-jdk18on-1.78.jar"
+      },
+      {
+        "file": "javax.activation-api-1.2.0.jar",
+        "version": "1.2.0",
+        "sha256": "43fdef0b5b6ceb31b0424b208b930c74ab58fac2ceeb7b3f6fd3aeb8b5ca4393",
+        "maven_path": "javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar"
+      }
+    ]
+  }
+}
