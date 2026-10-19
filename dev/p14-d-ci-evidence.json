@@ -1,0 +1,146 @@
+{
+  "initial_implementation": "fc5083a3ba8af0c57d5b1004ba4975d6b06f0c6c",
+  "initial_ci": {
+    "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39273699992",
+    "jobs": [
+      {
+        "name": "arm64-monitor",
+        "databaseId": 118132361600,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (mixed)",
+        "databaseId": 118132361617,
+        "conclusion": "success"
+      },
+      {
+        "name": "eastwood-lint",
+        "databaseId": 118132361631,
+        "conclusion": "success"
+      },
+      {
+        "name": "build-checks",
+        "databaseId": 118132361637,
+        "conclusion": "success"
+      },
+      {
+        "name": "documentation-checks",
+        "databaseId": 118132361651,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+        "databaseId": 118132361697,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+        "databaseId": 118132361701,
+        "conclusion": "success"
+      },
+      {
+        "name": "coverage",
+        "databaseId": 118132361711,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (udp-64)",
+        "databaseId": 118132361714,
+        "conclusion": "success"
+      },
+      {
+        "name": "jdk25-source",
+        "databaseId": 118132361737,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (tcp-512)",
+        "databaseId": 118132362066,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-results",
+        "databaseId": 118133266507,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (25)",
+        "databaseId": 118134628032,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (17)",
+        "databaseId": 118134628319,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (21)",
+        "databaseId": 118134628503,
+        "conclusion": "success"
+      },
+      {
+        "name": "build",
+        "databaseId": 118135064177,
+        "conclusion": "success"
+      }
+    ],
+    "consumers": [
+      {
+        "report": "consumer-jdk17.json",
+        "source_commit": "fa5d810c48581eec4b44a5050f08e7e194792b16",
+        "jar_sha256": "49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b",
+        "java_options": [],
+        "status": "passed"
+      },
+      {
+        "report": "consumer-jdk21.json",
+        "source_commit": "fa5d810c48581eec4b44a5050f08e7e194792b16",
+        "jar_sha256": "49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b",
+        "java_options": [],
+        "status": "passed"
+      },
+      {
+        "report": "consumer-jdk25-native-access.json",
+        "source_commit": "fa5d810c48581eec4b44a5050f08e7e194792b16",
+        "jar_sha256": "49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b",
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=debug"
+        ],
+        "status": "passed"
+      },
+      {
+        "report": "consumer-jdk25-unsafe-deny.json",
+        "source_commit": "fa5d810c48581eec4b44a5050f08e7e194792b16",
+        "jar_sha256": "49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b",
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=deny"
+        ],
+        "status": "passed"
+      },
+      {
+        "report": "consumer-jdk25.json",
+        "source_commit": "fa5d810c48581eec4b44a5050f08e7e194792b16",
+        "jar_sha256": "49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b",
+        "java_options": [],
+        "status": "passed"
+      }
+    ]
+  },
+  "local": {
+    "clojure_tests": 493,
+    "assertions": 19130,
+    "junit_tests": 13,
+    "audit_regressions": 16,
+    "interop_tests": 5,
+    "interop_assertions": 377,
+    "production_jars_unchanged": true,
+    "production_jars": 23,
+    "tool_jars": 82,
+    "nvd_scan": "incomplete: NVD_API_TOKEN unavailable",
+    "package_consumer21": "passed",
+    "jar_sha256": "482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010"
+  },
+  "final_head_ci": "pending after logged-error regression follow-up"
+}

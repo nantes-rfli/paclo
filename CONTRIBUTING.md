@@ -198,7 +198,7 @@ available; do not start an interactive login or copy tokens into the repository.
 
 ## Dependency security audit
 
-Use the pinned CLI1.12.5.1664 and JDK21, then run from the repository root:
+Use Python3.11+, the pinned CLI1.12.5.1664 and JDK21, then run from the repository root:
 
 ```bash
 python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
@@ -227,7 +227,8 @@ within24 hours and Last Modified within7 days (with5 minutes of clock tolerance)
 Automatic updates and a24-hour validity window are enabled in flat EDN options;
 cache mtimes do not establish freshness. CVSS v2/v3/v4 base scores >=7.0 fail,
 including exactly7.0; invalid/unscored findings require triage and cannot pass.
-The original tool's nonzero exit always fails too. No suppressions are added.
+The original tool's nonzero exit always fails too; logged errors and known
+remote/update/analysis failure warnings cannot pass with a cached report. No suppressions are added.
 NVD fetch/auth/analysis failure or missing/malformed output is incomplete.
 
 The weekly Monday03:00 UTC and manual workflow scans production only, restores

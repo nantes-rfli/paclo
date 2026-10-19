@@ -16,8 +16,8 @@ the previous intended target; no optional/dev/build/tool audit is added.
 
 Actual local resolution: **23 production JARs**, **82 tool JARs**. Shared
 libraries legitimately appear in both independent inventories; the entire tool
-classpath is never supplied as scan input. The tool resolves Clojure1.12.4 and
-data.json2.5.2 independently of production1.12.6/2.5.0. Actual loaded versions
+classpath is never supplied as scan input. The tool resolves Clojure1.12.5 (the CLI system default wins over its declared
+1.12.4) and data.json2.5.2 independently of production1.12.6/2.5.0. Actual loaded versions
 from `nvd.task.check/version`: nvd-clojure5.3.0, Dependency-Check12.2.0.
 Tool transitive versions include H22.4.240, Jackson2.20.1, Lucene9.12.3,
 commons-compress1.27.1 and open-vulnerability-clients9.0.2; full selected versions
@@ -63,6 +63,8 @@ A cache hit or file mtime cannot pass verification. Evidence is uploaded with
 Monday03:00 UTC/manual triggers and all16 CI jobs remain.
 
 nvd-clojure rethrows Dependency-Check analysis/update exception collections.
+Logged ERROR and known remote/update/analysis failure warnings also fail verification,
+even if a scanner returns zero with otherwise valid cached reports.
 The runner retains nonzero exits, rejects report exceptions, and refuses an
 existing output folder, preventing old/partial report success. No report after
 fetch/auth/analysis failure means incomplete, never zero vulnerabilities.
@@ -91,7 +93,7 @@ no local token exists. Summary status is **incomplete**; no NVD data or report
 was created, and no clean local audit is claimed. Local evidence is retained
 in `/tmp/paclo-p14d-local` (not a portable/committed artifact).
 
-The15 offline regressions pass: resolution/process nonzero, missing/malformed
+The16 offline regressions pass: resolution/process nonzero, missing/malformed
 report, error collection, timestamps, coverage/contamination, suppressions,
 score validity, v2/v3/v4 and6.9/7.0/7.1, resolve-only and stale-output refusal.
 Regression tests run in both ordinary CI and the audit workflow.

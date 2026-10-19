@@ -5673,3 +5673,37 @@ full process logs. The helper does not mix tool dependencies into the23 inputs.
 
 Preparing/checking existing suites, developer docs and GitHub-backed audit/CI
 are in progress. Final execution results and PR identity follow below.
+
+Additional local results (reference CLI, all exit0): prepare; check13 JUnit and
+493 Clojure tests/19,130 assertions plus real offline smoke; lint(kondo zero
+warnings/errors, Eastwood639 informational warnings/zero exceptions, LSP no
+namespace/format changes, Markdown57 files/zero errors); local Markdown links.
+Eastwood includes its existing638 warnings plus one informational no-ns-form
+notice for the standalone tool launcher; kondo checks that script. The helper's
+optional dependencies remain outside the default project classpath.
+Published5.2.0 JAR also confirms the same flat-EDN parser contract.
+
+Package/distribution prepare/independent JDK21 consume pass, clean sourcefc5083a,
+JAR SHA256482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010.
+After prepare again, real P16 interoperability passes5 tests/377 assertions.
+An actual resolve-only run exits0 with status resolved-only, no scanner/NVD pass.
+Pre/post production inventories match exactly (paths/versions/hashes),23 JARs.
+
+Implementationfc5083a is [PR #82](https://github.com/nantes-rfli/paclo/pull/82).
+[Initial CI39273699992](https://github.com/nantes-rfli/paclo/actions/runs/39273699992)
+passes all16 jobs, including actual cloverage, all quality/performance/docs,
+P16 on Linux x64/ARM64 and macOS ARM64, and independent same-JAR17/21/25.
+All three P16 jobs pass5 tests/377 assertions; source493 tests pass on each
+platform (19,136 Linux /19,130 macOS assertions). Downloaded all five consumer
+JSONs:17/21/25 default plus25 native debug and Unsafe denial all pass on the same
+JAR49035d8f7d08f5baba79224ab1f1f1d79c859b83ee4d32b6984bfa1269a2830b,
+clean CI merge-reffa5d810c48581eec4b44a5050f08e7e194792b16.
+[CI evidence](p14-d-ci-evidence.json) retains identities/conclusions.
+
+A follow-up regression rejects logged remote/update/analysis errors even if a
+scanner returns0 with a valid cached report. All16 regressions pass; normal
+OSS Index missing-credential notices remain distinct from NVD failure.
+Actual helper Clojure is1.12.5: CLI system deps win over its declared1.12.4;
+corrected the report against the resolved tree. Production stays1.12.6.
+Initial NVD run39273706099 is still fetching its new12.2.0 database; final scan
+and follow-up CI evidence remain pending. No success claim from cache or silence.

@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -65,6 +66,20 @@ def isolated(production):
     for jar in production['jars']:
         if jar['file'].startswith(('nvd-clojure-', 'dependency-check-')):
             raise ValueError('Audit tool leaked into production scan')
+
+
+def verify_logs(logs):
+    # Pinned upstream logging uses bracketed date/thread prefixes. Some upstream
+    # integrations can log a remote failure while retaining cached data.
+    for log in logs:
+        for line in log.splitlines():
+            if re.search(r'^(?:\[[^\]\n]*\]\s*)*ERROR\b', line):
+                raise ValueError('Scanner logged an error; inspect scanner logs')
+            if re.search(r'\bWARN\b.*(?:unable to (?:update|connect|download)|'
+                         r'error (?:updating|downloading|analy[sz]ing)|'
+                         r'failed to (?:update|download|analy[sz]e)|'
+                         r'using (?:local|cached) data|HTTP (?:401|403|429))', line, re.I):
+                raise ValueError('Scanner logged an incomplete remote/analysis operation')
 
 
 def scores(vulnerability):
@@ -191,6 +206,8 @@ def execute(output, data, resolve_only=False):
         report = json.loads(report_path.read_text())
         summary['report_sha256'] = sha256(report_path)
         summary.update(validate(report, production, started, now()))
+        verify_logs([(output / 'scanner.log').read_text(),
+                     (output / 'scanner.stderr.log').read_text()])
         # nvd-clojure may fail before writing a report on update/analysis errors.
         # Never turn a nonzero scanner exit into success, even with a valid report.
         if scan_exit:

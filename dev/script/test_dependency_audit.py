@@ -109,7 +109,8 @@ class ReportTests(unittest.TestCase):
 
 
 class ProcessTests(unittest.TestCase):
-    def exercise(self, scan_exit=0, report_kind='valid', resolution_exit=0, resolve_only=False):
+    def exercise(self, scan_exit=0, report_kind='valid', resolution_exit=0, resolve_only=False,
+                 scanner_log=''):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             jar = base / 'library-1.jar'
@@ -125,6 +126,7 @@ class ProcessTests(unittest.TestCase):
                     if resolution_exit:
                         return subprocess.CompletedProcess(argv, resolution_exit)
                 if 'run.clj' in argv:
+                    kwargs['stderr'].write(scanner_log)
                     audit.write_json(output / 'tool-versions.json',
                                      {'nvd-clojure': audit.NVD, 'dependency-check': audit.ENGINE})
                     if report_kind == 'malformed':
@@ -166,6 +168,13 @@ class ProcessTests(unittest.TestCase):
     def test_zero_scanner_exit_with_high_finding_fails(self):
         code, summary = self.exercise(report_kind='high')
         self.assertEqual((1, 'vulnerabilities'), (code, summary['status']))
+
+    def test_logged_remote_errors_cannot_pass_with_zero_exit(self):
+        for log in ['[2026-10-19 14:00] ERROR dependency-check - HTTP 403',
+                    '[main] WARN updater - Unable to update NVD data; using local data',
+                    '[main] WARN analyzer - Error analyzing library.jar']:
+            code, summary = self.exercise(scanner_log=log)
+            self.assertEqual((1, 'incomplete'), (code, summary['status']))
 
     def test_resolution_failure_never_starts_scanner(self):
         code, summary = self.exercise(resolution_exit=37)
