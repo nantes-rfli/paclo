@@ -77,6 +77,7 @@ smoke() {
 
 case "$paclo_command" in
   doctor)
+    echo "Paclo reference Clojure CLI: 1.12.5.1664 (library version is set by deps.edn)"
     java -version
     javac -version
     clojure -Sdescribe

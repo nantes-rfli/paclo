@@ -6,15 +6,39 @@ Future API sketches in the plan are not available in the current release.
 
 ## Environment
 
-Use Linux or macOS, JDK 21 (JDK 17 is also supported), the Clojure CLI, and
+Use Linux or macOS, JDK 21 (JDK 17 is also supported), Clojure CLI **1.12.5.1664**, and
 libpcap. `deps.edn` selects the Clojure library version; the CLI version is separate.
-The current development library baseline is Clojure 1.12.6.
-The managed cloud environment currently supplies JDK 21, CLI 1.11.1.1435,
-and libpcap. No application server, database, capture privileges, or publication
+The current development library baseline is Clojure 1.12.6; the separate
+`-T:build` tool uses tools.build **0.10.14** and its own tool dependencies.
+No application server, database, capture privileges, or publication
 credentials are needed for ordinary offline development.
 
 On another machine, install a supported JDK and the
 [official Clojure CLI](https://clojure.org/guides/install_clojure).
+To reproduce the CI CLI on Linux/macOS without changing a system installation,
+use the optional checksum-verified installer with a new absolute prefix:
+
+```bash
+bash dev/script/setup-clojure-cli.sh /tmp/paclo-clojure-cli
+export PATH="/tmp/paclo-clojure-cli/bin:$PATH"
+clojure -Sdescribe
+```
+
+The installer needs curl, tar and Python 3; it refuses an existing prefix and
+does not require root. After managed-environment activation, put the selected
+CLI first on PATH if the activation script selects an older image CLI.
+`doctor` prints the reference version and the actual CLI identity; it does not
+silently replace an installed toolchain. Other CLI versions remain unverified
+until tested. CI (including 17/21/25, ARM64, consumers, coverage and Publish) and
+Dependency Audit all pin 1.12.5.1664. Publish uses the tested pin for both tag
+and manual dry-run paths; all authorization/version/source guards still apply.
+Main CI and Publish share Maven/Git download caches under CLI-specific keys;
+user CLI/tool configuration is excluded. The first run under the new key must
+download dependencies again; later runs can reuse those exact artifacts.
+The independent consumers retain their Maven-only cache keys, and audit retains
+its Maven/Git/NVD data cache: these contain artifacts/data independent of CLI
+configuration and are verified or refreshed by their existing checks.
+
 On Debian/Ubuntu, the native prerequisite is `libpcap-dev`; macOS supplies libpcap.
 Static checks additionally need `clj-kondo`, `clojure-lsp`, and Node.js/npm (`npx`).
 For Linux x86_64, `bash dev/script/codex.sh tools` installs checksum-verified
@@ -100,6 +124,17 @@ for the parser and, after compiling Java, run
 
 Java quality commands are `clojure -T:build spotbugs`, `checkstyle`, `jacoco`,
 and `jacoco-gate`; use the existing CI coverage threshold when reproducing CI.
+Build subprocess failures propagate as nonzero CLI exits, including classpath
+resolution and JUnit. Run `python3 -B -m unittest discover -s dev/script -p
+'test_build_toolchain.py'` for failure-injection, Java 17 API and fixed POM-date checks.
+Run `python3 dev/script/verify_toolchain_resolution.py /tmp/paclo-toolchain-resolution`
+with a fresh output folder for independent cold/warm Maven/Git resolution and
+`prep-lib` compilation. It uses temporary caches/configuration, preserving user
+caches. Prep launches a child CLI without inheriting `-Srepro`, so the probe
+uses an empty `CLJ_CONFIG` for that phase.
+`SOURCE_DATE_EPOCH` (integer epoch seconds) fixes the generated POM properties
+comment date. It does not fix JAR entry timestamps, JVM locale or build-JDK
+manifest metadata; byte-identical JARs across rebuilds are not promised.
 Full pipeline and compatibility checks remain defined in `.github/workflows/ci.yml`.
 Keep CI and local checks aligned as the development wrapper evolves.
 

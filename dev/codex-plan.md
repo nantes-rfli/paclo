@@ -67,23 +67,20 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P16 real PCAP/PCAPNG interoperability — implemented and verified; independent review pending**.
-Started from fetched main `4a113c60184128df442f3fa152ebf0390cedc6a5`
-(the full baseline is recorded by the execution report).
-P14-A is reviewed and merged through [PR #75](https://github.com/nantes-rfli/paclo/pull/75).
-[PR #76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged because of
-its performance regression; [Issue #77](https://github.com/nantes-rfli/paclo/issues/77)
-remains open. P16 excludes that branch and retains core.async **1.6.681**.
-The [P16 report](p16-interop-verification.md) owns the external-tool matrix,
-normalization findings, actual commands/versions and platform evidence.
-P16 [PR #78](https://github.com/nantes-rfli/paclo/pull/78) adds the required
-external-tool gate; implementation255320d passes all16 jobs in
-[CI39136856171](https://github.com/nantes-rfli/paclo/actions/runs/39136856171).
-All three Linux/macOS/x64/ARM64 configurations pass32 valid/4 malformed inputs,
-45 outputs and377 interoperability assertions each. Independent review must
-precede merge. Next unfinished queue item remains **P14**, with P14-B held by
-Issue77 and P14-C/unselected updates requiring separate authorization.
-P14-B/P14-C/P17/P09/P10 are outside this task; no release/tag/publication or merge.
+Current task: **P14-C Clojure CLI and tools.build — implemented and verified; independent review pending**.
+Started from latest fetched main `c6209da7ea5fcdad03ac6a33ae9ddb4b30d203a6`,
+after P16 [PR #78](https://github.com/nantes-rfli/paclo/pull/78) was reviewed and merged.
+Adopt CLI **1.12.5.1664** and tools.build **0.10.14**, aligning CI, independent
+17/21/25 consumers, Publish, audit and optional local setup. Preserve library
+Clojure1.12.6, JNR2.3.3, core.async1.6.681, development1.5.0-SNAPSHOT,
+Java17 compilation, public contracts and all quality/performance gates.
+The [P14-C report](p14-c-build-toolchain-verification.md) records dependency-cache,
+prep, failure-propagation, reproducibility, local and CI evidence.
+P14 remains **in-progress**: P14-B [PR #76](https://github.com/nantes-rfli/paclo/pull/76)
+is held by open [Issue #77](https://github.com/nantes-rfli/paclo/issues/77), and
+other tool candidates still require separate selection. Next unfinished queue
+item remains **P14**. Do not proceed to P14-B/Issue77, P17 or P09/P10.
+No release, tag, publication or merge is authorized by this task.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
@@ -746,8 +743,8 @@ native/ABI, same-JAR17/21/25 and warning evidence. P14-B
 [PR #76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged due to
 the performance regression tracked by open
 [Issue #77](https://github.com/nantes-rfli/paclo/issues/77). Main and P16 retain
-core.async1.6.681. P14-C and other candidates require separate selection;
-P14 as a whole is unfinished. P16 is implemented/verified in PR78 and does not
+core.async1.6.681. P14-C is selected in the current task; other candidates require separate selection;
+P14 as a whole is unfinished. P16 is reviewed and merged in PR78 and does not
 resume any of these slices.
 
 Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant
@@ -759,6 +756,24 @@ including native/platform and static-analysis changes, with an appropriate
 validation plan. An evaluation can recommend keeping a version. Split necessary
 updates into independent implementation PRs; this item does not approve a bulk
 upgrade or weakening quality/performance gates.
+
+### P14-C: Clojure CLI and tools.build
+
+Status: **done** for implementation and verification in
+[PR #80](https://github.com/nantes-rfli/paclo/pull/80); independent review pending.
+Adopt CLI1.12.5.1664 and tools.build0.10.14 from main `c6209da`, retaining all
+production dependencies, Java17 target, development identifier, public contracts,
+Publish guards and quality/performance gates. Fixed subprocess error propagation,
+optional checksum-verified local setup, isolated cold/warm Maven/Git/prep probes,
+CLI identity in distribution reports and exact CLI/cache selection align the
+build environments. Implementation6435bda passes all16 jobs in
+[CI39256292560](https://github.com/nantes-rfli/paclo/actions/runs/39256292560).
+The [report](p14-c-build-toolchain-verification.md), [CI summary](p14-c-ci-evidence.json)
+and [work log](work-log.md) retain evidence, reproduction limits and remaining
+platform boundaries; final evidence/probe-head CI is recorded in PR80.
+P14 as a whole stays in-progress: PR76/Issue77 and other selected tool updates
+remain separate. Next unfinished queue item is P14; no P14-B/P17/P09/P10 work,
+publication, tag or merge follows this completion.
 
 ## P15: REPL workflows and practical examples
 
@@ -772,7 +787,7 @@ checker now separates trailing REPL comments from its wrapper forms. See the
 [work log](work-log.md) for commands, the fresh-REPL check and macOS/sandbox
 verification conditions. No new API or dependency is needed or approved.
 P13 is reviewed and merged. P14 is the next unfinished queue item;
-P16 is implemented/verified, pending independent review. P15 added no release, tag or publication.
+P16 is independently reviewed and merged. P15 added no release, tag or publication.
 
 Use existing public APIs to assess concise REPL workflows for PCAP read/write,
 Flow analysis and DNS analysis. Preserve ordinary maps, functions, reducers and
@@ -786,7 +801,7 @@ proposal. New APIs, frameworks or pipeline abstractions require separate review.
 ## P16: Real PCAP/PCAPNG interoperability verification
 
 Status: **done** for implementation and the selected offline interoperability
-matrix; independent review pending in
+matrix; independently reviewed and merged as `c6209da` through
 [PR #78](https://github.com/nantes-rfli/paclo/pull/78). Based on reviewed P11 and
 fetched main `4a113c6`, excludes P14-B PR76 and retains core.async1.6.681.
 An executable external-tool gate generates synthetic PCAP/PCAPNG files, verifies
