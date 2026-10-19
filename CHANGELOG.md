@@ -16,6 +16,14 @@ Changes after v1.4.0 belong here.
   PCAP round trips. All examples run in the maintained documentation gate using
   existing public APIs and explicit source ownership.
 
+### Verification
+
+- Add external-tool PCAP/PCAPNG interoperability gates on Linux x64/ARM64 and
+  macOS ARM64. Generate synthetic captures with Wireshark CLI tools and tcpdump;
+  verify native and metadata-aware reads separately, both Writers, exact metadata,
+  explicit loss, corrupt inputs and atomic PCAPNG publication. Record external
+  normalization and private-option collisions without changing public contracts.
+
 ### Build
 
 - Update JNR-FFI from 2.2.14 to 2.3.3 (resolved jffi Java/native 1.4.3 and

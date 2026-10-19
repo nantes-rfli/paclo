@@ -124,6 +124,30 @@ reference Mac. See [performance measurement](docs/performance.md). Live and real
 experiments are separate from `check`; document the selected interface and traffic
 scope, and do not infer capture throughput from a generator-limited run.
 
+## External capture interoperability
+
+After `bash dev/script/codex.sh prepare`, run
+`python3 dev/script/verify_interop.py /tmp/paclo-interop` with a fresh output
+folder. The gate requires `text2pcap`, `editcap`, `mergecap`, `tshark`, `capinfos`
+and `tcpdump` on PATH; missing tools fail rather than skip. It opens only files,
+requires no capture privileges and uses synthetic RFC 5737 addresses. Keep the
+output folder for commands, tool versions, native/JVM identity, generated inputs,
+Writer outputs, wire-oracle assertions and normalization evidence.
+
+CI installs Ubuntu's `tshark`/`wireshark-common` and `tcpdump` packages from the
+runner's configured Ubuntu repositories alongside existing libpcap-dev. macOS
+fetches/checksums the signed upstream app through Homebrew's `wireshark-app`
+cask definition and extracts only `Wireshark.app` from the read-only disk image
+to the runner's temporary folder (no package/capture-helper install). It verifies
+the app signature, uses its CLI directory on PATH, and uses the OS tcpdump. Versions are intentionally
+those of these distributions, not claimed identical across OSes: package identity
+is printed during installation and each execution saves full `--version` output.
+The [P16 report](dev/p16-interop-verification.md) identifies actual tested versions.
+No daemon, privileged capture helper, live interface or runtime dependency is added.
+The existing Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21 jobs run this
+gate and upload `p16-interop-*` artifacts. The build aggregate also requires the
+ARM64 monitor so an interoperability failure there cannot pass the aggregate.
+
 ## Network and credentials
 
 Use the supplied proxy and CA trust. Do not disable TLS checks, alter inherited

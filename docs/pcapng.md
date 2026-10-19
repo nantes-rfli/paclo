@@ -12,6 +12,50 @@ existing `core/packets`, `reduce-packets` and Classic `write-pcap!` retain their
 native behavior. `write-pcapng!` writes ordered events to a new PCAPNG path,
 with explicit preservation, loss and authoring policies.
 
+## External-tool interoperability
+
+The [P16 verification report](../dev/p16-interop-verification.md) records a
+reproducible offline matrix using text2pcap, editcap, mergecap, tshark and
+tcpdump. The test generates synthetic files at runtime; it never captures a
+network interface. Tool versions and Paclo's actually loaded libpcap are recorded
+separately because they can use different libraries on the same machine.
+
+| Operation | Retained information / limits |
+| --- | --- |
+| Native `core/reduce-packets` on PCAP/PCAPNG | Packet bytes, caplen, wire length, one handle DLT and floored microseconds; no sections, interfaces, options or exact ticks |
+| `open-source` to default `write-pcapng!` | Supported sections/interfaces, LINKTYPE/snaplen, exact resolution/offset/ticks, ordered comments/options and permitted opaque octets; conditional known semantics, not universal byte equality |
+| Native packets to `core/write-pcap!` | Single-DLT Classic PCAP at microsecond precision; select the native DLT explicitly; source container, nanosecond digits and PCAPNG metadata are lost |
+| `:mode :lossy` with explicit `:drop` | Only named categories removed, with exact aggregate counts; the mode alone removes nothing |
+| editcap/mergecap rewrites | Tool-dependent normalization; inspect the rewritten file rather than assuming its metadata matches the original |
+
+mergecap may put all IDBs before the first packet. With mixed LINKTYPEs or
+snaplens, native libpcap can then fail before delivering any packet. Changing
+section byte order can fail after a valid prefix. These are native-path limits;
+`:error-mode :pass` does not turn that prefix into a complete capture. Use the
+metadata-aware path when qualified interfaces, exact time or these layouts matter.
+
+Unknown data can have meanings in another tool. In particular, Wireshark 4.6.8
+interprets EPB option `0x8001` as a Darwin-specific field and rejects the arbitrary
+length used in historical P08 synthetic fixtures. Paclo retains this as unknown
+raw data under its existing contract; successful preservation does not guarantee
+acceptance by every external interpreter. An intentional conversion can use
+`:mode :lossy :drop #{:unknown-options}` and inspect `:loss-counts`. This removes
+all unknown options, not just that code. Do not silently discard them or reuse
+private codes as a portable extension mechanism.
+
+The P16 probe observes editcap 4.6.8/4.6.9 removing an unknown block and unknown options
+and retaining comments. Its rewrite of the binary-resolution/offset case changes
+ticks and even absolute time: `1700000007.125976562` becomes
+`1700000014.125000000` in tshark. Treat this as a measured external rewrite
+limitation, not an acceptable precision conversion or a Paclo reader defect.
+Ubuntu editcap 4.2.2 instead removes the offset option and produces
+`1700000007.125000000`, also losing fractional precision. Paclo's direct preserving round trip keeps
+the original octets and exact ticks. NRB contents remain opaque in Paclo. Custom
+blocks can even appear as additional records in Wireshark, so opaque preservation
+still makes no complete packet-coverage claim. Unsupported PB/DSB input retains
+its explicit error contract. Neither tool acceptance nor offline replay validates
+live capture, production traffic diversity or NIC throughput.
+
 ## Packet analysis
 
 Own a source with `with-open` and reduce it once. Filter packet envelopes before
