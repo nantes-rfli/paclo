@@ -15,6 +15,7 @@ concurrency:
 jobs:
   nvd-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -34,32 +35,41 @@ jobs:
           chmod +x clj.sh
           sudo ./clj.sh
 
-      - name: Cache Clojure deps and NVD DB
+      - name: Cache Clojure dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.m2
             ~/.gitlibs
-            ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+          key: nvd-tools-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
-            nvd-${{ runner.os }}-
+            nvd-tools-${{ runner.os }}-
+
+      # A new snapshot key on each run; restore the latest compatible database.
+      # File mtimes/cache hits are not evidence of NVD freshness: verify report metadata.
+      - name: Cache Dependency-Check 12.2.0 data
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/paclo/dependency-check/12.2.0
+          key: nvd-data-12.2.0-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            nvd-data-12.2.0-${{ runner.os }}-
+
+      - name: Test audit failure and report validation
+        run: python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
 
       - name: Run nvd-clojure (CVE scan)
         shell: bash
         env:
-          NVD_CVE_CHECK_VALID_FOR_HOURS: 168
           NVD_API_TOKEN: ${{ secrets.NVD_API_TOKEN }}
         run: |
-          set -e
-          clojure -M:nvd "dev/nvd-clojure.edn" "$(clojure -Spath)"
+          python3 dev/script/dependency_audit.py target/nvd/production \
+            --data-directory "$HOME/.cache/paclo/dependency-check/12.2.0"
 
       - name: Upload NVD reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nvd-reports
-          path: |
-            target/nvd/*.html
-            target/nvd/*.json
-            target/nvd/*.xml
-          if-no-files-found: warn
+          path: target/nvd/production/
+          if-no-files-found: error

@@ -26,6 +26,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update nvd-clojure to5.3.0 in an isolated audit project; verify production JAR
+  coverage, tool versions, NVD freshness and audit failures. Correct EDN options
+  and enforce CVSS base scores >=7.0 independently of upstream component scores.
+  Preserve weekly/manual audits and retain evidence on failure.
+
 - Pin Clojure CLI 1.12.5.1664 across CI, independent consumers, Publish and audit;
   add an optional local installer and update tools.build from 0.10.5 to 0.10.14.
   Propagate build subprocess failures and verify isolated cold/warm dependency

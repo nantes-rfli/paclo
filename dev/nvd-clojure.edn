@@ -1,2 +1,7 @@
-{:nvd {:fail-threshold 7.0           ;; fail CI if highest CVSS >= 7.0 (High)
-       :output-format [:html :json :xml]}}
+;; EDN options are flat: nvd-clojure adds the :nvd wrapper itself.
+;; The report verifier additionally enforces CVSS base score >= 7.0;
+;; upstream's threshold uses component scores and a strict > comparison.
+{:fail-threshold 7.0
+ :output-format "ALL"
+ :auto-update true
+ :nvd-api {:valid-for-hours 24}}

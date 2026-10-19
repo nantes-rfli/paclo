@@ -5644,3 +5644,32 @@ consumer17/21/25 Maven-only v1 keys are intentionally retained and successfully
 restored; those caches have never included CLI config. Audit likewise keeps its
 Maven/Git/NVD-data cache key to preserve data freshness/scan policy, with no
 cached CLI config. Documentation distinguishes these from main/Publish keys.
+
+## P14-D: Isolated dependency audit and reliability (2026-10-19)
+
+Started from fetched main0047ac5 after PR80/PR78 merged, clean supplied checkout;
+created codex/p14-d-dependency-audit. Read CONTRIBUTING, API contract, plan,
+P11 inventory, old audit evidence, workflow and published nvd sources.
+No other work, production dependency/API, toolchain pin or version changed.
+P14 stays in-progress; PR76/Issue77 are untouched.
+
+Initial doctor exits0 on macOS x64/JDK21.0.12.1/Clojure1.12.6 with real offline
+libpcap read; system CLI1.12.5.1654 differs, so subsequent checks explicitly use
+existing `/tmp/paclo-cli-1.12.5.1664/bin` (reference CLI1.12.5.1664).
+Root/helper resolution succeeds independently:23/82 JARs; actual loaded tool
+versions5.3.0/Dependency-Check12.2.0. CLI `-Srepro` excludes user dependencies.
+Published EDN parser wraps options itself; old nested :nvd threshold was ignored.
+Published score logic uses truncated component maxima and strict comparison;
+new independent verifier enforces v2/v3/v4 base score >=7.0 with no suppressions.
+See [P14-D report](p14-d-dependency-audit-verification.md) for policy/scope/limits.
+
+`python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'`:
+15 tests pass. `dependency_audit.py --help` exits0. Actual local command under
+reference CLI exits1: NVD_API_TOKEN unavailable, scanner's exact error is
+`No NVD API key supplied as config settings or env var.`; summary incomplete,
+no database/report, no security pass. Evidence `/tmp/paclo-p14d-local` includes
+both resolved trees/classpaths/JAR hashes, effective config, tool versions and
+full process logs. The helper does not mix tool dependencies into the23 inputs.
+
+Preparing/checking existing suites, developer docs and GitHub-backed audit/CI
+are in progress. Final execution results and PR identity follow below.
