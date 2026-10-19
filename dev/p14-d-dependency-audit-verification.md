@@ -123,7 +123,25 @@ Initial implementation and logged-error follow-up pass all 16 jobs in
 [CI39273699992](https://github.com/nantes-rfli/paclo/actions/runs/39273699992) and
 [CI39275334254](https://github.com/nantes-rfli/paclo/actions/runs/39275334254),
 including all three P16 platforms and same-JAR17/21/25 consumers. See
-[CI evidence](p14-d-ci-evidence.json). Final cache/refresh execution is pending.
+[CI evidence](p14-d-ci-evidence.json).
+
+The improved implementation is378d289 in [draft PR82](https://github.com/nantes-rfli/paclo/pull/82).
+[Forced-refresh recovery39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841)
+and [implementation CI39281076913](https://github.com/nantes-rfli/paclo/actions/runs/39281076913)
+remained queued at the verification handoff (2026-10-20 JST); no jobs had started.
+A documentation follow-up runs normal CI as well; its status is recorded on PR82.
+The GitHub API intermittently returned502 during observation; no broader service
+outage is inferred. The old run's displayed workflow status lagged its recovered
+scanner timeout evidence, so the original summary/logs are the outcome authority.
+
+Final NVD vulnerability results, accepted database check/update timestamps,
+legacy-cache migration, warm-cache replay and final-head CI are **unverified**.
+No security pass, zero findings, complete cold import or completed cache refresh
+is claimed. Draft status and P14-D in-progress are retained for that reason.
+The actual local --refresh command compiled/ran the updated launcher, wrote
+validity0 and exited1 for the absent token;18 regressions and targeted kondo
+(error0/warning0) pass. All105 selected JAR versions/hashes match between local
+and Actions inventories. These checks do not replace the queued real audit.
 
 ## Remaining boundaries
 

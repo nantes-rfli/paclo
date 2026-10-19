@@ -5740,3 +5740,32 @@ or failed update still fails; no analyzer is disabled or exclusion added.
 
 Logged-error implementation0a949b1 also passes all16 jobs in CI39275334254.
 Final cache/refresh/timeout changes are being verified in the same PR82.
+
+### Verification handoff: real execution remains pending (2026-10-20 JST)
+
+Recovery implementation378d289 is pushed to draft PR82. Manual audit
+[39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841) and
+full CI [39281076913](https://github.com/nantes-rfli/paclo/actions/runs/39281076913)
+remain queued on GitHub after repeated checks of run, attempt, job and PR-check
+states; no latest-revision jobs have started. These are not passing checks.
+Earlier0a949b1/fc5083a16-job successes do not clear the new cache/refresh code.
+No GitHub-wide outage is asserted: observed502s are only individual API errors.
+The original run still displayed in-progress after timeout/artifact recovery,
+while cancellation said completed; retain the recovered scanner summary/logs
+as the exact incomplete outcome rather than infer success from workflow state.
+
+Actual updated local --refresh execution exits1 for missing NVD_API_TOKEN,
+with effective validity0 and no vulnerability report.18 regressions pass;
+targeted clj-kondo launcher check has0 errors/0 warnings; migration shell syntax,
+Markdown and local links pass. Local/Actions inventories have identical versions
+and SHA256s for all23 production and82 tool JARs. No failed-run NVD data cache
+was saved (`gh cache list --key nvd-data-` returned empty).
+
+Full cold import completion, accepted NVD database timestamps, actual dependency
+vulnerability results, compatible-cache migration, warm replay and final-head CI
+remain unverified. Do not describe this work as a successful NVD audit or zero
+findings. P14-D and P14 overall stay in-progress; PR82 remains draft/unmerged.
+A final documentation/evidence follow-up runs ordinary CI; PR82 records its
+run identity. Core.async1.6.681 and all requested pins remain. PR76/Issue77 are
+untouched. No release, tag, publication, merge, other slice or live/performance
+support claim. Next unfinished item is still P14-D's pending execution evidence.

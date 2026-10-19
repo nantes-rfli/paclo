@@ -782,7 +782,14 @@ production-only target, correct flat EDN configuration and enforce actual CVSS
 base scores >=7.0. Record production/tool JAR hashes and resolved trees, report
 identity and NVD check/update times; fail closed on stale/missing/error results.
 Weekly/manual audit triggers and all16 CI jobs remain. Local no-token execution
-is incomplete, not a clean audit. Remote scan and final CI evidence are pending.
+is incomplete. The actual cold run reached250k/410k records before the initial
+45-minute limit; it is incomplete, not clean. The implemented recovery extends
+the budget, supports a compatible legacy database copy and forces an NVD check.
+18 regressions pass; two earlier revisions pass all16 CI jobs. Updated
+[scan39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841)
+and latest CI are queued externally; cache migration/warm replay, complete NVD
+analysis and final-head CI remain unverified. PR82 stays draft. P14-D is the
+current unfinished slice; do not advance to another candidate.
 See [verification](p14-d-dependency-audit-verification.md).
 P14 stays in-progress; PR76/Issue77 are unchanged. No merge or publication.
 

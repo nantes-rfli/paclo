@@ -142,7 +142,7 @@
     "package_consumer21": "passed",
     "jar_sha256": "482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010"
   },
-  "final_head_ci": "Pending final cache/refresh/timeout follow-up; final evidence-head results are recorded on PR82",
+  "final_head_ci": "Documentation follow-up status is recorded on PR82; latest implementation CI remains queued at handoff",
   "followup_ci": {
     "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39275334254",
     "commit": "0a949b152500b3cc1d4e5d988567d8ad7548376e",
@@ -227,6 +227,19 @@
         "databaseId": 118140569783,
         "conclusion": "success"
       }
+    ]
+  },
+  "latest_implementation": {
+    "commit": "378d289afb2bee19d8fff34354438a6f48679532",
+    "ci_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281076913",
+    "audit_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281069841",
+    "observed_status": "queued; no latest-revision success claimed",
+    "unverified": [
+      "complete NVD analysis and findings",
+      "accepted NVD check/update timestamps",
+      "legacy cache migration",
+      "warm replay",
+      "final-head CI"
     ]
   }
 }
