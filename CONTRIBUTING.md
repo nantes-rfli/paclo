@@ -32,9 +32,12 @@ silently replace an installed toolchain. Other CLI versions remain unverified
 until tested. CI (including 17/21/25, ARM64, consumers, coverage and Publish) and
 Dependency Audit all pin 1.12.5.1664. Publish uses the tested pin for both tag
 and manual dry-run paths; all authorization/version/source guards still apply.
-Only Maven/Git download caches are shared in CI, under a CLI-specific cache key;
+Main CI and Publish share Maven/Git download caches under CLI-specific keys;
 user CLI/tool configuration is excluded. The first run under the new key must
 download dependencies again; later runs can reuse those exact artifacts.
+The independent consumers retain their Maven-only cache keys, and audit retains
+its Maven/Git/NVD data cache: these contain artifacts/data independent of CLI
+configuration and are verified or refreshed by their existing checks.
 
 On Debian/Ubuntu, the native prerequisite is `libpcap-dev`; macOS supplies libpcap.
 Static checks additionally need `clj-kondo`, `clojure-lsp`, and Node.js/npm (`npx`).

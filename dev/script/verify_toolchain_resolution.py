@@ -59,14 +59,15 @@ def verify(output):
     (config / "deps.edn").write_text('{}\n')
     source = output / "source"
     source.mkdir()
-    for name in ("deps.edn", "build.clj"):
-        shutil.copy2(ROOT / name, source / name)
+    shutil.copy2(project / "deps.edn", source / "deps.edn")
+    shutil.copy2(ROOT / "build.clj", source / "build.clj")
     shutil.copytree(ROOT / "src-java", source / "src-java")
     consumer = output / "consumer"
     consumer.mkdir()
     (consumer / "deps.edn").write_text(
         '{:deps {org.clojure/clojure {:mvn/version "1.12.6"}\n'
-        '        org.clojars.nanto/paclo {:local/root ' + json.dumps(str(source)) + '}}}\n')
+        '        org.clojars.nanto/paclo {:local/root ' + json.dumps(str(source)) + '}}\n'
+        ' :mvn/local-repo ' + json.dumps(str(output / "m2")) + '}\n')
     run("prep-lib", ["-X:deps", "prep"], consumer)
     binding = source / "target/classes/paclo/jnr/PcapHeader.class"
     assert struct.unpack(">H", binding.read_bytes()[6:8])[0] == 61

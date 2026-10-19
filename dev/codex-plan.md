@@ -67,7 +67,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-C Clojure CLI and tools.build — implementation and verification in progress**.
+Current task: **P14-C Clojure CLI and tools.build — implemented and verified; independent review pending**.
 Started from latest fetched main `c6209da7ea5fcdad03ac6a33ae9ddb4b30d203a6`,
 after P16 [PR #78](https://github.com/nantes-rfli/paclo/pull/78) was reviewed and merged.
 Adopt CLI **1.12.5.1664** and tools.build **0.10.14**, aligning CI, independent
@@ -756,6 +756,24 @@ including native/platform and static-analysis changes, with an appropriate
 validation plan. An evaluation can recommend keeping a version. Split necessary
 updates into independent implementation PRs; this item does not approve a bulk
 upgrade or weakening quality/performance gates.
+
+### P14-C: Clojure CLI and tools.build
+
+Status: **done** for implementation and verification in
+[PR #80](https://github.com/nantes-rfli/paclo/pull/80); independent review pending.
+Adopt CLI1.12.5.1664 and tools.build0.10.14 from main `c6209da`, retaining all
+production dependencies, Java17 target, development identifier, public contracts,
+Publish guards and quality/performance gates. Fixed subprocess error propagation,
+optional checksum-verified local setup, isolated cold/warm Maven/Git/prep probes,
+CLI identity in distribution reports and exact CLI/cache selection align the
+build environments. Implementation6435bda passes all16 jobs in
+[CI39256292560](https://github.com/nantes-rfli/paclo/actions/runs/39256292560).
+The [report](p14-c-build-toolchain-verification.md), [CI summary](p14-c-ci-evidence.json)
+and [work log](work-log.md) retain evidence, reproduction limits and remaining
+platform boundaries; final evidence/probe-head CI is recorded in PR80.
+P14 as a whole stays in-progress: PR76/Issue77 and other selected tool updates
+remain separate. Next unfinished queue item is P14; no P14-B/P17/P09/P10 work,
+publication, tag or merge follows this completion.
 
 ## P15: REPL workflows and practical examples
 

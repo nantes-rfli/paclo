@@ -5530,7 +5530,8 @@ Verified so far:
 - `bash dev/script/codex.sh check`: exit0, **13 JUnit**, **493 Clojure tests /
   19,130 assertions**, no failures/errors, offline smoke4 packets/438 bytes.
 - `python3 -B -m unittest discover -s dev/script -p test_build_toolchain.py`:
-  exit0,5 tests with subcases: every active workflow CLI pin, injected analyzer/
+  exit0,6 tests with subcases: every active workflow CLI pin, isolated SNAPSHOT
+  install, injected analyzer/
   classpath/JUnit failure -> nonzero outer -T CLI; javac/javac-test/jar reject
   Thread.threadId under --release17; repeated fixed-epoch POM bytes match.
 - `python3 dev/script/verify_interop.py /tmp/paclo-p14c-interop`: exit0,
@@ -5571,3 +5572,75 @@ Maven/Git cold8.980s vs forced warm5.286s; tools.build cold7.014s vs warm4.364s;
 prep23.629s and prepped consumer5.729s. These are local setup observations under
 concurrent verification, not performance guarantees. No warm downloads/clones;
 exact test-runner full SHA and tools.build0.10.14 in isolated caches confirmed.
+
+Final local build regressions pass6 tests /103.764s, including actual
+`-T:build install` into a temporary Maven repository from a disposable committed
+source fixture; installed SNAPSHOT JAR bytes match the built JAR and its POM
+exists. No user Maven coordinate or remote repository is installed/published.
+A separate untouched-main/tools.build0.10.5 fixture empirically reproduces the
+wrapper defect: child checkstyle exit37 produces outer CLI exit0; the new
+regressions reject that result with the checked wrapper.
+
+`bash dev/script/codex.sh package`, distribution `prepare` and independent
+JDK21 `consume` all exit0. JAR SHA256
+`6c07209ac6b431840eca601f81a3ec37541a56643114dd2c7f12276049dc5ee6`, source/SCM
+`6435bdae7cff3ac7ed37ca2f0a092fa51dc47cf9`,source_dirty=false;
+producer/consumer CLI1.12.5.1664. Exact source/class inventory, native/ASM graph,
+POM/dependencies/SCM, bytecode and bundle hashes pass. `bash ... codex.sh perf`
+exits0 at946.9ms (unchanged warn1000/fail1200ms).
+`clojure -T:build clean` plus two fixed-epoch package builds also pass: every
+entry payload matches;23 ZIP timestamps differ and thus whole-JAR hashes differ.
+See report for both hashes; no byte-identical full-archive claim is made.
+
+Implementation6435bda is [PR #80](https://github.com/nantes-rfli/paclo/pull/80),
+with CI39256292560 running. Initial commit hook invoked clj and failed for
+missing rlwrap. Full check/lint had already passed; subsequent commit uses
+its documented SKIP_TESTS/FMT/MD_LINT/KONDO flags to avoid rerunning checks and
+applying unsolicited formatting. No repository hook, test or CI gate is changed.
+Local lint versions are kondo2026.05.25 and LSP2026.05.05-12.58.26 (bundled
+kondo2026.04.16-SNAPSHOT), Python3.15.0, Node24.8.0; exact pinned CI tools remain
+a separate required result. No additional local runtime/support claims.
+
+Follow-up isolation check: prep's copied source deps and its consumer now both
+explicitly use the same temporary Maven repository as cold/warm resolution,
+so none of these phases falls back to the user's Maven cache. The complete
+`/tmp/paclo-p14c-resolution-isolated` probe exits0: cold Maven/Git6.693s,
+build4.412s; forced warm2.581s/2.145s; prep15.818s; consumer4.378s. Maven
+settings/proxy/CA policy is preserved, while dependency caches and user deps
+are isolated. This small probe correction will be included with the evidence
+commit and its full CI rerun. Markdown and local links pass again.
+
+Implementation6435bda completes
+[CI39256292560](https://github.com/nantes-rfli/paclo/actions/runs/39256292560):
+**all16 jobs success**, with zero failed actual steps, including the optional
+cloverage command itself. All default gates are unchanged. Java13 tests and
+source493 tests pass (19,136 assertions on Linux,19,130 on macOS); JDK25 source
+passes. Eastwood638 warnings/zero exceptions, docs40 examples, JaCoCo80.8%/25%,
+CI perf702.3ms/1200ms, three measurement shards and27-scenario merger all pass.
+Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21 each pass P16
+32 valid/4 malformed inputs,45 outputs,5 tests/377 assertions. Linux uses
+Wireshark4.2.2/libpcap1.10.4; macOS uses4.6.9/system libpcap1.10.1.
+
+Downloaded and inspected all five consumer reports: JDK17/21/25 defaults,
+JDK25 native-access/debug and JDK25 Unsafe denial all pass, all CLI1.12.5.1664,
+all JAR SHA256
+`2a4a46eef82d3063322a95fa2e9b46653e297119882c171ceb380f1e4f11195b`,
+clean CI merge-ref source/SCM `6942c884607ff5a794f537218a1fe137dee7bb58`.
+[CI summary](p14-c-ci-evidence.json) records all16 job identities/conclusions,
+producer/consumer/native/tool identities, isolated-resolution commands/timings
+and local rebuild results. Raw logs/bundles/captures remain Actions artifacts.
+Top-level -Srepro and source/prep library version policies are documented;
+SOURCE_DATE_EPOCH's locale/ZIP/JDK limits are explicit, not hidden by weaker hashes.
+
+This evidence/probe follow-up is rerun through the full normal CI. Final-head
+results are recorded on PR80 without another recursive evidence-only commit.
+Implementation and verification of P14-C are complete, independent review pending;
+P14 overall remains in-progress. No actual Publish, release tag, artifact
+publication, merge, P14-B/Issue77/P17/P09/P10 implementation or support expansion.
+
+Cache inspection of actual logs confirms initial main-CI source/build/docs
+misses under the new CLI-specific key, followed by merger cache reuse. The
+consumer17/21/25 Maven-only v1 keys are intentionally retained and successfully
+restored; those caches have never included CLI config. Audit likewise keeps its
+Maven/Git/NVD-data cache key to preserve data freshness/scan policy, with no
+cached CLI config. Documentation distinguishes these from main/Publish keys.

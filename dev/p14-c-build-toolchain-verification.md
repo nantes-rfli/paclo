@@ -41,10 +41,15 @@ retain their existing policy because they are separate P14 work. No kondo/LSP,
 SpotBugs/JaCoCo/JUnit/NVD or production-library update is bundled here.
 
 CI retains all16 jobs, aggregate dependencies, thresholds and optional-coverage
-semantics. Cache keys now include the CLI version, preventing restoration of an
+semantics. Main/Publish cache keys now include the CLI version, preventing restoration of an
 old archive containing `~/.clojure`. Only Maven/Git download caches are saved;
 CLI/user/tool configuration is excluded. The initial new-key run is intentionally
 cold; subsequent runs can reuse artifacts without importing user aliases/config.
+Consumers retain their existing Maven-only `distribution-deps-...-v1` keys;
+audit retains its artifact/NVD-data key. Neither contains CLI configuration, so
+invalidating these caches is unnecessary and would needlessly refresh the NVD DB.
+The initial run confirms cold source/build/docs caches and successful warm
+consumer/merger caches; a dedicated probe also tests cold and forced warm setup.
 The optional local installer uses the official archive and its versioned
 installer's SHA256 `77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3`.
 It supports Linux/macOS without GNU-sed assumptions or root, and refuses an
@@ -104,9 +109,47 @@ Local: macOS x86_64, Temurin21.0.12.1+1, CLI1.12.5.1664, Paclo Clojure1.12.6,
 system libpcap1.10.1. Commands/results and final CI evidence are recorded in
 [the work log](work-log.md#p14-c-clojure-cli-and-toolsbuild).
 
-Implementation verification is in progress. Remote CI must establish all16
-job conclusions, same-JAR17/21/25, Linux/macOS/ARM64, P16 interoperability,
-documentation, static analysis, coverage and unchanged performance gates.
+Local verification passes doctor, prepare, check (13 JUnit,493 Clojure tests /
+19,130 assertions,smoke), lint, all build tasks (including isolated SNAPSHOT
+install), package, negative distribution/Publish controls,40 executable docs,
+P16 (377 assertions),80.8% JaCoCo against25% and the unchanged946.9ms/1200ms
+performance gate. The packaged JDK21 consumer passes and records CLI1.12.5.1664.
+The local lint binaries are kondo2026.05.25 and LSP2026.05.05-12.58.26; CI retains
+its existing pinned versions. Python3.15.0 / Node24.8.0 were used locally.
+
+Two actual clean/package rebuilds with the fixed epoch have identical entry
+payloads but23 different ZIP-entry timestamps. Their SHA256 values are
+`1cdf86ea259fc7753e4d62b7e6f8c1c2dea4b12fa6686d3e9aedbd791fad5933` and
+`084d530a5064864b345e9518c7eb04074e9cc44cc7ff676ca8ccac9917a83d5a`.
+The separate normally built JDK21 consumer bundle hashes to
+`6c07209ac6b431840eca601f81a3ec37541a56643114dd2c7f12276049dc5ee6`,
+source6435bda,clean tracked tree. These are development builds, not v1.4.0 bytes.
+
+Implementation6435bda passes **all16 jobs** in
+[CI39256292560](https://github.com/nantes-rfli/paclo/actions/runs/39256292560).
+Every job and actual step (including cloverage) succeeds. Linux x64/JDK21,
+macOS ARM64/JDK17 and Linux ARM64/JDK21 each pass P16's32 valid/4 malformed
+inputs,45 outputs and5 tests/377 assertions. The source suites retain493 tests
+(19,136 assertions on Linux,19,130 on macOS), and JDK25 source verification passes.
+CI retains pinned kondo/LSP,638 informational Eastwood warnings/zero exceptions,
+40 executed docs,80.8%/25% JaCoCo,702.3ms/1200ms performance gate, all27 measured
+performance scenarios/merger and successful Clojure coverage execution.
+
+All five17/21/25 default/debug/deny consumer reports pass with CLI1.12.5.1664,
+identical JAR SHA256
+`2a4a46eef82d3063322a95fa2e9b46653e297119882c171ceb380f1e4f11195b`,
+clean CI merge-ref source/SCM `6942c884607ff5a794f537218a1fe137dee7bb58`.
+The [CI summary](p14-c-ci-evidence.json) retains all16 conclusions, producer/
+consumer identities, interop/native/tool evidence and cold/warm timings.
+Complete logs and generated fixtures remain Actions artifacts. Both the main
+implementation run and the final evidence/probe-head run are linked on
+[PR #80](https://github.com/nantes-rfli/paclo/pull/80); the PR records final-head
+results without recursively creating another evidence-only commit.
+
+The final follow-up makes prep and its consumer explicitly reuse the isolated
+Maven cache instead of defaulting to the user cache. Its complete local probe
+passes: cold Maven/Git6.693s and build4.412s; forced warm2.581s/2.145s;
+prep15.818s and consumer4.378s. Proxy/CA/Maven settings remain inherited.
 
 ## Remaining boundaries
 
