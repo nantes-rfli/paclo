@@ -213,7 +213,7 @@ def execute(output, data, resolve_only=False, refresh=False):
                                    str(output), str(data),
                                    str(refresh).lower(),
                                    scan_classpath],
-                        TOOL, required=False, timeout=7200)
+                        TOOL, required=False, timeout=18000)
         summary['scanner_exit'] = scan_exit
         versions = json.loads((output / 'tool-versions.json').read_text())
         if versions != {'nvd-clojure': NVD, 'dependency-check': ENGINE}:

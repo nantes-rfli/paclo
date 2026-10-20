@@ -142,7 +142,7 @@
     "package_consumer21": "passed",
     "jar_sha256": "482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010"
   },
-  "final_head_ci": "Documentation follow-up status is recorded on PR82; latest implementation CI remains queued at handoff",
+  "final_head_ci": "Five-hour cold-import follow-up and final evidence-head results are recorded on PR82",
   "followup_ci": {
     "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39275334254",
     "commit": "0a949b152500b3cc1d4e5d988567d8ad7548376e",
@@ -233,13 +233,115 @@
     "commit": "378d289afb2bee19d8fff34354438a6f48679532",
     "ci_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281076913",
     "audit_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281069841",
-    "observed_status": "queued; no latest-revision success claimed",
+    "observed_status": "CI success; first120-minute cold attempt incomplete with503; later120-minute attempt also incomplete despite preserved legacy paths",
     "unverified": [
       "complete NVD analysis and findings",
       "accepted NVD check/update timestamps",
       "legacy cache migration",
       "warm replay",
       "final-head CI"
+    ]
+  },
+  "cache_path_correction_ci": {
+    "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39352655455",
+    "commit": "f59adb7cd43fbcc218bb47e01458f0d3e9e2d001",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 118400193021,
+        "name": "build-checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193103,
+        "name": "eastwood-lint",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193153,
+        "name": "coverage",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193197,
+        "name": "jdk25-source",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193314,
+        "name": "documentation-checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193315,
+        "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193366,
+        "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193381,
+        "name": "performance-measurement (tcp-512)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193432,
+        "name": "arm64-monitor",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193550,
+        "name": "performance-measurement (mixed)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400193816,
+        "name": "performance-measurement (udp-64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118400715391,
+        "name": "performance-results",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118401358331,
+        "name": "distribution-consumer (17)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118401358371,
+        "name": "distribution-consumer (21)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118401358386,
+        "name": "distribution-consumer (25)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 118401660025,
+        "name": "build",
+        "status": "completed"
+      }
     ]
   }
 }

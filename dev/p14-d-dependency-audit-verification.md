@@ -109,39 +109,45 @@ or accepted Last Checked/Last Modified metadata exists. Original logs/inputs are
 retained in the uploaded artifact; [audit evidence](p14-d-audit-evidence.json)
 commits exact production/tool JAR versions and hashes and the partial-run status.
 
-The time limit was too short for the measured cold import. The scanner now gets
-120 minutes, other commands 10 minutes and the job 135 minutes. Each command emits
-its stage and persists incomplete evidence before launch. Both engines' published
-properties use directory schema 11.0 and data.version 5.5. If the new database cache
-is absent, the workflow can copy the old 12.1.6 database from the existing Maven
-cache (preserving its source), then perform a forced NVD refresh and the same
-strict verification. It never treats a copied database as a clean result.
-`--refresh` uses validity 0 and additionally requires Last Checked within this
-execution; weekly/manual CI always uses it. Default local cached mode retains 24h.
+The initial time budget was too short. Two120-minute attempts also failed:
+[39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841) reached
+170,000/410,157 records (41%) and
+[39352651707](https://github.com/nantes-rfli/paclo/actions/runs/39352651707) reached
+240,000/410,449 (58%), both with NVD HTTP503 retries. No completed dependency
+analysis, report or accepted NVD database timestamps exist for these attempts.
+The final scanner budget is300 minutes, with600s for other commands and the
+existing default six-hour Actions ceiling. No failure/quality criterion changes.
 
-Initial implementation and logged-error follow-up pass all 16 jobs in
-[CI39273699992](https://github.com/nantes-rfli/paclo/actions/runs/39273699992) and
+An attempted legacy-cache migration was never exercised: restores missed. Both
+engines declare directory schema11.0/data.version5.5, but this alone proves no
+migration. Removing a redundant Maven-cache path changed GitHub's
+[archive-version input](https://github.com/actions/cache#cache-version); restoring
+the exact original path list still did not recover the listed old main cache.
+Therefore path shape alone is not asserted as the cause of the persistent miss.
+Keep the original Maven path list and fallback keys, but remove the unverified
+old-database copying. Only a completed engine12.2.0 import is cached for subsequent
+runs. A missing snapshot performs full import; no partial data is certified.
+
+Each command emits its stage and persists incomplete evidence before launch.
+`--refresh` uses validity0 and requires Last Checked within this execution;
+weekly/manual CI always uses it. Default local cached mode retains24h. No503,
+incomplete import or cache hit is treated as clean, and no analyzer, threshold,
+suppression or target is changed to obtain a passing result.
+
+Implementationfc5083a,0a949b1,378d289 andf59adb7 pass all16 jobs in
+[CI39273699992](https://github.com/nantes-rfli/paclo/actions/runs/39273699992),
 [CI39275334254](https://github.com/nantes-rfli/paclo/actions/runs/39275334254),
-including all three P16 platforms and same-JAR17/21/25 consumers. See
-[CI evidence](p14-d-ci-evidence.json).
+[CI39281076913](https://github.com/nantes-rfli/paclo/actions/runs/39281076913) and
+[CI39352655455](https://github.com/nantes-rfli/paclo/actions/runs/39352655455).
+This includes all three P16 platforms and same-JAR17/21/25 consumers. Exact
+identities are in [CI evidence](p14-d-ci-evidence.json). The local updated launcher
+writes validity0 and exits1 for the absent token;18 regressions and targeted
+kondo(error0/warning0) pass. All105 JAR versions/hashes match across local and
+three Actions attempts. These checks do not replace actual vulnerability analysis.
 
-The improved implementation is378d289 in [draft PR82](https://github.com/nantes-rfli/paclo/pull/82).
-[Forced-refresh recovery39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841)
-and [implementation CI39281076913](https://github.com/nantes-rfli/paclo/actions/runs/39281076913)
-remained queued at the verification handoff (2026-10-20 JST); no jobs had started.
-A documentation follow-up runs normal CI as well; its status is recorded on PR82.
-The GitHub API intermittently returned502 during observation; no broader service
-outage is inferred. The old run's displayed workflow status lagged its recovered
-scanner timeout evidence, so the original summary/logs are the outcome authority.
-
-Final NVD vulnerability results, accepted database check/update timestamps,
-legacy-cache migration, warm-cache replay and final-head CI are **unverified**.
-No security pass, zero findings, complete cold import or completed cache refresh
-is claimed. Draft status and P14-D in-progress are retained for that reason.
-The actual local --refresh command compiled/ran the updated launcher, wrote
-validity0 and exited1 for the absent token;18 regressions and targeted kondo
-(error0/warning0) pass. All105 selected JAR versions/hashes match between local
-and Actions inventories. These checks do not replace the queued real audit.
+The five-hour cold-import attempt and its warm repeat remain pending. No final
+NVD findings, accepted database timestamps, complete cold import or cache replay
+is claimed until that evidence exists. P14-D stays in-progress and PR82 draft.
 
 ## Remaining boundaries
 

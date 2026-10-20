@@ -187,7 +187,7 @@ class ProcessTests(unittest.TestCase):
         code, summary = self.exercise(scanner_timeout=True)
         self.assertEqual((1, 'incomplete'), (code, summary['status']))
         self.assertTrue(summary['commands'][-1]['timed_out'])
-        self.assertEqual(7200, summary['commands'][-1]['timeout_seconds'])
+        self.assertEqual(18000, summary['commands'][-1]['timeout_seconds'])
 
     def test_zero_scanner_exit_with_high_finding_fails(self):
         code, summary = self.exercise(report_kind='high')

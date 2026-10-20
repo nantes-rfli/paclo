@@ -235,12 +235,16 @@ NVD fetch/auth/analysis failure or missing/malformed output is incomplete.
 
 The weekly Monday 03:00 UTC and manual workflow scans production only, restores
 a versioned database cache, forces a new NVD check, verifies metadata and always uploads evidence even
-on failure. A missing 12.2.0 database can be seeded from the old 12.1.6 Maven
-cache: both published engines use directory schema 11.0/data.version 5.5. Only
-the database is copied; the source is preserved, and refresh/report validation
-still determines success. Cold imports get 120 minutes (observed 250k/410k records
-in 45 minutes); other commands get 10 minutes, with a 135-minute job limit.
-Command stages and incomplete evidence are saved before process launch.
+on failure. Only the engine12.2.0 database cache is used for NVD analysis; a
+missing cache triggers a complete cold import. Failed imports are never saved
+as successful snapshots. Cold imports get300 minutes (observed41–58% in120
+minutes with NVD503 retries); other commands get10 minutes within the existing
+six-hour Actions job ceiling. Stages and incomplete evidence are saved before
+process launch. Preserve the original three Maven-cache paths, including the
+redundant nested path: [cache version includes paths and compression](https://github.com/actions/cache#cache-version).
+Legacy Maven restore keys are attempted, but cache availability is not guaranteed;
+no old-engine database migration is performed. Cache hits cannot replace forced
+NVD refresh or report validation.
 OSS Index is disabled by nvd-clojure without its separate credentials;
 when configured, inspect scanner logs for that service's actual outcome. Neither
 state establishes broader advisory coverage. Optional `:csv`, test/dev/build and

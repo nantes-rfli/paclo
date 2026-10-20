@@ -15,8 +15,9 @@ concurrency:
 jobs:
   nvd-scan:
     runs-on: ubuntu-latest
-    # Measured cold NVD import exceeded 45 minutes at 61% of 410k records.
-    timeout-minutes: 135
+    # Observed NVD slowness/503s left cold imports incomplete after two hours.
+    # Keep the usual six-hour job ceiling and reserve an hour around the scan.
+    timeout-minutes: 360
 
     steps:
       - name: Checkout
@@ -58,22 +59,6 @@ jobs:
           key: nvd-data-12.2.0-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             nvd-data-12.2.0-${{ runner.os }}-
-
-      # Both published engines use directory schema 11.0 / data.version 5.5.
-      # Preserve the old immutable cache; update only the copied database.
-      - name: Seed a missing database from the compatible legacy cache
-        shell: bash
-        run: |
-          set -euo pipefail
-          legacy="$HOME/.m2/repository/org/owasp/dependency-check-utils/12.1.6/data/11.0/odc.mv.db"
-          current="$HOME/.cache/paclo/dependency-check/12.2.0"
-          if [ ! -f "$current/odc.mv.db" ] && [ -f "$legacy" ]; then
-            mkdir -p "$current"
-            cp -p "$legacy" "$current/odc.mv.db"
-            echo "Seeded from engine 12.1.6 schema 11.0; forced NVD refresh is still required."
-          else
-            echo "Use current database cache, or a full cold import if none exists."
-          fi
 
       - name: Test audit failure and report validation
         run: python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'

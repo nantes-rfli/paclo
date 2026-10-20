@@ -5795,3 +5795,27 @@ coverage, failure/error rejection and no suppressions remain. Retry the correcte
 restore/seed path and full final CI. P14-D is still in-progress; no audit-success
 or zero-finding claim. Earlier handoff wording records observed queue state only;
 new outcomes and the cache cause are recorded here rather than hidden.
+
+### Longer NVD degradation and simplified cache ownership
+
+f59adb7 passes all16 jobs in CI39352655455. Its actual audit39352651707 also
+fails after7200s (2026-10-20T01:18:11Z–03:18:27Z):240,000/410,449 CVEs (58%),
+NVD503 at01:43:12Z/17Z, no analysis/report or accepted database timestamps.
+Original logs and unchanged105 JAR identities are retained; all three attempts
+remain incomplete. This is not a zero-vulnerability result.
+
+The original Maven path list is present in that run's actual action inputs, yet
+the old main keys still miss. Restoring it removed one known archive-version
+incompatibility, but did not establish the persistent miss's sole cause. The
+API listing alone does not prove runtime eligibility/availability. Correct the
+previous root-cause assertion accordingly. No old DB was copied in either run;
+remove this unverified migration rather than ship an unexercised path. Keep
+Maven restore compatibility/fallbacks and an explicit engine12.2.0 data cache
+saved only on successful jobs. A miss must import complete NVD data.
+
+Observed120-minute progress41–58% plus503 retries justifies a300-minute scanner
+budget within the original/default360-minute Actions ceiling. Other commands
+remain600s. No key delay, retry count, data source, analyzer, suppression,
+threshold, input or quality gate is relaxed.18 regression tests pass with the
+new bound. Launch a full cold import under this measured budget, then verify a
+warm repeat if it completes. No data-freshness or security-success claim yet.

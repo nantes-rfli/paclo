@@ -49,6 +49,35 @@
       "vulnerability_analysis": "not completed; no report generated",
       "legacy_seed": "not executed: Maven/cache archive version changed when a redundant path was removed",
       "oss_index": "disabled by nvd-clojure: credentials unavailable"
+    },
+    {
+      "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39352651707",
+      "commit": "f59adb7cd43fbcc218bb47e01458f0d3e9e2d001",
+      "status": "incomplete",
+      "started": "2026-10-20T01:18:11.708883Z",
+      "finished": "2026-10-20T03:18:27.004510Z",
+      "reason": "scanner timed out after 7200s; inspect its logs",
+      "cache_before": [],
+      "refresh_requested": true,
+      "last_logged_progress": {
+        "retrieved": 240000,
+        "total": 410449,
+        "percent": 58,
+        "timestamp": "2026-10-20T03:14:43.730Z"
+      },
+      "remote_errors": [
+        {
+          "service": "NVD",
+          "http_status": 503,
+          "timestamp": "2026-10-20T01:43:12.332Z",
+          "retry": "5s and10s logged"
+        }
+      ],
+      "nvd_last_checked": null,
+      "nvd_last_modified": null,
+      "vulnerability_analysis": "not completed; no report generated",
+      "legacy_seed": "not executed: original path list restored but legacy key still missed; persistent miss cause not established",
+      "oss_index": "disabled by nvd-clojure: credentials unavailable"
     }
   ],
   "actual_tool_versions": {
@@ -702,6 +731,7 @@
       "~/.m2/repository/org/owasp/dependency-check-data"
     ],
     "schema_directory": "11.0",
-    "data_version": "5.5"
+    "data_version": "5.5",
+    "eligibility": "API listed the main snapshot, but actual restores missed even after original path restoration; no migration success or sole root cause claimed"
   }
 }
