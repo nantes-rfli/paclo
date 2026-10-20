@@ -39,9 +39,11 @@ jobs:
       - name: Cache Clojure dependencies
         uses: actions/cache@v4
         with:
+          # Preserve the original path list: it is part of cache's format ID.
           path: |
             ~/.m2
             ~/.gitlibs
+            ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-tools-${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
           restore-keys: |
             nvd-tools-${{ runner.os }}-

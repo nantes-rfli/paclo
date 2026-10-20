@@ -5769,3 +5769,29 @@ A final documentation/evidence follow-up runs ordinary CI; PR82 records its
 run identity. Core.async1.6.681 and all requested pins remain. PR76/Issue77 are
 untouched. No release, tag, publication, merge, other slice or live/performance
 support claim. Next unfinished item is still P14-D's pending execution evidence.
+
+### Recovery outcome and cache archive-version correction
+
+Later actual results supersede the queued snapshots above: implementation378d289
+passes all16 jobs in CI39281076913. Audit39281069841 fails after7200s, not a
+security pass:170,000/410,157 records (41%) downloaded; services.nvd.nist.gov
+returns503 at17:35:24Z and17:35:29Z, with5s/10s retries. No vulnerability analysis
+or accepted NVD metadata/report completed. Both complete JAR inventories still
+match the previous/local identities. These logs prove failure retention works.
+
+The recovery did not exercise migration: both Maven and new data caches missed,
+so cache_before is empty and it performed another full cold import. Existing
+main nvd-Linux cache4187e4... is170,426,204 bytes, archive versione504f179...;
+keys existed but could not match the new cache's version. I had removed the
+redundant nested Maven cache path, overlooking that actions/cache's archive
+version includes the path list as well as compression. Restore the exact original
+three paths, verified byte-for-byte against main's workflow. Keep the legacy key
+fallback and new engine-specific data cache. Source-cache metadata is now in
+p14-d-audit-evidence.json. See upstream actions/cache#cache-version.
+
+This is a cache-compatibility fix, not a finding exclusion or freshness bypass.
+Forced validity0 and within-execution Last Checked, CVSS>=7.0, complete JAR hash
+coverage, failure/error rejection and no suppressions remain. Retry the corrected
+restore/seed path and full final CI. P14-D is still in-progress; no audit-success
+or zero-finding claim. Earlier handoff wording records observed queue state only;
+new outcomes and the cache cause are recorded here rather than hidden.

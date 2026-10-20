@@ -20,6 +20,35 @@
       "vulnerability_analysis": "not completed; no report generated",
       "oss_index": "disabled by nvd-clojure: credentials unavailable",
       "artifact_url": "https://github.com/nantes-rfli/paclo/actions/runs/39273706099/artifacts/12198572692"
+    },
+    {
+      "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281069841",
+      "commit": "378d289afb2bee19d8fff34354438a6f48679532",
+      "status": "incomplete",
+      "started": "2026-10-19T15:51:43.613436Z",
+      "finished": "2026-10-19T17:51:56.602743Z",
+      "reason": "scanner timed out after 7200s; inspect its logs",
+      "cache_before": [],
+      "refresh_requested": true,
+      "last_logged_progress": {
+        "retrieved": 170000,
+        "total": 410157,
+        "percent": 41,
+        "timestamp": "2026-10-19T17:46:47.868Z"
+      },
+      "remote_errors": [
+        {
+          "service": "NVD",
+          "http_status": 503,
+          "timestamp": "2026-10-19T17:35:24.050Z",
+          "retry": "5s and10s logged"
+        }
+      ],
+      "nvd_last_checked": null,
+      "nvd_last_modified": null,
+      "vulnerability_analysis": "not completed; no report generated",
+      "legacy_seed": "not executed: Maven/cache archive version changed when a redundant path was removed",
+      "oss_index": "disabled by nvd-clojure: credentials unavailable"
     }
   ],
   "actual_tool_versions": {
@@ -661,5 +690,18 @@
         "maven_path": "javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar"
       }
     ]
+  },
+  "legacy_cache": {
+    "ref": "refs/heads/main",
+    "key": "nvd-Linux-4187e4fc423878f4bab66412ad92086746a1cd47bdfb6f4bd13a313edcc80f66",
+    "version": "e504f17973a4a89dfffb29424affb31bcc8051ca7d89118d60d414c843a5c95c",
+    "size_bytes": 170426204,
+    "paths": [
+      "~/.m2",
+      "~/.gitlibs",
+      "~/.m2/repository/org/owasp/dependency-check-data"
+    ],
+    "schema_directory": "11.0",
+    "data_version": "5.5"
   }
 }
