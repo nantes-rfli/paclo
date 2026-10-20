@@ -5819,3 +5819,29 @@ remain600s. No key delay, retry count, data source, analyzer, suppression,
 threshold, input or quality gate is relaxed.18 regression tests pass with the
 new bound. Launch a full cold import under this measured budget, then verify a
 warm repeat if it completes. No data-freshness or security-success claim yet.
+
+### Latest functional CI evidence (2026-10-20)
+
+Implementation `5f5748a` passes all16 jobs in CI39413198962. Inspected all job
+step conclusions (none failed), original logs and downloaded distribution/P16
+artifacts. Five consumer reports (17/21/25 plus25 native-access/debug and Unsafe
+deny) pass against the same JAR SHA256
+`ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96`, merge-ref
+`d613fef0bbb642596bddaf0b62654000005e3fb8`. All three P16 platform reports
+show5 tests/377 assertions, zero failures/errors and passed external-tool
+verification. Recorded compact exact evidence in p14-d-ci-evidence.json.
+Expected negative-test log lines (missing input and broken doc link fixture)
+do not represent failed CI steps. No quality/performance criterion changed.
+
+The300-minute cold import39413194592 remains in progress; its result cannot be
+inferred from ordinary CI success. Corrected stale PR82 prose: no legacy DB
+copying, no queued-CI claim, current300-minute budget and actual three incomplete
+NVD outcomes. Continue waiting for original analysis/report evidence; do not
+claim zero findings or accepted NVD timestamps. PR82 remains draft/unmerged.
+
+Evidence-only follow-up: local link checker and Markdown lint (57 files, zero
+errors) pass. The default sandbox's npx DNS lookup failed; repeating with normal
+network access passed. The local pre-commit hook invokes interactive `clj`, which
+requires unavailable rlwrap. For this documentation/JSON-only commit, use its
+explicit SKIP_TESTS/SKIP_FMT switches; functional full checks already passed and
+ordinary full CI remains required. No hook or quality gate is modified.

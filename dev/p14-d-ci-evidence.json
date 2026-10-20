@@ -142,7 +142,7 @@
     "package_consumer21": "passed",
     "jar_sha256": "482cb78db932de02e86b34bd189c8d95a2bf94c053b154c603a60bcf9a12e010"
   },
-  "final_head_ci": "Five-hour cold-import follow-up and final evidence-head results are recorded on PR82",
+  "final_head_ci": "Evidence-only head results are recorded on PR82; latest functional implementation has 16 successful jobs with no failed steps.",
   "followup_ci": {
     "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39275334254",
     "commit": "0a949b152500b3cc1d4e5d988567d8ad7548376e",
@@ -230,16 +230,203 @@
     ]
   },
   "latest_implementation": {
-    "commit": "378d289afb2bee19d8fff34354438a6f48679532",
-    "ci_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281076913",
-    "audit_url": "https://github.com/nantes-rfli/paclo/actions/runs/39281069841",
-    "observed_status": "CI success; first120-minute cold attempt incomplete with503; later120-minute attempt also incomplete despite preserved legacy paths",
+    "commit": "5f5748a954e3af1f155e487ee8d701775b5afffa",
+    "ci_url": "https://github.com/nantes-rfli/paclo/actions/runs/39413198962",
+    "audit_url": "https://github.com/nantes-rfli/paclo/actions/runs/39413194592",
+    "ci_jobs": [
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595798832,
+        "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595798967,
+        "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595798970,
+        "name": "arm64-monitor",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595798973,
+        "name": "documentation-checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799076,
+        "name": "jdk25-source",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799170,
+        "name": "build-checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799197,
+        "name": "eastwood-lint",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799209,
+        "name": "performance-measurement (mixed)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799233,
+        "name": "performance-measurement (tcp-512)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799243,
+        "name": "coverage",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118595799290,
+        "name": "performance-measurement (udp-64)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118596445414,
+        "name": "performance-results",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118597382359,
+        "name": "distribution-consumer (21)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118597382479,
+        "name": "distribution-consumer (25)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118597382509,
+        "name": "distribution-consumer (17)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "failed_steps": [],
+        "id": 118597748656,
+        "name": "build",
+        "status": "completed"
+      }
+    ],
+    "consumers": [
+      {
+        "source_commit": "d613fef0bbb642596bddaf0b62654000005e3fb8",
+        "jar_sha256": "ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96",
+        "java_options": [],
+        "status": "passed",
+        "report": "consumer-jdk17.json"
+      },
+      {
+        "source_commit": "d613fef0bbb642596bddaf0b62654000005e3fb8",
+        "jar_sha256": "ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96",
+        "java_options": [],
+        "status": "passed",
+        "report": "consumer-jdk21.json"
+      },
+      {
+        "source_commit": "d613fef0bbb642596bddaf0b62654000005e3fb8",
+        "jar_sha256": "ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96",
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=debug"
+        ],
+        "status": "passed",
+        "report": "consumer-jdk25-native-access.json"
+      },
+      {
+        "source_commit": "d613fef0bbb642596bddaf0b62654000005e3fb8",
+        "jar_sha256": "ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96",
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=deny"
+        ],
+        "status": "passed",
+        "report": "consumer-jdk25-unsafe-deny.json"
+      },
+      {
+        "source_commit": "d613fef0bbb642596bddaf0b62654000005e3fb8",
+        "jar_sha256": "ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96",
+        "java_options": [],
+        "status": "passed",
+        "report": "consumer-jdk25.json"
+      }
+    ],
+    "interop": [
+      {
+        "artifact": "p16-interop-Linux-ARM64-39413198962",
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      },
+      {
+        "artifact": "p16-interop-Linux-X64-39413198962",
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      },
+      {
+        "artifact": "p16-interop-macOS-ARM64-39413198962",
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      }
+    ],
+    "audit_status": "in progress; no vulnerability result or accepted NVD timestamps yet",
     "unverified": [
-      "complete NVD analysis and findings",
+      "complete NVD import and dependency analysis",
       "accepted NVD check/update timestamps",
-      "legacy cache migration",
-      "warm replay",
-      "final-head CI"
+      "warm-cache replay"
     ]
   },
   "cache_path_correction_ci": {

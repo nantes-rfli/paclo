@@ -134,16 +134,18 @@ weekly/manual CI always uses it. Default local cached mode retains24h. No503,
 incomplete import or cache hit is treated as clean, and no analyzer, threshold,
 suppression or target is changed to obtain a passing result.
 
-Implementationfc5083a,0a949b1,378d289 andf59adb7 pass all16 jobs in
-[CI39273699992](https://github.com/nantes-rfli/paclo/actions/runs/39273699992),
-[CI39275334254](https://github.com/nantes-rfli/paclo/actions/runs/39275334254),
-[CI39281076913](https://github.com/nantes-rfli/paclo/actions/runs/39281076913) and
-[CI39352655455](https://github.com/nantes-rfli/paclo/actions/runs/39352655455).
-This includes all three P16 platforms and same-JAR17/21/25 consumers. Exact
-identities are in [CI evidence](p14-d-ci-evidence.json). The local updated launcher
-writes validity0 and exits1 for the absent token;18 regressions and targeted
-kondo(error0/warning0) pass. All105 JAR versions/hashes match across local and
-three Actions attempts. These checks do not replace actual vulnerability analysis.
+Latest functional implementation `5f5748a` passes all 16 jobs in
+[CI 39413198962](https://github.com/nantes-rfli/paclo/actions/runs/39413198962),
+with no failed steps. Downloaded artifacts confirm five same-JAR consumers
+(JDK 17/21/25 plus both JDK25 diagnostic modes), SHA256
+`ef1dac7808e59f9ac28959c05c6bd1da89d944ecdc8381ce2b09c9b5fda0ef96`.
+All three P16 platforms pass 5 tests / 377 assertions. Exact source identities,
+job IDs, consumer reports and platform evidence are in
+[CI evidence](p14-d-ci-evidence.json). Earlier implementation revisions also
+passed all 16 jobs. The local updated launcher writes validity 0 and exits 1
+for the absent token; 18 regressions and targeted kondo (0 errors/warnings)
+pass. All 105 JAR versions/hashes match across local and three Actions attempts.
+These checks do not replace actual vulnerability analysis.
 
 The five-hour cold-import attempt and its warm repeat remain pending. No final
 NVD findings, accepted database timestamps, complete cold import or cache replay

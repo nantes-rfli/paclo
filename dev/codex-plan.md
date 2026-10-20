@@ -776,22 +776,29 @@ publication, tag or merge follows this completion.
 
 ### P14-D: Dependency audit update and reliability
 
-Status: **in-progress**. Selected from main `0047ac5`, after PR80/PR78 merged.
-Isolate nvd-clojure5.3.0 in its own project (Dependency-Check12.2.0), keep the
-production-only target, correct flat EDN configuration and enforce actual CVSS
-base scores >=7.0. Record production/tool JAR hashes and resolved trees, report
-identity and NVD check/update times; fail closed on stale/missing/error results.
-Weekly/manual audit triggers and all16 CI jobs remain. Local no-token execution
-is incomplete. The actual cold run reached250k/410k records before the initial
-45-minute limit; it is incomplete, not clean. The implemented recovery extends
-the budget, supports a compatible legacy database copy and forces an NVD check.
-18 regressions pass; two earlier revisions pass all16 CI jobs. Updated
-[scan39281069841](https://github.com/nantes-rfli/paclo/actions/runs/39281069841)
-and latest CI are queued externally; cache migration/warm replay, complete NVD
-analysis and final-head CI remain unverified. PR82 stays draft. P14-D is the
-current unfinished slice; do not advance to another candidate.
-See [verification](p14-d-dependency-audit-verification.md).
-P14 stays in-progress; PR76/Issue77 are unchanged. No merge or publication.
+Status: **in-progress** in [PR82](https://github.com/nantes-rfli/paclo/pull/82).
+Selected from main `0047ac5`, after PR80/PR78 merged. Isolate nvd-clojure5.3.0
+(Dependency-Check12.2.0), preserve all23 production JARs, correct flat EDN and
+independently enforce CVSS base scores >=7.0. Record exact resolved graphs/JAR
+hashes, actual versions, source identity, NVD metadata and original reports.
+Fail closed on nonzero, timeout, stale/missing/error output, unknown scores and
+unexpected scope/suppressions.18 regressions pass; multiple implementation
+revisions pass all16 CI jobs, including distribution and P16.
+
+Three actual cold attempts remain incomplete:45min at61%,120min at41%,120min
+at58%, with NVD503 retries on the latter two. No dependency vulnerability result
+or accepted NVD update timestamp is claimed. Old-cache restores still missed
+after preserving the original path list; no sole cause or migration success is
+asserted. Remove unverified old-DB copying; retain an engine-specific data cache
+saved only after success. Force NVD checks in weekly/manual audits. A measured
+300-minute scanner budget fits the existing six-hour job ceiling.
+The [current cold attempt39413194592](https://github.com/nantes-rfli/paclo/actions/runs/39413194592)
+uses that budget; full import and warm replay remain pending. Functional head
+`5f5748a` passes all16 jobs in CI39413198962; evidence-only head results stay on PR82.
+See [verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
+P14-D is the current unfinished slice; do not advance to another candidate.
+P14 overall stays in-progress, PR76/Issue77 stay unchanged, and PR82 remains
+draft/unmerged until verification is resolved. No release/tag/publication.
 
 ## P15: REPL workflows and practical examples
 
