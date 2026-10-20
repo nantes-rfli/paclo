@@ -14,7 +14,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / 'dev/audit'
 UTC = timezone.utc
-ENGINE = '12.2.0'
+ENGINE = '12.2.2'
 NVD = '5.3.0'
 MAX_AGE = timedelta(hours=24)
 

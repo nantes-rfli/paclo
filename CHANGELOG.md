@@ -26,7 +26,8 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
-- Update nvd-clojure to 5.3.0 in an isolated audit project; verify production JAR
+- Update nvd-clojure to 5.3.0 with Dependency-Check 12.2.2 in an isolated audit
+  project, including the upstream fix for long NVD reference URLs; verify production JAR
   coverage, tool versions, NVD freshness and audit failures. Correct EDN options
   and enforce CVSS base scores >=7.0 independently of upstream component scores.
   Preserve weekly/manual audits and retain evidence on failure.

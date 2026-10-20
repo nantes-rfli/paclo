@@ -200,6 +200,18 @@ class ProcessTests(unittest.TestCase):
             code, summary = self.exercise(scanner_log=log)
             self.assertEqual((1, 'incomplete'), (code, summary['status']))
 
+    def test_nvd_import_errors_cannot_clear_a_zero_finding_report(self):
+        for cve, length in [('CVE-2026-6785', 1585), ('CVE-2026-6786', 1115)]:
+            with self.subTest(cve=cve):
+                log = (f'[2026-10-20 13:00:00] ERROR NvdApiProcessor - Failed to process {cve}\n'
+                       'org.owasp.dependencycheck.data.nvdcve.DatabaseException: '
+                       f'Value too long for column "URL CHARACTER VARYING(1000)": ({length})\n')
+                code, summary = self.exercise(scanner_log=log, refresh=True)
+                self.assertEqual((1, 'incomplete'), (code, summary['status']))
+                self.assertEqual(0, summary['scanner_exit'])
+                self.assertEqual([], summary['findings'])
+                self.assertIn('Scanner logged an error', summary['error'])
+
     def test_resolution_failure_never_starts_scanner(self):
         code, summary = self.exercise(resolution_exit=37)
         self.assertEqual((1, 'incomplete'), (code, summary['status']))

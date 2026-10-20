@@ -52,16 +52,20 @@ jobs:
 
       # A new snapshot key on each run; restore the latest compatible database.
       # File mtimes/cache hits are not evidence of NVD freshness: verify report metadata.
-      - name: Cache Dependency-Check 12.2.0 data
+      - name: Cache Dependency-Check 12.2.2 data
         uses: actions/cache@v4
         with:
-          path: ~/.cache/paclo/dependency-check/12.2.0
-          key: nvd-data-12.2.0-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ~/.cache/paclo/dependency-check/12.2.2
+          key: nvd-data-12.2.2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            nvd-data-12.2.0-${{ runner.os }}-
+            nvd-data-12.2.2-${{ runner.os }}-
 
       - name: Test audit failure and report validation
         run: python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
+
+      - name: Verify long NVD reference URLs in the resolved H2 schema
+        working-directory: dev/audit
+        run: clojure -Srepro -M verify_schema.clj
 
       - name: Run nvd-clojure (CVE scan)
         shell: bash
@@ -69,7 +73,7 @@ jobs:
           NVD_API_TOKEN: ${{ secrets.NVD_API_TOKEN }}
         run: |
           python3 dev/script/dependency_audit.py target/nvd/production --refresh \
-            --data-directory "$HOME/.cache/paclo/dependency-check/12.2.0"
+            --data-directory "$HOME/.cache/paclo/dependency-check/12.2.2"
 
       - name: Upload NVD reports
         if: always()

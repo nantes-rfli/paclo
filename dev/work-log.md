@@ -5845,3 +5845,48 @@ network access passed. The local pre-commit hook invokes interactive `clj`, whic
 requires unavailable rlwrap. For this documentation/JSON-only commit, use its
 explicit SKIP_TESTS/SKIP_FMT switches; functional full checks already passed and
 ordinary full CI remains required. No hook or quality gate is modified.
+
+### PR82 review: failed NVD import and upstream schema correction (2026-10-20)
+
+Read the review5586696353 and downloaded original nvd-reports artifact12268562962.
+Run39413194592 completed with failure, not pending: 11:11:44Z–13:46:13Z;
+scanner exit0/report23 JARs/zero findings was rejected as incomplete because
+NvdApiProcessor failed CVE-2026-6785/6786 imports. Mozilla reference URLs of
+1585/1115 characters exceed schema5.5's VARCHAR(1000). The failure guard and
+skipped DB-cache save are correct; no audit clearance follows from that report.
+Recorded original report/stderr hashes, invalid report metadata and exact errors
+in p14-d-audit-evidence.json; supersedes earlier pending-run wording.
+
+Investigated upstream issue8466 and merged fix8467, shipped in12.2.2. It widens
+reference.url to8000 and bumps schema to5.6. Explicitly pin core12.2.2 in the
+isolated5.3.0 helper (matching utils resolves transitively); no application/root
+pin changes. Fresh12.2.2 data/cache keys do not restore12.2.0. No CVSS>=7,
+freshness, hash coverage, error rejection or suppression policy changes.
+Resolved graph is79 tool JARs; all23 production names/versions/SHA256 match the
+failed run. Recorded exact new tool inventory separately from historical82 JARs.
+
+Commands/results:
+
+- `bash dev/script/codex.sh doctor`: pass, JDK21.0.12.1/macOS x64/libpcap
+  offline read4 packets/438 bytes. Default CLI1.12.5.1654 differs from reference;
+  all audit probes explicitly use existing `/tmp/paclo-cli-1.12.5.1664/bin`.
+- `PATH=/tmp/paclo-cli-1.12.5.1664/bin:$PATH python3 dev/script/dependency_audit.py
+  /tmp/paclo-pr82-fixed-resolution --resolve-only`: pass/resolved-only (not audit).
+- Actual local `--refresh` to `/tmp/paclo-pr82-fixed-local`: exit1/incomplete,
+  no NVD_API_TOKEN; actual loaded nvd5.3.0/engine12.2.2 verified. No report.
+- `python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'`:
+  19 pass, including both actual NVD import ERROR signatures with exit0 and a
+  zero-finding report still rejected.
+- In dev/audit, reference `clojure -Srepro -M verify_schema.clj`: pass. Actual
+  resolved engine initialization SQL/H2 preserve1115/1585/8000-character URLs
+  exactly in an in-memory DB. Both ordinary CI and audit run this regression.
+- `clj-kondo --lint dev/audit`:0 errors/warnings after assigning the standalone
+  script its matching namespace. An initial invocation accidentally included the
+  Python runner; reran against only Clojure files. No linter settings changed.
+- `bash dev/script/mdlint.sh`:57 files/0 errors; `python3 dev/script/verify_doc_links.py`
+  and `git diff --check`:pass.
+
+Replacement real NVD cold import, successful compatible-cache save, forced-refresh
+warm replay and new-head CI are pending. Keep PR82 Draft; do not mark P14-D done.
+Next unfinished work remains P14-D execution evidence. PR76/Issue77 and all
+release/merge/publication boundaries stay unchanged.

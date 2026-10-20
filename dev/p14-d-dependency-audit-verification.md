@@ -8,13 +8,14 @@ unchanged. No production dependency/API/release version changes.
 ## Tool identity and scope
 
 The [official 5.3.0 guidance](https://github.com/rm-hull/nvd-clojure#clojure-cli)
-recommends a separate helper project. `dev/audit/deps.edn` contains only
-nvd-clojure 5.3.0 and no source roots. The root `:nvd` alias is removed.
+recommends a separate helper project. `dev/audit/deps.edn` contains
+nvd-clojure 5.3.0, the review correction's explicit Dependency-Check12.2.2 pin,
+and no source roots. The root `:nvd` alias is removed.
 Both processes use `-Srepro`, avoiding user deps and classpath interference.
 The root default graph supplies only production JARs to the helper. This preserves
 the previous intended target; no optional/dev/build/tool audit is added.
 
-Actual local resolution: **23 production JARs**, **82 tool JARs**. Shared
+Initial local resolution before review: **23 production JARs**, **82 tool JARs**. Shared
 libraries legitimately appear in both independent inventories; the entire tool
 classpath is never supplied as scan input. The tool resolves Clojure 1.12.5 (the CLI system default wins over its declared
 1.12.4) and data.json2.5.2 independently of production1.12.6/2.5.0. Actual loaded versions
@@ -58,7 +59,7 @@ this published config parser. Replace it with explicit `:nvd-api
 within 24 hours and Last Modified within 7 days, with 5-minute clock tolerance;
 the report timestamp must belong to this execution. Missing metadata fails.
 
-Database storage/cache is explicit, versioned for engine 12.2.0. Each workflow
+Database storage/cache is explicit, versioned for the selected engine (now12.2.2). Each workflow
 run saves a new cache snapshot and restores the latest compatible snapshot.
 A cache hit or file mtime cannot pass verification. Evidence is uploaded with
 `if: always()` and includes failures, inventory and original reports. Existing
@@ -147,9 +148,40 @@ for the absent token; 18 regressions and targeted kondo (0 errors/warnings)
 pass. All 105 JAR versions/hashes match across local and three Actions attempts.
 These checks do not replace actual vulnerability analysis.
 
-The five-hour cold-import attempt and its warm repeat remain pending. No final
-NVD findings, accepted database timestamps, complete cold import or cache replay
-is claimed until that evidence exists. P14-D stays in-progress and PR82 draft.
+The 300-minute-budget attempt
+[39413194592](https://github.com/nantes-rfli/paclo/actions/runs/39413194592)
+**finished with failure**, running 11:11:44Z–13:46:13Z on 2026-10-20. Scanner exit0
+and a fresh report covering23 JARs with zero findings did not clear the audit:
+`NvdApiProcessor` logged failed imports for CVE-2026-6785/6786. Their Mozilla
+reference URLs (1585/1115 characters) exceeded H2's `VARCHAR(1000)` column.
+The wrapper correctly returned exit1/status `incomplete` / `Scanner logged an error`.
+The DB cache save was skipped. Original
+[artifact12268562962](https://github.com/nantes-rfli/paclo/actions/runs/39413194592/artifacts/12268562962)
+and compact evidence retain the invalid report and errors; zero findings is not
+security clearance. The review correctly blocks merge.
+
+## PR82 review correction: upstream long-URL import fix
+
+[Upstream issue8466](https://github.com/dependency-check/DependencyCheck/issues/8466)
+identifies these exact CVEs and lengths.
+[Fix8467](https://github.com/dependency-check/DependencyCheck/pull/8467), shipped in
+[12.2.2](https://github.com/dependency-check/DependencyCheck/releases/tag/v12.2.2),
+widens reference URLs to8000 characters and bumps the DB schema from5.5 to5.6.
+Pin `org.owasp/dependency-check-core`12.2.2 explicitly in the isolated helper,
+keeping nvd-clojure5.3.0. Its matching utils12.2.2 and transitive changes resolve
+only in the tool graph (now79 JARs); all23 production JAR versions/hashes match
+the failed run. H2 remains2.4.240. Actual loaded versions confirm5.3.0/12.2.2.
+Use a fresh `12.2.2` data/cache namespace, with no restore from12.2.0 or manual
+schema patch. All existing score, freshness, coverage and failure gates remain.
+
+Local offline verification:19 Python regressions pass, including both exact
+NVD import error signatures with exit0/zero findings rejected. The resolved
+engine's actual H2 initialization SQL preserves1115-,1585- and8000-character
+synthetic URLs byte-for-byte (`dev/audit/verify_schema.clj`); the audit workflow
+runs this regression before scanning. Local actual `--refresh` still exits1/
+incomplete for the absent NVD token; it is not an audit pass. Replacement remote
+full import, successful cache save and forced-refresh warm replay are pending.
+P14-D stays in-progress and PR82 stays Draft until real verification is clean.
 
 ## Remaining boundaries
 

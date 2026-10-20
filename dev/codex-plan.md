@@ -70,7 +70,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 Current task: **P14-D dependency audit update and reliability — in progress**.
 Started from latest fetched main `0047ac5` after P14-C
 [PR #80](https://github.com/nantes-rfli/paclo/pull/80) merged.
-Update isolated nvd-clojure5.3.0/Dependency-Check12.2.0, preserve production scan
+Update isolated nvd-clojure5.3.0/Dependency-Check12.2.2, preserve production scan
 scope and enforce CVSS base score >=7.0, record exact inputs/tool versions/NVD
 freshness, and reject incomplete audits. See the
 [P14-D report](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
@@ -778,11 +778,11 @@ publication, tag or merge follows this completion.
 
 Status: **in-progress** in [PR82](https://github.com/nantes-rfli/paclo/pull/82).
 Selected from main `0047ac5`, after PR80/PR78 merged. Isolate nvd-clojure5.3.0
-(Dependency-Check12.2.0), preserve all23 production JARs, correct flat EDN and
+(Dependency-Check12.2.2), preserve all23 production JARs, correct flat EDN and
 independently enforce CVSS base scores >=7.0. Record exact resolved graphs/JAR
 hashes, actual versions, source identity, NVD metadata and original reports.
 Fail closed on nonzero, timeout, stale/missing/error output, unknown scores and
-unexpected scope/suppressions.18 regressions pass; multiple implementation
+unexpected scope/suppressions.19 regressions pass; multiple implementation
 revisions pass all16 CI jobs, including distribution and P16.
 
 Three actual cold attempts remain incomplete:45min at61%,120min at41%,120min
@@ -792,8 +792,12 @@ after preserving the original path list; no sole cause or migration success is
 asserted. Remove unverified old-DB copying; retain an engine-specific data cache
 saved only after success. Force NVD checks in weekly/manual audits. A measured
 300-minute scanner budget fits the existing six-hour job ceiling.
-The [current cold attempt39413194592](https://github.com/nantes-rfli/paclo/actions/runs/39413194592)
-uses that budget; full import and warm replay remain pending. Functional head
+The [300-minute-budget attempt39413194592](https://github.com/nantes-rfli/paclo/actions/runs/39413194592)
+finished with failure: scanner exit0/zero findings hid H2 URL-length import errors
+for CVE-2026-6785/6786; the wrapper correctly rejected it. Review follow-up pins
+Dependency-Check12.2.2 (upstream #8467, schema5.6/URL8000), with a fresh isolated
+cache and real-H2 long-URL regression. Replacement full import and forced-refresh
+warm replay remain pending. Functional head
 `5f5748a` passes all16 jobs in CI39413198962; evidence-only head results stay on PR82.
 See [verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
 P14-D is the current unfinished slice; do not advance to another candidate.

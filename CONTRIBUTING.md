@@ -218,12 +218,12 @@ versions/SHA256 hashes, commands/statuses, JVM/CLI, source identity, effective
 configuration, actual scanner/engine versions and original reports. Source
 folders/classes remain excluded, as before; the scanner receives only the
 resolved absolute JAR paths recorded in `scanner-input-classpath.log`.
-The default `.dev-tools/nvd-data/12.2.0` cache is explicit and ignored; select
+The default `.dev-tools/nvd-data/12.2.2` cache is explicit and ignored; select
 another location with `--data-directory`. `--resolve-only` verifies inventories
 without an NVD scan and records `resolved-only`, never an audit pass.
 
 Success requires scanner exit0, a current JSON report covering every production
-JAR hash, no analysis exceptions/suppressions, engine 12.2.0, NVD Last Checked
+JAR hash, no analysis exceptions/suppressions, engine 12.2.2, NVD Last Checked
 within 24 hours and Last Modified within 7 days (with 5 minutes of clock tolerance).
 `--refresh` forces an NVD check in this execution (validity 0); CI always uses it.
 Normal local cached mode has a 24-hour validity window. Automatic updates remain enabled;
@@ -235,7 +235,7 @@ NVD fetch/auth/analysis failure or missing/malformed output is incomplete.
 
 The weekly Monday 03:00 UTC and manual workflow scans production only, restores
 a versioned database cache, forces a new NVD check, verifies metadata and always uploads evidence even
-on failure. Only the engine12.2.0 database cache is used for NVD analysis; a
+on failure. Only the engine12.2.2 database cache is used for NVD analysis; a
 missing cache triggers a complete cold import. Failed imports are never saved
 as successful snapshots. Cold imports get300 minutes (observed41–58% in120
 minutes with NVD503 retries); other commands get10 minutes within the existing
