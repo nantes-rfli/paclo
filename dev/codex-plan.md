@@ -67,7 +67,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-D dependency audit update and reliability — in progress**.
+Current task: **P14-D PR82 review correction — verification complete; independent review pending**.
 Started from latest fetched main `0047ac5` after P14-C
 [PR #80](https://github.com/nantes-rfli/paclo/pull/80) merged.
 Update isolated nvd-clojure5.3.0/Dependency-Check12.2.2, preserve production scan
@@ -785,24 +785,28 @@ Fail closed on nonzero, timeout, stale/missing/error output, unknown scores and
 unexpected scope/suppressions.19 regressions pass; multiple implementation
 revisions pass all16 CI jobs, including distribution and P16.
 
-Three actual cold attempts remain incomplete:45min at61%,120min at41%,120min
-at58%, with NVD503 retries on the latter two. No dependency vulnerability result
-or accepted NVD update timestamp is claimed. Old-cache restores still missed
-after preserving the original path list; no sole cause or migration success is
-asserted. Remove unverified old-DB copying; retain an engine-specific data cache
-saved only after success. Force NVD checks in weekly/manual audits. A measured
-300-minute scanner budget fits the existing six-hour job ceiling.
-The [300-minute-budget attempt39413194592](https://github.com/nantes-rfli/paclo/actions/runs/39413194592)
-finished with failure: scanner exit0/zero findings hid H2 URL-length import errors
-for CVE-2026-6785/6786; the wrapper correctly rejected it. Review follow-up pins
-Dependency-Check12.2.2 (upstream #8467, schema5.6/URL8000), with a fresh isolated
-cache and real-H2 long-URL regression. Replacement full import and forced-refresh
-warm replay remain pending. Functional head
-`5f5748a` passes all16 jobs in CI39413198962; evidence-only head results stay on PR82.
-See [verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
-P14-D is the current unfinished slice; do not advance to another candidate.
-P14 overall stays in-progress, PR76/Issue77 stay unchanged, and PR82 remains
-draft/unmerged until verification is resolved. No release/tag/publication.
+Four historical cold attempts are incomplete: three timeouts and run39413194592,
+whose scanner exit0/zero findings hid H2 URL-length import errors for
+CVE-2026-6785/6786. The unchanged failure guard correctly rejected that report.
+PR82 review correction pins Dependency-Check12.2.2 (upstream #8467,
+schema5.6/URL8000) with a fresh engine cache and real-H2 long-URL regression.
+No production JAR hash, CVSS>=7.0, freshness, coverage or failure gate changes.
+
+Replacement [cold audit39442903205](https://github.com/nantes-rfli/paclo/actions/runs/39442903205)
+passes: complete410,693-record import, all23 production JARs, zero findings,
+no import/analysis errors, and saved compatible DB cache. The
+[forced-refresh warm replay39457673751](https://github.com/nantes-rfli/paclo/actions/runs/39457673751)
+restores that exact cache, checks NVD during its own execution and passes the
+same23-JAR audit with zero findings/errors, then saves a new snapshot.
+Corrected head `4cb62dc` passes all16 jobs in CI39444140068 (unchanged rerun after
+CLI-download HTTP500); local full tests and static checks pass. Exact reports,
+versions/hashes, cache keys and timestamps are in
+[verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
+
+P14-D implementation and execution verification are complete; independent review
+and merge remain pending. Keep this as the current slice until review completes;
+P14 overall stays in-progress, PR76/Issue77 stay unchanged, and PR82 remains Draft.
+No other slice, release/tag/publication or merge is authorized by this correction.
 
 ## P15: REPL workflows and practical examples
 

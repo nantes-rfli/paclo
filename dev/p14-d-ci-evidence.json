@@ -530,5 +530,187 @@
         "status": "completed"
       }
     ]
+  },
+  "review_correction": {
+    "url": "https://github.com/nantes-rfli/paclo/actions/runs/39444140068",
+    "headSha": "4cb62dc3de8a7209e2f511483131174e87883f60",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 2,
+    "jobs": [
+      {
+        "name": "performance-measurement (udp-64)",
+        "databaseId": 118704802061,
+        "conclusion": "success"
+      },
+      {
+        "name": "build-checks",
+        "databaseId": 118704804143,
+        "conclusion": "success"
+      },
+      {
+        "name": "coverage",
+        "databaseId": 118704804415,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (25)",
+        "databaseId": 118704804960,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (21)",
+        "databaseId": 118704805068,
+        "conclusion": "success"
+      },
+      {
+        "name": "distribution-consumer (17)",
+        "databaseId": 118704805513,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (tcp-512)",
+        "databaseId": 118704853056,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-measurement (mixed)",
+        "databaseId": 118704858200,
+        "conclusion": "success"
+      },
+      {
+        "name": "arm64-monitor",
+        "databaseId": 118704858982,
+        "conclusion": "success"
+      },
+      {
+        "name": "documentation-checks",
+        "databaseId": 118704859693,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+        "databaseId": 118704873976,
+        "conclusion": "success"
+      },
+      {
+        "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+        "databaseId": 118704875941,
+        "conclusion": "success"
+      },
+      {
+        "name": "eastwood-lint",
+        "databaseId": 118704884019,
+        "conclusion": "success"
+      },
+      {
+        "name": "jdk25-source",
+        "databaseId": 118704891526,
+        "conclusion": "success"
+      },
+      {
+        "name": "performance-results",
+        "databaseId": 118705538215,
+        "conclusion": "success"
+      },
+      {
+        "name": "build",
+        "databaseId": 118705746544,
+        "conclusion": "success"
+      }
+    ],
+    "initial_failure": {
+      "job": "performance-measurement (udp-64)",
+      "step": "Install Clojure CLI",
+      "cause": "CLI distribution download repeatedly returned HTTP 500; measurements never started; unchanged retry passed",
+      "job_id": 118701820939
+    },
+    "consumers": [
+      {
+        "report": "consumer-jdk17.json",
+        "status": "passed",
+        "jar_sha256": "02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583",
+        "source_commit": "e1551226471bb5e6e8d0b3284bf22e129f3a56c1",
+        "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)"
+      },
+      {
+        "report": "consumer-jdk21.json",
+        "status": "passed",
+        "jar_sha256": "02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583",
+        "source_commit": "e1551226471bb5e6e8d0b3284bf22e129f3a56c1",
+        "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)"
+      },
+      {
+        "report": "consumer-jdk25-native-access.json",
+        "status": "passed",
+        "jar_sha256": "02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583",
+        "source_commit": "e1551226471bb5e6e8d0b3284bf22e129f3a56c1",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)"
+      },
+      {
+        "report": "consumer-jdk25-unsafe-deny.json",
+        "status": "passed",
+        "jar_sha256": "02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583",
+        "source_commit": "e1551226471bb5e6e8d0b3284bf22e129f3a56c1",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)"
+      },
+      {
+        "report": "consumer-jdk25.json",
+        "status": "passed",
+        "jar_sha256": "02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583",
+        "source_commit": "e1551226471bb5e6e8d0b3284bf22e129f3a56c1",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)"
+      }
+    ],
+    "interop": [
+      {
+        "platform": "p16-interop-Linux-ARM64-39444140068",
+        "success": {
+          "status": "passed",
+          "input_cases": 32,
+          "malformed": 4,
+          "outputs": 45
+        },
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      },
+      {
+        "platform": "p16-interop-Linux-X64-39444140068",
+        "success": {
+          "status": "passed",
+          "input_cases": 32,
+          "malformed": 4,
+          "outputs": 45
+        },
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      },
+      {
+        "platform": "p16-interop-macOS-ARM64-39444140068",
+        "success": {
+          "status": "passed",
+          "input_cases": 32,
+          "malformed": 4,
+          "outputs": 45
+        },
+        "tests": {
+          "test": 5,
+          "pass": 377,
+          "fail": 0,
+          "error": 0,
+          "type": "summary"
+        }
+      }
+    ]
   }
 }

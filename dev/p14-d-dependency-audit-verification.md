@@ -1,8 +1,8 @@
 # P14-D: Dependency audit update and reliability
 
 Started 2026-10-19 (Asia/Tokyo) from latest main `0047ac5`, after PR80 and PR78.
-Implementation and execution verification are in progress; independent review
-is required before merge. P14 overall stays in-progress; PR76/Issue77 remain
+Implementation and execution verification are complete, including the PR82
+review correction; independent review is required before merge. P14 overall stays in-progress; PR76/Issue77 remain
 unchanged. No production dependency/API/release version changes.
 
 ## Tool identity and scope
@@ -126,7 +126,7 @@ migration. Removing a redundant Maven-cache path changed GitHub's
 the exact original path list still did not recover the listed old main cache.
 Therefore path shape alone is not asserted as the cause of the persistent miss.
 Keep the original Maven path list and fallback keys, but remove the unverified
-old-database copying. Only a completed engine12.2.0 import is cached for subsequent
+old-database copying. Only a completed import for the selected engine is cached for subsequent
 runs. A missing snapshot performs full import; no partial data is certified.
 
 Each command emits its stage and persists incomplete evidence before launch.
@@ -135,7 +135,7 @@ weekly/manual CI always uses it. Default local cached mode retains24h. No503,
 incomplete import or cache hit is treated as clean, and no analyzer, threshold,
 suppression or target is changed to obtain a passing result.
 
-Latest functional implementation `5f5748a` passes all 16 jobs in
+Before review, functional implementation `5f5748a` passes all 16 jobs in
 [CI 39413198962](https://github.com/nantes-rfli/paclo/actions/runs/39413198962),
 with no failed steps. Downloaded artifacts confirm five same-JAR consumers
 (JDK 17/21/25 plus both JDK25 diagnostic modes), SHA256
@@ -179,9 +179,56 @@ NVD import error signatures with exit0/zero findings rejected. The resolved
 engine's actual H2 initialization SQL preserves1115-,1585- and8000-character
 synthetic URLs byte-for-byte (`dev/audit/verify_schema.clj`); the audit workflow
 runs this regression before scanning. Local actual `--refresh` still exits1/
-incomplete for the absent NVD token; it is not an audit pass. Replacement remote
-full import, successful cache save and forced-refresh warm replay are pending.
-P14-D stays in-progress and PR82 stays Draft until real verification is clean.
+incomplete for the absent NVD token; it is not an audit pass. The successful
+remote cold import and forced-refresh warm replay below supply the actual audit
+evidence.
+Review-correction head `4cb62dc` passes all16 jobs in
+[CI39444140068](https://github.com/nantes-rfli/paclo/actions/runs/39444140068)
+(attempt2). The UDP shard initially failed before measurements because CLI
+installation returned HTTP500 on all retries; the unchanged rerun passed.
+Downloaded artifacts verify five successful same-JAR consumers, SHA256
+`02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583`, and
+three P16 platforms with5 tests/377 assertions each. Compact exact evidence is
+in `p14-d-ci-evidence.json`. Local full check passes13 JUnit and493 Clojure tests /
+19,130 assertions plus smoke. Kondo, full116-namespace Eastwood traversal
+(zero exceptions), clean-ns, corrected format and Markdown/link checks pass.
+Initial CI found namespace/layout issues in the new probe; `4cb62dc` corrected
+it to a namespace-free standalone script, preserving the default graph.
+
+## Completed real NVD verification (2026-10-21 Asia/Tokyo)
+
+Both replacement audits pass with nvd-clojure 5.3.0 / Dependency-Check 12.2.2,
+scanner exit 0, all 23 production JAR hashes covered, zero findings and no NVD
+import or analysis errors. All 79 tool JAR versions/hashes match local resolution;
+production versions/hashes match the failed run. OSS Index remains separately
+disabled without credentials; these results cover the production NVD/CPE scan.
+
+| Check | Cold import | Forced-refresh warm replay |
+| --- | --- | --- |
+| Run | [39442903205](https://github.com/nantes-rfli/paclo/actions/runs/39442903205) | [39457673751](https://github.com/nantes-rfli/paclo/actions/runs/39457673751) |
+| Scanner source | `88a4cc0` | `4cb62dc` (same scanner, dependency and policy code) |
+| Execution, UTC 2026-10-20 | 14:50:43–16:26:35 | 16:28:17–16:28:40 |
+| NVD Last Checked | 16:26:27Z | 16:28:27Z |
+| NVD Last Modified | 16:17:19Z | 16:26:06Z |
+| Cache before | Empty; downloaded 410,693/410,693 records | Restored the cold run's DB (250,671,104 bytes) |
+| Production coverage / findings | 23 / 0 | 23 / 0 |
+| Effective update validity | 0 hours (`--refresh`) | 0 hours (`--refresh`) |
+| Original reports | [artifact12280863020](https://github.com/nantes-rfli/paclo/actions/runs/39442903205/artifacts/12280863020) | [artifact12280688184](https://github.com/nantes-rfli/paclo/actions/runs/39457673751/artifacts/12280688184) |
+
+The cold run saved `nvd-data-12.2.2-Linux-39442903205-1`, cache ID 9228378913,
+121,149,390 compressed bytes. The warm job log explicitly confirms restoration
+from that exact key, not a miss; the runner records the existing `odc.mv.db`.
+The warm Last Checked belongs to its own execution, and its dataset watermark
+advanced. The warm run also saved `nvd-data-12.2.2-Linux-39457673751-1`.
+Cache keys, report/log SHA256 hashes and original summary metadata are retained
+in `p14-d-audit-evidence.json`. Independent local revalidation of both downloaded
+reports and logs passes with the unchanged coverage/freshness/score/error gates.
+No CVE, analyzer, threshold or failure check was suppressed to obtain these results.
+
+The review's import fix, clean real audit, compatible-cache save and forced-refresh
+replay requirements are verified. P14-D remains in-progress only for independent
+review/merge; PR82 remains Draft for that review. No merge or publication is
+performed by this correction.
 
 ## Remaining boundaries
 

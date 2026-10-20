@@ -110,6 +110,92 @@
       "schema_url_limit": 1000,
       "cache_saved": false,
       "scanner_stderr_sha256": "ecede4ab2c145270b396b2fcf348493e626bf8fb334b21cac713de09f94153e6"
+    },
+    {
+      "cache_before": [],
+      "data_directory": "/home/runner/.cache/paclo/dependency-check/12.2.2",
+      "dependency_check": "12.2.2",
+      "findings": [],
+      "finished": "2026-10-20T16:26:35.867654Z",
+      "high_findings": 0,
+      "nvd_clojure": "5.3.0",
+      "nvd_last_checked": "2026-10-20T16:26:27Z",
+      "nvd_last_modified": "2026-10-20T16:17:19Z",
+      "nvd_token_present": true,
+      "oss_index": "disabled by nvd-clojure: credentials unavailable",
+      "production_jars": 23,
+      "refresh_requested": true,
+      "report_date": "2026-10-20T16:26:35.553886Z",
+      "report_sha256": "aab5a8cbdc5c66e77fe90fee0e67f6700b90089ee5699bb2c055da98ee8effe1",
+      "reported_dependencies": 23,
+      "scanner_exit": 0,
+      "scope": "production",
+      "started": "2026-10-20T14:50:43.399295Z",
+      "status": "passed",
+      "threshold": 7.0,
+      "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39442903205",
+      "commit": "88a4cc041e391202e9e5de0b57aa6358cf7d250b",
+      "artifact_url": "https://github.com/nantes-rfli/paclo/actions/runs/39442903205/artifacts/12280863020",
+      "downloaded_nvd_records": 410693,
+      "cache_saved": [
+        {
+          "createdAt": "2026-10-20T16:26:39.997348Z",
+          "id": 9228378913,
+          "key": "nvd-data-12.2.2-Linux-39442903205-1",
+          "lastAccessedAt": "2026-10-20T16:26:39.997348Z",
+          "sizeInBytes": 121149390
+        }
+      ],
+      "scanner_stderr_sha256": "7c1ceea5a68a01b88c2c1dd30ad6534c630575e11dafabefe3a64e1c1fe89375",
+      "scanner_stdout_sha256": "3c95eecba15c5d981a340ade54c8c01c94f4a939bf9ee1bd7f6ed48a7755c35e"
+    },
+    {
+      "cache_before": [
+        {
+          "bytes": 250671104,
+          "file": "odc.mv.db",
+          "modified": "2026-10-20T16:26:32.692744Z"
+        },
+        {
+          "bytes": 86572,
+          "file": "publishedSuppressions.xml",
+          "modified": "2026-10-20T16:26:27.949053Z"
+        },
+        {
+          "bytes": 54,
+          "file": "publishedSuppressions.xml.properties",
+          "modified": "2026-10-20T16:26:27.953679Z"
+        }
+      ],
+      "data_directory": "/home/runner/.cache/paclo/dependency-check/12.2.2",
+      "dependency_check": "12.2.2",
+      "findings": [],
+      "finished": "2026-10-20T16:28:40.305214Z",
+      "high_findings": 0,
+      "nvd_clojure": "5.3.0",
+      "nvd_last_checked": "2026-10-20T16:28:27Z",
+      "nvd_last_modified": "2026-10-20T16:26:06Z",
+      "nvd_token_present": true,
+      "oss_index": "disabled by nvd-clojure: credentials unavailable",
+      "production_jars": 23,
+      "refresh_requested": true,
+      "report_date": "2026-10-20T16:28:39.750563Z",
+      "report_sha256": "298688ee1f31ca6449df9287015d465e6342203d3f48d9f242ffcd1866872d6e",
+      "reported_dependencies": 23,
+      "scanner_exit": 0,
+      "scope": "production",
+      "started": "2026-10-20T16:28:17.340493Z",
+      "status": "passed",
+      "threshold": 7.0,
+      "run_url": "https://github.com/nantes-rfli/paclo/actions/runs/39457673751",
+      "commit": "4cb62dc3de8a7209e2f511483131174e87883f60",
+      "artifact_url": "https://github.com/nantes-rfli/paclo/actions/runs/39457673751/artifacts/12280688184",
+      "cache_restore_key": "nvd-data-12.2.2-Linux-39442903205-1",
+      "cache_save_key": "nvd-data-12.2.2-Linux-39457673751-1",
+      "effective_valid_for_hours": 0,
+      "cache_restore_evidence_sha256": "c279a8cc10e588970200bfb7b6007bde44d4b72337f077ec8409da1c2e7ccb9b",
+      "scanner_stderr_sha256": "57ee3d71ff54f7023f4cc2a9d0f0b58b4de00c02112623171a168e2e646839f6",
+      "scanner_stdout_sha256": "3c95eecba15c5d981a340ade54c8c01c94f4a939bf9ee1bd7f6ed48a7755c35e"
     }
   ],
   "actual_tool_versions": {
@@ -1258,7 +1344,27 @@
         8000
       ]
     },
-    "replacement_audit": "pending",
-    "cache_save_and_forced_refresh_replay": "pending"
+    "replacement_audit": "passed: 410693-record cold import, 23 production JARs, zero findings, no import errors",
+    "cache_save_and_forced_refresh_replay": "passed: run39457673751 restored run39442903205 DB, forced a current NVD check, audited same23 JAR hashes with zero findings/errors, saved new snapshot",
+    "cache_snapshots": [
+      {
+        "createdAt": "2026-10-20T16:28:46.013713Z",
+        "id": 9228483533,
+        "key": "nvd-data-12.2.2-Linux-39457673751-1",
+        "lastAccessedAt": "2026-10-20T16:28:46.013713Z",
+        "sizeInBytes": 121104082
+      },
+      {
+        "createdAt": "2026-10-20T16:26:39.997348Z",
+        "id": 9228378913,
+        "key": "nvd-data-12.2.2-Linux-39442903205-1",
+        "lastAccessedAt": "2026-10-20T16:28:11.099373Z",
+        "sizeInBytes": 121149390
+      }
+    ]
+  },
+  "current_actual_tool_versions": {
+    "nvd-clojure": "5.3.0",
+    "dependency-check": "12.2.2"
   }
 }

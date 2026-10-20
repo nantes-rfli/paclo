@@ -5915,3 +5915,56 @@ The regression script correction addresses both without changing scanner policy.
 
 Corrected `clojure-lsp format --dry`:exit0, Nothing to format. Kondo0 errors/
 0 warnings,19 Python regressions and local links also pass after the correction.
+
+### PR82 review verification completed (2026-10-21 Asia/Tokyo)
+
+The replacement cold audit39442903205 succeeded on scanner source88a4cc0:
+2026-10-20T14:50:43Z–16:26:35Z (23:50–01:26 JST). It downloaded all410,693
+NVD records, scanned all23 unchanged production JAR hashes and produced zero
+findings with no NVD import/analysis errors. Actual helper/engine5.3.0/12.2.2;
+all79 tool JAR names/versions/SHA256 match local resolution. NVD Last Checked
+16:26:27Z and Last Modified16:17:19Z pass the unchanged freshness/forced-refresh
+checks. Report SHA256aab5a8cbdc5c66e77fe90fee0e67f6700b90089ee5699bb2c055da98ee8effe1.
+Original artifact12280863020 retains reports, full logs, commands and inventories.
+
+Confirmed successful DB save through the job step and `gh cache list`: key
+nvd-data-12.2.2-Linux-39442903205-1, cache ID9228378913,121,149,390 compressed
+bytes. Started a second manual workflow on the same PR ref only after inspecting
+and independently validating the cold report/logs and saved cache.
+
+Warm audit39457673751 succeeded on4cb62dc (same scanner/dependency/policy code):
+16:28:17Z–16:28:40Z. Job118748692788 logs explicitly restore the exact cold cache
+key, and summary cache_before records odc.mv.db250,671,104 bytes. Effective config
+has validity0 and --refresh=true; Last Checked16:28:27Z is within this execution,
+Last Modified advances to16:26:06Z. Same23 production hashes/79 tool hashes,
+zero findings, scanner exit0, no import/analysis errors. Report SHA256
+298688ee1f31ca6449df9287015d465e6342203d3f48d9f242ffcd1866872d6e.
+It saves new key nvd-data-12.2.2-Linux-39457673751-1. Original artifact12280688184
+and compact evidence retain exact metadata/cache identity and log/report hashes.
+Downloaded both reports; independently reran validate(...,refresh=True) and
+verify_logs, compared inventories and checked effective validity0/cache presence.
+Both pass. OSS Index is separately disabled without its credentials; no broader
+advisory clearance, live capture or other new support claim follows.
+
+Corrected functional head4cb62dc passes all16 jobs in CI39444140068. Attempt1's
+UDP shard failed before measurement when CLI tar downloads returned HTTP500 on
+all retries; its dependent aggregate failed too. GitHub rejects a job retry while
+the overall run is active, so waited for completion and reran failed jobs only.
+Unchanged attempt2 succeeds. Downloaded artifacts confirm all five consumers pass
+against JAR02c40a9f3d96d87c02303e39d0d666db2e65eeb07fd5f631d3db060804d8b583,
+merge-ref e1551226471bb5e6e8d0b3284bf22e129f3a56c1, and all three P16 platforms
+pass5 tests/377 assertions. Recorded exact jobs/consumer/P16 evidence separately.
+
+Updated the PR description, report, plan and evidence to replace the stale
+pending-run claim with the actual rejected old import and successful replacement
+cold/warm results. PR82 remains Draft for independent re-review; implementation
+and execution verification are complete. P14-D remains the current slice until
+review/merge, P14 overall stays in-progress, PR76/Issue77 remain untouched. No
+score/freshness/coverage/failure relaxation, suppression, production dependency,
+release/version/tag/publication or merge change was made.
+
+Final evidence checks: Markdown lint57 files/0 errors, local links/anchors and
+`git diff --check` pass. Verified both original report SHA256s against summaries,
+all six audit outcome statuses (four incomplete, then two passed), and the
+79-JAR corrected tool inventory. The final evidence-only commit runs ordinary
+CI again; its result is tracked on PR82 without rerunning unchanged NVD inputs.
