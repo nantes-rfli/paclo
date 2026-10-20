@@ -5890,3 +5890,28 @@ Replacement real NVD cold import, successful compatible-cache save, forced-refre
 warm replay and new-head CI are pending. Keep PR82 Draft; do not mark P14-D done.
 Next unfinished work remains P14-D execution evidence. PR76/Issue77 and all
 release/merge/publication boundaries stay unchanged.
+
+Review execution follow-up: pushed88a4cc0 and started real audit39442903205
+(manual workflow on the PR branch); both19 Python cases and the H2 schema probe
+pass remotely before the scanner starts. Ordinary CI39442886746 exposed a
+namespace/path conflict in the new standalone H2 probe, also reproduced by local
+`lint`/Eastwood. Keep the probe as a namespace-free standalone script like
+run.clj, importing its Java classes directly; no H2 dependency or namespace is
+added to the default graph and no lint rule/exclusion is changed. The corrected
+probe and kondo pass; full local lint/check are being rerun. A counterexample
+with core12.2.0 reproduces the VARCHAR(1000) failure at1115 characters (exit1),
+confirming the test detects the original upstream bug. New-head ordinary CI
+will verify this correction; running audit source88a4cc0 still has the same
+scanner/dependency/policy code and continues its cold import.
+
+Local full `check` completed successfully:13 JUnit tests,493 Clojure tests /
+19,130 assertions, offline smoke4 packets/438 bytes; process exit0. Full lint's
+Eastwood traversal completed (116 namespaces,640 informational warnings, zero
+exceptions), kondo0/0 and clean-ns pass. Format dry-run found two alignment
+spaces in the new probe; applied the exact formatter diff and reran formatting.
+Initial CI's two failures are the probe's namespace and clean-ns layout; all
+other completed jobs are successful (macOS runner still queued at this snapshot).
+The regression script correction addresses both without changing scanner policy.
+
+Corrected `clojure-lsp format --dry`:exit0, Nothing to format. Kondo0 errors/
+0 warnings,19 Python regressions and local links also pass after the correction.
