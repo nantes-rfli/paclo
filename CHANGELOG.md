@@ -26,6 +26,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update SpotBugs and its published annotations dependency to 4.10.5, and
+  JaCoCo agent/CLI to 0.8.15. Reject incomplete Java analysis and stale/empty
+  coverage results, retain the 25% Java line gate, and verify coverage on
+  JDK 17/21 plus the experimental JDK 25 runtime and class format.
+
 - Update nvd-clojure to 5.3.0 with Dependency-Check 12.2.2 in an isolated audit
   project, including the upstream fix for long NVD reference URLs; verify production JAR
   coverage, tool versions, NVD freshness and audit failures. Correct EDN options

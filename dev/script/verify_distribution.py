@@ -40,7 +40,7 @@ DEPENDENCIES = {
     "org.clojure/core.async": "1.6.681",
     "com.github.jnr/jnr-ffi": "2.3.3",
     "org.clojure/data.json": "2.5.0",
-    "com.github.spotbugs/spotbugs-annotations": "4.8.6",
+    "com.github.spotbugs/spotbugs-annotations": "4.10.5",
 }
 # Verify the selected native/bytecode graph, not just the direct POM declaration.
 NATIVE_JARS = {

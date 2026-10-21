@@ -1,0 +1,18 @@
+{
+  "spotbugs-before": {
+    "exit": 0,
+    "output": "#'paclo.dev.spotbugs/-main\n[spotbugs] analyzing target/classes -> target/spotbugs.xml\n[spotbugs] done\n"
+  },
+  "spotbugs-after": {
+    "exit": 1,
+    "output": "#'paclo.dev.spotbugs/-main\n[spotbugs] analyzing target/classes -> target/spotbugs.xml\nSLF4J(W): No SLF4J providers were found.\nSLF4J(W): Defaulting to no-operation (NOP) logger implementation\nSLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.\nThe following classes needed for analysis were missing:\n  Missing\nExecution error (ExceptionInfo) at paclo.dev.spotbugs/run-spotbugs (spotbugs-after.clj:25).\nSpotBugs analysis failed\n\nFull report at:\n/var/folders/k5/n9lmd86n3hjf8cxd__4h8__m0000gn/T/clojure-14812582350738604961.edn\n"
+  },
+  "jacoco-gate-before": {
+    "exit": 0,
+    "output": "#'paclo.dev.jacoco-gate/-main\n[jacoco-gate] line coverage 100.0% (threshold 25.0%)\n[jacoco-gate] PASS\n"
+  },
+  "jacoco-gate-after": {
+    "exit": 1,
+    "output": "#'paclo.dev.jacoco-gate/-main\nExecution error (ExceptionInfo) at paclo.dev.jacoco-gate/line-coverage (jacoco-gate-after.clj:15).\nMissing or duplicate JaCoCo report LINE counter\n\nFull report at:\n/var/folders/k5/n9lmd86n3hjf8cxd__4h8__m0000gn/T/clojure-2059005751641829489.edn\n"
+  }
+}

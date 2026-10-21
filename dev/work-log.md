@@ -6108,3 +6108,67 @@ already-successful unchanged tests/formatter in this docs-only commit; run
 Markdown/local-link/whitespace checks. P14-E implementation/verification is done,
 independent review remains pending, and P14 overall/next unfinished queue item
 remains P14. No other slice, merge, release, tag or publication is performed.
+
+## P14-F: Java quality tools (2026-10-21 Asia/Tokyo)
+
+Started with a clean supplied checkout, fetched latest main204d72c (PR83 merged)
+and created codex/p14-f-java-quality. Read AGENTS/CONTRIBUTING/API contract,
+accepted plan, P11 inventory and actual Java bindings/runners/CI/distribution
+checks. Initial doctor passed with host CLI1654; subsequent commands explicitly
+select existing /tmp/paclo-cli-1.12.5.1664. Local runtime is macOS x86_64,
+Temurin21.0.12.1+1, native libpcap1.10.1. Local17/25 are unavailable.
+
+Adopt SpotBugs/annotations4.10.5 and JaCoCo agent+CLI0.8.15. Hold all unrelated
+pins, core.async1.6.681 and1.5.0-SNAPSHOT. Before runner changes, measured old/new
+against identical release17 binding classes: both have one EI_EXPOSE_REP on
+PcapHandle.pointer, zero analysis errors/missing classes; JaCoCo both228/283
+instructions,19/26 branches,59/73 lines (80.82%),28/37 complexity,22/24 methods,
+7/9 classes. Preserve original reports/trees in p14-f-evidence. Production graph
+changes only annotations version; jsr305 remains3.0.2. Generated POM expectation
+is aligned. Analyzer-only ASM resolves9.11; production/JaCoCo remain9.10.1.
+Full transitive deltas and native/suppression triage are in the P14-F report.
+
+No production defect/new warning or additional suppression is introduced. The
+pointer accessor intentionally exposes the native handle for existing calls;
+retain the visible warning and established informational finding policy. Checked
+idempotent handle/BPF close, failed opens, borrowed stdio and existing native ABI
+regressions. Static analysis/offline tests do not prove all native/live lifetimes.
+Plugin inventories497 ->518 pattern IDs (25 added,4 removed). A same-class real
+probe finds0 warnings on4.8.6 and two valid findings on4.10.5: misleading
+StringBuilder.substring(0) and ignored Arrays.copyOf result. Keep these positive
+controls alongside actual missing-class/zero-test/corrupt-exec negative controls.
+
+Correct runner reliability: checked classpath subprocesses, SpotBugs -exitcode
+(bits1 findings informational;2 missing/4 errors fail), nonempty new report,
+stale-report cleanup, JaCoCo append=false and binding-only instrumentation,
+JUnit fail-if-no-tests, report-level coverage LINE once, closed XML reader,
+empty/corrupt/negative/duplicate counters rejected and threshold25% minimum.
+A first local probe used incorrect exit-bit assumptions; javap of the actual
+4.10.5 ExitCodes constants established the mapping above before final checks.
+No quality failure is waived. CI retains16 jobs and adds17/21/25 coverage plus
+actual-JDK class-format probes within existing mandatory jobs.
+
+Executed: reference-CLI doctor/prepare/check exit0;13 JUnit tests and494 Clojure
+tests/19,137 assertions, zero failures/errors and real offline smoke. Final Java
+quality commands exit0; coverage80.8% >=25%, same counters. Actual-JDK21 probe
+instruments class major65 and confirms3 covered lines/3 branches. Full lint,
+11 quality regressions,40 docs, P16, existing build/distribution regressions,
+package/consumer/performance and remote CI are underway; do not yet infer passes.
+No P14-B/Issue77/P17/P09/P10, release/tag/publication or merge work.
+
+Local follow-up: all11 Java-quality regressions pass (163.6s), including the two
+new-detector positive controls.16 doc-parser and15 distribution regressions pass;
+existing build-toolchain suite6/6 passes. All40 executable docs pass. P16 passes
+5 tests/377 assertions with offline synthetic captures. A direct historical-runner
+comparison confirms missing-class SpotBugs exit0 ->1 and empty-report gate exit0
+->1; original logs are retained in p14-f-evidence/failure-comparison.json.
+
+The first full lint passes kondo/Eastwood (642 informational warnings,0 exceptions)
+but rejects indentation after the final run-java! logging addition. Apply only
+that file's formatter and rerun complete lint. The first local perf execution
+while several verification JVMs were active fails at1484.1ms >1200ms; retain the
+failure. After all those commands finish, the unchanged gate passes at719.6ms,
+without budget/source changes. This single-host observation is not a general
+performance claim; remote existing performance gates must still pass. Final
+lint/package/independent consumer are running sequentially to avoid target cleanup
+conflicts. No live/other-platform validation is inferred.

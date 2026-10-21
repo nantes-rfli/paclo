@@ -1,0 +1,624 @@
+{
+  "jacoco-before.xml": {
+    "root_counters": [
+      {
+        "type": "INSTRUCTION",
+        "missed": "55",
+        "covered": "228"
+      },
+      {
+        "type": "BRANCH",
+        "missed": "7",
+        "covered": "19"
+      },
+      {
+        "type": "LINE",
+        "missed": "14",
+        "covered": "59"
+      },
+      {
+        "type": "COMPLEXITY",
+        "missed": "9",
+        "covered": "28"
+      },
+      {
+        "type": "METHOD",
+        "missed": "2",
+        "covered": "22"
+      },
+      {
+        "type": "CLASS",
+        "missed": "2",
+        "covered": "7"
+      }
+    ],
+    "classes": {
+      "paclo/jnr/PcapStatsLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "7",
+          "covered": "0"
+        },
+        {
+          "type": "LINE",
+          "missed": "2",
+          "covered": "0"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "METHOD",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "CLASS",
+          "missed": "1",
+          "covered": "0"
+        }
+      ],
+      "paclo/jnr/BpfProgram": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "1",
+          "covered": "30"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "LINE",
+          "missed": "1",
+          "covered": "10"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapHandle": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "1",
+          "covered": "50"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "LINE",
+          "missed": "1",
+          "covered": "17"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "6"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapConfigLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "0",
+          "covered": "7"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "1"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "1"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "11",
+          "covered": "56"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "2",
+          "covered": "4"
+        },
+        {
+          "type": "LINE",
+          "missed": "2",
+          "covered": "13"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "2",
+          "covered": "5"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapStat": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "0",
+          "covered": "21"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapHeader": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "3",
+          "covered": "33"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "1",
+          "covered": "1"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "6"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "5"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "5"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapErrors": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "10",
+          "covered": "31"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "4",
+          "covered": "8"
+        },
+        {
+          "type": "LINE",
+          "missed": "4",
+          "covered": "8"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "4",
+          "covered": "4"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapStdioLibrary": [],
+      "paclo/jnr/PcapLibrary$PcapIf": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "22",
+          "covered": "0"
+        },
+        {
+          "type": "LINE",
+          "missed": "4",
+          "covered": "0"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "METHOD",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "CLASS",
+          "missed": "1",
+          "covered": "0"
+        }
+      ]
+    }
+  },
+  "jacoco-after-original-runner.xml": {
+    "root_counters": [
+      {
+        "type": "INSTRUCTION",
+        "missed": "55",
+        "covered": "228"
+      },
+      {
+        "type": "BRANCH",
+        "missed": "7",
+        "covered": "19"
+      },
+      {
+        "type": "LINE",
+        "missed": "14",
+        "covered": "59"
+      },
+      {
+        "type": "COMPLEXITY",
+        "missed": "9",
+        "covered": "28"
+      },
+      {
+        "type": "METHOD",
+        "missed": "2",
+        "covered": "22"
+      },
+      {
+        "type": "CLASS",
+        "missed": "2",
+        "covered": "7"
+      }
+    ],
+    "classes": {
+      "paclo/jnr/PcapStatsLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "7",
+          "covered": "0"
+        },
+        {
+          "type": "LINE",
+          "missed": "2",
+          "covered": "0"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "METHOD",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "CLASS",
+          "missed": "1",
+          "covered": "0"
+        }
+      ],
+      "paclo/jnr/BpfProgram": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "1",
+          "covered": "30"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "LINE",
+          "missed": "1",
+          "covered": "10"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapHandle": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "1",
+          "covered": "50"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "LINE",
+          "missed": "1",
+          "covered": "17"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "6"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapConfigLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "0",
+          "covered": "7"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "1"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "1"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapLibrary": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "11",
+          "covered": "56"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "2",
+          "covered": "4"
+        },
+        {
+          "type": "LINE",
+          "missed": "2",
+          "covered": "13"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "2",
+          "covered": "5"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "4"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapStat": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "0",
+          "covered": "21"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "3"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapHeader": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "3",
+          "covered": "33"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "1",
+          "covered": "1"
+        },
+        {
+          "type": "LINE",
+          "missed": "0",
+          "covered": "6"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "5"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "5"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapErrors": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "10",
+          "covered": "31"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "4",
+          "covered": "8"
+        },
+        {
+          "type": "LINE",
+          "missed": "4",
+          "covered": "8"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "4",
+          "covered": "4"
+        },
+        {
+          "type": "METHOD",
+          "missed": "0",
+          "covered": "2"
+        },
+        {
+          "type": "CLASS",
+          "missed": "0",
+          "covered": "1"
+        }
+      ],
+      "paclo/jnr/PcapStdioLibrary": [],
+      "paclo/jnr/PcapLibrary$PcapIf": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "22",
+          "covered": "0"
+        },
+        {
+          "type": "LINE",
+          "missed": "4",
+          "covered": "0"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "METHOD",
+          "missed": "1",
+          "covered": "0"
+        },
+        {
+          "type": "CLASS",
+          "missed": "1",
+          "covered": "0"
+        }
+      ]
+    }
+  },
+  "class_sha256": {
+    "target/classes/paclo/jnr/BpfProgram.class": "5439d4dc732df9cf8e6384c893e2c26d20e413d4ad0b85b5bba753738bc92684",
+    "target/classes/paclo/jnr/PcapConfigLibrary.class": "6528974e2b9c8df5cde6255415758e16ac10d29bfde2e21ccb8f1f63867305c6",
+    "target/classes/paclo/jnr/PcapErrors.class": "a09d898612f57f86261ffd722c790cf7fd6a007486605d79e23fca6166bfcdec",
+    "target/classes/paclo/jnr/PcapHandle.class": "12ad68506fec5bb61b41d3685745ee4791bc06dfc2e3a7f61f71b2be98247a1e",
+    "target/classes/paclo/jnr/PcapHeader.class": "b54212944d028ecef0216b181bc140c68068ed46b8688fb548f4e1ea17bd1003",
+    "target/classes/paclo/jnr/PcapLibrary$PcapIf.class": "f26a72e263cec85cf2c3834f35908aeaeeb9284e5b4413b2898e92037e287eca",
+    "target/classes/paclo/jnr/PcapLibrary.class": "59be070accb05d0acf6573ea2062a900fae4de46dcbe6bd4cc59f63ea07ea63e",
+    "target/classes/paclo/jnr/PcapStat.class": "506dc5b94c199a5ea5cbb0b8dfa31520e8284fd9dbf79c844e1cf9b93ed13bcb",
+    "target/classes/paclo/jnr/PcapStatsLibrary.class": "a7da4a8793a65f08852d20a6e6a8de6ed3295b493f31a1f706da841800f04b9e",
+    "target/classes/paclo/jnr/PcapStdioLibrary.class": "141f79740b000fb193c6387b65f190dbda950bd8ebd7aa3ee1b73f55e08179fa"
+  }
+}

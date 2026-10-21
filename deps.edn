@@ -6,7 +6,7 @@
          org.clojure/core.async               {:mvn/version "1.6.681"}
          com.github.jnr/jnr-ffi               {:mvn/version "2.3.3"}
          org.clojure/data.json                {:mvn/version "2.5.0"}
-         com.github.spotbugs/spotbugs-annotations {:mvn/version "4.8.6"}}
+         com.github.spotbugs/spotbugs-annotations {:mvn/version "4.10.5"}}
  :aliases
  {:dev         {:extra-paths ["dev" "dev/resources"]}
   :test        {:extra-paths ["test" "test/resources" "dev" "extensions/dns/src"]
@@ -36,14 +36,14 @@
                               org.clojure/data.xml   {:mvn/version "0.2.0-alpha8"}}
                 :main-opts   ["-m" "eastwood-runner"]}
   :spotbugs    {:extra-paths ["dev"]
-                :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.8.6"}}
+                :extra-deps  {com.github.spotbugs/spotbugs {:mvn/version "4.10.5"}}
                 :main-opts   ["-m" "paclo.dev.spotbugs"]}
   :checkstyle  {:extra-paths ["dev" "dev/resources"]
                 :extra-deps  {com.puppycrawl.tools/checkstyle {:mvn/version "10.18.0"}}
                 :main-opts   ["-m" "paclo.dev.checkstyle"]}
   :jacoco      {:extra-paths ["dev"]
-                :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.12"}
-                              org.jacoco/org.jacoco.cli           {:mvn/version "0.8.12"}}
+                :extra-deps  {org.jacoco/org.jacoco.agent$runtime {:mvn/version "0.8.15"}
+                              org.jacoco/org.jacoco.cli           {:mvn/version "0.8.15"}}
                 :main-opts   ["-m" "paclo.dev.jacoco"]}
   :jacoco-gate {:extra-paths ["dev"]
                 :extra-deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}}

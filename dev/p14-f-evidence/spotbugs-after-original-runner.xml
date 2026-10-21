@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<BugCollection version="4.10.5" sequence="0" timestamp="1792559915666" analysisTimestamp="1792559958625" release="">
+  <Project projectName="">
+    <Jar>target/classes</Jar>
+    <AuxClasspathEntry>dev</AuxClasspathEntry>
+    <AuxClasspathEntry>src</AuxClasspathEntry>
+    <AuxClasspathEntry>src-java</AuxClasspathEntry>
+    <AuxClasspathEntry>target/classes</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/jnr/jnr-ffi/2.3.3/jnr-ffi-2.3.3.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/spotbugs/spotbugs/4.10.5/spotbugs-4.10.5.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/spotbugs/spotbugs-annotations/4.10.5/spotbugs-annotations-4.10.5.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/clojure/1.12.6/clojure-1.12.6.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/core.async/1.6.681/core.async-1.6.681.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/data.json/2.5.0/data.json-2.5.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/jnr/jffi/1.4.3/jffi-1.4.3.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/jnr/jffi/1.4.3/jffi-1.4.3-native.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/jnr/jnr-a64asm/1.0.0/jnr-a64asm-1.0.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/github/stephenc/jcip/jcip-annotations/1.0-1/jcip-annotations-1.0-1.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/google/code/gson/gson/2.14.0/gson-2.14.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/jaxen/jaxen/2.0.6/jaxen-2.0.6.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/net/sf/saxon/Saxon-HE/12.10/Saxon-HE-12.10.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/apache/bcel/bcel/6.13.0/bcel-6.13.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/apache/commons/commons-lang3/3.21.0/commons-lang3-3.21.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/apache/commons/commons-text/1.15.0/commons-text-1.15.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/apache/logging/log4j/log4j-core/2.26.1/log4j-core-2.26.1.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/dom4j/dom4j/2.2.0/dom4j-2.2.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/jspecify/jspecify/1.0.1/jspecify-1.0.1.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/ow2/asm/asm/9.11/asm-9.11.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/ow2/asm/asm-analysis/9.11/asm-analysis-9.11.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/ow2/asm/asm-commons/9.11/asm-commons-9.11.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/ow2/asm/asm-tree/9.11/asm-tree-9.11.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/ow2/asm/asm-util/9.11/asm-util-9.11.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/slf4j/slf4j-api/2.0.20/slf4j-api-2.0.20.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/core.specs.alpha/0.4.74/core.specs.alpha-0.4.74.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/spec.alpha/0.5.238/spec.alpha-0.5.238.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/tools.analyzer.jvm/1.2.3/tools.analyzer.jvm-1.2.3.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/com/google/errorprone/error_prone_annotations/2.48.0/error_prone_annotations-2.48.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3-data.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/commons-io/commons-io/2.22.0/commons-io-2.22.0.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/apache/logging/log4j/log4j-api/2.26.1/log4j-api-2.26.1.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/core.memoize/1.0.253/core.memoize-1.0.253.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/tools.analyzer/1.1.1/tools.analyzer-1.1.1.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/tools.reader/1.3.6/tools.reader-1.3.6.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/core.cache/1.0.225/core.cache-1.0.225.jar</AuxClasspathEntry>
+    <AuxClasspathEntry>/Users/nanto/.m2/repository/org/clojure/data.priority-map/1.1.0/data.priority-map-1.1.0.jar</AuxClasspathEntry>
+  </Project>
+  <BugInstance type="EI_EXPOSE_REP" priority="2" rank="18" abbrev="EI" category="MALICIOUS_CODE" instanceHash="c0fe7f7e27532e6191732eb1be3382cf" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="374">
+    <ShortMessage>可変オブジェクトへの参照を返すことによって内部表現を暴露するかもしれないメソッド</ShortMessage>
+    <LongMessage>paclo.jnr.PcapHandle.pointer() は，PcapHandle.pcap を返すことによって内部表現を暴露するかもしれません。</LongMessage>
+    <Class classname="paclo.jnr.PcapHandle" primary="true">
+      <SourceLine classname="paclo.jnr.PcapHandle" start="17" end="59" sourcefile="PcapHandle.java" sourcepath="paclo/jnr/PcapHandle.java">
+        <Message>該当箇所 PcapHandle.java:[lines 17-59]</Message>
+      </SourceLine>
+      <Message>クラス paclo.jnr.PcapHandle</Message>
+    </Class>
+    <Method classname="paclo.jnr.PcapHandle" name="pointer" signature="()Ljnr/ffi/Pointer;" isStatic="false" primary="true">
+      <SourceLine classname="paclo.jnr.PcapHandle" start="45" end="45" startBytecode="0" endBytecode="28" sourcefile="PcapHandle.java" sourcepath="paclo/jnr/PcapHandle.java"/>
+      <Message>メソッド paclo.jnr.PcapHandle.pointer()</Message>
+    </Method>
+    <Field classname="paclo.jnr.PcapHandle" name="pcap" signature="Ljnr/ffi/Pointer;" isStatic="false" primary="true">
+      <SourceLine classname="paclo.jnr.PcapHandle" sourcefile="PcapHandle.java" sourcepath="paclo/jnr/PcapHandle.java">
+        <Message>該当場所 PcapHandle.java</Message>
+      </SourceLine>
+      <Message>フィールド paclo.jnr.PcapHandle.pcap</Message>
+    </Field>
+    <SourceLine classname="paclo.jnr.PcapHandle" primary="true" start="45" end="45" startBytecode="4" endBytecode="4" sourcefile="PcapHandle.java" sourcepath="paclo/jnr/PcapHandle.java">
+      <Message>該当箇所 PcapHandle.java:[line 45]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugCategory category="MALICIOUS_CODE">
+    <Description>Malicious code vulnerability</Description>
+  </BugCategory>
+  <BugPattern type="EI_EXPOSE_REP" abbrev="EI" category="MALICIOUS_CODE" cweid="374">
+    <ShortDescription>可変オブジェクトへの参照を返すことによって内部表現を暴露するかもしれないメソッド</ShortDescription>
+    <Details><![CDATA[
+
+<p>
+オブジェクトのフィールドに格納された可変オブジェクトの参照を返すと，オブジェクトの内部表現を暴露します。
+インスタンスが信頼できないコードによってアクセスされるなら，可変オブジェクトのチェックされていない変更がセキュリティや他の重要なプロパティを危うくするでしょう。
+何か違うことをする必要があります。オブジェクトの新しいコピーを返すことは，多くの状況でより良いアプローチです。
+</p>
+
+    ]]></Details>
+  </BugPattern>
+  <BugCode abbrev="EI">
+    <Description>内部表現を暴露するかもしれない配列を返すメソッド</Description>
+  </BugCode>
+  <Errors errors="0" missingClasses="0"></Errors>
+  <FindBugsSummary timestamp="Wed, 21 Oct 2026 14:18:35 +0900" total_classes="10" referenced_classes="135" total_bugs="1" total_size="158" num_packages="1" java_version="21.0.12.1" vm_version="21.0.12.1+1-LTS" cpu_seconds="3.92" clock_seconds="1.55" peak_mbytes="298.81" alloc_mbytes="8192.00" gc_seconds="0.02" priority_2="1">
+    <FileStats path="paclo/jnr/BpfProgram.java" bugCount="0" size="18"/>
+    <FileStats path="paclo/jnr/PcapConfigLibrary.java" bugCount="0" size="12"/>
+    <FileStats path="paclo/jnr/PcapErrors.java" bugCount="0" size="18"/>
+    <FileStats path="paclo/jnr/PcapHandle.java" bugCount="1" size="26" bugHash="c8278a55937540ceef87eeeda2ff20b0"/>
+    <FileStats path="paclo/jnr/PcapHeader.java" bugCount="0" size="15"/>
+    <FileStats path="paclo/jnr/PcapLibrary.java" bugCount="0" size="50"/>
+    <FileStats path="paclo/jnr/PcapStat.java" bugCount="0" size="11"/>
+    <FileStats path="paclo/jnr/PcapStatsLibrary.java" bugCount="0" size="6"/>
+    <FileStats path="paclo/jnr/PcapStdioLibrary.java" bugCount="0" size="2"/>
+    <PackageStats package="paclo.jnr" total_bugs="1" total_types="10" total_size="158" priority_2="1">
+      <ClassStats class="paclo.jnr.BpfProgram" sourceFile="BpfProgram.java" interface="false" size="18" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapConfigLibrary" sourceFile="PcapConfigLibrary.java" interface="true" size="12" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapErrors" sourceFile="PcapErrors.java" interface="false" size="18" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapHandle" sourceFile="PcapHandle.java" interface="false" size="26" bugs="1" priority_2="1"/>
+      <ClassStats class="paclo.jnr.PcapHeader" sourceFile="PcapHeader.java" interface="false" size="15" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapLibrary" sourceFile="PcapLibrary.java" interface="true" size="41" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapLibrary$PcapIf" sourceFile="PcapLibrary.java" interface="false" size="9" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapStat" sourceFile="PcapStat.java" interface="false" size="11" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapStatsLibrary" sourceFile="PcapStatsLibrary.java" interface="true" size="6" bugs="0"/>
+      <ClassStats class="paclo.jnr.PcapStdioLibrary" sourceFile="PcapStdioLibrary.java" interface="true" size="2" bugs="0"/>
+    </PackageStats>
+    <FindBugsProfile>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.ClassInfoAnalysisEngine" totalMilliseconds="272" invocations="683" avgMicrosecondsPerInvocation="398" maxMicrosecondsPerInvocation="14015" standardDeviationMicrosecondsPerInvocation="1015"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FieldItemSummary" totalMilliseconds="87" invocations="135" avgMicrosecondsPerInvocation="651" maxMicrosecondsPerInvocation="9799" standardDeviationMicrosecondsPerInvocation="1608"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.ClassDataAnalysisEngine" totalMilliseconds="73" invocations="690" avgMicrosecondsPerInvocation="107" maxMicrosecondsPerInvocation="7850" standardDeviationMicrosecondsPerInvocation="343"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FindNoSideEffectMethods" totalMilliseconds="67" invocations="135" avgMicrosecondsPerInvocation="500" maxMicrosecondsPerInvocation="6518" standardDeviationMicrosecondsPerInvocation="1141"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.JavaClassAnalysisEngine" totalMilliseconds="64" invocations="170" avgMicrosecondsPerInvocation="381" maxMicrosecondsPerInvocation="26676" standardDeviationMicrosecondsPerInvocation="2125"/>
+      <ClassProfile name="edu.umd.cs.findbugs.OpcodeStack$JumpInfoFactory" totalMilliseconds="41" invocations="169" avgMicrosecondsPerInvocation="243" maxMicrosecondsPerInvocation="1661" standardDeviationMicrosecondsPerInvocation="281"/>
+      <ClassProfile name="edu.umd.cs.findbugs.util.TopologicalSort" totalMilliseconds="31" invocations="641" avgMicrosecondsPerInvocation="49" maxMicrosecondsPerInvocation="869" standardDeviationMicrosecondsPerInvocation="88"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.NoteDirectlyRelevantTypeQualifiers" totalMilliseconds="30" invocations="135" avgMicrosecondsPerInvocation="223" maxMicrosecondsPerInvocation="4416" standardDeviationMicrosecondsPerInvocation="554"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FunctionsThatMightBeMistakenForProcedures" totalMilliseconds="26" invocations="135" avgMicrosecondsPerInvocation="198" maxMicrosecondsPerInvocation="3852" standardDeviationMicrosecondsPerInvocation="560"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.MethodGenFactory" totalMilliseconds="23" invocations="56" avgMicrosecondsPerInvocation="415" maxMicrosecondsPerInvocation="20302" standardDeviationMicrosecondsPerInvocation="2683"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.OverridingEqualsNotSymmetrical" totalMilliseconds="22" invocations="135" avgMicrosecondsPerInvocation="165" maxMicrosecondsPerInvocation="6146" standardDeviationMicrosecondsPerInvocation="603"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.BuildObligationPolicyDatabase" totalMilliseconds="20" invocations="135" avgMicrosecondsPerInvocation="153" maxMicrosecondsPerInvocation="2216" standardDeviationMicrosecondsPerInvocation="311"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FindDeadLocalStores" totalMilliseconds="19" invocations="10" avgMicrosecondsPerInvocation="1943" maxMicrosecondsPerInvocation="16933" standardDeviationMicrosecondsPerInvocation="5003"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.TypeDataflowFactory" totalMilliseconds="19" invocations="27" avgMicrosecondsPerInvocation="719" maxMicrosecondsPerInvocation="12240" standardDeviationMicrosecondsPerInvocation="2268"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.EqualsOperandShouldHaveClassCompatibleWithThis" totalMilliseconds="17" invocations="135" avgMicrosecondsPerInvocation="132" maxMicrosecondsPerInvocation="8281" standardDeviationMicrosecondsPerInvocation="724"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.CalledMethods" totalMilliseconds="16" invocations="135" avgMicrosecondsPerInvocation="123" maxMicrosecondsPerInvocation="1800" standardDeviationMicrosecondsPerInvocation="310"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.BuildStringPassthruGraph" totalMilliseconds="16" invocations="135" avgMicrosecondsPerInvocation="123" maxMicrosecondsPerInvocation="3067" standardDeviationMicrosecondsPerInvocation="382"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.IsNullValueDataflowFactory" totalMilliseconds="16" invocations="27" avgMicrosecondsPerInvocation="600" maxMicrosecondsPerInvocation="6584" standardDeviationMicrosecondsPerInvocation="1199"/>
+    </FindBugsProfile>
+  </FindBugsSummary>
+  <ClassFeatures></ClassFeatures>
+  <History></History>
+</BugCollection>
