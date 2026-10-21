@@ -6225,3 +6225,99 @@ changes no tested source, dependency, workflow or gate bytes fromb50de88. Reuse
 successful unchanged behavioral/format checks; run Markdown, local links and
 whitespace verification. Final-head ordinary CI will be recorded in PR84 before
 delivery. No merge, release, tag, publication or other plan slice is performed.
+
+## 2026-10-21 — P14-G: data.json and adopted P14 scope closure
+
+User-authorized single implementation PR from latest main, including verification
+and P14 closure; no merge before independent review. Initial status was clean on
+P14-F branch. Fetched origin and confirmed PR84 merged as `ecf3f19`, then created
+`codex/p14-g-data-json` from that main. PR76 remains open/unmerged, Issue77 open.
+Read AGENTS/CONTRIBUTING/v1 contract/plan, P11 inventory and P14-F report.
+
+Official README and Maven metadata reconfirm latest stable data.json2.5.2.
+Compared actual2.5.0/2.5.2 JAR sources: numeric EOF and control-character diagnostic
+fixes, no writer change. Adopt the small maintenance update in root and standalone
+merger; align exact distribution POM expectation. Preserve all other pins and
+1.5.0-SNAPSHOT/Java17 target/formal17/21/experimental25 support.
+
+Added7 JSON regressions/273 assertions and deterministic offline old/new probe.
+13 values' writes/read values/classes,8 real-PCAP CLI modes plus escaped common
+JSONL and fixed performance-report bytes agree. Five numeric EOF cases reproduce
+old U+FFFF errors and corrected EOF sentinel. All29 non-whitespace controls now
+identify the actual character; array/object contexts tested. Empty/malformed
+classes/messages agree. Explicitly retain upstream limits: trailing values are
+not automatically rejected; raw quoted controls remain accepted; invalid escape/
+incomplete exponent keep old IllegalArgumentException diagnostics. No new public
+JSON-input API or stricter parser is promised. Evidence: p14-g-evidence.
+
+Initial doctor passes under installed CLI1654; subsequent commands select existing
+checksum-verified reference1664 under /private/tmp/paclo-cli-1.12.5.1664/bin.
+macOS x64/Temurin21.0.12.1/libpcap1.10.1. Prepare and full check pass13 JUnit,
+501 Clojure tests/19,410 assertions and smoke. Focused JSON tests pass; old2.5.0
+negative control deliberately reports174 failures/6 errors on corrected cases.
+First authored test expected generic JSON-error text for invalid escape; correct
+to the observed unchanged upstream diagnostic. Initial kondo rejects3 unused
+values in exception tests; correct them without suppression. Clean namespaces/
+format new code; add type hint to avoid cleanup reflection. Final lint follows.
+
+SpotBugs/CheckStyle pass (one existing intentional pointer finding); JaCoCo59/73
+lines80.8%,25% minimum retained.15 distribution,19 audit and16 doc-parser regressions
+pass. All40 executable docs pass. First P16 invocation is blocked only by sandbox
+sysctl CPU identification; rerun the same offline verifier outside sandbox.
+
+Production audit --resolve-only passes:23 JARs, exactly data.json changes and22
+other hashes agree. This verifies scope/inventory, not a new CVE audit pass;
+P14-D's historical scans do not cover the new hash. Existing weekly/manual
+forced-refresh audit will select it after merge; no audit rule or scope changes.
+Distribution consumers now assert actual2.5.2 metadata, Unicode/null/numeric
+round trip and numeric EOF. JDK17/25 and same-JAR remote evidence await CI.
+
+P14 adopted scope A/C/D/E/F/G closes in this PR, with G independent review still
+required. A/C/D/E/F are reviewed and merged (PR75/80/82/83/84). PR76/Issue77 remain
+an independent unresolved performance hold; keep core.async1.6.681. Defer CSV/
+test.check until concrete need, deps-deploy until release-workflow need; no
+CheckStyle/JUnit major migration; retain Eastwood/Cloverage. P17 remains blocked
+by1.13 maturity/adoption reason; P09/P10 prerequisites unmet. No additional PR is
+selected simply to exhaust candidates, and no completion-only PR is planned.
+Commands/results/limits and remaining final verification are detailed in
+[p14-g-data-json-verification.md](p14-g-data-json-verification.md).
+
+### P14-G final local and CI evidence
+
+Final full lint passes: kondo0 errors/warnings/2 existing infos, Eastwood119
+namespaces/645 informational warnings/0 exceptions. Three additional warnings
+are intentional side-effect CLI capture and generated exception-test forms;
+cleanup reflection was eliminated. Namespace/format clean, Markdown60/0 errors,
+local links pass. P16 rerun passes5 tests/377 assertions after sandbox-only
+sysctl limitation. Performance gate passes543.6ms (warn1000/fail1200 unchanged).
+Package/exact POM/10 major61 classes and clean-source isolated JDK21 consumer
+pass at de0bfe2. Local JAR40014bfe7c1fbfe7a3cd1278e4c9d60fe10962fa54852545eee0e36e8428926a;
+provenance/consumer/local-verification JSON retained in p14-g-evidence.
+
+Created and attached single implementation PR85, headde0bfe2. All **16 jobs**
+pass in [CI39559736268](https://github.com/nantes-rfli/paclo/actions/runs/39559736268),
+without reruns or failed/tolerated-failure steps. All40 docs; three P16 platforms
+(377 assertions each); full supported17/21 and experimental25 source suites;
+cloverage/Eastwood/quality/format;549.9ms decode gate and all27 performance
+scenarios pass. Linux Clojure501 tests/19,416 assertions versus macOS19,410 reflect
+existing platform cases. Java line59/73 and branch19/26 counters agree;226 vs228
+covered instructions is confined to existing PcapHeader.tv_usec Linux-long versus
+Darwin-int/widen ABI paths. No source/gate change or new suppression.
+
+Verified original CI distribution ZIP API digest6399ec19032274a397ec97ee2c4bad444e313ea4885a17e488a57b4ea488f5fb
+and all13 member hashes. JAR358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59,
+merge-ref39dd0b39726c751f49794372d7133c83b87d1175/source_dirty=false. All five
+original17/21/25/default-debug-deny outputs pass against that identical JAR and
+confirm actual data.json2.5.2 and CLI1664. Consumer, quality, JDK25 source and
+performance archive digests are independently verified. Original consumer JSON,
+artifact hashes/counters/runtime versions and log excerpts are retained in
+[p14-g-ci-evidence.json](p14-g-ci-evidence.json).
+
+Independent review record for merged PR84 confirms no blocking finding and its
+final16-job run39551295861. P14 A/C/D/E/F merged and G implemented/verified;
+P14 adopted maintenance scope is complete, with G independent review pending.
+PR76 remains unmerged/Issue77 unresolved; all explicit deferrals remain. No next
+automatically ready implementation item, merge/release/tag/publication or other
+plan slice. This final evidence commit changes no tested source/dependency/
+workflow bytes fromde0bfe2. Reuse unchanged local behavioral/static verification;
+run Markdown/local links/whitespace and record final-head ordinary CI in PR85.

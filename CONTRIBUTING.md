@@ -226,6 +226,15 @@ Publication and dependency-audit workflows manage their own credentials. If the
 CLI's GitHub authentication is unavailable, use the connected GitHub tools when
 available; do not start an interactive login or copy tokens into the repository.
 
+JSON output uses data.json **2.5.2**, aligned with the standalone performance
+merger and distribution POM verifier. Paclo exposes no public JSON-input API.
+The [P14-G report](dev/p14-g-data-json-verification.md) records byte-for-byte CLI/
+report comparisons, numeric/Unicode tests and upstream diagnostic limits.
+For a future update, run `bash dev/script/codex.sh test -n paclo.json-test` and
+compare `clojure -M:dev:dns-ext -m paclo.dev.json-compat /tmp/paclo-json-new`
+with the same command under an explicit old-version `-Sdeps` override, using
+fresh output directories. Only corrected EOF/control diagnostics should differ.
+
 ## Dependency security audit
 
 Use Python 3.11+, the pinned CLI 1.12.5.1664 and JDK 21, then run from the repository root:

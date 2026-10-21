@@ -1,0 +1,1098 @@
+{
+  "run_id": 39559736268,
+  "url": "https://github.com/nantes-rfli/paclo/actions/runs/39559736268",
+  "implementation_head": "de0bfe2cc0fa3a8f6969ef427a8005f59b1dbaad",
+  "status": "all 16 jobs successful; no failed-job reruns",
+  "jobs": [
+    {
+      "id": 119087825596,
+      "name": "build-checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825682,
+      "name": "performance-measurement (mixed)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825695,
+      "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825723,
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825727,
+      "name": "documentation-checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825731,
+      "name": "jdk25-source",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825732,
+      "name": "performance-measurement (udp-64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825764,
+      "name": "performance-measurement (tcp-512)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825789,
+      "name": "arm64-monitor",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825893,
+      "name": "eastwood-lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119087825917,
+      "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119088393890,
+      "name": "performance-results",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119090418714,
+      "name": "distribution-consumer (25)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119090418735,
+      "name": "distribution-consumer (17)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119090418976,
+      "name": "distribution-consumer (21)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 119090712974,
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "verified_artifacts": [
+    {
+      "id": 12327516585,
+      "name": "jacoco-jdk25-39559736268",
+      "digest": "sha256:7aa918b6bb3715785441016807deb5f780d7dfc078994d67f580c9f35ec04f58",
+      "size_in_bytes": 61174
+    },
+    {
+      "id": 12327451962,
+      "name": "jacoco-macos-arm64-jdk17-39559736268",
+      "digest": "sha256:d66552a282c0be6fefbe3f988265cf87939de902d5a7737019d926549722e40e",
+      "size_in_bytes": 61356
+    },
+    {
+      "id": 12327298561,
+      "name": "distribution-consumer-jdk25-39559736268",
+      "digest": "sha256:eeb0d22d581e590488dc8ae91077db0812e44b2ad3dae88366de02a8607808cd",
+      "size_in_bytes": 10122
+    },
+    {
+      "id": 12327292764,
+      "name": "jdk25-source-39559736268",
+      "digest": "sha256:8eac3ee43fa2a117a46dfb040774449927cdcc7c10481fc2034e9b20b2e58a63",
+      "size_in_bytes": 9781
+    },
+    {
+      "id": 12327158534,
+      "name": "jacoco-linux-jdk21-39559736268",
+      "digest": "sha256:6673fb0cbd990843bc336bee4a7dd93098c447ac4222861ce3e53630b7062c93",
+      "size_in_bytes": 61174
+    },
+    {
+      "id": 12327078526,
+      "name": "distribution-consumer-jdk17-39559736268",
+      "digest": "sha256:a15c4054cd4dd31b34927c8c5b18f0c0b273bfdfae239047ba171704c4a0a814",
+      "size_in_bytes": 3338
+    },
+    {
+      "id": 12327048568,
+      "name": "distribution-consumer-jdk21-39559736268",
+      "digest": "sha256:d5cb071e36bcc2f1582c16cc0403d522ba3f466c609a2b638dd135104fcacd3c",
+      "size_in_bytes": 3344
+    },
+    {
+      "id": 12326933164,
+      "name": "java-quality-jdk21-39559736268",
+      "digest": "sha256:361c647b55888f255610b1b1bedb30fe16104de61782892f5a0a774b3f0d0f59",
+      "size_in_bytes": 64762
+    },
+    {
+      "id": 12326867947,
+      "name": "distribution-1.5.0-SNAPSHOT-jdk21-39559736268",
+      "digest": "sha256:6399ec19032274a397ec97ee2c4bad444e313ea4885a17e488a57b4ea488f5fb",
+      "size_in_bytes": 90765
+    },
+    {
+      "id": 12326598186,
+      "name": "perf-quick-39559736268",
+      "digest": "sha256:17ab01754db96a7667e4cd148eef1c1781f6a6c9328b576bacf660cc9552e216",
+      "size_in_bytes": 11244
+    }
+  ],
+  "distribution": {
+    "class_major_versions": {
+      "paclo/jnr/BpfProgram.class": 61,
+      "paclo/jnr/PcapConfigLibrary.class": 61,
+      "paclo/jnr/PcapErrors.class": 61,
+      "paclo/jnr/PcapHandle.class": 61,
+      "paclo/jnr/PcapHeader.class": 61,
+      "paclo/jnr/PcapLibrary$PcapIf.class": 61,
+      "paclo/jnr/PcapLibrary.class": 61,
+      "paclo/jnr/PcapStat.class": 61,
+      "paclo/jnr/PcapStatsLibrary.class": 61,
+      "paclo/jnr/PcapStdioLibrary.class": 61
+    },
+    "dependencies": {
+      "org.clojure/data.json": "2.5.2",
+      "org.clojure/clojure": "1.12.6",
+      "com.github.jnr/jnr-ffi": "2.3.3",
+      "com.github.spotbugs/spotbugs-annotations": "4.10.5",
+      "org.clojure/core.async": "1.6.681"
+    },
+    "coordinates": "org.clojars.nanto/paclo:1.5.0-SNAPSHOT",
+    "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+    "version": "1.5.0-SNAPSHOT",
+    "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+    "source_dirty": false,
+    "build_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+    "build_clojure_cli": "1.12.5.1664",
+    "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+    "files": {
+      "deps.edn": "88884bdf4b0694c884316d163a386cd897744bef21142fb4dd628391856e165a",
+      "distribution_consumer/consumer.clj": "0f39bae7d5deb1af35647dd4e21f8f61431d7b334a80fe9b05bf51f2b20e4347",
+      "fixtures/cooked/sll.pcap": "586a6864a812e90d90d4e3b04eeefd7f191695ff0d28e96ef86481759d7c1701",
+      "fixtures/cooked/sll2.pcap": "75d395935bb0844f223884f6f652fe07d4a2d1ca0450b140a1cf97f7f411f8fb",
+      "fixtures/dns-sample.pcap": "f1c22ca607df4124c939f363f8fc8d6348715d3cecb9174e52413b08931449e2",
+      "fixtures/null-loop/loop-header-be-file-le.pcap": "cb3322208fc42812b29ef490b23c5ae0f149868aa243909d17a071e9e1d052a6",
+      "fixtures/null-loop/null-header-le-file-le.pcap": "3e77fe6b932b56b08e809ba721cf1c616d3b7dde4f7081f7ae4d300eeb140a40",
+      "fixtures/pcapng-contracts/rich.pcapng": "81d107b98581b4aacab8f338b79a7b929ea3e638b00c867e3c4de04d048459b1",
+      "fixtures/raw-ip/raw.pcap": "47ed0e09bc1585e6181930bdfc1301623bcd346839656d532f3a9efc1124ec07",
+      "fixtures/tls-sni-alpn-sample.pcap": "cb8db093751bfa239e78c5207b8d803ec98d9d205ee0988fd8df324857d2df2e",
+      "paclo.jar": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+      "pom.xml": "8441b76c56278b82ac8a0613d59274285807b4504abe75f5ca7fc1743b6e6d1e",
+      "verify_distribution.py": "63fee2543f398bb5d1681812925c56dcd4144ffe627c288774176ec6694b9f03"
+    }
+  },
+  "consumers": [
+    {
+      "artifact_id": 12327298561,
+      "report_name": "consumer-jdk25-native-access.json",
+      "report_sha256": "7d8587e4b742e3f0fef3d17da3043b1c9661e6ec322fd2067b818f5b87c0b17d",
+      "report": {
+        "version": "1.5.0-SNAPSHOT",
+        "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+        "runtime": {
+          "native-long-bytes": 8,
+          "native-libraries": [
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            }
+          ],
+          "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+          "data-json-version": "2.5.2",
+          "clojure": "1.12.6",
+          "jvm-arguments": [
+            "-XX:-OmitStackTraceInFastThrow",
+            "--enable-native-access=ALL-UNNAMED",
+            "--sun-misc-unsafe-memory-access=debug",
+            "-Dclojure.basis=.cpcache/2034795276.basis"
+          ],
+          "jffi-version": "1.4.3",
+          "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+          "jnr-ffi-version": "2.3.3",
+          "java": {
+            "java.version": "25.0.4.1",
+            "java.runtime.version": "25.0.4.1+1-LTS",
+            "java.vendor": "Eclipse Adoptium",
+            "java.vm.name": "OpenJDK 64-Bit Server VM",
+            "java.specification.version": "25",
+            "os.name": "Linux",
+            "os.version": "6.17.0-1022-azure",
+            "os.arch": "amd64"
+          },
+          "native-address-bytes": 8
+        },
+        "consumer_clojure_cli": "1.12.5.1664",
+        "native_dependency_sha256": {
+          "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+          "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+          "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+          "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+          "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+          "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+          "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+          "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+          "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+          "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+        },
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=debug"
+        ],
+        "status": "passed"
+      }
+    },
+    {
+      "artifact_id": 12327298561,
+      "report_name": "consumer-jdk25-unsafe-deny.json",
+      "report_sha256": "f1d45f7bdd82525ddc0f8f29002a34a0af725369bf3b15070ce8655e2ceb3d42",
+      "report": {
+        "version": "1.5.0-SNAPSHOT",
+        "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+        "runtime": {
+          "native-long-bytes": 8,
+          "native-libraries": [
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            }
+          ],
+          "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+          "data-json-version": "2.5.2",
+          "clojure": "1.12.6",
+          "jvm-arguments": [
+            "-XX:-OmitStackTraceInFastThrow",
+            "--enable-native-access=ALL-UNNAMED",
+            "--sun-misc-unsafe-memory-access=deny",
+            "-Dclojure.basis=.cpcache/2034795276.basis"
+          ],
+          "jffi-version": "1.4.3",
+          "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+          "jnr-ffi-version": "2.3.3",
+          "java": {
+            "java.version": "25.0.4.1",
+            "java.runtime.version": "25.0.4.1+1-LTS",
+            "java.vendor": "Eclipse Adoptium",
+            "java.vm.name": "OpenJDK 64-Bit Server VM",
+            "java.specification.version": "25",
+            "os.name": "Linux",
+            "os.version": "6.17.0-1022-azure",
+            "os.arch": "amd64"
+          },
+          "native-address-bytes": 8
+        },
+        "consumer_clojure_cli": "1.12.5.1664",
+        "native_dependency_sha256": {
+          "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+          "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+          "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+          "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+          "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+          "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+          "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+          "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+          "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+          "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+        },
+        "java_options": [
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=deny"
+        ],
+        "status": "passed"
+      }
+    },
+    {
+      "artifact_id": 12327298561,
+      "report_name": "consumer-jdk25.json",
+      "report_sha256": "248d4fbff3f7e1817c538bea98f2f47360844bd6146ed6bf36526f4e4b8dd566",
+      "report": {
+        "version": "1.5.0-SNAPSHOT",
+        "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+        "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+        "runtime": {
+          "native-long-bytes": 8,
+          "native-libraries": [
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            }
+          ],
+          "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+          "data-json-version": "2.5.2",
+          "clojure": "1.12.6",
+          "jvm-arguments": [
+            "-XX:-OmitStackTraceInFastThrow",
+            "-Dclojure.basis=.cpcache/2034795276.basis"
+          ],
+          "jffi-version": "1.4.3",
+          "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+          "jnr-ffi-version": "2.3.3",
+          "java": {
+            "java.version": "25.0.4.1",
+            "java.runtime.version": "25.0.4.1+1-LTS",
+            "java.vendor": "Eclipse Adoptium",
+            "java.vm.name": "OpenJDK 64-Bit Server VM",
+            "java.specification.version": "25",
+            "os.name": "Linux",
+            "os.version": "6.17.0-1022-azure",
+            "os.arch": "amd64"
+          },
+          "native-address-bytes": 8
+        },
+        "consumer_clojure_cli": "1.12.5.1664",
+        "native_dependency_sha256": {
+          "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+          "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+          "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+          "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+          "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+          "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+          "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+          "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+          "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+          "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+        },
+        "java_options": [],
+        "status": "passed"
+      }
+    },
+    {
+      "artifact_id": 12327078526,
+      "report_name": "consumer-jdk17.json",
+      "report_sha256": "3c17894794d9d1589b63d37229ac6a278d0b878f052c5a20082cc0f1b5fc8f39",
+      "report": {
+        "version": "1.5.0-SNAPSHOT",
+        "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+        "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+        "runtime": {
+          "native-long-bytes": 8,
+          "native-libraries": [
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            }
+          ],
+          "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+          "data-json-version": "2.5.2",
+          "clojure": "1.12.6",
+          "jvm-arguments": [
+            "-XX:-OmitStackTraceInFastThrow",
+            "-Dclojure.basis=.cpcache/2034795276.basis"
+          ],
+          "jffi-version": "1.4.3",
+          "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+          "jnr-ffi-version": "2.3.3",
+          "java": {
+            "java.version": "17.0.20.1",
+            "java.runtime.version": "17.0.20.1+1",
+            "java.vendor": "Eclipse Adoptium",
+            "java.vm.name": "OpenJDK 64-Bit Server VM",
+            "java.specification.version": "17",
+            "os.name": "Linux",
+            "os.version": "6.17.0-1022-azure",
+            "os.arch": "amd64"
+          },
+          "native-address-bytes": 8
+        },
+        "consumer_clojure_cli": "1.12.5.1664",
+        "native_dependency_sha256": {
+          "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+          "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+          "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+          "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+          "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+          "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+          "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+          "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+          "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+          "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+        },
+        "java_options": [],
+        "status": "passed"
+      }
+    },
+    {
+      "artifact_id": 12327048568,
+      "report_name": "consumer-jdk21.json",
+      "report_sha256": "6a5014cdfe4adcd6753097f8693c0673882c9cd075cc6a7a35871ad6fb485ca0",
+      "report": {
+        "version": "1.5.0-SNAPSHOT",
+        "scm_tag": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "source_commit": "39dd0b39726c751f49794372d7133c83b87d1175",
+        "jar_sha256": "358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59",
+        "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+        "runtime": {
+          "native-long-bytes": 8,
+          "native-libraries": [
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "c"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libc.so.6"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            },
+            {
+              "names": [
+                "pcap"
+              ],
+              "paths": [
+                "/lib/x86_64-linux-gnu/libpcap.so.1.10.4"
+              ]
+            }
+          ],
+          "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+          "data-json-version": "2.5.2",
+          "clojure": "1.12.6",
+          "jvm-arguments": [
+            "-XX:-OmitStackTraceInFastThrow",
+            "-Dclojure.basis=.cpcache/2034795276.basis"
+          ],
+          "jffi-version": "1.4.3",
+          "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+          "jnr-ffi-version": "2.3.3",
+          "java": {
+            "java.version": "21.0.12.1",
+            "java.runtime.version": "21.0.12.1+1-LTS",
+            "java.vendor": "Eclipse Adoptium",
+            "java.vm.name": "OpenJDK 64-Bit Server VM",
+            "java.specification.version": "21",
+            "os.name": "Linux",
+            "os.version": "6.17.0-1022-azure",
+            "os.arch": "amd64"
+          },
+          "native-address-bytes": 8
+        },
+        "consumer_clojure_cli": "1.12.5.1664",
+        "native_dependency_sha256": {
+          "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+          "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+          "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+          "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+          "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+          "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+          "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+          "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+          "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+          "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+        },
+        "java_options": [],
+        "status": "passed"
+      }
+    }
+  ],
+  "quality": [
+    {
+      "artifact_id": 12326933164,
+      "runtime": "build-checks JDK21",
+      "counters": {
+        "INSTRUCTION": {
+          "missed": 57,
+          "covered": 226
+        },
+        "BRANCH": {
+          "missed": 7,
+          "covered": 19
+        },
+        "LINE": {
+          "missed": 14,
+          "covered": 59
+        },
+        "COMPLEXITY": {
+          "missed": 9,
+          "covered": 28
+        },
+        "METHOD": {
+          "missed": 2,
+          "covered": 22
+        },
+        "CLASS": {
+          "missed": 2,
+          "covered": 7
+        }
+      },
+      "spotbugs_patterns": [
+        "EI_EXPOSE_REP"
+      ],
+      "spotbugs_errors": {
+        "errors": "0",
+        "missingClasses": "0"
+      },
+      "checkstyle_errors": 0
+    },
+    {
+      "artifact_id": 12327158534,
+      "runtime": "Linux x64 JDK21",
+      "counters": {
+        "INSTRUCTION": {
+          "missed": 57,
+          "covered": 226
+        },
+        "BRANCH": {
+          "missed": 7,
+          "covered": 19
+        },
+        "LINE": {
+          "missed": 14,
+          "covered": 59
+        },
+        "COMPLEXITY": {
+          "missed": 9,
+          "covered": 28
+        },
+        "METHOD": {
+          "missed": 2,
+          "covered": 22
+        },
+        "CLASS": {
+          "missed": 2,
+          "covered": 7
+        }
+      }
+    },
+    {
+      "artifact_id": 12327451962,
+      "runtime": "macOS ARM64 JDK17",
+      "counters": {
+        "INSTRUCTION": {
+          "missed": 55,
+          "covered": 228
+        },
+        "BRANCH": {
+          "missed": 7,
+          "covered": 19
+        },
+        "LINE": {
+          "missed": 14,
+          "covered": 59
+        },
+        "COMPLEXITY": {
+          "missed": 9,
+          "covered": 28
+        },
+        "METHOD": {
+          "missed": 2,
+          "covered": 22
+        },
+        "CLASS": {
+          "missed": 2,
+          "covered": 7
+        }
+      }
+    },
+    {
+      "artifact_id": 12327516585,
+      "runtime": "Linux x64 JDK25",
+      "counters": {
+        "INSTRUCTION": {
+          "missed": 57,
+          "covered": 226
+        },
+        "BRANCH": {
+          "missed": 7,
+          "covered": 19
+        },
+        "LINE": {
+          "missed": 14,
+          "covered": 59
+        },
+        "COMPLEXITY": {
+          "missed": 9,
+          "covered": 28
+        },
+        "METHOD": {
+          "missed": 2,
+          "covered": 22
+        },
+        "CLASS": {
+          "missed": 2,
+          "covered": 7
+        }
+      }
+    }
+  ],
+  "quality_instruction_difference": "Linux 226 vs macOS 228 covered instructions is confined to existing PcapHeader.tv_usec Darwin getInt/long-conversion vs Linux getLong ABI branches. LINE59/73 and BRANCH19/26 agree. No source/gate change.",
+  "performance": {
+    "schema_version": 2,
+    "offline_scenarios": 27,
+    "gate_elapsed_ms": 549.9,
+    "warn_ms": 1000,
+    "fail_ms": 1200
+  },
+  "log_excerpts": {
+    "119087825596": [
+      "2026-10-21T07:08:11.2540218Z Ran 6 tests in 50.605s",
+      "2026-10-21T07:08:32.8293804Z Ran 5 tests in 21.522s",
+      "2026-10-21T07:08:32.9744201Z Ran 15 tests in 0.042s",
+      "2026-10-21T07:09:03.9521545Z [        13 tests successful      ]",
+      "2026-10-21T07:09:03.9522338Z [         0 tests failed          ]",
+      "2026-10-21T07:09:10.6203963Z Ran 4 tests in 0.001s",
+      "2026-10-21T07:09:10.8296648Z Ran 19 tests in 0.113s",
+      "2026-10-21T07:10:16.4620723Z Ran 11 tests in 59.383s",
+      "2026-10-21T07:10:32.5218728Z [        13 tests successful      ]",
+      "2026-10-21T07:10:32.5219141Z [         0 tests failed          ]",
+      "2026-10-21T07:10:35.9124973Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T07:10:42.7677452Z [perf-gate] decode?=true mid-50k elapsed-ms=549.9 (warn=1000 fail=1200)",
+      "2026-10-21T07:12:57.4912041Z Ran 15 tests in 123.851s",
+      "2026-10-21T07:13:47.9235778Z Summary: 0 error(s)"
+    ],
+    "119087825695": [
+      "2026-10-21T07:08:06.6454510Z [        13 tests successful      ]",
+      "2026-10-21T07:08:06.6454840Z [         0 tests failed          ]",
+      "2026-10-21T07:09:26.8225070Z Ran 6 tests in 0.034s",
+      "2026-10-21T07:09:39.3818230Z Ran 501 tests containing 19410 assertions.",
+      "2026-10-21T07:09:39.3818750Z 0 failures, 0 errors.",
+      "2026-10-21T07:09:42.2854850Z [        13 tests successful      ]",
+      "2026-10-21T07:09:42.2855060Z [         0 tests failed          ]",
+      "2026-10-21T07:09:43.9586330Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T07:10:00.0785970Z Ran 5 tests containing 377 assertions.",
+      "2026-10-21T07:10:00.0786260Z 0 failures, 0 errors.",
+      "2026-10-21T07:10:00.0786560Z P16 interoperability passed: /Users/runner/work/paclo/paclo/target/interop"
+    ],
+    "119087825917": [
+      "2026-10-21T07:08:22.7708792Z [        13 tests successful      ]",
+      "2026-10-21T07:08:22.7709243Z [         0 tests failed          ]",
+      "2026-10-21T07:09:45.1185336Z Ran 6 tests in 0.041s",
+      "2026-10-21T07:09:58.1073604Z Ran 501 tests containing 19416 assertions.",
+      "2026-10-21T07:09:58.1074307Z 0 failures, 0 errors.",
+      "2026-10-21T07:10:03.2883804Z [        13 tests successful      ]",
+      "2026-10-21T07:10:03.2884057Z [         0 tests failed          ]",
+      "2026-10-21T07:10:06.4231718Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T07:10:25.0599213Z Ran 5 tests containing 377 assertions.",
+      "2026-10-21T07:10:25.0599496Z 0 failures, 0 errors.",
+      "2026-10-21T07:10:25.0600132Z P16 interoperability passed: /home/runner/work/paclo/paclo/target/interop"
+    ],
+    "119087825731": [
+      "2026-10-21T07:07:05.4325514Z Ran 2 tests in 0.003s",
+      "2026-10-21T07:09:09.9681479Z [        13 tests successful      ]",
+      "2026-10-21T07:09:09.9681714Z [         0 tests failed          ]",
+      "2026-10-21T07:09:14.2822233Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)"
+    ],
+    "119087825727": [
+      "2026-10-21T07:07:20.4516458Z Ran 9 tests in 0.009s",
+      "2026-10-21T07:07:20.7017229Z Ran 16 tests in 0.010s",
+      "2026-10-21T07:10:41.8122305Z PASS: 40 documentation examples"
+    ],
+    "119087825789": [
+      "2026-10-21T07:08:16.0897341Z [        13 tests successful      ]",
+      "2026-10-21T07:08:16.0897649Z [         0 tests failed          ]",
+      "2026-10-21T07:09:32.3755065Z Ran 6 tests in 0.041s",
+      "2026-10-21T07:09:45.4479204Z Ran 501 tests containing 19416 assertions.",
+      "2026-10-21T07:09:45.4479842Z 0 failures, 0 errors.",
+      "2026-10-21T07:10:00.7147213Z Ran 5 tests containing 377 assertions.",
+      "2026-10-21T07:10:00.7147449Z 0 failures, 0 errors.",
+      "2026-10-21T07:10:00.7147763Z P16 interoperability passed: /home/runner/work/paclo/paclo/target/interop"
+    ]
+  },
+  "jdk25_source_tests": {
+    "clojure_tests": 501,
+    "assertions": 19416,
+    "junit_tests": 13,
+    "failures": 0,
+    "errors": 0,
+    "source_artifact_id": 12327292764
+  }
+}
