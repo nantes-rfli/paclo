@@ -196,6 +196,63 @@ Publication and dependency-audit workflows manage their own credentials. If the
 CLI's GitHub authentication is unavailable, use the connected GitHub tools when
 available; do not start an interactive login or copy tokens into the repository.
 
+## Dependency security audit
+
+Use Python 3.11+, the pinned CLI 1.12.5.1664 and JDK 21, then run from the repository root:
+
+```bash
+python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
+python3 dev/script/dependency_audit.py /tmp/paclo-audit-production --refresh
+```
+
+The evidence folder must be new. Set `NVD_API_TOKEN` through the environment;
+never put credentials in EDN or commit reports containing credentials. The
+separate `dev/audit/deps.edn` project pins nvd-clojure 5.3.0. Both classpaths use
+`-Srepro`: the root default dependencies are the production target, while the
+helper's dependencies run the scanner. User aliases/deps are excluded. The
+removed `:nvd` alias must not be used. This follows the
+[upstream isolation guidance](https://github.com/rm-hull/nvd-clojure#clojure-cli).
+
+The runner records classpaths, resolved dependency trees, JAR paths/selected
+versions/SHA256 hashes, commands/statuses, JVM/CLI, source identity, effective
+configuration, actual scanner/engine versions and original reports. Source
+folders/classes remain excluded, as before; the scanner receives only the
+resolved absolute JAR paths recorded in `scanner-input-classpath.log`.
+The default `.dev-tools/nvd-data/12.2.2` cache is explicit and ignored; select
+another location with `--data-directory`. `--resolve-only` verifies inventories
+without an NVD scan and records `resolved-only`, never an audit pass.
+
+Success requires scanner exit0, a current JSON report covering every production
+JAR hash, no analysis exceptions/suppressions, engine 12.2.2, NVD Last Checked
+within 24 hours and Last Modified within 7 days (with 5 minutes of clock tolerance).
+`--refresh` forces an NVD check in this execution (validity 0); CI always uses it.
+Normal local cached mode has a 24-hour validity window. Automatic updates remain enabled;
+cache mtimes do not establish freshness. CVSS v2/v3/v4 base scores >=7.0 fail,
+including exactly 7.0; invalid/unscored findings require triage and cannot pass.
+The original tool's nonzero exit always fails too; logged errors and known
+remote/update/analysis failure warnings cannot pass with a cached report. No suppressions are added.
+NVD fetch/auth/analysis failure or missing/malformed output is incomplete.
+
+The weekly Monday 03:00 UTC and manual workflow scans production only, restores
+a versioned database cache, forces a new NVD check, verifies metadata and always uploads evidence even
+on failure. Only the engine12.2.2 database cache is used for NVD analysis; a
+missing cache triggers a complete cold import. Failed imports are never saved
+as successful snapshots. Cold imports get300 minutes (observed41–58% in120
+minutes with NVD503 retries); other commands get10 minutes within the existing
+six-hour Actions job ceiling. Stages and incomplete evidence are saved before
+process launch. Preserve the original three Maven-cache paths, including the
+redundant nested path: [cache version includes paths and compression](https://github.com/actions/cache#cache-version).
+Legacy Maven restore keys are attempted, but cache availability is not guaranteed;
+no old-engine database migration is performed. Cache hits cannot replace forced
+NVD refresh or report validation.
+OSS Index is disabled by nvd-clojure without its separate credentials;
+when configured, inspect scanner logs for that service's actual outcome. Neither
+state establishes broader advisory coverage. Optional `:csv`, test/dev/build and
+scanner graphs are outside this production audit. Any future audit of those
+scopes needs separately named inputs, evidence and results. OS libpcap/native
+advisories and CPE matching limits remain separate. See the
+[P14-D evidence and limits](dev/p14-d-dependency-audit-verification.md).
+
 ## Documentation verification
 
 For documentation-only changes, run Markdown lint and the local-link checker:

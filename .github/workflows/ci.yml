@@ -125,6 +125,13 @@ jobs:
       - name: Verify release metadata guard
         run: python3 -B -m unittest discover -s dev/script -p 'test_verify_release_metadata.py'
 
+      - name: Verify dependency audit failure handling
+        run: python3 -B -m unittest discover -s dev/script -p 'test_dependency_audit.py'
+
+      - name: Verify dependency audit H2 long-URL schema
+        working-directory: dev/audit
+        run: clojure -Srepro -M verify_schema.clj
+
       - name: SpotBugs
         shell: bash
         run: |

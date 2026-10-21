@@ -67,20 +67,18 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-C Clojure CLI and tools.build — implemented and verified; independent review pending**.
-Started from latest fetched main `c6209da7ea5fcdad03ac6a33ae9ddb4b30d203a6`,
-after P16 [PR #78](https://github.com/nantes-rfli/paclo/pull/78) was reviewed and merged.
-Adopt CLI **1.12.5.1664** and tools.build **0.10.14**, aligning CI, independent
-17/21/25 consumers, Publish, audit and optional local setup. Preserve library
-Clojure1.12.6, JNR2.3.3, core.async1.6.681, development1.5.0-SNAPSHOT,
-Java17 compilation, public contracts and all quality/performance gates.
-The [P14-C report](p14-c-build-toolchain-verification.md) records dependency-cache,
-prep, failure-propagation, reproducibility, local and CI evidence.
+Current task: **P14-D PR82 review correction — verification complete; independent review pending**.
+Started from latest fetched main `0047ac5` after P14-C
+[PR #80](https://github.com/nantes-rfli/paclo/pull/80) merged.
+Update isolated nvd-clojure5.3.0/Dependency-Check12.2.2, preserve production scan
+scope and enforce CVSS base score >=7.0, record exact inputs/tool versions/NVD
+freshness, and reject incomplete audits. See the
+[P14-D report](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
 P14 remains **in-progress**: P14-B [PR #76](https://github.com/nantes-rfli/paclo/pull/76)
-is held by open [Issue #77](https://github.com/nantes-rfli/paclo/issues/77), and
-other tool candidates still require separate selection. Next unfinished queue
-item remains **P14**. Do not proceed to P14-B/Issue77, P17 or P09/P10.
-No release, tag, publication or merge is authorized by this task.
+is held by open [Issue #77](https://github.com/nantes-rfli/paclo/issues/77).
+Retain core.async1.6.681 and all other production/toolchain/release pins.
+Next unfinished queue item remains **P14**; other slices require separate selection.
+No P14-B/Issue77/P17/P09/P10 work, merge, release, tag or publication.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
@@ -97,7 +95,7 @@ P11 was reviewed and merged through
 [PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54`.
 Its [inventory](p11-environment-inventory.md) remains historical investigation
 evidence. P13 is reviewed and merged. P14 is the next unfinished queue item; P16
-is implemented and verified, pending independent review. P15 is merged. P17 still requires
+was independently reviewed and merged through PR78. P15 is merged. P17 still requires
 an explicit need/maturity decision. P09/P10 stay blocked.
 
 Previous tasks: **v1.4.0 publication and documentation — done; Issues #37/#44 — closed**.
@@ -743,7 +741,8 @@ native/ABI, same-JAR17/21/25 and warning evidence. P14-B
 [PR #76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged due to
 the performance regression tracked by open
 [Issue #77](https://github.com/nantes-rfli/paclo/issues/77). Main and P16 retain
-core.async1.6.681. P14-C is selected in the current task; other candidates require separate selection;
+core.async1.6.681. P14-C is reviewed and merged in PR80. P14-D is selected;
+other candidates require separate selection;
 P14 as a whole is unfinished. P16 is reviewed and merged in PR78 and does not
 resume any of these slices.
 
@@ -760,7 +759,7 @@ upgrade or weakening quality/performance gates.
 ### P14-C: Clojure CLI and tools.build
 
 Status: **done** for implementation and verification in
-[PR #80](https://github.com/nantes-rfli/paclo/pull/80); independent review pending.
+[PR #80](https://github.com/nantes-rfli/paclo/pull/80), independently reviewed and merged.
 Adopt CLI1.12.5.1664 and tools.build0.10.14 from main `c6209da`, retaining all
 production dependencies, Java17 target, development identifier, public contracts,
 Publish guards and quality/performance gates. Fixed subprocess error propagation,
@@ -774,6 +773,40 @@ platform boundaries; final evidence/probe-head CI is recorded in PR80.
 P14 as a whole stays in-progress: PR76/Issue77 and other selected tool updates
 remain separate. Next unfinished queue item is P14; no P14-B/P17/P09/P10 work,
 publication, tag or merge follows this completion.
+
+### P14-D: Dependency audit update and reliability
+
+Status: **in-progress** in [PR82](https://github.com/nantes-rfli/paclo/pull/82).
+Selected from main `0047ac5`, after PR80/PR78 merged. Isolate nvd-clojure5.3.0
+(Dependency-Check12.2.2), preserve all23 production JARs, correct flat EDN and
+independently enforce CVSS base scores >=7.0. Record exact resolved graphs/JAR
+hashes, actual versions, source identity, NVD metadata and original reports.
+Fail closed on nonzero, timeout, stale/missing/error output, unknown scores and
+unexpected scope/suppressions.19 regressions pass; multiple implementation
+revisions pass all16 CI jobs, including distribution and P16.
+
+Four historical cold attempts are incomplete: three timeouts and run39413194592,
+whose scanner exit0/zero findings hid H2 URL-length import errors for
+CVE-2026-6785/6786. The unchanged failure guard correctly rejected that report.
+PR82 review correction pins Dependency-Check12.2.2 (upstream #8467,
+schema5.6/URL8000) with a fresh engine cache and real-H2 long-URL regression.
+No production JAR hash, CVSS>=7.0, freshness, coverage or failure gate changes.
+
+Replacement [cold audit39442903205](https://github.com/nantes-rfli/paclo/actions/runs/39442903205)
+passes: complete410,693-record import, all23 production JARs, zero findings,
+no import/analysis errors, and saved compatible DB cache. The
+[forced-refresh warm replay39457673751](https://github.com/nantes-rfli/paclo/actions/runs/39457673751)
+restores that exact cache, checks NVD during its own execution and passes the
+same23-JAR audit with zero findings/errors, then saves a new snapshot.
+Corrected head `4cb62dc` passes all16 jobs in CI39444140068 (unchanged rerun after
+CLI-download HTTP500); local full tests and static checks pass. Exact reports,
+versions/hashes, cache keys and timestamps are in
+[verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
+
+P14-D implementation and execution verification are complete; independent review
+and merge remain pending. Keep this as the current slice until review completes;
+P14 overall stays in-progress, PR76/Issue77 stay unchanged, and PR82 remains Draft.
+No other slice, release/tag/publication or merge is authorized by this correction.
 
 ## P15: REPL workflows and practical examples
 
