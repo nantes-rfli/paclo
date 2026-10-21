@@ -1,0 +1,89 @@
+{
+  "source_commit": "de0bfe2cc0fa3a8f6969ef427a8005f59b1dbaad",
+  "platform": "macOS x86_64, Temurin 21.0.12.1+1, libpcap 1.10.1",
+  "cli": "1.12.5.1664",
+  "check": {
+    "junit_tests": 13,
+    "clojure_tests": 501,
+    "assertions": 19410,
+    "failures": 0,
+    "errors": 0,
+    "smoke": "passed"
+  },
+  "json": {
+    "tests": 7,
+    "assertions": 273,
+    "status": "passed",
+    "old_version_negative_control": {
+      "failures": 174,
+      "errors": 6,
+      "status": "expected failure"
+    }
+  },
+  "documentation_examples": 40,
+  "interop": {
+    "tests": 5,
+    "assertions": 377,
+    "status": "passed"
+  },
+  "static": {
+    "kondo_errors": 0,
+    "kondo_warnings": 0,
+    "kondo_existing_infos": 2,
+    "eastwood_warnings": 645,
+    "eastwood_exceptions": 0,
+    "namespaces": "clean",
+    "format": "clean",
+    "markdown_files": 60,
+    "markdown_errors": 0,
+    "local_links": "passed"
+  },
+  "spotbugs": {
+    "findings": 1,
+    "errors": {
+      "errors": "0",
+      "missingClasses": "0"
+    }
+  },
+  "jacoco_counters": [
+    {
+      "type": "INSTRUCTION",
+      "missed": "55",
+      "covered": "228"
+    },
+    {
+      "type": "BRANCH",
+      "missed": "7",
+      "covered": "19"
+    },
+    {
+      "type": "LINE",
+      "missed": "14",
+      "covered": "59"
+    },
+    {
+      "type": "COMPLEXITY",
+      "missed": "9",
+      "covered": "28"
+    },
+    {
+      "type": "METHOD",
+      "missed": "2",
+      "covered": "22"
+    },
+    {
+      "type": "CLASS",
+      "missed": "2",
+      "covered": "7"
+    }
+  ],
+  "java_line_threshold": 0.25,
+  "perf_gate": {
+    "elapsed_ms": 543.6,
+    "warn_ms": 1000,
+    "fail_ms": 1200,
+    "exit": 0
+  },
+  "distribution": "passed, same JDK21-built JAR independent JDK21 consumer",
+  "audit": "resolved-only; 23 JARs; not a new vulnerability-audit pass"
+}

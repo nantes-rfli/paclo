@@ -13,7 +13,7 @@ both identify 2.5.2 as latest stable (released 2026-01-02). The versioned JAR
 source diff contains the numeric-reader EOF fix from 2.5.1 and the 2.5.2
 control-character diagnostic fix, plus comments/docstrings. Writer implementation
 is unchanged. Parent/Clojure baseline updates do not change Paclo's selected
-Clojure1.12.6. This is a small maintenance adoption with demonstrated fixes and
+Clojure 1.12.6. This is a small maintenance adoption with demonstrated fixes and
 compatible output, not an urgent security update or a performance claim.
 
 Paclo's production source does not call data.json directly. Existing usage is:
@@ -26,7 +26,7 @@ Paclo's production source does not call data.json directly. Existing usage is:
   independent distribution consumer.
 
 The root dependency, `dev/perf-merge/deps.edn` and exact distribution POM check
-now agree on2.5.2. No Paclo public JSON-input API is introduced. Existing
+now agree on 2.5.2. No Paclo public JSON-input API is introduced. Existing
 v1 API keys, error strings, JSONL framing and performance report schema remain.
 The numeric-EOF fix is defensive dependency maintenance; current Paclo call sites
 mostly read whole strings, so it is not described as a previously observed
@@ -34,12 +34,12 @@ production Paclo failure.
 
 ## Compatibility and regression evidence
 
-Seven regression tests cover273 assertions: Long extrema/BigInt/Double/BigDecimal,
+Seven regression tests cover 273 assertions: Long extrema/BigInt/Double/BigDecimal,
 null/boolean/nested values, Unicode including supplementary characters, escaping,
-all32 writer control characters, Reader/Writer parity, repeated numeric EOF,
+all 32 writer control characters, Reader/Writer parity, repeated numeric EOF,
 empty/truncated/malformed inputs, control diagnostics, exact JSONL bytes and
 EDN/JSON performance values. The old-version negative control deliberately fails:
-174 failures and6 errors; new2.5.2 passes. These failures are confined to the
+174 failures and6 errors; new 2.5.2 passes. These failures are confined to the
 corrected control-character and repeated numeric EOF cases.
 
 The reproducible `paclo.dev.json-compat` probe runs in separate old/new JVMs on
@@ -57,7 +57,7 @@ records hashes and actual old/new diagnostic values:
 |29 non-whitespace controls outside strings|Old EOFException; new Exception identifying actual character|
 
 The controls test also exercises array/object value contexts. Reader buffer size
-is64 as required upstream; ownership stays with `with-open`. Numeric comparison
+is 64 as required upstream; ownership stays with `with-open`. Numeric comparison
 uses exact integer/decimal values, with default decimals remaining Double and
 `:bigdec true` remaining BigDecimal. Keyword values become strings as before.
 Neither JSON object order nor Clojure-specific types gain a new public guarantee.
@@ -73,14 +73,14 @@ change upstream parsing in this maintenance PR.
 ## Production graph, POM, distribution and audit scope
 
 [Before](p14-g-evidence/production-before-tree.txt)/[after](p14-g-evidence/production-after-tree.txt)
-production resolution has23 JARs in both cases. Exactly one JAR changes:
-data.json2.5.0 ->2.5.2; the other22 hashes are identical. The
+production resolution has 23 JARs in both cases. Exactly one JAR changes:
+data.json 2.5.0 ->2.5.2; the other 22 hashes are identical. The
 [dependency evidence](p14-g-evidence/dependencies.json) records every hash.
 No new integration or audit-tool dependency enters production.
 
 The existing isolated audit runner resolves the updated default production
 classpath with `-Srepro`, excludes source directories and preserves the separate
-nvd-clojure5.3.0/Dependency-Check12.2.2 scanner graph. Local run is explicitly
+nvd-clojure 5.3.0/Dependency-Check 12.2.2 scanner graph. Local run is explicitly
 **resolved-only**, not a new vulnerability-audit pass. P14-D's earlier full
 cold/warm scans are historical evidence for their old hashes; they do not cover
 the new data.json JAR. Weekly/manual forced-refresh audit remains unchanged and
@@ -89,31 +89,71 @@ suppression changes. Optional CSV, tests/build/tools and native OS advisories
 remain outside that production-only audit scope.
 
 Distribution validation inspects embedded/external POM agreement, exact source/
-class inventory, Java17 bytecode,1.5.0-SNAPSHOT/SCM identity and selected runtime
-graph. Independent consumers assert actual data.json2.5.2 from its JAR metadata,
+class inventory, Java 17 bytecode,1.5.0-SNAPSHOT/SCM identity and selected runtime
+graph. Independent consumers assert actual data.json 2.5.2 from its JAR metadata,
 Unicode/numeric/null round trip and numeric EOF, in addition to existing native/
-PCAP/PCAPNG/DNS/lifecycle checks. The same JDK21-produced JAR is used by CI's
+PCAP/PCAPNG/DNS/lifecycle checks. The same JDK 21-produced JAR is used by CI's
 17/21/25 default and25 debug/Unsafe-denial consumers.
 
 ## Verification
 
-Local platform: macOS x86_64, Temurin21.0.12.1+1, OS libpcap1.10.1.
-Initial doctor used installed CLI1.12.5.1654 and passed; all subsequent checks
-select the existing checksum-verified reference CLI1.12.5.1664 from
-`/private/tmp/paclo-cli-1.12.5.1664/bin`. Only JDK21 is installed locally.
+Local platform: macOS x86_64, Temurin 21.0.12.1+1, OS libpcap 1.10.1.
+Initial doctor used installed CLI 1.12.5.1654 and passed; all subsequent checks
+select the existing checksum-verified reference CLI 1.12.5.1664 from
+`/private/tmp/paclo-cli-1.12.5.1664/bin`. Only JDK 21 is installed locally.
 
-- Doctor/prepare pass; full check passes13 JUnit and501 Clojure tests /
+- Doctor/prepare pass; full check passes 13 JUnit and501 Clojure tests /
   19,410 assertions with zero failures/errors and offline smoke success.
-- JSON regressions pass7 tests/273 assertions. First test authoring attempt
+- JSON regressions pass 7 tests/273 assertions. First test authoring attempt
   incorrectly expected a generic JSON-error prefix for invalid escapes; corrected
   to the observed unchanged upstream class/message, then reran successfully.
 - Distribution negative controls, audit validation controls and doc-parser tests
   pass (15/19/16 tests respectively). Audit resolution passes as resolved-only.
 - SpotBugs retains its one intentional native-pointer exposure finding with no
-  analysis error; CheckStyle passes; JaCoCo59/73 lines (80.8%) passes25% gate.
-- Full static checks,40 executable docs, P16, performance gate and distribution
-  execution: final results recorded below after completion.
-- Remote full16-job CI, native platforms and same-JAR17/21/25: pending PR execution.
+  analysis error; CheckStyle passes; JaCoCo 59/73 lines (80.8%) passes 25% gate.
+- Final full lint passes: kondo 0 errors/warnings and 2 existing infos; Eastwood
+  119 namespaces/645 informational warnings/0 exceptions. Three new informational
+  warnings are intentional CLI side-effect capture and generated exception-test
+  forms. Namespace/format checks are clean; Markdown 60 files/0 errors and local
+  links pass. Initial namespace dry-run requested expanded imports; applied only
+  the new test namespace cleanup and reran successfully.
+- All 40 executable docs and P16 (5 tests/377 assertions) pass. P16's first attempt
+  was sandbox-blocked at CPU `sysctl`; the identical offline gate passes outside it.
+- Existing performance gate passes 543.6ms, warning 1000/failure 1200ms unchanged.
+  This is an offline gate result, not a claimed speedup.
+- Package/inspection/independent JDK 21 consumer pass from clean implementation
+  de0bfe2. All 10 classes use major 61; POM/dependencies/source inventory agree.
+  Local JAR SHA256 `40014bfe7c1fbfe7a3cd1278e4c9d60fe10962fa54852545eee0e36e8428926a`.
+  [Local verification](p14-g-evidence/local-verification.json),
+  [provenance](p14-g-evidence/local-distribution.json) and
+  [consumer](p14-g-evidence/local-consumer-jdk21.json) retain exact results.
+- Implementation de0bfe2 passes all **16 jobs** in
+  [CI39559736268](https://github.com/nantes-rfli/paclo/actions/runs/39559736268),
+  without reruns or failed/tolerated-failure steps. [PR85](https://github.com/nantes-rfli/paclo/pull/85)
+  remains unmerged for independent review.
+
+Remote evidence includes all40 docs, P16 on Linux x64/ARM64 and macOS ARM64
+(377 assertions each), full source Clojure/JUnit on supported17/21 plus
+experimental25, all static/format/coverage checks,549.9ms decode gate and all27
+performance scenarios with standalone JSON/EDN merge. Linux has19,416 assertions
+versus macOS19,410 because of existing platform cases. Java LINE59/73 and
+BRANCH19/26 agree. Linux226 versus macOS228 covered instructions is confined to
+existing `PcapHeader.tv_usec`: Darwin reads32-bit suseconds_t then widens to long,
+Linux reads a long. No Java source, denominator or quality threshold changes.
+
+Original CI distribution archive API SHA256 and all13 member hashes are verified.
+CI JAR `358f017bac7cf12e859df679cd4344d19d27d6bf161710fc5dedb35429f3eb59`,
+source merge-ref `39dd0b39726c751f49794372d7133c83b87d1175`, source_dirty=false.
+All five original consumer reports pass against that exact JAR/source:17/21/25,
+25 native-access/Unsafe-debug and25 Unsafe-denial. Each confirms actual
+JSON2.5.2 and CLI1.12.5.1664. Consumer archive API digests, four quality archives,
+JDK25 source archive and performance archive are verified before reading them.
+[CI evidence](p14-g-ci-evidence.json) retains original consumer JSON, counters,
+archive/member hashes and compact original log excerpts.
+
+The final evidence commit changes only documentation/evidence from tested
+de0bfe2. Final-head ordinary CI will be recorded in PR85 without rerunning
+unchanged local behavior tests. Independent review is required before merge.
 
 Logs and original local outputs are under `/tmp/paclo-p14g`. Initial kondo rejects
 three unused-value patterns in new exception tests; corrected without suppression.
@@ -161,13 +201,13 @@ nor accepted by this closure. Do not infer their completion from P14's scoped st
 - Defer data.csv/test.check until a concrete need is demonstrated.
 - Reevaluate deps-deploy only when release procedures require an update.
 - CheckStyle/JUnit major migrations are outside this scope.
-- Keep Eastwood1.4.3/Cloverage1.2.4.
-- P17 stays blocked pending Clojure1.13 maturity and a clear adoption reason.
+- Keep Eastwood 1.4.3/Cloverage 1.2.4.
+- P17 stays blocked pending Clojure 1.13 maturity and a clear adoption reason.
   P09/P10 remain blocked by their existing prerequisites.
 
 No further implementation PR is selected merely to exhaust update candidates.
-Clojure1.12.6, JNR-FFI2.3.3, core.async1.6.681, formal JDK17/21 support,
-experimental JDK25, Java17 target,1.5.0-SNAPSHOT and all quality/performance
+Clojure 1.12.6, JNR-FFI 2.3.3, core.async 1.6.681, formal JDK 17/21 support,
+experimental JDK 25, Java 17 target, 1.5.0-SNAPSHOT and all quality/performance
 thresholds remain fixed. No release/tag/publication, PR76/Issue77 mutation,
 P17/P09/P10 implementation or merge. Offline evidence does not validate live
-capture, real-NIC performance, untested platforms or all-platform JDK25 support.
+capture, real-NIC performance, untested platforms or all-platform JDK 25 support.

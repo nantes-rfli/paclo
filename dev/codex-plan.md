@@ -67,12 +67,13 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-G — data.json maintenance update and P14 scope closure**.
+Current task: **P14-G — implementation and verification complete; independent review pending in PR85**.
 Started from latest fetched main `ecf3f19`, including independently reviewed and
 merged [P14-F PR84](https://github.com/nantes-rfli/paclo/pull/84).
 Adopt data.json2.5.2 in production and the standalone performance merger, with
 JSON/CLI/report, distribution and audit-scope verification. See the
 [P14-G report](p14-g-data-json-verification.md) and [work log](work-log.md).
+All16 jobs pass in [CI39559736268](https://github.com/nantes-rfli/paclo/actions/runs/39559736268).
 P14's adopted maintenance scope A/C/D/E/F/G is complete; G still requires
 independent review before merge. This status does not resolve P14-B:
 [PR76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged and
@@ -879,7 +880,13 @@ resolved version in same-JAR consumers. Preserve JSONL and performance report by
 numeric types, Unicode/escaping and existing Paclo public contracts. Regression
 tests distinguish corrected numeric EOF and raw-control diagnostics from unchanged
 malformed-input behavior. Full evidence and commands are in the
-[report](p14-g-data-json-verification.md); remote CI status is recorded there/PR.
+[report](p14-g-data-json-verification.md). Implementationde0bfe2 passes all16 jobs
+in [CI39559736268](https://github.com/nantes-rfli/paclo/actions/runs/39559736268),
+including all40 docs, three P16 platforms, existing549.9ms decode gate/all27
+performance scenarios and all five17/21/25 consumer outputs against one verified
+JDK21-built JAR. [CI evidence](p14-g-ci-evidence.json) retains original reports,
+ZIP/member hashes and actual runtime versions. Final-head CI is recorded in
+[PR85](https://github.com/nantes-rfli/paclo/pull/85); independent review is pending.
 P14 adopted maintenance closes with the explicit deferred-candidate/independent-hold
 policies above. Clojure1.12.6/JNR2.3.3/core.async1.6.681/Java17 target,
 JDK17/21 support, experimental25 and1.5.0-SNAPSHOT remain fixed.
