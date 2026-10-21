@@ -12,9 +12,10 @@
     (bit-and 0xFF (aget ba i))))
 
 (defn- u16 ^long [^bytes ba ^long i]
-  (when-let [hi (u8 ba i)]
-    (when-let [lo (u8 ba (unchecked-inc-int i))]
-      (bit-or (bit-shift-left hi 8) lo))))
+  ;; u8 has a primitive long return: invalid reads throw rather than return nil.
+  (let [hi (u8 ba i)
+        lo (u8 ba (unchecked-inc-int i))]
+    (bit-or (bit-shift-left hi 8) lo)))
 
 ;; ------------------------------
 ;; internal: DNS name decoder (with compression)

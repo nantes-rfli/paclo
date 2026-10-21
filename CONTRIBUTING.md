@@ -41,11 +41,13 @@ configuration and are verified or refreshed by their existing checks.
 
 On Debian/Ubuntu, the native prerequisite is `libpcap-dev`; macOS supplies libpcap.
 Static checks additionally need `clj-kondo`, `clojure-lsp`, and Node.js/npm (`npx`).
-For Linux x86_64, `bash dev/script/codex.sh tools` installs checksum-verified
-clj-kondo 2025.10.23 and clojure-lsp 2025.11.28-12.47.43 into ignored `.dev-tools/bin`.
-The wrapper automatically selects them. The same versions are pinned in CI.
-The installer requires `curl` and Python 3; it does not need root.
-On other platforms install those versions using their upstream distributions.
+On Linux and macOS (x64 or ARM64), `bash dev/script/codex.sh tools` installs
+checksum-verified clj-kondo **2026.10.20** and clojure-lsp **2026.10.15-11.42.38**
+into ignored `.dev-tools/bin`. The wrapper automatically selects them. CI uses
+the same installer and pins, including native checks on macOS/ARM64 and Linux/ARM64.
+The installer requires `curl` and Python 3; it does not need root. Other platforms
+are rejected explicitly. Versions, all archive SHA-256 pins and verification
+limits are recorded in the [P14-E report](dev/p14-e-lint-tools-verification.md).
 Do not upgrade application dependencies just to provision tooling.
 
 From the repository root:
@@ -78,7 +80,7 @@ files. Other machines use their normally installed toolchain.
 | --- | --- |
 | `doctor` | Compile bindings; check supported runtimes and a real offline libpcap read |
 | `prepare` | Resolve development/test dependencies and compile Java bindings and tests |
-| `tools` | Install pinned lint binaries locally on Linux x86_64 |
+| `tools` | Install pinned native lint binaries on Linux/macOS x64/ARM64 |
 | `test -n paclo.reduce-test` | Compile bindings and run a selected test namespace |
 | `test` | Compile bindings and run all Clojure tests |
 | `java-test` | Compile and run JUnit with failure on zero discovered tests |
@@ -144,6 +146,18 @@ development, DNS extension and test roots. Eastwood warnings remain informationa
 analysis/linter exceptions (including aborted traversal with unanalyzed namespaces)
 fail the command. Run `python3 dev/script/test_eastwood_runner.py` to verify the
 actual runner exit status for complete analysis, warnings and deliberate failures.
+
+The shared `dev/script/kondo.sh` checks `src`, `test`, `dev`,
+`extensions/dns/src` and `build.clj`; explicit path arguments remain supported.
+`dev/script/fmt.sh --dry` validates tracked analyzer EDN, checks namespaces and
+formatting over the LSP source roots (including DNS), then checks `deps.edn`
+and `dev/nvd-clojure.edn`. Without `--dry`, the formatter retains its
+existing developer-hook behavior. A nonzero tool exit or clj-kondo configuration
+warning fails the wrapper; a clean-looking summary cannot override it.
+Run `python3 -B -m unittest discover -s dev/script -p 'test_lint_tools.py'` with
+both pinned tools on PATH for real analyzer negative controls and isolated
+installer checksum/download/platform failures. Fixture platform tests check
+selection logic; the CI native jobs establish actual platform execution.
 
 For new behavior, select tests based on the contract being changed:
 

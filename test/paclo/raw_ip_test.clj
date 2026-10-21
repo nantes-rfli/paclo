@@ -117,7 +117,7 @@
     (is (= [:match :match] (mapv :kind (:dns (cooked/analyze full)))))
     (is (= [1 1] (mapv :rtt-us (:dns (cooked/analyze full)))))
     (is (= 8 (get-in (cooked/analyze full) [:windows 0 :groups :all :packets])))
-    (is (= 8 (reduce + (map :packets (flow/top-n (cooked/aggregate projected) 100)))))
+    (is (= 8 (reduce + (map :packets (flow/top-n (cooked/aggregate projected) {:n 100})))))
     (is (every? map? (map flow/key projected)))
     (with-open [^Closeable capture (core/start-capture (assoc (options "raw.pcap") :max 8))
                 ^Closeable fanout (stream/fan-out (core/capture-packets capture)

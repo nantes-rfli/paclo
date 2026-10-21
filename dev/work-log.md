@@ -5968,3 +5968,101 @@ Final evidence checks: Markdown lint57 files/0 errors, local links/anchors and
 all six audit outcome statuses (four incomplete, then two passed), and the
 79-JAR corrected tool inventory. The final evidence-only commit runs ordinary
 CI again; its result is tracked on PR82 without rerunning unchanged NVD inputs.
+
+## P14-E: static analyzer update (2026-10-21 Asia/Tokyo)
+
+Selected the requested isolated slice from latest fetched main42d2123, including
+merged PR82. Initial `git status --short --untracked-files=all` was clean; created
+codex/p14-e-lint-tools in the supplied checkout. Read AGENTS, CONTRIBUTING, the
+v1 contract, accepted plan and P11 inventory. PR76/Issue77 remain untouched.
+No runtime/dependency/version/support/quality/performance pin changes.
+
+Direct official releases/latest API responses confirm non-prerelease standalone
+kondo2026.10.20 (published2026-10-20, newer than P11's2026.08.04) and
+LSP2026.10.15-11.42.38. The web index's latest redirects were stale, so used the
+live API and official asset digests. Downloaded old/new macOS x64 distributions,
+verified hashes, and installed CLI1.12.5.1664 under /tmp/paclo-p14-e/cli with the
+existing checksum installer. Initial doctor used host CLI1.12.5.1654; reran all
+acceptance commands with the reference CLI. Native LSP reports bundled
+kondo2026.08.05-SNAPSHOT(c50ca52), independently of stable standalone kondo.
+
+Before source edits, identical cold `--cache false` traversal of src/test/dev/
+extensions/dns/src/build.clj: old kondo0 errors/warnings; new kondo4 errors,
+2 warnings,2 infos. Corrected three numeric top-n test options to {:n 100}; retained
+the deliberate negative-n ExceptionInfo assertion with one reasoned form-scoped
+type-mismatch hint. Replaced primitive-u8 always-true when-let guards in private
+DNS u16 with let; added zero/truncation regression proving annotation behavior.
+Two harmless redundant primitive-conversion infos remain visible and documented;
+performance source is untouched. No linter/config rule is weakened.
+
+Old LSP clean-ns/format dry runs pass with expanded DNS roots. New LSP finds only
+alignment of the newly inserted negative-test hint; applied that exact alignment.
+An exploratory explicit build.clj formatting check finds15 existing indentation
+lines; restored build.clj exactly and retained the established formatter file
+scope instead of including unrelated formatting. Kondo still checks build.clj.
+
+CI and local tools now share the checksum-verified installer with Linux/macOS
+x64/ARM64 official ZIP pins. Existing16 jobs remain; the compatibility/ARM64 jobs
+also execute actual native kondo and LSP checks. Shared kondo wrapper covers DNS
+and build roots everywhere; LSP adds the omitted DNS source path. Existing resource
+macro lint-as mappings are unchanged; no hook file or broad exclusion exists.
+
+Real negative probes exposed kondo exiting0 after malformed-config WARNING and
+0/0 summary. Wrapper now preserves tool/pipeline nonzero statuses and rejects
+WARNING output. fmt --dry validates tracked EDN and checks namespaces/formatting
+without edits. Added actual analyzer success/failure controls and isolated
+installer tamper/member/download/platform regressions. Initial test-authoring
+failures (malformed curl shim, an accepted tagged literal and intentionally
+preserved multiple spaces) were corrected to exercise real failing conditions;
+they were not tool compatibility failures or passing acceptance results.
+
+Executed so far (logs in /tmp/paclo-p14-e, not committed):
+
+- `doctor`, `prepare`, `check`: exit0 under CLI1.12.5.1664/JDK21.0.12.1;
+  13 JUnit tests,494 Clojure tests/19,137 assertions, real offline4 packets/438 bytes.
+- New installer on actual macOS x64: exit0, both official SHA256 pins match.
+  Isolated installer controls5/5 pass; foreign-platform shims do not establish
+  actual binary compatibility.
+- Kondo after fixes:0 errors/warnings,2 informational coercions; full lint's
+  Eastwood116 namespaces/640 informational warnings, zero exceptions.
+- `package`, distribution `prepare` and independent JDK21 `consume`: exit0.
+  Local candidate JAR SHA2568d29ed992318c95ec262a3b0ca73676fd591a8a65cb1f88297fcba2116dd8043;
+  source identity42d2123 with source_dirty=true. This is precommit local evidence;
+  remote CI must establish committed distribution identity.
+- Shell syntax, local links and diff whitespace checks pass. Full lint, analyzer
+  controls,40 doc examples and P16 are running. P16's first sandboxed attempt
+  fails at CPU-identity sysctl (Operation not permitted), before generation;
+  rerunning the unchanged offline gate with normal permissions and a fresh folder.
+
+All hashes, source coverage, individual findings and current limitations are in
+[p14-e-lint-tools-verification.md](p14-e-lint-tools-verification.md). Native Linux/
+ARM64, JDK17/25, all16 jobs and final distribution/performance checks remain
+pending CI. No live-capture, other-platform or new performance claim. Independent
+review remains required; no merge/release/tag/publication is performed. P14 stays
+in-progress and is the next unfinished queue item; no other slice is selected.
+
+Local acceptance follow-up: all15 new real-analyzer/installer regressions pass
+(exit0,145s), all40 documented examples and16 parser tests pass. P16's unchanged
+normal-permission replay passes5 tests/377 assertions with Wireshark4.6.8 and
+tcpdump4.99.7; Paclo loads system libpcap1.10.1. Local links and shell syntax pass.
+The new namespace/format difference checks prove --dry returns nonzero without
+writing the temporary input. Full lint and normal commit hooks continue; remote
+matrix/quality/performance results are still pending.
+
+Network-dependent local follow-up: sandboxed full lint completed kondo/Eastwood/
+LSP but npm's registry request failed with ENOTFOUND; this is not a lint pass.
+Rerunning the complete unchanged lint command with network permissions. The
+existing build-toolchain suite initially passed5 cases but its isolated Maven
+install failed resolving repo1.maven.org under the same sandbox DNS restriction.
+Normal-permission replay passes all6 cases (66s), including the isolated install,
+without editing that suite or any build/dependency setting. The task-local clj
+hook launcher forwards to the pinned CLI without rlwrap; ordinary test/format/
+Markdown/kondo hooks all run, with no skip flag or hook configuration change.
+
+The first commit hook executes all494 tests/19,137 assertions and normal formatter
+successfully, then Markdown catches one146-character CONTRIBUTING line. Wrap
+that documentation line only. Network-enabled full lint reaches the same single
+Markdown issue after successful kondo/Eastwood/LSP; rerun lint after the wrap.
+For the commit retry, reuse the just-passed unchanged source tests/formatter via
+the hook's existing SKIP_TESTS/SKIP_FMT flags; Markdown and kondo still run.
+No hook configuration, CI gate or test code changes follow those successes.

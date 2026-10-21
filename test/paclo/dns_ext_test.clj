@@ -94,3 +94,19 @@
                                :app {:type :dns :qdcount 1}}}}}
         out (annotate-qname-qtype m)]
     (is (= :TYPE255 (get-in out [:decoded :l3 :l4 :app :qtype-name])))))
+
+(deftest question-word-reads-preserve-zero-and-truncated-input-behavior
+  (testing "zero is a valid QTYPE and QCLASS"
+    (let [payload (byte-array 17)
+          packet {:decoded {:l3 {:l4 {:payload payload
+                                      :app {:type :dns :qdcount 1}}}}}
+          app (get-in (annotate-qname-qtype packet) [:decoded :l3 :l4 :app])]
+      (is (= 0 (:qtype app)))
+      (is (= :TYPE0 (:qtype-name app)))
+      (is (= 0 (:qclass app)))))
+  (testing "incomplete QTYPE or QCLASS preserves the original packet"
+    (doseq [length [13 14 15 16]]
+      (let [payload (byte-array length)
+            packet {:decoded {:l3 {:l4 {:payload payload
+                                        :app {:type :dns :qdcount 1}}}}}]
+        (is (identical? packet (annotate-qname-qtype packet)))))))
