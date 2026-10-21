@@ -66,8 +66,8 @@ there are no project hook files or broad exclusion rules to migrate.
 | Analysis | Old pins, original source | New pins, original source | New pins, corrected source |
 | --- | --- | --- | --- |
 | Standalone kondo | 0 errors/0 warnings | 4 errors/2 warnings/2 infos | 0 errors/0 warnings/2 infos |
-| LSP clean-ns | Nothing to clear | Nothing to clear | Verification below |
-| LSP format | Nothing to format | Only changed negative-test hint alignment | Verification below |
+| LSP clean-ns | Nothing to clear | Nothing to clear | Nothing to clear |
+| LSP format | Nothing to format | Only changed negative-test hint alignment | Nothing to format |
 
 Individual triage:
 
@@ -131,20 +131,38 @@ are rerun with the reference CLI. Logs and downloaded archives are under
 | Documentation parser and executable examples |16 parser tests and all40 examples pass |
 | Local P16 offline interoperability | Exit0;5 tests/377 assertions, Wireshark4.6.8 and tcpdump4.99.7; Paclo system libpcap1.10.1 |
 | Existing build-toolchain controls | Six tests pass after replay with network access for isolated Maven resolution |
-| Full lint and final CI | In progress; final results follow |
+| `bash dev/script/codex.sh lint` | Exit0; kondo0/0 with2 infos, Eastwood116 namespaces/640 warnings/0 exceptions; LSP clean; Markdown58 files/0 errors |
+| `bash dev/script/codex.sh perf` | Exit0;469.9ms, unchanged1000ms warning/1200ms failure thresholds |
+| Implementation CI | All16 jobs pass in [CI39535979063](https://github.com/nantes-rfli/paclo/actions/runs/39535979063) on implementation8b4db65 |
 
 CI retains all16 jobs. The build-checks job now uses the shared verified installer
 and regression controls; existing compatibility jobs additionally execute native
 kondo/LSP checks on Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21.
 Their original unit tests, P16, performance, distribution and aggregate conditions
-remain required. Remote results and final-head identity must be recorded before
-claiming those platforms verified.
+remain required. All these jobs passed on implementation8b4db65; native tool
+versions, zero-warning kondo summaries and LSP dry runs are confirmed in logs.
+
+The [compact CI evidence](p14-e-ci-evidence.json) records all16 job URLs, artifact
+IDs/SHA-256 digests, log excerpts and independently inspected reports. All40 docs,
+P16 on Linux x64/JDK21, macOS ARM64/JDK17 and Linux ARM64/JDK21 (5 tests/377
+assertions each), JDK25 source checks, SpotBugs, CheckStyle, JaCoCo80.8% against
+unchanged25%, cloverage, the433.8ms decode gate against unchanged1000/1200ms,
+three performance shards and all27 merged scenarios passed.
+
+All five downloaded JDK17/21/25 consumer reports (including native-access and
+Unsafe-deny variants) report passed against the same JAR
+`f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13`.
+Provenance identifies CI merge-ref `be65e465542b35c6989db92e6a821c187c4b5469`,
+source_dirty=false, CLI1.12.5.1664 and Java17 class version61. Independently
+verified all13 distribution member hashes and all six consumer/P16 archive hashes.
+The evidence-only follow-up changes no implementation/configuration/workflow/test
+file; its final-head CI status is recorded in [PR83](https://github.com/nantes-rfli/paclo/pull/83).
 
 ## Limits
 
-Local JDK17/25 and ARM64 are unavailable. CI must establish those existing matrix
-conditions, all40 documentation examples, P16 and same-JAR17/21/25 distribution
-results; local x64 tests alone do not validate them. Live capture, real NIC
-throughput, other JVM vendors/OSes, Windows and32-bit environments are unverified.
+Local JDK17/25 and ARM64 are unavailable; the successful CI jobs establish the
+specific matrix conditions above. Source-built ARM64 validation is distinct from
+the Linux x64 same-JAR consumers; it does not establish a same-JAR ARM64 claim.
+Live capture, real NIC throughput, other JVM vendors/OSes, Windows and32-bit environments are unverified.
 The tooling update neither expands formal JDK support nor resolves PR76/Issue77.
 Independent review remains required; no merge is performed.

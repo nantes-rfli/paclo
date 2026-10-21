@@ -6066,3 +6066,45 @@ Markdown issue after successful kondo/Eastwood/LSP; rerun lint after the wrap.
 For the commit retry, reuse the just-passed unchanged source tests/formatter via
 the hook's existing SKIP_TESTS/SKIP_FMT flags; Markdown and kondo still run.
 No hook configuration, CI gate or test code changes follow those successes.
+
+Final local `bash dev/script/codex.sh lint` after the documentation wrap exits0:
+kondo0 errors/0 warnings/2 infos; Eastwood116 namespaces/640 informational warnings/
+0 exceptions; clean namespace and both format dry runs; Markdown58 files/0 errors.
+The ordinary local perf entrypoint also exits0 at469.9ms against unchanged
+warn1000/fail1200 thresholds. This is a local gate observation, not a new general
+performance claim. Created and attached P14-E [PR83](https://github.com/nantes-rfli/paclo/pull/83)
+from implementation8b4db65. CI39535979063 is running on merge-refbe65e465; initial
+remote successes include all27 performance scenarios, JDK25 source, coverage,
+Eastwood, all40 docs and Linux x64/P16. Downloaded the CI distribution through
+GitHub tools, verified original artifact SHA256 and all13 provenance file hashes;
+JARf595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13,
+source_dirty=false, same expected production dependencies/CLI/Java17 bytecode.
+Remaining remote jobs/consumers must finish before platform completion is claimed.
+
+### P14-E implementation CI and delivery evidence
+
+Implementation8b4db65 passes **all16 jobs** in
+[CI39535979063](https://github.com/nantes-rfli/paclo/actions/runs/39535979063),
+without rerunning a failed CI job. Linux x64/JDK21, macOS ARM64/JDK17 and Linux
+ARM64/JDK21 execute both new native tools, confirm their exact versions and bundled
+kondo c50ca52, and pass kondo/LSP, unit tests and P16 (5 tests/377 assertions each).
+Docs execute all40 examples. SpotBugs/CheckStyle/JaCoCo80.8% >=25%/cloverage,
+Eastwood, all15 new analyzer/installer controls,433.8ms existing decode gate and
+all27 scenarios from three benchmark shards pass. No rule/budget/support change.
+
+Downloaded original distribution and three consumer plus three P16 archives
+through the GitHub connector. Independently verified each ZIP's API SHA256 and
+all13 distribution member hashes. All five actual consumer JSON reports pass
+on JDK17/21/25, including25 native-access/Unsafe-deny variants, with identical
+JARf595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13 and
+merge-refbe65e465542b35c6989db92e6a821c187c4b5469, source_dirty=false. Recorded
+job URLs, artifact IDs/hashes, exact JVM/CLI/dependencies, platform tool identities
+and original log excerpts in [p14-e-ci-evidence.json](p14-e-ci-evidence.json).
+
+This completion updates only the plan/report/work-log/compact evidence. All
+implementation/configuration/workflow/test bytes remain exactly8b4db65. Final
+head normal CI will be recorded in PR83 after this evidence commit. Reuse the
+already-successful unchanged tests/formatter in this docs-only commit; run
+Markdown/local-link/whitespace checks. P14-E implementation/verification is done,
+independent review remains pending, and P14 overall/next unfinished queue item
+remains P14. No other slice, merge, release, tag or publication is performed.

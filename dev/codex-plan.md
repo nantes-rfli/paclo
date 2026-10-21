@@ -67,7 +67,7 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-E — update clj-kondo and clojure-lsp; verification in progress**.
+Current task: **P14-E — implementation and verification complete; independent review pending in PR83**.
 Selected from latest fetched main `42d2123`, including merged
 [P14-D PR82](https://github.com/nantes-rfli/paclo/pull/82).
 Adopt standalone kondo2026.10.20 and LSP2026.10.15-11.42.38 after official release
@@ -810,7 +810,14 @@ selected P14-E follows; no release/tag/publication or merge is authorized.
 
 ### P14-E: clj-kondo and clojure-lsp
 
-Status: **in-progress**, selected from main `42d2123` on2026-10-21.
+Status: **done** for implementation and execution verification in
+[PR83](https://github.com/nantes-rfli/paclo/pull/83); independent review pending.
+Selected from main `42d2123` on2026-10-21. Implementation8b4db65 passes all16 jobs
+in [CI39535979063](https://github.com/nantes-rfli/paclo/actions/runs/39535979063),
+including actual native kondo/LSP on Linux x64/ARM64 and macOS ARM64, all40 docs,
+P16, same-JAR17/21/25 and unchanged quality/performance gates. The
+[CI evidence](p14-e-ci-evidence.json) and report retain versions/hashes/limits;
+final evidence-only head CI is recorded in PR83.
 Update kondo2025.10.23 to2026.10.20 (new stable release after the P11 candidate)
 and LSP2025.11.28-12.47.43 to2026.10.15-11.42.38. Share checksum pins between
 local setup and the existing Linux/macOS x64/ARM64 jobs. Align all source roots,
