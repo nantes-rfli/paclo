@@ -67,14 +67,15 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-F — SpotBugs/JaCoCo implementation and verification**.
+Current task: **P14-F — implementation and verification complete; independent review pending in PR84**.
 Selected from latest fetched main `204d72c`, including merged
 [P14-E PR83](https://github.com/nantes-rfli/paclo/pull/83).
 Adopt SpotBugs/annotations4.10.5 and JaCoCo agent/CLI0.8.15; compare original
 findings/counters and resolved graphs, correct incomplete-analysis/coverage
 failure handling and verify supported17/21 plus experimental25 instrumentation.
 See the [P14-F report](p14-f-java-quality-verification.md) and [work log](work-log.md).
-CI and independent review are pending. P14 remains **in-progress**: P14-B
+All16 jobs pass in [CI39550199521](https://github.com/nantes-rfli/paclo/actions/runs/39550199521).
+Independent review is required before merge. P14 remains **in-progress**: P14-B
 [PR76](https://github.com/nantes-rfli/paclo/pull/76) is held by open
 [Issue77](https://github.com/nantes-rfli/paclo/issues/77). Retain core.async1.6.681,
 all unrelated dependency/toolchain pins and1.5.0-SNAPSHOT.
@@ -828,11 +829,12 @@ after findings, real-tool and installer negative controls, full existing CI and
 platform limits in the [report](p14-e-lint-tools-verification.md) and work log.
 All production/toolchain/version/support/quality/performance pins stay unchanged.
 No P14-B/Issue77/P17/P09/P10 work or merge/release/tag/publication.
-Next unfinished queue item remains P14; this slice requires independent review.
+Next unfinished queue item remains P14; P14-E independent review is complete.
 
 ### P14-F: SpotBugs and JaCoCo
 
-Status: **in-progress**; implementation and local verification underway.
+Status: **done** for implementation and execution verification in
+[PR84](https://github.com/nantes-rfli/paclo/pull/84); independent review pending.
 Selected from main204d72c after PR83 merged. Adopt SpotBugs/annotations4.10.5
 and JaCoCo agent/CLI0.8.15 while holding every other dependency and Java17 target.
 Original-runner before/after results agree: one EI_EXPOSE_REP finding on the
@@ -842,7 +844,14 @@ classpath failures, analysis exit-code handling, stale execution data, zero-test
 success and empty/duplicated-counter gate behavior without reducing25%.
 Existing16-job CI gains17/21/25 coverage and actual-runtime class-format probes.
 The [report](p14-f-java-quality-verification.md) records graphs, detector controls,
-full verification, limitations and remaining candidates; CI/independent review pending.
+full verification, limitations and remaining candidates. Implementationb50de88
+passes all16 jobs in [CI39550199521](https://github.com/nantes-rfli/paclo/actions/runs/39550199521):
+supported17/21 and experimental25 coverage agree at59/73 lines and19/26 branches,
+actual-JDK probes61/65/69 pass, all40 docs/three P16 platforms/27 performance
+scenarios and existing736.9ms decode gate pass. All five17/21/25 consumer outputs
+pass against the same verified CI JAR. [CI evidence](p14-f-ci-evidence.json)
+records jobs, ZIP/member hashes, JVM/CLI, counters and original log excerpts.
+Final evidence-only head CI is recorded in PR84; independent review is pending.
 Next unfinished queue item remains P14; no other slice or publication is authorized.
 
 ## P15: REPL workflows and practical examples

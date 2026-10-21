@@ -620,5 +620,37 @@
     "target/classes/paclo/jnr/PcapStat.class": "506dc5b94c199a5ea5cbb0b8dfa31520e8284fd9dbf79c844e1cf9b93ed13bcb",
     "target/classes/paclo/jnr/PcapStatsLibrary.class": "a7da4a8793a65f08852d20a6e6a8de6ed3295b493f31a1f706da841800f04b9e",
     "target/classes/paclo/jnr/PcapStdioLibrary.class": "141f79740b000fb193c6387b65f190dbda950bd8ebd7aa3ee1b73f55e08179fa"
-  }
+  },
+  "final_runner": [
+    {
+      "type": "INSTRUCTION",
+      "missed": "55",
+      "covered": "228"
+    },
+    {
+      "type": "BRANCH",
+      "missed": "7",
+      "covered": "19"
+    },
+    {
+      "type": "LINE",
+      "missed": "14",
+      "covered": "59"
+    },
+    {
+      "type": "COMPLEXITY",
+      "missed": "9",
+      "covered": "28"
+    },
+    {
+      "type": "METHOD",
+      "missed": "2",
+      "covered": "22"
+    },
+    {
+      "type": "CLASS",
+      "missed": "2",
+      "covered": "7"
+    }
+  ]
 }
