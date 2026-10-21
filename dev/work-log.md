@@ -6225,3 +6225,59 @@ changes no tested source, dependency, workflow or gate bytes fromb50de88. Reuse
 successful unchanged behavioral/format checks; run Markdown, local links and
 whitespace verification. Final-head ordinary CI will be recorded in PR84 before
 delivery. No merge, release, tag, publication or other plan slice is performed.
+
+## 2026-10-21 — P14-G: data.json and adopted P14 scope closure
+
+User-authorized single implementation PR from latest main, including verification
+and P14 closure; no merge before independent review. Initial status was clean on
+P14-F branch. Fetched origin and confirmed PR84 merged as `ecf3f19`, then created
+`codex/p14-g-data-json` from that main. PR76 remains open/unmerged, Issue77 open.
+Read AGENTS/CONTRIBUTING/v1 contract/plan, P11 inventory and P14-F report.
+
+Official README and Maven metadata reconfirm latest stable data.json2.5.2.
+Compared actual2.5.0/2.5.2 JAR sources: numeric EOF and control-character diagnostic
+fixes, no writer change. Adopt the small maintenance update in root and standalone
+merger; align exact distribution POM expectation. Preserve all other pins and
+1.5.0-SNAPSHOT/Java17 target/formal17/21/experimental25 support.
+
+Added7 JSON regressions/273 assertions and deterministic offline old/new probe.
+13 values' writes/read values/classes,8 real-PCAP CLI modes plus escaped common
+JSONL and fixed performance-report bytes agree. Five numeric EOF cases reproduce
+old U+FFFF errors and corrected EOF sentinel. All29 non-whitespace controls now
+identify the actual character; array/object contexts tested. Empty/malformed
+classes/messages agree. Explicitly retain upstream limits: trailing values are
+not automatically rejected; raw quoted controls remain accepted; invalid escape/
+incomplete exponent keep old IllegalArgumentException diagnostics. No new public
+JSON-input API or stricter parser is promised. Evidence: p14-g-evidence.
+
+Initial doctor passes under installed CLI1654; subsequent commands select existing
+checksum-verified reference1664 under /private/tmp/paclo-cli-1.12.5.1664/bin.
+macOS x64/Temurin21.0.12.1/libpcap1.10.1. Prepare and full check pass13 JUnit,
+501 Clojure tests/19,410 assertions and smoke. Focused JSON tests pass; old2.5.0
+negative control deliberately reports174 failures/6 errors on corrected cases.
+First authored test expected generic JSON-error text for invalid escape; correct
+to the observed unchanged upstream diagnostic. Initial kondo rejects3 unused
+values in exception tests; correct them without suppression. Clean namespaces/
+format new code; add type hint to avoid cleanup reflection. Final lint follows.
+
+SpotBugs/CheckStyle pass (one existing intentional pointer finding); JaCoCo59/73
+lines80.8%,25% minimum retained.15 distribution,19 audit and16 doc-parser regressions
+pass. All40 executable docs pass. First P16 invocation is blocked only by sandbox
+sysctl CPU identification; rerun the same offline verifier outside sandbox.
+
+Production audit --resolve-only passes:23 JARs, exactly data.json changes and22
+other hashes agree. This verifies scope/inventory, not a new CVE audit pass;
+P14-D's historical scans do not cover the new hash. Existing weekly/manual
+forced-refresh audit will select it after merge; no audit rule or scope changes.
+Distribution consumers now assert actual2.5.2 metadata, Unicode/null/numeric
+round trip and numeric EOF. JDK17/25 and same-JAR remote evidence await CI.
+
+P14 adopted scope A/C/D/E/F/G closes in this PR, with G independent review still
+required. A/C/D/E/F are reviewed and merged (PR75/80/82/83/84). PR76/Issue77 remain
+an independent unresolved performance hold; keep core.async1.6.681. Defer CSV/
+test.check until concrete need, deps-deploy until release-workflow need; no
+CheckStyle/JUnit major migration; retain Eastwood/Cloverage. P17 remains blocked
+by1.13 maturity/adoption reason; P09/P10 prerequisites unmet. No additional PR is
+selected simply to exhaust candidates, and no completion-only PR is planned.
+Commands/results/limits and remaining final verification are detailed in
+[p14-g-data-json-verification.md](p14-g-data-json-verification.md).

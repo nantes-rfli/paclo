@@ -62,25 +62,28 @@ Task descriptions below retain original scope; completion summaries and the curr
 | M-SNAPSHOT | Development only | Align development artifact identity before P12 | P11 | done |
 | P12 | Unassigned | Adopt Clojure 1.12.6 with compatibility verification | P11 | done |
 | P13 | Unassigned | Verify JDK 25 compatibility, retaining JDK 17/21 | P12 | done |
-| P14 | Unassigned | Evaluate dependency and development-tool updates | P11 | in-progress |
+| P14 | Unassigned | Evaluate dependency and development-tool updates (adopted scope) | P11 | done |
 | P15 | Unassigned | Improve REPL workflows and practical examples | P11 | done |
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-F — implementation and verification complete; independent review pending in PR84**.
-Selected from latest fetched main `204d72c`, including merged
-[P14-E PR83](https://github.com/nantes-rfli/paclo/pull/83).
-Adopt SpotBugs/annotations4.10.5 and JaCoCo agent/CLI0.8.15; compare original
-findings/counters and resolved graphs, correct incomplete-analysis/coverage
-failure handling and verify supported17/21 plus experimental25 instrumentation.
-See the [P14-F report](p14-f-java-quality-verification.md) and [work log](work-log.md).
-All16 jobs pass in [CI39550199521](https://github.com/nantes-rfli/paclo/actions/runs/39550199521).
-Independent review is required before merge. P14 remains **in-progress**: P14-B
-[PR76](https://github.com/nantes-rfli/paclo/pull/76) is held by open
-[Issue77](https://github.com/nantes-rfli/paclo/issues/77). Retain core.async1.6.681,
-all unrelated dependency/toolchain pins and1.5.0-SNAPSHOT.
-Next unfinished queue item remains **P14**; other slices require separate selection.
-No P14-B/Issue77/P17/P09/P10 work, merge, release, tag or publication.
+Current task: **P14-G — data.json maintenance update and P14 scope closure**.
+Started from latest fetched main `ecf3f19`, including independently reviewed and
+merged [P14-F PR84](https://github.com/nantes-rfli/paclo/pull/84).
+Adopt data.json2.5.2 in production and the standalone performance merger, with
+JSON/CLI/report, distribution and audit-scope verification. See the
+[P14-G report](p14-g-data-json-verification.md) and [work log](work-log.md).
+P14's adopted maintenance scope A/C/D/E/F/G is complete; G still requires
+independent review before merge. This status does not resolve P14-B:
+[PR76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged and
+[Issue77](https://github.com/nantes-rfli/paclo/issues/77) remains open because of
+the measured fan-out performance regression. Keep core.async1.6.681.
+Do not create more implementation or completion-only PRs without demonstrated
+need. data.csv/test.check are deferred; deps-deploy requires a release-workflow
+need; CheckStyle/JUnit major migrations are out of scope. Keep Eastwood/Cloverage.
+Next unfinished items are independently held **P14-B/Issue77**, **P17** (Clojure1.13
+maturity/adoption reason), **P09** (use case), **P10** (measured shortfall).
+There is no automatically ready implementation item. No merge/release/tag/publication.
 
 P12 was independently reviewed and merged through
 [PR #70](https://github.com/nantes-rfli/paclo/pull/70) as
@@ -96,7 +99,7 @@ all other production dependencies, Java 17 bytecode and supported JDK 17/21.
 P11 was reviewed and merged through
 [PR #68](https://github.com/nantes-rfli/paclo/pull/68) as `58aeb54`.
 Its [inventory](p11-environment-inventory.md) remains historical investigation
-evidence. P13 is reviewed and merged. P14 is the next unfinished queue item; P16
+evidence. P13 is reviewed and merged. P14 adopted maintenance is complete; P14-B stays held. P16
 was independently reviewed and merged through PR78. P15 is merged. P17 still requires
 an explicit need/maturity decision. P09/P10 stay blocked.
 
@@ -736,17 +739,31 @@ separately from the compatibility experiment, using the resulting evidence.
 
 ## P14: Dependency and development-tool update evaluation
 
-Status: **in-progress**. P14-A JNR-FFI2.3.3 was independently reviewed and
-merged through [PR #75](https://github.com/nantes-rfli/paclo/pull/75).
-The [report](p14-a-jnr-verification.md) and [work log](work-log.md) retain its
-native/ABI, same-JAR17/21/25 and warning evidence. P14-B
-[PR #76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged due to
-the performance regression tracked by open
-[Issue #77](https://github.com/nantes-rfli/paclo/issues/77). Main and P16 retain
-core.async1.6.681. P14-C and P14-D are reviewed and merged in PR80/PR82. P14-E is merged in PR83; P14-F is selected;
-other candidates require separate selection;
-P14 as a whole is unfinished. P16 is reviewed and merged in PR78 and does not
-resume any of these slices.
+Status: **done for the adopted maintenance scope A/C/D/E/F/G**. A/C/D/E/F are
+independently reviewed and merged; G implementation and verification are recorded
+below and independent review is required before merge. Completion is scoped to
+the adopted maintenance work, not every candidate listed by P11.
+
+| Slice | Decision and completion |
+| --- | --- |
+| A | JNR-FFI2.3.3 adopted; reviewed/merged PR75; native/ABI and same-JAR evidence in [report](p14-a-jnr-verification.md) |
+| C | CLI1.12.5.1664/tools.build0.10.14 adopted; reviewed/merged PR80 |
+| D | Isolated nvd-clojure5.3.0/Dependency-Check12.2.2 adopted; reviewed/merged PR82; cold/warm audit evidence retained |
+| E | kondo2026.10.20/LSP2026.10.15-11.42.38 adopted; reviewed/merged PR83 |
+| F | SpotBugs/annotations4.10.5/JaCoCo0.8.15 adopted; reviewed/merged PR84 |
+| G | data.json2.5.2 adopted; [verification](p14-g-data-json-verification.md); independent review before merge |
+
+**Independent unresolved hold: P14-B.** [PR76](https://github.com/nantes-rfli/paclo/pull/76)
+is unmerged; [Issue77](https://github.com/nantes-rfli/paclo/issues/77) is open.
+The measured core.async fan-out regression has not been fixed or accepted.
+Retain1.6.681; this closure neither completes that work nor authorizes changes to it.
+
+Remaining candidate decisions: defer data.csv/test.check until concrete need;
+reassess deps-deploy only when release procedures need an update. CheckStyle/JUnit
+major migrations are out of scope; retain Eastwood1.4.3/Cloverage1.2.4.
+Do not create further implementation or completion-only PRs solely to exhaust
+P11's candidate list. P17 stays blocked until Clojure1.13 maturity and a clear
+adoption reason justify a separate decision. P09/P10 prerequisites remain unmet.
 
 Evaluate core.async, JNR-FFI, clj-kondo, clojure-lsp, Clojure CLI and other relevant
 update candidates. Keep CLI and Clojure library versions distinct and optional
@@ -772,9 +789,8 @@ build environments. Implementation6435bda passes all16 jobs in
 The [report](p14-c-build-toolchain-verification.md), [CI summary](p14-c-ci-evidence.json)
 and [work log](work-log.md) retain evidence, reproduction limits and remaining
 platform boundaries; final evidence/probe-head CI is recorded in PR80.
-P14 as a whole stays in-progress: PR76/Issue77 and other selected tool updates
-remain separate. Next unfinished queue item is P14; no P14-B/P17/P09/P10 work,
-publication, tag or merge follows this completion.
+At C completion P14 remained in-progress. G now closes the adopted maintenance
+scope; PR76/Issue77 remain independently held. No publication, tag or merge follows.
 
 ### P14-D: Dependency audit update and reliability
 
@@ -807,8 +823,8 @@ versions/hashes, cache keys and timestamps are in
 [verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
 
 P14-D implementation, execution verification and independent review are complete.
-P14 overall stays in-progress; PR76/Issue77 stay unchanged. The separately
-selected P14-E follows; no release/tag/publication or merge is authorized.
+G now closes the adopted maintenance scope; PR76/Issue77 stay independently held.
+No release/tag/publication or merge is authorized.
 
 ### P14-E: clj-kondo and clojure-lsp
 
@@ -829,12 +845,12 @@ after findings, real-tool and installer negative controls, full existing CI and
 platform limits in the [report](p14-e-lint-tools-verification.md) and work log.
 All production/toolchain/version/support/quality/performance pins stay unchanged.
 No P14-B/Issue77/P17/P09/P10 work or merge/release/tag/publication.
-Next unfinished queue item remains P14; P14-E independent review is complete.
+P14-E independent review is complete; G closes the adopted maintenance scope.
 
 ### P14-F: SpotBugs and JaCoCo
 
 Status: **done** for implementation and execution verification in
-[PR84](https://github.com/nantes-rfli/paclo/pull/84); independent review pending.
+[PR84](https://github.com/nantes-rfli/paclo/pull/84), independently reviewed and merged as `ecf3f19`.
 Selected from main204d72c after PR83 merged. Adopt SpotBugs/annotations4.10.5
 and JaCoCo agent/CLI0.8.15 while holding every other dependency and Java17 target.
 Original-runner before/after results agree: one EI_EXPOSE_REP finding on the
@@ -851,8 +867,22 @@ actual-JDK probes61/65/69 pass, all40 docs/three P16 platforms/27 performance
 scenarios and existing736.9ms decode gate pass. All five17/21/25 consumer outputs
 pass against the same verified CI JAR. [CI evidence](p14-f-ci-evidence.json)
 records jobs, ZIP/member hashes, JVM/CLI, counters and original log excerpts.
-Final evidence-only head CI is recorded in PR84; independent review is pending.
-Next unfinished queue item remains P14; no other slice or publication is authorized.
+Final head35a68b6 passed all16 jobs in CI39551295861, recorded in PR84.
+G follows from the merged main; no other slice or publication is authorized.
+
+### P14-G: data.json and adopted-scope closure
+
+Status: **done for implementation and verification; independent review before merge**.
+Adopt2.5.0 ->2.5.2, confirmed latest stable at task start from official upstream
+and Maven Central. Align root/standalone merger/POM verification and verify actual
+resolved version in same-JAR consumers. Preserve JSONL and performance report bytes,
+numeric types, Unicode/escaping and existing Paclo public contracts. Regression
+tests distinguish corrected numeric EOF and raw-control diagnostics from unchanged
+malformed-input behavior. Full evidence and commands are in the
+[report](p14-g-data-json-verification.md); remote CI status is recorded there/PR.
+P14 adopted maintenance closes with the explicit deferred-candidate/independent-hold
+policies above. Clojure1.12.6/JNR2.3.3/core.async1.6.681/Java17 target,
+JDK17/21 support, experimental25 and1.5.0-SNAPSHOT remain fixed.
 
 ## P15: REPL workflows and practical examples
 
@@ -865,7 +895,7 @@ assertions,10 JUnit tests, parser regressions and static checks pass. The
 checker now separates trailing REPL comments from its wrapper forms. See the
 [work log](work-log.md) for commands, the fresh-REPL check and macOS/sandbox
 verification conditions. No new API or dependency is needed or approved.
-P13 is reviewed and merged. P14 is the next unfinished queue item;
+P13 is reviewed and merged. P14 adopted maintenance is complete;
 P16 is independently reviewed and merged. P15 added no release, tag or publication.
 
 Use existing public APIs to assess concise REPL workflows for PCAP read/write,
@@ -894,7 +924,7 @@ and JDK25/same-JAR checks. No production/API/dependency fix was needed.
 The [report](p16-interop-verification.md), [CI evidence](p16-ci-evidence.json)
 and [work log](work-log.md) distinguish external normalization/private-option
 limits from Paclo defects and list unverified combinations/live conditions.
-Next unfinished queue item is P14; Issue77 remains open and no other slice
+P14 adopted maintenance is complete; Issue77 remains independently open and no other slice
 is authorized by this completion. No merge, release, tag or publication.
 
 Verify captures generated by external tools, multiple interfaces/link types,
@@ -912,7 +942,8 @@ with regression tests; larger changes require separately scoped follow-up work.
 
 ## P17: Clojure 1.13 preparation
 
-Status: **blocked** by P12 and a separate need/prerelease-maturity decision.
+Status: **blocked** by Clojure1.13 maturity and a clear adoption reason. P12 is
+complete; that alone does not satisfy the remaining prerequisites.
 Do not start automatically when P12 completes.
 
 Investigate changes in the prerelease 1.13 series and their effect on Paclo,

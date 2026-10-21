@@ -1,0 +1,590 @@
+{
+  "new-controls": [
+    [
+      0,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0000"
+      }
+    ],
+    [
+      1,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0001"
+      }
+    ],
+    [
+      2,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0002"
+      }
+    ],
+    [
+      3,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0003"
+      }
+    ],
+    [
+      4,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0004"
+      }
+    ],
+    [
+      5,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0005"
+      }
+    ],
+    [
+      6,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0006"
+      }
+    ],
+    [
+      7,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0007"
+      }
+    ],
+    [
+      8,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \b"
+      }
+    ],
+    [
+      11,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u000b"
+      }
+    ],
+    [
+      12,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \f"
+      }
+    ],
+    [
+      14,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u000e"
+      }
+    ],
+    [
+      15,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u000f"
+      }
+    ],
+    [
+      16,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0010"
+      }
+    ],
+    [
+      17,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0011"
+      }
+    ],
+    [
+      18,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0012"
+      }
+    ],
+    [
+      19,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0013"
+      }
+    ],
+    [
+      20,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0014"
+      }
+    ],
+    [
+      21,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0015"
+      }
+    ],
+    [
+      22,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0016"
+      }
+    ],
+    [
+      23,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0017"
+      }
+    ],
+    [
+      24,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0018"
+      }
+    ],
+    [
+      25,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u0019"
+      }
+    ],
+    [
+      26,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001a"
+      }
+    ],
+    [
+      27,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001b"
+      }
+    ],
+    [
+      28,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001c"
+      }
+    ],
+    [
+      29,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001d"
+      }
+    ],
+    [
+      30,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001e"
+      }
+    ],
+    [
+      31,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \u001f"
+      }
+    ]
+  ],
+  "old-numeric-eof": [
+    [
+      "0",
+      0,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \uffff"
+      }
+    ],
+    [
+      "-1",
+      -1,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \uffff"
+      }
+    ],
+    [
+      "9223372036854775808",
+      9223372036854775808,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \uffff"
+      }
+    ],
+    [
+      "1.25",
+      1.25,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \uffff"
+      }
+    ],
+    [
+      "1e3",
+      1000.0,
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): \uffff"
+      }
+    ]
+  ],
+  "equal-sections": {
+    "writes": true,
+    "reads": true,
+    "cli": true,
+    "performance": true,
+    "malformed": true,
+    "quoted-controls": true
+  },
+  "old-controls": [
+    [
+      0,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 0"
+      }
+    ],
+    [
+      1,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 1"
+      }
+    ],
+    [
+      2,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 2"
+      }
+    ],
+    [
+      3,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 3"
+      }
+    ],
+    [
+      4,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 4"
+      }
+    ],
+    [
+      5,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 5"
+      }
+    ],
+    [
+      6,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 6"
+      }
+    ],
+    [
+      7,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 7"
+      }
+    ],
+    [
+      8,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 8"
+      }
+    ],
+    [
+      11,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 11"
+      }
+    ],
+    [
+      12,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 12"
+      }
+    ],
+    [
+      14,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 14"
+      }
+    ],
+    [
+      15,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 15"
+      }
+    ],
+    [
+      16,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 16"
+      }
+    ],
+    [
+      17,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 17"
+      }
+    ],
+    [
+      18,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 18"
+      }
+    ],
+    [
+      19,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 19"
+      }
+    ],
+    [
+      20,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 20"
+      }
+    ],
+    [
+      21,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 21"
+      }
+    ],
+    [
+      22,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 22"
+      }
+    ],
+    [
+      23,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 23"
+      }
+    ],
+    [
+      24,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 24"
+      }
+    ],
+    [
+      25,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 25"
+      }
+    ],
+    [
+      26,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 26"
+      }
+    ],
+    [
+      27,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 27"
+      }
+    ],
+    [
+      28,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 28"
+      }
+    ],
+    [
+      29,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 29"
+      }
+    ],
+    [
+      30,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 30"
+      }
+    ],
+    [
+      31,
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 31"
+      }
+    ]
+  ],
+  "new-numeric-eof": [
+    [
+      "0",
+      0,
+      {
+        "value": "eof"
+      }
+    ],
+    [
+      "-1",
+      -1,
+      {
+        "value": "eof"
+      }
+    ],
+    [
+      "9223372036854775808",
+      9223372036854775808,
+      {
+        "value": "eof"
+      }
+    ],
+    [
+      "1.25",
+      1.25,
+      {
+        "value": "eof"
+      }
+    ],
+    [
+      "1e3",
+      1000.0,
+      {
+        "value": "eof"
+      }
+    ]
+  ],
+  "performance-sha256": "095b3c7bf8f6459bb7b479ef9a22dd2d8859eebfbb17591ef3d9a36cd95b3d10",
+  "malformed": [
+    [
+      "",
+      {
+        "exception": "java.io.EOFException",
+        "message": "JSON error (end-of-file)"
+      }
+    ],
+    [
+      " \n\t",
+      {
+        "exception": "java.io.EOFException",
+        "message": "JSON error (end-of-file)"
+      }
+    ],
+    [
+      "[",
+      {
+        "exception": "java.io.EOFException",
+        "message": "JSON error (EOF in array)"
+      }
+    ],
+    [
+      "{",
+      {
+        "exception": "java.io.EOFException",
+        "message": "JSON error (EOF in object)"
+      }
+    ],
+    [
+      "\"",
+      {
+        "exception": "java.io.EOFException",
+        "message": "JSON error (end-of-file inside string)"
+      }
+    ],
+    [
+      "01",
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (invalid number literal)"
+      }
+    ],
+    [
+      "1e",
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: -1"
+      }
+    ],
+    [
+      "[1,]",
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): ]"
+      }
+    ],
+    [
+      "{\"x\":}",
+      {
+        "exception": "java.lang.Exception",
+        "message": "JSON error (unexpected character): }"
+      }
+    ],
+    [
+      "\"\\q\"",
+      {
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "No matching clause: 113"
+      }
+    ]
+  ],
+  "quoted-controls": {
+    "value": "a\u0000b"
+  },
+  "cli-sha256": {
+    "rtt": "614307e1d86346a66fc3d4cb0c0758b664bdde3e132c4b7a3add6ee7f6f74639",
+    "qps": "4ab1967a628f4e5a5201de7bffa9e9160c5cea1cb3223a405b8fb408f8e6e9c1",
+    "flow": "16ee181df781b815d1e00c169d7a1cf1715d3329308c355459c189c4d34de434",
+    "topn": "dd479d5da03edbf788c478225d3afa14a8e23de7f35eca623ebc400067964731",
+    "tls": "e93f16303302bec2a783a1ec9870bd43901ec825e7104e0d2e13326a24e329b4",
+    "qstats": "6619e74c79075897079a123be29e694b9b1560e0653eada2fd49248ca6a99690",
+    "pairs": "6d4f45bc8b1cb45d559346f5c50976863c4efdfda77309efb8f93e636479c82b",
+    "escaped": "293f6e3ae796f7042b6deba2bfebb19f2038fad6907437d5c70b859d7ff2805f",
+    "stats": "0c2a203184426c61e405068fb47d776deaa66afba6948e23ae0bfc8f093a643b"
+  },
+  "versions": [
+    "2.5.0",
+    "2.5.2"
+  ]
+}

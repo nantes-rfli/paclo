@@ -26,6 +26,11 @@ Changes after v1.4.0 belong here.
 
 ### Build
 
+- Update data.json from 2.5.0 to 2.5.2 in production and the standalone
+  performance-results merger. Verify existing JSONL/report output compatibility,
+  numeric/Unicode round trips, corrected repeated-read EOF and control-character
+  diagnostics; keep Paclo's public API and other runtime dependency pins.
+
 - Update SpotBugs and its published annotations dependency to 4.10.5, and
   JaCoCo agent/CLI to 0.8.15. Reject incomplete Java analysis and stale/empty
   coverage results, retain the 25% Java line gate, and verify coverage on

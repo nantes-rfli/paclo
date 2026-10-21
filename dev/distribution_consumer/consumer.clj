@@ -15,7 +15,7 @@
    [paclo.stream :as stream]
    [paclo.window :as window])
   (:import
-   [java.io Closeable]
+   [java.io Closeable PushbackReader StringReader]
    [java.lang.management ManagementFactory]
    [java.util Properties]
    [paclo.jnr PcapHandle PcapLibrary]))
@@ -73,6 +73,9 @@
                         "java.specification.version" "os.name" "os.version" "os.arch"]))
    :jvm-arguments (vec (.getInputArguments (ManagementFactory/getRuntimeMXBean)))
    :clojure (clojure-version)
+   :data-json-version
+   (with-open [input (io/input-stream (io/resource "META-INF/maven/org.clojure/data.json/pom.properties"))]
+     (.getProperty (doto (Properties.) (.load input)) "version"))
    :libpcap-image (libpcap-image)
    :jnr-ffi-version (dependency-version "jnr-ffi")
    :jffi-version (dependency-version "jffi")
@@ -103,6 +106,12 @@
   (prn :native-compatibility-ok (runtime-info)))
 
 (defn verify! []
+  (check! (= "2.5.2" (:data-json-version (runtime-info))) :data-json-version)
+  (let [row {:qname "日本語\n\"\\😀" :packets 4 :rtt-ms 0.125 :missing nil}]
+    (check! (= row (json/read-str (json/write-str row) :key-fn keyword)) :json-roundtrip))
+  (with-open [reader (PushbackReader. (StringReader. "1.25") 64)]
+    (check! (= 1.25 (json/read reader)) :json-number)
+    (check! (= ::eof (json/read reader :eof-error? false :eof-value ::eof)) :json-number-eof))
   ;; Every library resource and binding must come from this exact local JAR.
   (let [expected (.getCanonicalFile (io/file "paclo.jar"))
         ^Class binding-class PcapHandle]
