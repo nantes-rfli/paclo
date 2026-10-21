@@ -149,7 +149,7 @@
                 :basis basis})))
 
 (defn jacoco-gate
-  "Fail if line coverage is below threshold (default 60%)."
+  "Fail if line coverage is below threshold (default 25%)."
   [_]
   (let [basis (b/create-basis {:project "deps.edn" :aliases [:jacoco-gate]})]
     (process! {:command-args ["clojure" "-M:jacoco-gate" "-m" "paclo.dev.jacoco-gate"]

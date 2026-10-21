@@ -1,0 +1,63 @@
+org.clojure/clojure 1.12.6
+  . org.clojure/spec.alpha 0.5.238
+  . org.clojure/core.specs.alpha 0.4.74
+org.clojure/core.async 1.6.681
+  . org.clojure/tools.analyzer.jvm 1.2.3
+    . org.clojure/tools.analyzer 1.1.1
+    . org.clojure/core.memoize 1.0.253
+      . org.clojure/core.cache 1.0.225
+        . org.clojure/data.priority-map 1.1.0
+    X org.ow2.asm/asm 9.2 :older-version
+    . org.clojure/tools.reader 1.3.6
+com.github.jnr/jnr-ffi 2.3.3
+  . com.github.jnr/jffi 1.4.3
+  . com.github.jnr/jffi$native 1.4.3
+  X org.ow2.asm/asm 9.10.1 :superseded
+  X org.ow2.asm/asm-commons 9.10.1 :superseded
+    X org.ow2.asm/asm 9.10.1 :parent-omitted
+    X org.ow2.asm/asm-tree 9.10.1 :parent-omitted
+  X org.ow2.asm/asm-analysis 9.10.1 :superseded
+    X org.ow2.asm/asm-tree 9.10.1 :parent-omitted
+  X org.ow2.asm/asm-tree 9.10.1 :superseded
+    X org.ow2.asm/asm 9.10.1 :parent-omitted
+  X org.ow2.asm/asm-util 9.10.1 :superseded
+    X org.ow2.asm/asm 9.10.1 :parent-omitted
+    X org.ow2.asm/asm-tree 9.10.1 :parent-omitted
+    X org.ow2.asm/asm-analysis 9.10.1 :parent-omitted
+  . com.github.jnr/jnr-a64asm 1.0.0
+  . com.github.jnr/jnr-x86asm 1.0.2
+org.clojure/data.json 2.5.0
+com.github.spotbugs/spotbugs-annotations 4.10.5
+  . com.google.code.findbugs/jsr305 3.0.2
+com.github.spotbugs/spotbugs 4.10.5
+  . org.ow2.asm/asm 9.11 :newer-version
+  . org.ow2.asm/asm-analysis 9.11 :newer-version
+    . org.ow2.asm/asm-tree 9.11
+  . org.ow2.asm/asm-commons 9.11 :newer-version
+    . org.ow2.asm/asm 9.11
+    . org.ow2.asm/asm-tree 9.11
+  . org.ow2.asm/asm-tree 9.11 :newer-version
+    . org.ow2.asm/asm 9.11
+  . org.ow2.asm/asm-util 9.11 :newer-version
+    . org.ow2.asm/asm 9.11
+    . org.ow2.asm/asm-tree 9.11
+    . org.ow2.asm/asm-analysis 9.11
+  . org.apache.bcel/bcel 6.13.0
+    X org.apache.commons/commons-lang3 3.20.0 :older-version
+    . commons-io/commons-io 2.22.0
+  . com.github.stephenc.jcip/jcip-annotations 1.0-1
+  . org.dom4j/dom4j 2.2.0
+  . com.google.code.gson/gson 2.14.0
+    . com.google.errorprone/error_prone_annotations 2.48.0
+  . org.apache.commons/commons-lang3 3.21.0
+  . org.apache.commons/commons-text 1.15.0
+    X org.apache.commons/commons-lang3 3.20.0 :older-version
+  . org.jspecify/jspecify 1.0.1
+  . org.slf4j/slf4j-api 2.0.20
+  X com.github.spotbugs/spotbugs-annotations 4.10.5 :use-top
+  . jaxen/jaxen 2.0.6
+  . net.sf.saxon/Saxon-HE 12.10
+    . org.xmlresolver/xmlresolver 5.3.3
+    . org.xmlresolver/xmlresolver$data 5.3.3
+  . org.apache.logging.log4j/log4j-core 2.26.1
+    . org.apache.logging.log4j/log4j-api 2.26.1

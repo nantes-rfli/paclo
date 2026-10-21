@@ -1,0 +1,13 @@
+{
+  "old": {
+    "exit": 0,
+    "findings": []
+  },
+  "new": {
+    "exit": 1,
+    "findings": [
+      "DMI_MISLEADING_SUBSTRING",
+      "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"
+    ]
+  }
+}

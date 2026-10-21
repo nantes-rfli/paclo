@@ -1,0 +1,833 @@
+{
+  "pr": "https://github.com/nantes-rfli/paclo/pull/84",
+  "implementation_head": "b50de8840a5c9f7a016028074d8a104a5b6a6e65",
+  "run_id": 39550199521,
+  "ci_run": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521",
+  "distribution": {
+    "artifact_id": 12323590595,
+    "zip_sha256": "74f54c6e9bf1029225d952fe4f1a3dcf9ad016be1dc4224bc23df3a6cfbbeec0",
+    "all_member_hashes_verified": 13,
+    "provenance": {
+      "class_major_versions": {
+        "paclo/jnr/BpfProgram.class": 61,
+        "paclo/jnr/PcapConfigLibrary.class": 61,
+        "paclo/jnr/PcapErrors.class": 61,
+        "paclo/jnr/PcapHandle.class": 61,
+        "paclo/jnr/PcapHeader.class": 61,
+        "paclo/jnr/PcapLibrary$PcapIf.class": 61,
+        "paclo/jnr/PcapLibrary.class": 61,
+        "paclo/jnr/PcapStat.class": 61,
+        "paclo/jnr/PcapStatsLibrary.class": 61,
+        "paclo/jnr/PcapStdioLibrary.class": 61
+      },
+      "dependencies": {
+        "org.clojure/data.json": "2.5.0",
+        "org.clojure/clojure": "1.12.6",
+        "com.github.jnr/jnr-ffi": "2.3.3",
+        "com.github.spotbugs/spotbugs-annotations": "4.10.5",
+        "org.clojure/core.async": "1.6.681"
+      },
+      "coordinates": "org.clojars.nanto/paclo:1.5.0-SNAPSHOT",
+      "scm_tag": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "source_dirty": false,
+      "build_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+      "build_clojure_cli": "1.12.5.1664",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "files": {
+        "deps.edn": "0a4c79ee5a57744f18c99601410953db3356ce7a3739f07c3dc743359e0645dd",
+        "distribution_consumer/consumer.clj": "0244d07c4214e8fe768e258e1bf9374181a961c023370d3e7aa04b1f3d01bd95",
+        "fixtures/cooked/sll.pcap": "586a6864a812e90d90d4e3b04eeefd7f191695ff0d28e96ef86481759d7c1701",
+        "fixtures/cooked/sll2.pcap": "75d395935bb0844f223884f6f652fe07d4a2d1ca0450b140a1cf97f7f411f8fb",
+        "fixtures/dns-sample.pcap": "f1c22ca607df4124c939f363f8fc8d6348715d3cecb9174e52413b08931449e2",
+        "fixtures/null-loop/loop-header-be-file-le.pcap": "cb3322208fc42812b29ef490b23c5ae0f149868aa243909d17a071e9e1d052a6",
+        "fixtures/null-loop/null-header-le-file-le.pcap": "3e77fe6b932b56b08e809ba721cf1c616d3b7dde4f7081f7ae4d300eeb140a40",
+        "fixtures/pcapng-contracts/rich.pcapng": "81d107b98581b4aacab8f338b79a7b929ea3e638b00c867e3c4de04d048459b1",
+        "fixtures/raw-ip/raw.pcap": "47ed0e09bc1585e6181930bdfc1301623bcd346839656d532f3a9efc1124ec07",
+        "fixtures/tls-sni-alpn-sample.pcap": "cb8db093751bfa239e78c5207b8d803ec98d9d205ee0988fd8df324857d2df2e",
+        "paclo.jar": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+        "pom.xml": "99b04d85eae0ae545109dde5fe9b363d4eba30e1652fc1d2708d084ef10bcad3",
+        "verify_distribution.py": "498573d551024d730914e72ed4c997b6a12d0d253e16dc1dd3d46a9cbdc4daba"
+      }
+    }
+  },
+  "java_quality_artifacts": [
+    {
+      "artifact_id": 12323800244,
+      "zip_sha256": "d6a603a45ba3d9c2bef401588cb416139344456c0613a4bb507350b878cd97fd",
+      "binding_counters": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "55",
+          "covered": "228"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "7",
+          "covered": "19"
+        },
+        {
+          "type": "LINE",
+          "missed": "14",
+          "covered": "59"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "9",
+          "covered": "28"
+        },
+        {
+          "type": "METHOD",
+          "missed": "2",
+          "covered": "22"
+        },
+        {
+          "type": "CLASS",
+          "missed": "2",
+          "covered": "7"
+        }
+      ],
+      "actual_runtime_probe": {
+        "class_major": 61,
+        "counters": {
+          "INSTRUCTION": {
+            "covered": 14,
+            "missed": 7
+          },
+          "BRANCH": {
+            "covered": 3,
+            "missed": 1
+          },
+          "LINE": {
+            "covered": 3,
+            "missed": 1
+          },
+          "COMPLEXITY": {
+            "covered": 3,
+            "missed": 2
+          },
+          "METHOD": {
+            "covered": 2,
+            "missed": 1
+          },
+          "CLASS": {
+            "covered": 1,
+            "missed": 0
+          }
+        }
+      },
+      "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+      "compiler": "javac 17.0.20.1"
+    },
+    {
+      "artifact_id": 12323530527,
+      "zip_sha256": "27665c2bb52f60d25955811da3820c408f83ed5b2b58df525e1d38c958dea6b2",
+      "binding_counters": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "57",
+          "covered": "226"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "7",
+          "covered": "19"
+        },
+        {
+          "type": "LINE",
+          "missed": "14",
+          "covered": "59"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "9",
+          "covered": "28"
+        },
+        {
+          "type": "METHOD",
+          "missed": "2",
+          "covered": "22"
+        },
+        {
+          "type": "CLASS",
+          "missed": "2",
+          "covered": "7"
+        }
+      ],
+      "actual_runtime_probe": {
+        "class_major": 65,
+        "counters": {
+          "INSTRUCTION": {
+            "covered": 14,
+            "missed": 7
+          },
+          "BRANCH": {
+            "covered": 3,
+            "missed": 1
+          },
+          "LINE": {
+            "covered": 3,
+            "missed": 1
+          },
+          "COMPLEXITY": {
+            "covered": 3,
+            "missed": 2
+          },
+          "METHOD": {
+            "covered": 2,
+            "missed": 1
+          },
+          "CLASS": {
+            "covered": 1,
+            "missed": 0
+          }
+        }
+      },
+      "spotbugs": {
+        "findings": [
+          {
+            "type": "EI_EXPOSE_REP",
+            "priority": "2",
+            "rank": "18",
+            "abbrev": "EI",
+            "category": "MALICIOUS_CODE",
+            "instanceHash": "c0fe7f7e27532e6191732eb1be3382cf",
+            "instanceOccurrenceNum": "0",
+            "instanceOccurrenceMax": "0",
+            "cweid": "374"
+          }
+        ],
+        "errors": [
+          {
+            "errors": "0",
+            "missingClasses": "0"
+          }
+        ],
+        "classes": "10"
+      },
+      "checkstyle_errors": 0,
+      "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+      "compiler": "javac 21.0.12.1"
+    },
+    {
+      "artifact_id": 12323068426,
+      "zip_sha256": "f6ee9688522e7254be12c9e2674eade92c3fa579fd58b01489de6acea4678877",
+      "binding_counters": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "57",
+          "covered": "226"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "7",
+          "covered": "19"
+        },
+        {
+          "type": "LINE",
+          "missed": "14",
+          "covered": "59"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "9",
+          "covered": "28"
+        },
+        {
+          "type": "METHOD",
+          "missed": "2",
+          "covered": "22"
+        },
+        {
+          "type": "CLASS",
+          "missed": "2",
+          "covered": "7"
+        }
+      ],
+      "actual_runtime_probe": {
+        "class_major": 65,
+        "counters": {
+          "INSTRUCTION": {
+            "covered": 14,
+            "missed": 7
+          },
+          "BRANCH": {
+            "covered": 3,
+            "missed": 1
+          },
+          "LINE": {
+            "covered": 3,
+            "missed": 1
+          },
+          "COMPLEXITY": {
+            "covered": 3,
+            "missed": 2
+          },
+          "METHOD": {
+            "covered": 2,
+            "missed": 1
+          },
+          "CLASS": {
+            "covered": 1,
+            "missed": 0
+          }
+        }
+      },
+      "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+      "compiler": "javac 21.0.12.1"
+    },
+    {
+      "artifact_id": 12322529770,
+      "zip_sha256": "97e854c3b7da3640fea4039d5951be2fe4a273d96acbcd9b782ba7fb7f052d1c",
+      "binding_counters": [
+        {
+          "type": "INSTRUCTION",
+          "missed": "57",
+          "covered": "226"
+        },
+        {
+          "type": "BRANCH",
+          "missed": "7",
+          "covered": "19"
+        },
+        {
+          "type": "LINE",
+          "missed": "14",
+          "covered": "59"
+        },
+        {
+          "type": "COMPLEXITY",
+          "missed": "9",
+          "covered": "28"
+        },
+        {
+          "type": "METHOD",
+          "missed": "2",
+          "covered": "22"
+        },
+        {
+          "type": "CLASS",
+          "missed": "2",
+          "covered": "7"
+        }
+      ],
+      "actual_runtime_probe": {
+        "class_major": 69,
+        "counters": {
+          "INSTRUCTION": {
+            "covered": 14,
+            "missed": 7
+          },
+          "BRANCH": {
+            "covered": 3,
+            "missed": 1
+          },
+          "LINE": {
+            "covered": 3,
+            "missed": 1
+          },
+          "COMPLEXITY": {
+            "covered": 3,
+            "missed": 2
+          },
+          "METHOD": {
+            "covered": 2,
+            "missed": 1
+          },
+          "CLASS": {
+            "covered": 1,
+            "missed": 0
+          }
+        }
+      },
+      "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+      "compiler": "javac 25.0.4.1"
+    }
+  ],
+  "conclusion": "success",
+  "job_count": 16,
+  "jobs": [
+    {
+      "id": 119057405634,
+      "name": "coverage",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405634"
+    },
+    {
+      "id": 119057405907,
+      "name": "arm64-monitor",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405907"
+    },
+    {
+      "id": 119057405911,
+      "name": "performance-measurement (udp-64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405911"
+    },
+    {
+      "id": 119057405915,
+      "name": "jdk25-source",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405915"
+    },
+    {
+      "id": 119057405916,
+      "name": "documentation-checks",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405916"
+    },
+    {
+      "id": 119057405990,
+      "name": "eastwood-lint",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057405990"
+    },
+    {
+      "id": 119057406001,
+      "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057406001"
+    },
+    {
+      "id": 119057406025,
+      "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057406025"
+    },
+    {
+      "id": 119057406029,
+      "name": "build-checks",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057406029"
+    },
+    {
+      "id": 119057406040,
+      "name": "performance-measurement (tcp-512)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057406040"
+    },
+    {
+      "id": 119057406181,
+      "name": "performance-measurement (mixed)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057406181"
+    },
+    {
+      "id": 119057893447,
+      "name": "performance-results",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119057893447"
+    },
+    {
+      "id": 119059526287,
+      "name": "distribution-consumer (25)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119059526287"
+    },
+    {
+      "id": 119059526291,
+      "name": "distribution-consumer (17)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119059526291"
+    },
+    {
+      "id": 119059526298,
+      "name": "distribution-consumer (21)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119059526298"
+    },
+    {
+      "id": 119059789628,
+      "name": "build",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39550199521/job/119059789628"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12324230772,
+      "name": "distribution-consumer-jdk21-39550199521",
+      "digest": "sha256:21d687b263dfda54e31bcdef97dd982836e79ee66f77739d9bde4693f2dcabd0"
+    },
+    {
+      "id": 12323950645,
+      "name": "distribution-consumer-jdk17-39550199521",
+      "digest": "sha256:d4e0473210019638dfa04d12389c84f63a2a35deb032f1df9d609e3b19cbb002"
+    },
+    {
+      "id": 12323895111,
+      "name": "perf-shard-tcp-512-39550199521",
+      "digest": "sha256:9f40f3a7a9b45cca579fc0bea6a994eb78ce23e88923c7a7493afe4b6a5a2818"
+    },
+    {
+      "id": 12323825148,
+      "name": "p16-interop-Linux-ARM64-39550199521",
+      "digest": "sha256:0ea69438c120e96e03f8d5a626481ca600643af82dea0a0c82928074d97e2af0"
+    },
+    {
+      "id": 12323800244,
+      "name": "jacoco-macos-arm64-jdk17-39550199521",
+      "digest": "sha256:d6a603a45ba3d9c2bef401588cb416139344456c0613a4bb507350b878cd97fd"
+    },
+    {
+      "id": 12323660160,
+      "name": "coverage-report",
+      "digest": "sha256:774f58f17d10a9852764204954100e82c10d6daa72f562fc7c346763e41b86f9"
+    },
+    {
+      "id": 12323590595,
+      "name": "distribution-1.5.0-SNAPSHOT-jdk21-39550199521",
+      "digest": "sha256:74f54c6e9bf1029225d952fe4f1a3dcf9ad016be1dc4224bc23df3a6cfbbeec0"
+    },
+    {
+      "id": 12323530527,
+      "name": "java-quality-jdk21-39550199521",
+      "digest": "sha256:27665c2bb52f60d25955811da3820c408f83ed5b2b58df525e1d38c958dea6b2"
+    },
+    {
+      "id": 12323455707,
+      "name": "p16-interop-macOS-ARM64-39550199521",
+      "digest": "sha256:9a778d432073c9a104fb5c744a0b55685e9d99b2bb15ded89a9f1359dbde74ff"
+    },
+    {
+      "id": 12323337069,
+      "name": "perf-shard-udp-64-39550199521",
+      "digest": "sha256:28649be4595d03da698e0f5485e80043219c40a9b94b8c081ff73e981ba97c81"
+    },
+    {
+      "id": 12323257044,
+      "name": "perf-shard-mixed-39550199521",
+      "digest": "sha256:659a8568090050fbdbb6c1c2ad35a4fc1de461c683e39e41b5abc7fbb12d11c6"
+    },
+    {
+      "id": 12323198450,
+      "name": "distribution-consumer-jdk25-39550199521",
+      "digest": "sha256:7ae75d3bc25d8e4559eaed0fc0f3a0070b3765ef29d11173d5a0fd377302e688"
+    },
+    {
+      "id": 12323187670,
+      "name": "p16-interop-Linux-X64-39550199521",
+      "digest": "sha256:0c867a7bad86fb346a491dcf6885e15237a4e701de0e7e8d1782cf52abc9ce02"
+    },
+    {
+      "id": 12323068426,
+      "name": "jacoco-linux-jdk21-39550199521",
+      "digest": "sha256:f6ee9688522e7254be12c9e2674eade92c3fa579fd58b01489de6acea4678877"
+    },
+    {
+      "id": 12322949958,
+      "name": "toolchain-resolution-39550199521",
+      "digest": "sha256:2fbbe6412b94594c2ec32d3f4069fc319f4f36e38edca938124a4bfc8368f09d"
+    },
+    {
+      "id": 12322684566,
+      "name": "jdk25-source-39550199521",
+      "digest": "sha256:0a990a118413bd2b4c66fe63770ba95fc330be2b2fd893e2922076cbcc0c607b"
+    },
+    {
+      "id": 12322604609,
+      "name": "perf-quick-39550199521",
+      "digest": "sha256:9f894a61d81da7ea84fd1db3cc6bab1066646647b1abd728c5d2e8ccd65bc60d"
+    },
+    {
+      "id": 12322529770,
+      "name": "jacoco-jdk25-39550199521",
+      "digest": "sha256:97e854c3b7da3640fea4039d5951be2fe4a273d96acbcd9b782ba7fb7f052d1c"
+    }
+  ],
+  "log_excerpts": {
+    "119057406029": [
+      "2026-10-21T05:34:57.7412381Z Ran 5 tests in 22.371s",
+      "2026-10-21T05:34:57.9082147Z   \"jar_sha256\": \"9b8c364ff520bc8c9b95f8016a7be5095111de529f6094d27a4add1627f38245\",",
+      "2026-10-21T05:34:57.9088475Z   \"status\": \"passed\"",
+      "2026-10-21T05:34:57.9093120Z   \"jar_sha256\": \"9b8c364ff520bc8c9b95f8016a7be5095111de529f6094d27a4add1627f38245\",",
+      "2026-10-21T05:34:57.9099406Z   \"status\": \"passed\"",
+      "2026-10-21T05:34:58.0724826Z   \"jar_sha256\": \"f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5\",",
+      "2026-10-21T05:36:42.1352503Z Ran 11 tests in 61.870s",
+      "2026-10-21T05:37:02.7865303Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T05:37:03.9606451Z Actual-runtime JaCoCo probe passed (class major 65): {'INSTRUCTION': {'covered': 14, 'missed': 7}, 'BRANCH': {'covered': 3, 'missed': 1}, 'LINE': {'covered': 3, 'missed': 1}, 'COMPLEXITY': {'covered': 3, 'missed': 2}, 'METHOD': {'covered': 2, 'missed': 1}, 'CLASS': {'covered': 1, 'missed': 0}}",
+      "2026-10-21T05:37:09.3394981Z [perf-gate] decode?=true mid-50k elapsed-ms=736.9 (warn=1000 fail=1200)"
+    ],
+    "119057406025": [
+      "2026-10-21T05:36:50.5690470Z Ran 494 tests containing 19137 assertions.",
+      "2026-10-21T05:36:57.5698170Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T05:36:58.5009520Z Actual-runtime JaCoCo probe passed (class major 61): {'INSTRUCTION': {'covered': 14, 'missed': 7}, 'BRANCH': {'covered': 3, 'missed': 1}, 'LINE': {'covered': 3, 'missed': 1}, 'COMPLEXITY': {'covered': 3, 'missed': 2}, 'METHOD': {'covered': 2, 'missed': 1}, 'CLASS': {'covered': 1, 'missed': 0}}",
+      "2026-10-21T05:37:14.1480060Z Ran 5 tests containing 377 assertions."
+    ],
+    "119057406001": [
+      "2026-10-21T05:36:17.1773716Z Ran 494 tests containing 19143 assertions.",
+      "2026-10-21T05:36:26.7754353Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T05:36:27.8818299Z Actual-runtime JaCoCo probe passed (class major 65): {'INSTRUCTION': {'covered': 14, 'missed': 7}, 'BRANCH': {'covered': 3, 'missed': 1}, 'LINE': {'covered': 3, 'missed': 1}, 'COMPLEXITY': {'covered': 3, 'missed': 2}, 'METHOD': {'covered': 2, 'missed': 1}, 'CLASS': {'covered': 1, 'missed': 0}}",
+      "2026-10-21T05:36:46.4284832Z Ran 5 tests containing 377 assertions."
+    ],
+    "119057405915": [
+      "2026-10-21T05:35:41.1617066Z \u001b[36;1mclojure -M:jacoco-gate\u001b[0m",
+      "2026-10-21T05:35:52.2407082Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+      "2026-10-21T05:35:52.2407675Z [jacoco-gate] PASS",
+      "2026-10-21T05:35:53.6243156Z Actual-runtime JaCoCo probe passed (class major 69): {'INSTRUCTION': {'covered': 14, 'missed': 7}, 'BRANCH': {'covered': 3, 'missed': 1}, 'LINE': {'covered': 3, 'missed': 1}, 'COMPLEXITY': {'covered': 3, 'missed': 2}, 'METHOD': {'covered': 2, 'missed': 1}, 'CLASS': {'covered': 1, 'missed': 0}}"
+    ],
+    "119057405916": [
+      "2026-10-21T05:36:03.8404037Z PASS: 40 documentation examples"
+    ],
+    "119057405907": [
+      "2026-10-21T05:36:01.5993349Z [perf] merged 27 offline scenarios",
+      "2026-10-21T05:36:01.5994204Z [perf] wrote /tmp/paclo-perf-shards8888150517109557356/merged/results.edn",
+      "2026-10-21T05:36:01.5994750Z [perf] wrote /tmp/paclo-perf-shards8888150517109557356/merged/results.json",
+      "2026-10-21T05:36:07.8220870Z Ran 494 tests containing 19143 assertions.",
+      "2026-10-21T05:36:23.7173733Z Ran 5 tests containing 377 assertions."
+    ],
+    "119057893447": [
+      "2026-10-21T05:35:06.7983085Z [perf] merged 27 offline scenarios"
+    ],
+    "119059526291": [
+      "2026-10-21T05:40:53.5568574Z   \"jar_sha256\": \"f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5\",",
+      "2026-10-21T05:40:53.5589835Z   \"status\": \"passed\""
+    ]
+  },
+  "existing_decode_gate_ms": 736.9,
+  "performance_scenarios": 27,
+  "consumer_reports": [
+    {
+      "artifact_id": 12324230772,
+      "file": "consumer-jdk21.json",
+      "status": "passed",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+      "consumer_clojure_cli": "1.12.5.1664",
+      "java_options": [],
+      "native_dependency_sha256": {
+        "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+      },
+      "runtime": {
+        "native-long-bytes": 8,
+        "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+        "clojure": "1.12.6",
+        "jvm-arguments": [
+          "-XX:-OmitStackTraceInFastThrow",
+          "-Dclojure.basis=.cpcache/2034795276.basis"
+        ],
+        "jffi-version": "1.4.3",
+        "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+        "jnr-ffi-version": "2.3.3",
+        "java": {
+          "java.version": "21.0.12.1",
+          "java.runtime.version": "21.0.12.1+1-LTS",
+          "java.vendor": "Eclipse Adoptium",
+          "java.vm.name": "OpenJDK 64-Bit Server VM",
+          "java.specification.version": "21",
+          "os.name": "Linux",
+          "os.version": "7.0.0-1017-azure",
+          "os.arch": "amd64"
+        },
+        "native-address-bytes": 8
+      }
+    },
+    {
+      "artifact_id": 12323950645,
+      "file": "consumer-jdk17.json",
+      "status": "passed",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+      "consumer_clojure_cli": "1.12.5.1664",
+      "java_options": [],
+      "native_dependency_sha256": {
+        "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+      },
+      "runtime": {
+        "native-long-bytes": 8,
+        "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+        "clojure": "1.12.6",
+        "jvm-arguments": [
+          "-XX:-OmitStackTraceInFastThrow",
+          "-Dclojure.basis=.cpcache/2034795276.basis"
+        ],
+        "jffi-version": "1.4.3",
+        "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+        "jnr-ffi-version": "2.3.3",
+        "java": {
+          "java.version": "17.0.20.1",
+          "java.runtime.version": "17.0.20.1+1",
+          "java.vendor": "Eclipse Adoptium",
+          "java.vm.name": "OpenJDK 64-Bit Server VM",
+          "java.specification.version": "17",
+          "os.name": "Linux",
+          "os.version": "7.0.0-1017-azure",
+          "os.arch": "amd64"
+        },
+        "native-address-bytes": 8
+      }
+    },
+    {
+      "artifact_id": 12323198450,
+      "file": "consumer-jdk25-native-access.json",
+      "status": "passed",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+      "consumer_clojure_cli": "1.12.5.1664",
+      "java_options": [
+        "--enable-native-access=ALL-UNNAMED",
+        "--sun-misc-unsafe-memory-access=debug"
+      ],
+      "native_dependency_sha256": {
+        "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+      },
+      "runtime": {
+        "native-long-bytes": 8,
+        "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+        "clojure": "1.12.6",
+        "jvm-arguments": [
+          "-XX:-OmitStackTraceInFastThrow",
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=debug",
+          "-Dclojure.basis=.cpcache/2034795276.basis"
+        ],
+        "jffi-version": "1.4.3",
+        "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+        "jnr-ffi-version": "2.3.3",
+        "java": {
+          "java.version": "25.0.4.1",
+          "java.runtime.version": "25.0.4.1+1-LTS",
+          "java.vendor": "Eclipse Adoptium",
+          "java.vm.name": "OpenJDK 64-Bit Server VM",
+          "java.specification.version": "25",
+          "os.name": "Linux",
+          "os.version": "7.0.0-1017-azure",
+          "os.arch": "amd64"
+        },
+        "native-address-bytes": 8
+      }
+    },
+    {
+      "artifact_id": 12323198450,
+      "file": "consumer-jdk25-unsafe-deny.json",
+      "status": "passed",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+      "consumer_clojure_cli": "1.12.5.1664",
+      "java_options": [
+        "--enable-native-access=ALL-UNNAMED",
+        "--sun-misc-unsafe-memory-access=deny"
+      ],
+      "native_dependency_sha256": {
+        "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+      },
+      "runtime": {
+        "native-long-bytes": 8,
+        "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+        "clojure": "1.12.6",
+        "jvm-arguments": [
+          "-XX:-OmitStackTraceInFastThrow",
+          "--enable-native-access=ALL-UNNAMED",
+          "--sun-misc-unsafe-memory-access=deny",
+          "-Dclojure.basis=.cpcache/2034795276.basis"
+        ],
+        "jffi-version": "1.4.3",
+        "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+        "jnr-ffi-version": "2.3.3",
+        "java": {
+          "java.version": "25.0.4.1",
+          "java.runtime.version": "25.0.4.1+1-LTS",
+          "java.vendor": "Eclipse Adoptium",
+          "java.vm.name": "OpenJDK 64-Bit Server VM",
+          "java.specification.version": "25",
+          "os.name": "Linux",
+          "os.version": "7.0.0-1017-azure",
+          "os.arch": "amd64"
+        },
+        "native-address-bytes": 8
+      }
+    },
+    {
+      "artifact_id": 12323198450,
+      "file": "consumer-jdk25.json",
+      "status": "passed",
+      "version": "1.5.0-SNAPSHOT",
+      "source_commit": "0991c50a28200edb822970700e4f57a7c9e0f32a",
+      "jar_sha256": "f73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5",
+      "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+      "consumer_clojure_cli": "1.12.5.1664",
+      "java_options": [],
+      "native_dependency_sha256": {
+        "jffi-1.4.3-native.jar": "278915be4feba64d6050aab4bbfb255d5daad494ac442e4826da55d2ac81cfe5",
+        "jffi-1.4.3.jar": "402f3c4652ff33ef3c9deb81ee3e9487bd62a91605fe1f2bdf2e2d6f2f4bb4ff",
+        "jnr-a64asm-1.0.0.jar": "53ae5ea7fa5c284e8279aa348e7b9de4548b0cae10bfd058fa217c791875e4cf",
+        "jnr-ffi-2.3.3.jar": "c7671fa32080def6b4edbce102248f8b38a452f0ea094a233e6e8e4441075e67",
+        "jnr-x86asm-1.0.2.jar": "39f3675b910e6e9b93825f8284bec9f4ad3044cd20a6f7c8ff9e2f8695ebf21e",
+        "asm-9.10.1.jar": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+        "asm-analysis-9.10.1.jar": "dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc",
+        "asm-commons-9.10.1.jar": "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+        "asm-tree-9.10.1.jar": "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+        "asm-util-9.10.1.jar": "1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c"
+      },
+      "runtime": {
+        "native-long-bytes": 8,
+        "libpcap-image": "/lib/x86_64-linux-gnu/libpcap.so.1.10.4",
+        "clojure": "1.12.6",
+        "jvm-arguments": [
+          "-XX:-OmitStackTraceInFastThrow",
+          "-Dclojure.basis=.cpcache/2034795276.basis"
+        ],
+        "jffi-version": "1.4.3",
+        "libpcap-version": "libpcap version 1.10.4 (with TPACKET_V3)",
+        "jnr-ffi-version": "2.3.3",
+        "java": {
+          "java.version": "25.0.4.1",
+          "java.runtime.version": "25.0.4.1+1-LTS",
+          "java.vendor": "Eclipse Adoptium",
+          "java.vm.name": "OpenJDK 64-Bit Server VM",
+          "java.specification.version": "25",
+          "os.name": "Linux",
+          "os.version": "7.0.0-1017-azure",
+          "os.arch": "amd64"
+        },
+        "native-address-bytes": 8
+      }
+    }
+  ]
+}

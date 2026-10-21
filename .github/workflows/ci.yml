@@ -125,6 +125,9 @@ jobs:
         working-directory: dev/audit
         run: clojure -Srepro -M verify_schema.clj
 
+      - name: Verify Java quality failure behavior
+        run: python3 -B -m unittest discover -s dev/script -p 'test_java_quality.py'
+
       - name: SpotBugs
         shell: bash
         run: |
@@ -146,6 +149,20 @@ jobs:
           set -e
           clojure -M:jacoco
           clojure -M:jacoco-gate
+          python3 dev/script/verify_java_quality_runtime.py target/java-quality-runtime
+
+      - name: Upload JDK 21 Java quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-quality-jdk21-${{ github.run_id }}
+          path: |
+            target/spotbugs.xml
+            target/checkstyle.xml
+            target/jacoco.xml
+            target/jacoco-html/
+            target/java-quality-runtime/
+          if-no-files-found: error
 
       # The identical Linux/JDK21 Clojure test suite is already executed in
       # compatibility-matrix and is enforced by the required build aggregate.
@@ -551,6 +568,25 @@ jobs:
           python3 -B -m unittest discover -s dev/script -p 'test_verify_jdk25.py'
           python3 dev/script/verify_jdk25.py target/jdk25-source
 
+      - name: Experimental JDK 25 Java coverage
+        env:
+          JACOCO_MIN_LINE: "0.25"
+        run: |
+          clojure -M:jacoco
+          clojure -M:jacoco-gate
+          python3 dev/script/verify_java_quality_runtime.py target/java-quality-runtime
+
+      - name: Upload JDK 25 Java coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-jdk25-${{ github.run_id }}
+          path: |
+            target/jacoco.xml
+            target/jacoco-html/
+            target/java-quality-runtime/
+          if-no-files-found: error
+
       - name: Upload source experiment logs and runtime identity
         if: always()
         uses: actions/upload-artifact@v4
@@ -673,6 +709,25 @@ jobs:
         run: |
           set -e
           clojure -M:test
+
+      - name: Supported JDK 17 and 21 Java coverage
+        env:
+          JACOCO_MIN_LINE: "0.25"
+        run: |
+          clojure -M:jacoco
+          clojure -M:jacoco-gate
+          python3 dev/script/verify_java_quality_runtime.py target/java-quality-runtime
+
+      - name: Upload supported-runtime Java coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.name }}-${{ github.run_id }}
+          path: |
+            target/jacoco.xml
+            target/jacoco-html/
+            target/java-quality-runtime/
+          if-no-files-found: error
 
       - name: External PCAP and PCAPNG interoperability (offline)
         run: python3 dev/script/verify_interop.py target/interop

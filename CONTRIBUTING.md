@@ -126,6 +126,22 @@ for the parser and, after compiling Java, run
 
 Java quality commands are `clojure -T:build spotbugs`, `checkstyle`, `jacoco`,
 and `jacoco-gate`; use the existing CI coverage threshold when reproducing CI.
+SpotBugs/annotations are pinned to **4.10.5** and JaCoCo agent/CLI to **0.8.15**.
+SpotBugs retains its informational findings policy: inspect `target/spotbugs.xml`;
+analysis errors, missing classes, missing/corrupt reports and empty analysis fail.
+No new suppression is applied to the native pointer accessor. JaCoCo instruments
+`paclo.jnr.*`, starts fresh on each invocation and requires at least one JUnit test.
+The gate reads the report-level LINE counter exactly once, rejects empty/corrupt
+reports and permits `JACOCO_MIN_LINE` only from **0.25** through **1.0**.
+Run `python3 -B -m unittest discover -s dev/script -p 'test_java_quality.py'`
+for real-tool/failure controls, and
+`python3 dev/script/verify_java_quality_runtime.py /tmp/paclo-java-quality-runtime`
+with a fresh directory for an actual-runtime class-format instrumentation probe.
+CI retains all 16 jobs and measures the release-17 bindings on supported 17/21
+and experimental 25, plus a small class compiled for each actual JDK. Paclo still
+ships release-17 classes; upstream coverage-tool support for 25 does not widen
+Paclo's platform/native support. See the [P14-F report](dev/p14-f-java-quality-verification.md).
+
 Build subprocess failures propagate as nonzero CLI exits, including classpath
 resolution and JUnit. Run `python3 -B -m unittest discover -s dev/script -p
 'test_build_toolchain.py'` for failure-injection, Java 17 API and fixed POM-date checks.

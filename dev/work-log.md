@@ -6108,3 +6108,120 @@ already-successful unchanged tests/formatter in this docs-only commit; run
 Markdown/local-link/whitespace checks. P14-E implementation/verification is done,
 independent review remains pending, and P14 overall/next unfinished queue item
 remains P14. No other slice, merge, release, tag or publication is performed.
+
+## P14-F: Java quality tools (2026-10-21 Asia/Tokyo)
+
+Started with a clean supplied checkout, fetched latest main204d72c (PR83 merged)
+and created codex/p14-f-java-quality. Read AGENTS/CONTRIBUTING/API contract,
+accepted plan, P11 inventory and actual Java bindings/runners/CI/distribution
+checks. Initial doctor passed with host CLI1654; subsequent commands explicitly
+select existing /tmp/paclo-cli-1.12.5.1664. Local runtime is macOS x86_64,
+Temurin21.0.12.1+1, native libpcap1.10.1. Local17/25 are unavailable.
+
+Adopt SpotBugs/annotations4.10.5 and JaCoCo agent+CLI0.8.15. Hold all unrelated
+pins, core.async1.6.681 and1.5.0-SNAPSHOT. Before runner changes, measured old/new
+against identical release17 binding classes: both have one EI_EXPOSE_REP on
+PcapHandle.pointer, zero analysis errors/missing classes; JaCoCo both228/283
+instructions,19/26 branches,59/73 lines (80.82%),28/37 complexity,22/24 methods,
+7/9 classes. Preserve original reports/trees in p14-f-evidence. Production graph
+changes only annotations version; jsr305 remains3.0.2. Generated POM expectation
+is aligned. Analyzer-only ASM resolves9.11; production/JaCoCo remain9.10.1.
+Full transitive deltas and native/suppression triage are in the P14-F report.
+
+No production defect/new warning or additional suppression is introduced. The
+pointer accessor intentionally exposes the native handle for existing calls;
+retain the visible warning and established informational finding policy. Checked
+idempotent handle/BPF close, failed opens, borrowed stdio and existing native ABI
+regressions. Static analysis/offline tests do not prove all native/live lifetimes.
+Plugin inventories497 ->518 pattern IDs (25 added,4 removed). A same-class real
+probe finds0 warnings on4.8.6 and two valid findings on4.10.5: misleading
+StringBuilder.substring(0) and ignored Arrays.copyOf result. Keep these positive
+controls alongside actual missing-class/zero-test/corrupt-exec negative controls.
+
+Correct runner reliability: checked classpath subprocesses, SpotBugs -exitcode
+(bits1 findings informational;2 missing/4 errors fail), nonempty new report,
+stale-report cleanup, JaCoCo append=false and binding-only instrumentation,
+JUnit fail-if-no-tests, report-level coverage LINE once, closed XML reader,
+empty/corrupt/negative/duplicate counters rejected and threshold25% minimum.
+A first local probe used incorrect exit-bit assumptions; javap of the actual
+4.10.5 ExitCodes constants established the mapping above before final checks.
+No quality failure is waived. CI retains16 jobs and adds17/21/25 coverage plus
+actual-JDK class-format probes within existing mandatory jobs.
+
+Executed: reference-CLI doctor/prepare/check exit0;13 JUnit tests and494 Clojure
+tests/19,137 assertions, zero failures/errors and real offline smoke. Final Java
+quality commands exit0; coverage80.8% >=25%, same counters. Actual-JDK21 probe
+instruments class major65 and confirms3 covered lines/3 branches. Full lint,
+11 quality regressions,40 docs, P16, existing build/distribution regressions,
+package/consumer/performance and remote CI are underway; do not yet infer passes.
+No P14-B/Issue77/P17/P09/P10, release/tag/publication or merge work.
+
+Local follow-up: all11 Java-quality regressions pass (163.6s), including the two
+new-detector positive controls.16 doc-parser and15 distribution regressions pass;
+existing build-toolchain suite6/6 passes. All40 executable docs pass. P16 passes
+5 tests/377 assertions with offline synthetic captures. A direct historical-runner
+comparison confirms missing-class SpotBugs exit0 ->1 and empty-report gate exit0
+->1; original logs are retained in p14-f-evidence/failure-comparison.json.
+
+The first full lint passes kondo/Eastwood (642 informational warnings,0 exceptions)
+but rejects indentation after the final run-java! logging addition. Apply only
+that file's formatter and rerun complete lint. The first local perf execution
+while several verification JVMs were active fails at1484.1ms >1200ms; retain the
+failure. After all those commands finish, the unchanged gate passes at719.6ms,
+without budget/source changes. This single-host observation is not a general
+performance claim; remote existing performance gates must still pass. Final
+lint/package/independent consumer are running sequentially to avoid target cleanup
+conflicts. No live/other-platform validation is inferred.
+
+Final local lint exits0: kondo0 errors/warnings/2 existing infos; Eastwood117
+namespaces/642 informational warnings/0 exceptions (two new dev-only boxed-math
+warnings in process status and overflow-safe counter validation), clean namespace
+and format dry runs, Markdown59 files/0 errors. Package/distribution prepare and
+isolated JDK21 consume exit0. Local sourceb50de88/source_dirty=false; all10
+binding class majors61; expected POM includes annotations4.10.5. Local JAR SHA256
+088b049766665b46ac06db30aa8350d359bcc9c0c93a98413107c01f6519f990. Saved original
+provenance/consumer/runtime-probe JSON in p14-f-evidence.
+
+Created and attached implementation PR84 (Draft while cross-platform verification
+runs), headb50de8840a5c9f7a016028074d8a104a5b6a6e65. CI39550199521 is running.
+Commit reuses already-passed tests/format via existing hook flags; ordinary
+Markdown/kondo hooks execute and pass. No hook configuration or CI rule changes.
+Remote17/25/native-platform/consumer and all16 jobs remain pending. PR84 will
+remain unmerged for independent review.
+
+### P14-F implementation CI and delivery evidence
+
+Implementationb50de88 passes **all16 jobs** in
+[CI39550199521](https://github.com/nantes-rfli/paclo/actions/runs/39550199521),
+without failed-job reruns. Supported macOS ARM64/JDK17, Linux x64/JDK21 and
+experimental Linux x64/JDK25 all measure59/73 lines and19/26 branches; other
+counters agree with old tooling. Actual-runtime probes compile/instrument class
+majors61/65/69 and confirm3 covered lines/3 branches. Runtime versions are
+Temurin17.0.20.1,21.0.12.1 and25.0.4.1; CLI1664 everywhere. All11 new regressions
+pass in61.9s. CheckStyle has0 diagnostics; SpotBugs keeps its one intentional
+pointer finding with0 analysis errors/missing classes, no new suppression.
+
+All40 remote docs, Clojure/JUnit, three P16 platforms (377 assertions each),
+cloverage/Eastwood,736.9ms existing decode gate and all27 benchmark scenarios
+pass. Linux assertions19,143 vs macOS19,137 reflect existing platform cases.
+P14-B/Issue77 remain unchanged; no gate/budget is relaxed. Remote results are
+for those recorded offline platforms, not live capture or general JDK25 support.
+
+Downloaded and independently verified original distribution ZIP API SHA256
+74f54c6e9bf1029225d952fe4f1a3dcf9ad016be1dc4224bc23df3a6cfbbeec0 and all13
+member hashes. CI JARf73156062e5070d3c11c25fe39529512008c3cda07e439b07aade140461b3af5,
+source merge-ref0991c50a28200edb822970700e4f57a7c9e0f32a/source_dirty=false.
+All five original remote17/21/25 consumer outputs, including25 debug/deny, pass
+against that identical JAR/source and expected JNR/jffi/ASM/annotations graph.
+Consumer and four Java-quality ZIP digests are independently verified; a local
+isolated consumer also passes the original CI JAR. Compact original log excerpts,
+job URLs, artifact hashes, exact versions and measurements are committed in
+[p14-f-ci-evidence.json](p14-f-ci-evidence.json).
+
+Update plan/report as implementation and verification done, independent review
+pending in PR84. P14 overall and next unfinished queue item remain P14; remaining
+candidate adoption policies are explicit in the report. This evidence-only commit
+changes no tested source, dependency, workflow or gate bytes fromb50de88. Reuse
+successful unchanged behavioral/format checks; run Markdown, local links and
+whitespace verification. Final-head ordinary CI will be recorded in PR84 before
+delivery. No merge, release, tag, publication or other plan slice is performed.

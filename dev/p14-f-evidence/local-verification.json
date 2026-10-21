@@ -1,0 +1,122 @@
+{
+  "platform": "macOS x86_64",
+  "java": "Temurin 21.0.12.1+1",
+  "clojure_cli": "1.12.5.1664",
+  "log_directory": "/tmp/paclo-p14f",
+  "successful_checks": [
+    {
+      "log": "doctor.log",
+      "exit": 0,
+      "sha256": "ac24551652895a56394fbfdde56ae3b84680b11f2fb4765bd2e30c96f184fad9"
+    },
+    {
+      "log": "prepare.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "log": "check.log",
+      "exit": 0,
+      "sha256": "63a0fc28bcecb95855f51ae866c5915d4021f12b1911ac5b68ad75c74c3d341e"
+    },
+    {
+      "log": "lint-final.log",
+      "exit": 0,
+      "sha256": "58f2e184e68668c3c2db6c8b3e6bced3b17e37b9402ec7c26be7535c24386735"
+    },
+    {
+      "log": "spotbugs-final.log",
+      "exit": 0,
+      "sha256": "8e8dd7f2a0041dbf40ba42acccdf58b79b04e4f9fef19ddb7111e323180698ab"
+    },
+    {
+      "log": "checkstyle.log",
+      "exit": 0,
+      "sha256": "137100f6dd0612ecc38ff68108ce9278c0f0e7e3694169e0948536075ec53aae"
+    },
+    {
+      "log": "jacoco-final.log",
+      "exit": 0,
+      "sha256": "7c044a05652980197f9c2356750b21ea48164c81e23b39e7cae38079f52f88bd"
+    },
+    {
+      "log": "gate-final.log",
+      "exit": 0,
+      "sha256": "5a077b7adb40bb270c0b878b235e3d69f9c94b1707e2970da2b58942a285eaee"
+    },
+    {
+      "log": "quality-regressions-complete.log",
+      "exit": 0,
+      "sha256": "207ab095553e63a3d1e81c4f103ec7a7cc7b45f8360eb559a4e720617df21db3"
+    },
+    {
+      "log": "build-toolchain.log",
+      "exit": 0,
+      "sha256": "d9348104875836e3a1645fb581f300b61b0de827993c1626907cefd547053890"
+    },
+    {
+      "log": "distribution-tests.log",
+      "exit": 0,
+      "sha256": "5b9d25ec4fb10b181660110ad1976112bd1278ba41b474ec72c74a7665961bd3"
+    },
+    {
+      "log": "doc-parser.log",
+      "exit": 0,
+      "sha256": "547040a05951c8ed04be42d68c9770784e3aafba171012de43d3dd0418941849"
+    },
+    {
+      "log": "doc-examples.log",
+      "exit": 0,
+      "sha256": "e702b50ffb737617a70c6ecbbd23d0362192b55b906d0b18190810db19fc8f4e"
+    },
+    {
+      "log": "interop.log",
+      "exit": 0,
+      "sha256": "e5820839d6a72f6c01278e72f570f08d29a25c8a7ab7556488bfa02519d48799"
+    },
+    {
+      "log": "runtime21.log",
+      "exit": 0,
+      "sha256": "96b6c5c6322d76f41ba654ca46adab10db0b827e571bc7af5b539b32c2202371"
+    },
+    {
+      "log": "perf-isolated.log",
+      "exit": 0,
+      "sha256": "3d0c56a324278a48347ebab6d374e7e4b425186e565630fe287351e0dc9cbfef"
+    },
+    {
+      "log": "package.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "log": "distribution-prepare.log",
+      "exit": 0,
+      "sha256": "80b311447075651d2c71568572e4355eee4607f9692f592834a7565ea34bfcd0"
+    },
+    {
+      "log": "consumer.log",
+      "exit": 0,
+      "sha256": "2a177adf2ea6b8113d06512923319c412badd0ad59df16fa014356395a8d2d66"
+    },
+    {
+      "log": "doc-links-final.log",
+      "exit": 0,
+      "sha256": "e1d2d0b49115b509609cedf0989e4a06ba9376d847c1e01ae87d7082e474ad3a"
+    }
+  ],
+  "initial_failures": [
+    {
+      "check": "lint",
+      "exit": 1,
+      "cause": "Final logging helper indentation; formatter applied, complete lint replay passed."
+    },
+    {
+      "check": "perf-contended",
+      "exit": 1,
+      "elapsed_ms": 1484.1,
+      "fail_threshold_ms": 1200,
+      "followup": "Unchanged gate after competing verifications completed: exit0, 719.6ms."
+    }
+  ]
+}

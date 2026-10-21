@@ -1,0 +1,29 @@
+{
+  "class_major": 65,
+  "counters": {
+    "INSTRUCTION": {
+      "covered": 14,
+      "missed": 7
+    },
+    "BRANCH": {
+      "covered": 3,
+      "missed": 1
+    },
+    "LINE": {
+      "covered": 3,
+      "missed": 1
+    },
+    "COMPLEXITY": {
+      "covered": 3,
+      "missed": 2
+    },
+    "METHOD": {
+      "covered": 2,
+      "missed": 1
+    },
+    "CLASS": {
+      "covered": 1,
+      "missed": 0
+    }
+  }
+}
