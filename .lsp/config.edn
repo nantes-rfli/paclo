@@ -2,7 +2,7 @@
  [{:project-path "deps.edn"
    :classpath-cmd ["clojure" "-Spath"]}]
 
- :source-paths ["src" "src-java" "test" "dev"]
+ :source-paths ["src" "src-java" "test" "dev" "extensions/dns/src"]
  
  :cljfmt
  {:remove-trailing-whitespace? true

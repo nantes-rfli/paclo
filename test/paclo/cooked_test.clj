@@ -152,7 +152,7 @@
              (keep #(get-in % [:decoded :l3 :l4 :app :sni]) expected)))
       (is (= [:match :match] (mapv :kind (:dns (analyze expected)))))
       (is (= [1 1] (mapv :rtt-us (:dns (analyze expected)))))
-      (is (= 8 (reduce + (map :packets (flow/top-n (aggregate projected) 100)))))
+      (is (= 8 (reduce + (map :packets (flow/top-n (aggregate projected) {:n 100})))))
       (is (every? map? (map flow/key projected)))
       (with-open [^Closeable capture (core/start-capture (assoc (options file) :max 8))
                   ^Closeable fanout (stream/fan-out (core/capture-packets capture)

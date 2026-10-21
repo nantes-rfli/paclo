@@ -11,7 +11,7 @@ usage() {
 Usage: bash dev/script/codex.sh COMMAND [ARGS...]
   doctor      Check Java/Clojure versions, native libpcap, and optional tools
   prepare     Resolve development dependencies and compile Java sources/tests
-  tools       Install pinned lint binaries locally (Linux x86_64)
+  tools       Install pinned lint binaries locally (Linux/macOS x64/ARM64)
   smoke       Check offline PCAP I/O, decoding, and the DNS extension
   test        Compile Java bindings and run Clojure tests (runner args allowed)
   java-test   Compile Java bindings/tests and run JUnit
@@ -105,10 +105,9 @@ case "$paclo_command" in
     require_command clojure-lsp
     require_command npx
     compile_java
-    clj-kondo --lint src test dev extensions/dns/src
+    bash dev/script/kondo.sh
     clojure -M:eastwood
-    clojure-lsp clean-ns --dry
-    clojure-lsp format --dry
+    bash dev/script/fmt.sh --dry
     bash dev/script/mdlint.sh
     ;;
   perf) compile_java; clojure -M:perf-gate ;;

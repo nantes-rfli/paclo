@@ -1,0 +1,395 @@
+{
+  "pr": "https://github.com/nantes-rfli/paclo/pull/83",
+  "implementation_head": "8b4db65c933125310e72946545e4f34d18a01fff",
+  "ci_run": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063",
+  "conclusion": "success",
+  "job_count": 16,
+  "jobs": [
+    {
+      "id": 119012600413,
+      "name": "documentation-checks",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600413"
+    },
+    {
+      "id": 119012600556,
+      "name": "build-checks",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600556"
+    },
+    {
+      "id": 119012600560,
+      "name": "performance-measurement (udp-64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600560"
+    },
+    {
+      "id": 119012600580,
+      "name": "performance-measurement (mixed)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600580"
+    },
+    {
+      "id": 119012600603,
+      "name": "compatibility-matrix (macos-arm64-jdk17, macos-latest, 17, macOS, ARM64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600603"
+    },
+    {
+      "id": 119012600621,
+      "name": "jdk25-source",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600621"
+    },
+    {
+      "id": 119012600640,
+      "name": "coverage",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600640"
+    },
+    {
+      "id": 119012600647,
+      "name": "compatibility-matrix (linux-jdk21, ubuntu-latest, 21, Linux, X64)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600647"
+    },
+    {
+      "id": 119012600659,
+      "name": "arm64-monitor",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600659"
+    },
+    {
+      "id": 119012600723,
+      "name": "performance-measurement (tcp-512)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600723"
+    },
+    {
+      "id": 119012600757,
+      "name": "eastwood-lint",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119012600757"
+    },
+    {
+      "id": 119013064974,
+      "name": "performance-results",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119013064974"
+    },
+    {
+      "id": 119014098624,
+      "name": "distribution-consumer (17)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119014098624"
+    },
+    {
+      "id": 119014098688,
+      "name": "distribution-consumer (25)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119014098688"
+    },
+    {
+      "id": 119014098798,
+      "name": "distribution-consumer (21)",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119014098798"
+    },
+    {
+      "id": 119014343325,
+      "name": "build",
+      "conclusion": "success",
+      "url": "https://github.com/nantes-rfli/paclo/actions/runs/39535979063/job/119014343325"
+    }
+  ],
+  "distribution": {
+    "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+    "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+    "source_dirty": false,
+    "build_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+    "build_clojure_cli": "1.12.5.1664",
+    "dependencies": {
+      "org.clojure/data.json": "2.5.0",
+      "org.clojure/clojure": "1.12.6",
+      "com.github.jnr/jnr-ffi": "2.3.3",
+      "com.github.spotbugs/spotbugs-annotations": "4.8.6",
+      "org.clojure/core.async": "1.6.681"
+    },
+    "class_major_versions": {
+      "paclo/jnr/BpfProgram.class": 61,
+      "paclo/jnr/PcapConfigLibrary.class": 61,
+      "paclo/jnr/PcapErrors.class": 61,
+      "paclo/jnr/PcapHandle.class": 61,
+      "paclo/jnr/PcapHeader.class": 61,
+      "paclo/jnr/PcapLibrary$PcapIf.class": 61,
+      "paclo/jnr/PcapLibrary.class": 61,
+      "paclo/jnr/PcapStat.class": 61,
+      "paclo/jnr/PcapStatsLibrary.class": 61,
+      "paclo/jnr/PcapStdioLibrary.class": 61
+    }
+  },
+  "bundle_file_hashes_independently_verified": 13,
+  "artifacts": [
+    {
+      "id": 12318315017,
+      "name": "p16-interop-Linux-ARM64-39535979063",
+      "size_in_bytes": 40272,
+      "digest": "sha256:78ac44ce3b5a3393ccd495ac9b25b72dd4908301caa8c57faf1ebd4903d0e72d"
+    },
+    {
+      "id": 12318190085,
+      "name": "p16-interop-Linux-X64-39535979063",
+      "size_in_bytes": 42611,
+      "digest": "sha256:d253e9890d0c7ecf84cbd6f953481a8246b082884a275cd60878258e9dda2139"
+    },
+    {
+      "id": 12318060268,
+      "name": "coverage-report",
+      "size_in_bytes": 126601,
+      "digest": "sha256:4ce43920b11adcc63e6786a83d35adc72d93e4f750ecf71a4a0fee37797c7d75"
+    },
+    {
+      "id": 12318005306,
+      "name": "toolchain-resolution-39535979063",
+      "size_in_bytes": 4583,
+      "digest": "sha256:d38c4529ceeb8c1232bc12b335141ee0512b9409e6d3638a3e9fcd86b32e53ff"
+    },
+    {
+      "id": 12317995326,
+      "name": "perf-shard-udp-64-39535979063",
+      "size_in_bytes": 2418,
+      "digest": "sha256:5ad8f7960010514de05e504db710762d09c585da8472551399e42d673f34f46a"
+    },
+    {
+      "id": 12317921243,
+      "name": "distribution-consumer-jdk21-39535979063",
+      "size_in_bytes": 3206,
+      "digest": "sha256:57fb0ab8a8d364be705783845f67105594bb1dd377b06757d5ae30954b304587"
+    },
+    {
+      "id": 12317891245,
+      "name": "distribution-consumer-jdk25-39535979063",
+      "size_in_bytes": 9880,
+      "digest": "sha256:13bff71f4fdc4306b984c61555568fa68bf030c6a0474a47d553a4e025466ccc"
+    },
+    {
+      "id": 12317740913,
+      "name": "distribution-consumer-jdk17-39535979063",
+      "size_in_bytes": 3202,
+      "digest": "sha256:cbc080e99d71b0050ed12d98013d048e723ed7cda19c80c948d6740abe15769b"
+    },
+    {
+      "id": 12317595536,
+      "name": "perf-shard-tcp-512-39535979063",
+      "size_in_bytes": 2428,
+      "digest": "sha256:48a62e2de735280635edd5401b01da1bdc4d6932ea3aa0a5df27ecca7999c19a"
+    },
+    {
+      "id": 12317329261,
+      "name": "perf-quick-39535979063",
+      "size_in_bytes": 11445,
+      "digest": "sha256:b9233b0d4b83e9d059f13de32642d900b9098b4811600fc440c72048d9d6370a"
+    },
+    {
+      "id": 12317214456,
+      "name": "jdk25-source-39535979063",
+      "size_in_bytes": 9746,
+      "digest": "sha256:39f85c98e81a373d8b80372d44608514e438d81895892c993b0d259b04b7d09c"
+    },
+    {
+      "id": 12317164896,
+      "name": "distribution-1.5.0-SNAPSHOT-jdk21-39535979063",
+      "size_in_bytes": 90500,
+      "digest": "sha256:d66fc5347d9866c18ddb68e544bf18e6444d977108a62ea3a5a549c3ccd18e97"
+    },
+    {
+      "id": 12317109614,
+      "name": "p16-interop-macOS-ARM64-39535979063",
+      "size_in_bytes": 40012,
+      "digest": "sha256:283eef62843fdbc9c32b133eb059e7b684b382d019bbfe0a933d70f855ce0bc7"
+    },
+    {
+      "id": 12316854983,
+      "name": "perf-shard-mixed-39535979063",
+      "size_in_bytes": 2403,
+      "digest": "sha256:d4efb853be22cfc3771f99b90de412d95dae8566cc62d0929d21c6dc8a924ff8"
+    }
+  ],
+  "downloaded_verified_reports": [
+    {
+      "id": 12318315017,
+      "name": "p16-interop-Linux-ARM64-39535979063",
+      "sha256": "78ac44ce3b5a3393ccd495ac9b25b72dd4908301caa8c57faf1ebd4903d0e72d",
+      "reports": {
+        "environment.json": {
+          "os": "Linux-7.0.0-1017-azure-aarch64-with-glibc2.39",
+          "machine": "aarch64",
+          "source": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "tools": {
+            "text2pcap": "Text2pcap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "editcap": "Editcap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "mergecap": "Mergecap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "tshark": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "capinfos": "Capinfos (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "tcpdump": "tcpdump version 4.99.4"
+          }
+        }
+      }
+    },
+    {
+      "id": 12318190085,
+      "name": "p16-interop-Linux-X64-39535979063",
+      "sha256": "d253e9890d0c7ecf84cbd6f953481a8246b082884a275cd60878258e9dda2139",
+      "reports": {
+        "environment.json": {
+          "os": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+          "machine": "x86_64",
+          "source": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "tools": {
+            "text2pcap": "Text2pcap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "editcap": "Editcap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "mergecap": "Mergecap (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "tshark": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "capinfos": "Capinfos (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3).",
+            "tcpdump": "tcpdump version 4.99.4"
+          }
+        }
+      }
+    },
+    {
+      "id": 12317921243,
+      "name": "distribution-consumer-jdk21-39535979063",
+      "sha256": "57fb0ab8a8d364be705783845f67105594bb1dd377b06757d5ae30954b304587",
+      "reports": {
+        "consumer-jdk21.json": {
+          "status": "passed",
+          "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+          "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "runtime_java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+          "java_options": [],
+          "consumer_clojure_cli": "1.12.5.1664"
+        }
+      }
+    },
+    {
+      "id": 12317891245,
+      "name": "distribution-consumer-jdk25-39535979063",
+      "sha256": "13bff71f4fdc4306b984c61555568fa68bf030c6a0474a47d553a4e025466ccc",
+      "reports": {
+        "consumer-jdk25-native-access.json": {
+          "status": "passed",
+          "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+          "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+          "java_options": [
+            "--enable-native-access=ALL-UNNAMED",
+            "--sun-misc-unsafe-memory-access=debug"
+          ],
+          "consumer_clojure_cli": "1.12.5.1664"
+        },
+        "consumer-jdk25-unsafe-deny.json": {
+          "status": "passed",
+          "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+          "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+          "java_options": [
+            "--enable-native-access=ALL-UNNAMED",
+            "--sun-misc-unsafe-memory-access=deny"
+          ],
+          "consumer_clojure_cli": "1.12.5.1664"
+        },
+        "consumer-jdk25.json": {
+          "status": "passed",
+          "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+          "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "runtime_java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+          "java_options": [],
+          "consumer_clojure_cli": "1.12.5.1664"
+        }
+      }
+    },
+    {
+      "id": 12317740913,
+      "name": "distribution-consumer-jdk17-39535979063",
+      "sha256": "cbc080e99d71b0050ed12d98013d048e723ed7cda19c80c948d6740abe15769b",
+      "reports": {
+        "consumer-jdk17.json": {
+          "status": "passed",
+          "jar_sha256": "f595091e86a0bc5019d49157cfd633df8a22abc1c61170005093128f59967f13",
+          "source_commit": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "runtime_java": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+          "java_options": [],
+          "consumer_clojure_cli": "1.12.5.1664"
+        }
+      }
+    },
+    {
+      "id": 12317109614,
+      "name": "p16-interop-macOS-ARM64-39535979063",
+      "sha256": "283eef62843fdbc9c32b133eb059e7b684b382d019bbfe0a933d70f855ce0bc7",
+      "reports": {
+        "environment.json": {
+          "os": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+          "machine": "arm64",
+          "source": "be65e465542b35c6989db92e6a821c187c4b5469",
+          "tools": {
+            "text2pcap": "Text2pcap (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+            "editcap": "Editcap (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+            "mergecap": "Mergecap (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+            "tshark": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+            "capinfos": "Capinfos (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+            "tcpdump": "tcpdump version 4.99.1 -- Apple version 158"
+          }
+        }
+      }
+    }
+  ],
+  "log_excerpts": [
+    {
+      "job_id": 119012600556,
+      "lines": [
+        "2026-10-21T02:58:49.2391143Z clj-kondo v2026.10.20",
+        "2026-10-21T02:58:50.4268748Z clojure-lsp 2026.10.15-11.42.38",
+        "2026-10-21T02:58:50.4269206Z clj-kondo 2026.08.05-SNAPSHOT (c50ca52)",
+        "2026-10-21T03:00:38.1805753Z [jacoco-gate] line coverage 80.8% (threshold 25.0%)",
+        "2026-10-21T03:00:41.4967780Z [perf-gate] decode?=true mid-50k elapsed-ms=433.8 (warn=1000 fail=1200)",
+        "2026-10-21T03:02:53.2892638Z Ran 15 tests in 123.352s",
+        "2026-10-21T03:02:53.3265338Z linting took 2ms, errors: 0, warnings: 0",
+        "2026-10-21T03:03:24.1694203Z linting took 3651ms, errors: 0, warnings: 0",
+        "2026-10-21T03:03:30.4638475Z Summary: 0 error(s)"
+      ]
+    },
+    {
+      "job_id": 119012600603,
+      "lines": [
+        "2026-10-21T02:59:21.2868310Z clj-kondo v2026.10.20",
+        "2026-10-21T02:59:22.9374370Z clojure-lsp 2026.10.15-11.42.38",
+        "2026-10-21T02:59:22.9382460Z clj-kondo 2026.08.05-SNAPSHOT (c50ca52)",
+        "2026-10-21T02:59:27.7342750Z linting took 4749ms, errors: 0, warnings: 0",
+        "2026-10-21T02:59:27.8378150Z linting took 12ms, errors: 0, warnings: 0",
+        "2026-10-21T03:02:02.3611830Z Ran 5 tests containing 377 assertions."
+      ]
+    },
+    {
+      "job_id": 119012600659,
+      "lines": [
+        "2026-10-21T02:59:21.3209499Z clj-kondo v2026.10.20",
+        "2026-10-21T02:59:23.5884135Z clojure-lsp 2026.10.15-11.42.38",
+        "2026-10-21T02:59:23.5884987Z clj-kondo 2026.08.05-SNAPSHOT (c50ca52)",
+        "2026-10-21T02:59:28.7168727Z linting took 5106ms, errors: 0, warnings: 0",
+        "2026-10-21T02:59:28.7451857Z linting took 2ms, errors: 0, warnings: 0",
+        "2026-10-21T03:02:03.2679429Z Ran 5 tests containing 377 assertions."
+      ]
+    },
+    {
+      "job_id": 119012600413,
+      "lines": [
+        "2026-10-21T03:02:04.9716711Z PASS: 40 documentation examples"
+      ]
+    }
+  ],
+  "limits": [
+    "Evidence is for the implementation CI merge ref; final evidence-only head CI is tracked in PR83.",
+    "JDK25 remains experimental; no live capture or other-platform claim."
+  ]
+}

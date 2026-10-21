@@ -1,12 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Pinned Linux x86_64 tools for the managed development image. Other platforms
-# should use their existing installation, following CONTRIBUTING.md and CI.
-if [[ "$(uname -s)" != Linux || "$(uname -m)" != x86_64 ]]; then
-  echo "This installer supports Linux x86_64; see CONTRIBUTING.md for other platforms." >&2
-  exit 1
-fi
+# Native upstream distributions; pins are shared with CI through this installer.
+paclo_kondo_version=2026.10.20
+paclo_lsp_version=2026.10.15-11.42.38
+case "$(uname -s)/$(uname -m)" in
+  Linux/x86_64)
+    paclo_platform=linux-amd64
+    paclo_kondo_sha=cfc093e177d0e4619ae7bf9d5acd8f0ea43e7bb18dae9d64c1fa9fbcd3832681
+    paclo_lsp_sha=d68acf630465cec9d3685fd958f914d9228d90a07222edd301f1a4740b8e8b76
+    ;;
+  Linux/aarch64)
+    paclo_platform=linux-aarch64
+    paclo_kondo_sha=8231f5a039dfa4d6c255a25ad3c1286a6a1679cd706ddbee646a6cbed4ba684c
+    paclo_lsp_sha=232ac0cd191070a3b7b5532135ec9f97217b82324de7e97da0b1bf81353a3c94
+    ;;
+  Darwin/x86_64)
+    paclo_platform=macos-amd64
+    paclo_kondo_sha=4c3caabc03108d2fc9b1860ae6a140af67c791115e6c1e8eeadc7e943bf49c0f
+    paclo_lsp_sha=468c261b48a7276c79cb92a82ddfce5474bc563ba6673df30cabf17a7f239ef3
+    ;;
+  Darwin/arm64)
+    paclo_platform=macos-aarch64
+    paclo_kondo_sha=675c2e508c71afe774cfa402f7959a6580a82f15c15dc935502489ff88133815
+    paclo_lsp_sha=84df57e51e27f4ecf20d0cd65aab3296e2ebf28dbaacca4fe216b6cf20485716
+    ;;
+  *)
+    echo "Unsupported lint-tool platform: $(uname -s)/$(uname -m). See CONTRIBUTING.md." >&2
+    exit 1
+    ;;
+esac
 for paclo_tool in curl python3; do
   if ! command -v "$paclo_tool" >/dev/null 2>&1; then
     echo "Missing installer prerequisite: $paclo_tool" >&2
@@ -52,8 +75,8 @@ PY
 }
 
 install_tool clj-kondo \
-  https://github.com/clj-kondo/clj-kondo/releases/download/v2025.10.23/clj-kondo-2025.10.23-linux-amd64.zip \
-  7d3e563668ec4e8da164c78ed1a9264b5f442a2933c4934c6d0a06652bbfe494
+  "https://github.com/clj-kondo/clj-kondo/releases/download/v$paclo_kondo_version/clj-kondo-$paclo_kondo_version-$paclo_platform.zip" \
+  "$paclo_kondo_sha"
 install_tool clojure-lsp \
-  https://github.com/clojure-lsp/clojure-lsp/releases/download/2025.11.28-12.47.43/clojure-lsp-native-linux-amd64.zip \
-  6021378f08248c140aecaea88cc27822cc70093362b5805d27173c29dcafcd0d
+  "https://github.com/clojure-lsp/clojure-lsp/releases/download/$paclo_lsp_version/clojure-lsp-native-$paclo_platform.zip" \
+  "$paclo_lsp_sha"

@@ -112,7 +112,9 @@
     (is (= [] (flow/top-n result {:n 0})))
     (is (= [] (flow/top-n (rf) {})))
     (is (thrown? clojure.lang.ExceptionInfo (flow/top-n result {:metric :bytes})))
-    (is (thrown? clojure.lang.ExceptionInfo (flow/top-n result {:n -1}))))
+    ;; Deliberate invalid input verifies the public runtime validation.
+    (is (thrown? clojure.lang.ExceptionInfo #_{:clj-kondo/ignore [:type-mismatch]}
+                 (flow/top-n result {:n -1}))))
   (let [rf (flow/aggregate-rf {:max-flows 3})
         result (reduce rf (rf) [packet packet (assoc (reverse-packet packet) :caplen 90 :len 100)])]
     (is (= 12000 (get-in (first (flow/top-n result {:metric :packets})) [:flow :src-port])))

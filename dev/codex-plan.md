@@ -67,13 +67,13 @@ Task descriptions below retain original scope; completion summaries and the curr
 | P16 | Unassigned | Verify real PCAP/PCAPNG interoperability | P11 | done |
 | P17 | Unassigned | Prepare for Clojure 1.13 | P12; need and prerelease maturity | blocked |
 
-Current task: **P14-D PR82 review correction — verification complete; independent review pending**.
-Started from latest fetched main `0047ac5` after P14-C
-[PR #80](https://github.com/nantes-rfli/paclo/pull/80) merged.
-Update isolated nvd-clojure5.3.0/Dependency-Check12.2.2, preserve production scan
-scope and enforce CVSS base score >=7.0, record exact inputs/tool versions/NVD
-freshness, and reject incomplete audits. See the
-[P14-D report](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
+Current task: **P14-E — implementation and verification complete; independent review pending in PR83**.
+Selected from latest fetched main `42d2123`, including merged
+[P14-D PR82](https://github.com/nantes-rfli/paclo/pull/82).
+Adopt standalone kondo2026.10.20 and LSP2026.10.15-11.42.38 after official release
+recheck; unify checksum-verified native installs, analysis roots and failure
+handling. See the [P14-E report](p14-e-lint-tools-verification.md) and
+[work log](work-log.md). Independent review is required before any merge.
 P14 remains **in-progress**: P14-B [PR #76](https://github.com/nantes-rfli/paclo/pull/76)
 is held by open [Issue #77](https://github.com/nantes-rfli/paclo/issues/77).
 Retain core.async1.6.681 and all other production/toolchain/release pins.
@@ -741,7 +741,7 @@ native/ABI, same-JAR17/21/25 and warning evidence. P14-B
 [PR #76](https://github.com/nantes-rfli/paclo/pull/76) remains unmerged due to
 the performance regression tracked by open
 [Issue #77](https://github.com/nantes-rfli/paclo/issues/77). Main and P16 retain
-core.async1.6.681. P14-C is reviewed and merged in PR80. P14-D is selected;
+core.async1.6.681. P14-C and P14-D are reviewed and merged in PR80/PR82. P14-E is selected;
 other candidates require separate selection;
 P14 as a whole is unfinished. P16 is reviewed and merged in PR78 and does not
 resume any of these slices.
@@ -776,7 +776,8 @@ publication, tag or merge follows this completion.
 
 ### P14-D: Dependency audit update and reliability
 
-Status: **in-progress** in [PR82](https://github.com/nantes-rfli/paclo/pull/82).
+Status: **done**, independently reviewed and merged through
+[PR82](https://github.com/nantes-rfli/paclo/pull/82) as `42d2123`.
 Selected from main `0047ac5`, after PR80/PR78 merged. Isolate nvd-clojure5.3.0
 (Dependency-Check12.2.2), preserve all23 production JARs, correct flat EDN and
 independently enforce CVSS base scores >=7.0. Record exact resolved graphs/JAR
@@ -803,10 +804,30 @@ CLI-download HTTP500); local full tests and static checks pass. Exact reports,
 versions/hashes, cache keys and timestamps are in
 [verification](p14-d-dependency-audit-verification.md) and [work log](work-log.md).
 
-P14-D implementation and execution verification are complete; independent review
-and merge remain pending. Keep this as the current slice until review completes;
-P14 overall stays in-progress, PR76/Issue77 stay unchanged, and PR82 remains Draft.
-No other slice, release/tag/publication or merge is authorized by this correction.
+P14-D implementation, execution verification and independent review are complete.
+P14 overall stays in-progress; PR76/Issue77 stay unchanged. The separately
+selected P14-E follows; no release/tag/publication or merge is authorized.
+
+### P14-E: clj-kondo and clojure-lsp
+
+Status: **done** for implementation and execution verification in
+[PR83](https://github.com/nantes-rfli/paclo/pull/83); independent review pending.
+Selected from main `42d2123` on2026-10-21. Implementation8b4db65 passes all16 jobs
+in [CI39535979063](https://github.com/nantes-rfli/paclo/actions/runs/39535979063),
+including actual native kondo/LSP on Linux x64/ARM64 and macOS ARM64, all40 docs,
+P16, same-JAR17/21/25 and unchanged quality/performance gates. The
+[CI evidence](p14-e-ci-evidence.json) and report retain versions/hashes/limits;
+final evidence-only head CI is recorded in PR83.
+Update kondo2025.10.23 to2026.10.20 (new stable release after the P11 candidate)
+and LSP2025.11.28-12.47.43 to2026.10.15-11.42.38. Share checksum pins between
+local setup and the existing Linux/macOS x64/ARM64 jobs. Align all source roots,
+retain resource-macro lint-as mappings and rules, fix individually triaged
+findings, and fail on incomplete analyzer/configuration results. Record before/
+after findings, real-tool and installer negative controls, full existing CI and
+platform limits in the [report](p14-e-lint-tools-verification.md) and work log.
+All production/toolchain/version/support/quality/performance pins stay unchanged.
+No P14-B/Issue77/P17/P09/P10 work or merge/release/tag/publication.
+Next unfinished queue item remains P14; this slice requires independent review.
 
 ## P15: REPL workflows and practical examples
 

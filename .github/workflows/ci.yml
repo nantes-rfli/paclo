@@ -61,17 +61,10 @@ jobs:
           restore-keys: |
             cljdeps-cli1.12.5.1664-${{ runner.os }}-${{ runner.arch }}-
 
-      # --- Install lint/format tooling ---
-      - name: Set up Clojure tooling (clj-kondo)
-        uses: DeLaGuardo/setup-clojure@13.0
-        with:
-          clj-kondo: '2025.10.23'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install clojure-lsp
-        uses: clojure-lsp/setup-clojure-lsp@v1
-        with:
-          clojure-lsp-version: 2025.11.28-12.47.43
+      - name: Install checksum-verified lint tools
+        run: |
+          bash dev/script/setup-lint-tools.sh
+          echo "$PWD/.dev-tools/bin" >> "$GITHUB_PATH"
 
       - name: Compile Java (jnr-ffi bindings)
         shell: bash
@@ -179,19 +172,21 @@ jobs:
           set -e
           test "$exit_status" -eq 2
 
+      - name: Verify static analysis and installer failure handling
+        run: python3 -B -m unittest discover -s dev/script -p 'test_lint_tools.py'
+
       # --- Format / ns check with clojure-lsp (dry-run) ---
       - name: Lint / Format (clojure-lsp dry-run)
         shell: bash
         run: |
           set -e
-          clojure-lsp clean-ns --dry
-          clojure-lsp format --dry
+          bash dev/script/fmt.sh --dry
 
       - name: clj-kondo lint
         shell: bash
         run: |
           set -e
-          clj-kondo --lint src test dev
+          bash dev/script/kondo.sh
 
       - name: Markdown lint (check only)
         shell: bash
@@ -657,6 +652,13 @@ jobs:
           set -e
           clojure -T:build jar
 
+      - name: Verify native lint tools and source compatibility
+        run: |
+          bash dev/script/setup-lint-tools.sh
+          export PATH="$PWD/.dev-tools/bin:$PATH"
+          bash dev/script/kondo.sh
+          bash dev/script/fmt.sh --dry
+
       - name: Verify native ABI and record loaded library identity
         shell: bash
         run: |
@@ -741,6 +743,13 @@ jobs:
         run: |
           set -e
           clojure -T:build jar
+
+      - name: Verify native lint tools and source compatibility
+        run: |
+          bash dev/script/setup-lint-tools.sh
+          export PATH="$PWD/.dev-tools/bin:$PATH"
+          bash dev/script/kondo.sh
+          bash dev/script/fmt.sh --dry
 
       - name: Verify native ABI and record loaded library identity
         shell: bash
